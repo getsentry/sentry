@@ -1,5 +1,4 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -417,83 +416,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(false);
-    });
-  });
-  describe('add dashboard widget', () => {
-    beforeEach(() => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        body: [],
-      });
-    });
-
-    it('opens widget modal when add to dashboard is clicked', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      wrapper
-        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
-        .first()
-        .simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(
-        modal.find('AddDashboardWidgetModal').find('h4').children().at(0).html()
-      ).toEqual('Add Widget to Dashboard');
-    });
-
-    it('populates dashboard widget modal with saved query data if created from discover', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      wrapper
-        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
-        .first()
-        .simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(modal.find('SmartSearchBar').props().query).toEqual('event.type:error');
-      expect(modal.find('QueryField').at(0).props().fieldValue.function[0]).toEqual(
-        'count'
-      );
-      expect(modal.find('QueryField').at(1).props().fieldValue.function[0]).toEqual(
-        'failure_count'
-      );
-    });
-
-    it('adds equation to query fields if yAxis includes comprising functions', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        [...yAxis, 'equation|count() + failure_count()']
-      );
-      wrapper
-        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
-        .first()
-        .simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
-        'count() + failure_count()'
-      );
     });
   });
 });

@@ -6,7 +6,7 @@ import FormContext from 'sentry/components/forms/formContext';
 import SelectField from 'sentry/components/forms/selectField';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Permissions} from 'sentry/types/index';
+import {PermissionResource, Permissions, PermissionValue} from 'sentry/types/index';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -88,6 +88,10 @@ type State = {
   permissions: Permissions;
 };
 
+function findResource(r: PermissionResource) {
+  return find(SENTRY_APP_PERMISSIONS, ['resource', r]);
+}
+
 export default class PermissionSelection extends Component<Props, State> {
   state: State = {
     permissions: this.props.permissions,
@@ -104,20 +108,19 @@ export default class PermissionSelection extends Component<Props, State> {
    */
   permissionStateToList() {
     const {permissions} = this.state;
-    const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
     return flatMap(
       Object.entries(permissions),
-      ([r, p]) => findResource(r)?.choices?.[p]?.scopes
+      ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
     );
   }
 
-  onChange = (resource, choice) => {
+  onChange = (resource: PermissionResource, choice: PermissionValue) => {
     const {permissions} = this.state;
     permissions[resource] = choice;
     this.save(permissions);
   };
 
-  save = permissions => {
+  save = (permissions: Permissions) => {
     this.setState({permissions});
     this.props.onChange(permissions);
     this.context.form.setValue('scopes', this.permissionStateToList());
@@ -129,8 +132,11 @@ export default class PermissionSelection extends Component<Props, State> {
     return (
       <Fragment>
         {SENTRY_APP_PERMISSIONS.map(config => {
-          const toOption = ([value, {label}]) => ({value, label});
-          const options = Object.entries(config.choices).map(toOption);
+          const options = Object.entries(config.choices).map(([value, {label}]) => ({
+            value,
+            label,
+          }));
+
           const value = permissions[config.resource];
 
           return (

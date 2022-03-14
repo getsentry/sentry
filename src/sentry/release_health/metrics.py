@@ -1451,7 +1451,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Function("sum", [Column("value")], alias="value"),
                 ],
                 groupby=[Column("bucketed_time"), Column(session_status_key)],
-            )
+            ),
+            referrer="release_health.metrics.get_project_release_stats_sessions_series",
         )["data"]
 
         series: DefaultDict[datetime, SessionCounts] = defaultdict(self._default_session_counts)
@@ -1490,7 +1491,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Function("uniq", [Column("value")], alias="value"),
                 ],
                 groupby=[Column("bucketed_time")],
-            )
+            ),
+            referrer="release_health.metrics.get_project_release_stats_sessions_error_series",
         )["data"]
 
         for row in session_error_series_data:
@@ -1542,7 +1544,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Function("uniq", [Column("value")], alias="value"),
                 ],
                 groupby=[Column("bucketed_time"), Column(session_status_key)],
-            )
+            ),
+            referrer="release_health.metrics.get_project_release_stats_user_series",
         )["data"]
 
         user_totals_data = raw_snql_query(
@@ -1556,7 +1559,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     Function("uniq", [Column("value")], alias="value"),
                 ],
                 groupby=[Column(session_status_key)],
-            )
+            ),
+            referrer="release_health.metrics.get_project_release_stats_user_totals",
         )["data"]
 
         series: DefaultDict[datetime, UserCounts] = defaultdict(self._default_user_counts)
