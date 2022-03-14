@@ -166,6 +166,10 @@ function FlamegraphSearch({
       return onZoomIntoFrame(frames[0]);
     }
 
+    dispatchFlamegraphState({
+      type: 'set search index position',
+      payload: flamegraphState.search.index + 1,
+    });
     return onZoomIntoFrame(frames[flamegraphState.search.index + 1]);
   }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
 
@@ -183,6 +187,10 @@ function FlamegraphSearch({
       return onZoomIntoFrame(frames[frames.length - 1]);
     }
 
+    dispatchFlamegraphState({
+      type: 'set search index position',
+      payload: flamegraphState.search.index - 1,
+    });
     return onZoomIntoFrame(frames[flamegraphState.search.index - 1]);
   }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
 

@@ -1,12 +1,10 @@
 import React, {createContext, useReducer} from 'react';
 
-import {Flamegraph} from '../flamegraph';
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 const exhaustiveCheck = (x: never) => void x;
 
 export type FlamegraphState = {
-  flamegraph: Flamegraph | null;
   search: {
     index: number | null;
     open: boolean;
@@ -43,17 +41,11 @@ type FlamegraphSearchArrowNavigationAction = {
   type: 'set search index position';
 };
 
-type SetFlamegraphAction = {
-  payload: Flamegraph;
-  type: 'set flamegraph';
-};
-
 export type FlamegraphStateAction =
   | OpenFlamegraphSearchAction
   | CloseFlamegraphSearchAction
   | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
-  | SetFlamegraphAction
   | SetFlamegraphResultsAction;
 
 export const flamegraphReducer: React.Reducer<FlamegraphState, FlamegraphStateAction> = (
@@ -61,9 +53,6 @@ export const flamegraphReducer: React.Reducer<FlamegraphState, FlamegraphStateAc
   action
 ): FlamegraphState => {
   switch (action.type) {
-    case 'set flamegraph': {
-      return {...state, flamegraph: action.payload};
-    }
     case 'open search': {
       return {...state, search: {...state.search, open: true}};
     }
@@ -111,7 +100,6 @@ export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
   const reducer = useReducer(flamegraphReducer, {
-    flamegraph: null,
     search: {
       open: false,
       index: null,
