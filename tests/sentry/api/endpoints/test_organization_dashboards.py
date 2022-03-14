@@ -578,6 +578,42 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
+    def test_assigns_default_limit_to_topN_widgets(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+                {
+                    "displayType": "top_n",
+                    "interval": "5m",
+                    "title": "Error count()",
+                    "queries": [
+                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        widgets = self.get_widgets(dashboard.id)
+
+        assert widgets[0].limit is None  # Line chart doesn't get default
+        assert widgets[1].limit == 5  # TopN gets default value
+
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
         data = {
             "title": "Dashboard with null agg and cols",

@@ -450,6 +450,27 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
+    def test_add_topN_widget_with_no_limit_gets_default_value(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Custom Widget",
+                    "displayType": "top_n",
+                    "interval": "5m",
+                    "limit": None,
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        assert widgets[0].limit == 5
+
     def test_add_widget_display_type(self):
         data = {
             "title": "First dashboard",
