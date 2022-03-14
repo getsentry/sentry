@@ -12,24 +12,18 @@ import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type Props = Omit<
-  React.ComponentProps<typeof MultipleEnvironmentSelector>,
-  | 'organization'
-  | 'projects'
-  | 'loadingProjects'
-  | 'selectedProjects'
-  | 'value'
-  | 'onChange'
-  | 'onUpdate'
-> & {
+type Props = {
   router: WithRouterProps['router'];
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  alignDropdown?: React.ComponentProps<
+    typeof MultipleEnvironmentSelector
+  >['alignDropdown'];
 };
 
-function EnvironmentPageFilter({router, resetParamsOnChange = [], ...props}: Props) {
+function EnvironmentPageFilter({router, resetParamsOnChange = [], alignDropdown}: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
@@ -75,8 +69,8 @@ function EnvironmentPageFilter({router, resetParamsOnChange = [], ...props}: Pro
       onUpdate={handleUpdateEnvironments}
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
+      alignDropdown={alignDropdown}
       detached
-      {...props}
     />
   );
 }
