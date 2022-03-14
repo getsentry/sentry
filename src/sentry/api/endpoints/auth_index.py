@@ -36,7 +36,7 @@ class AuthIndexEndpoint(Endpoint):
     permission_classes = ()
 
     @staticmethod
-    def _reauthenticate_with_sso(request):
+    def _reauthenticate_with_sso(request, org_id=Superuser.org_id):
         """
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
@@ -45,7 +45,7 @@ class AuthIndexEndpoint(Endpoint):
             redirect = None
 
         initiate_login(request, redirect)
-        raise SsoRequired(Organization.objects.get_from_cache(id=Superuser.org_id))
+        raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
 
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
@@ -117,10 +117,16 @@ class AuthIndexEndpoint(Endpoint):
 
         if not validator.is_valid() and not has_valid_sso_session:
             try:
-                AuthIdentity.objects.get(user=request.user)
+                auth_identity = AuthIdentity.objects.get(user=request.user)
+                org_id = (
+                    auth_identity.auth_provider.organization_id
+                    if not request.user.is_superuser
+                    else None
+                )
             except AuthIdentity.DoesNotExist:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-            self._reauthenticate_with_sso(request)
+
+            self._reauthenticate_with_sso(request, org_id)
 
         authenticated = False
         # See if we have a u2f challenge/response
