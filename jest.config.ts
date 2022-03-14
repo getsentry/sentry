@@ -197,8 +197,6 @@ const config: Config.InitialOptions = {
     ],
   ],
 
-  testRunner: 'jest-circus/runner',
-
   testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
   testEnvironmentOptions: {
     sentryConfig: {
