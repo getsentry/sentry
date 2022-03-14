@@ -1,5 +1,5 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -41,7 +41,7 @@ describe('TraceDetailsContent', () => {
       const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
       const meta = {errors: 2, projects: 1, transactions: 0};
 
-      mountWithTheme(
+      render(
         <TraceDetailsContent
           location={initialData.location}
           organization={initialData.organization}

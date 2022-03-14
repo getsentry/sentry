@@ -19,7 +19,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
 
-type Props = {
+interface Props {
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   fields: QueryFieldValue[];
@@ -29,7 +29,7 @@ type Props = {
   onChange: (fields: QueryFieldValue[]) => void;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
-};
+}
 
 export function YAxisSelector({
   displayType,
@@ -193,9 +193,10 @@ export function YAxisSelector({
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={fields}
           />
-          {i !== 0 && (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
-            <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
-          )}
+          {fields.length > 1 &&
+            (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
+              <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
+            )}
         </QueryFieldWrapper>
       ))}
       {!hideAddYAxisButtons && (

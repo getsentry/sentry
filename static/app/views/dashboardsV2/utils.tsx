@@ -175,11 +175,12 @@ export function getFieldsFromEquations(fields: string[]): string[] {
 export function getWidgetDiscoverUrl(
   widget: Widget,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  index: number = 0
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
-    widget.queries[0],
+    widget.queries[index],
     selection,
     widget.displayType
   );

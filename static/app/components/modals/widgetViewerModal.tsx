@@ -2,21 +2,26 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {truncate} from '@sentry/utils';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import SelectControl from 'sentry/components/forms/selectControl';
+import GridEditable, {
+  COL_WIDTH_MINIMUM,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -27,13 +32,15 @@ import {
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
+import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
+  renderDiscoverGridHeaderCell,
   renderGridBodyCell,
-  renderGridHeaderCell,
+  renderIssueGridHeaderCell,
+  renderPrependColumns,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -53,6 +60,22 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
+// WidgetCardChartContainer rerenders if selection was changed.
+// This is required because we want to prevent ECharts interactions from
+// causing unnecessary rerenders which can break persistent legends functionality.
+const MemoizedWidgetCardChartContainer = React.memo(
+  WidgetCardChartContainer,
+  (props, prevProps) => {
+    return (
+      props.selection === prevProps.selection &&
+      props.location.query[WidgetViewerQueryField.QUERY] ===
+        prevProps.location.query[WidgetViewerQueryField.QUERY] &&
+      props.location.query[WidgetViewerQueryField.SORT] ===
+        prevProps.location.query[WidgetViewerQueryField.SORT]
+    );
+  }
+);
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -64,10 +87,22 @@ function WidgetViewerModal(props: Props) {
     Header,
     closeModal,
     onEdit,
+    router,
+    routes,
+    params,
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
-  const [cursor, setCursor] = React.useState<string>();
+  const selectedQueryIndex =
+    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+  const disabledLegends = decodeList(
+    location.query[WidgetViewerQueryField.LEGEND]
+  ).reduce((acc, legend) => {
+    acc[legend] = false;
+    return acc;
+  }, {});
+  const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
+  const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
 
   // Use sort if provided by location query to sort table
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
@@ -79,46 +114,77 @@ function WidgetViewerModal(props: Props) {
     widget.displayType === DisplayType.TOP_N
       ? {...widget, queries: sortedQueries}
       : widget;
+  const api = useApi();
 
-  const renderWidgetViewer = () => {
-    const api = useApi();
+  // Create Table widget
+  const tableWidget = {
+    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
+    displayType: DisplayType.TABLE,
+  };
+  const fields = tableWidget.queries[0].fields;
 
-    // Create Table widget
-    const tableWidget = {
-      ...cloneDeep({...widget, queries: sortedQueries}),
-      displayType: DisplayType.TABLE,
-    };
-    const fields = tableWidget.queries[0].fields;
+  // World Map view should always have geo.country in the table chart
+  if (
+    widget.displayType === DisplayType.WORLD_MAP &&
+    !fields.includes(GEO_COUNTRY_CODE)
+  ) {
+    fields.unshift(GEO_COUNTRY_CODE);
+  }
 
-    // World Map view should always have geo.country in the table chart
-    if (
-      widget.displayType === DisplayType.WORLD_MAP &&
-      !fields.includes(GEO_COUNTRY_CODE)
-    ) {
-      fields.unshift(GEO_COUNTRY_CODE);
-    }
-    if (!isTableWidget) {
-      // Updates fields by adding any individual terms from equation fields as a column
-      const equationFields = getFieldsFromEquations(fields);
-      equationFields.forEach(term => {
-        if (Array.isArray(fields) && !fields.includes(term)) {
-          fields.unshift(term);
-        }
-      });
-    }
-    const eventView = eventViewFromWidget(
-      tableWidget.title,
-      tableWidget.queries[0],
-      modalSelection,
-      tableWidget.displayType
+  // Default table columns for visualizations that don't have a column setting
+  const shouldReplaceTableColumns = [
+    DisplayType.AREA,
+    DisplayType.LINE,
+    DisplayType.BIG_NUMBER,
+    DisplayType.BAR,
+  ].includes(widget.displayType);
+
+  if (shouldReplaceTableColumns) {
+    tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
+    fields.splice(
+      0,
+      fields.length,
+      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
     );
-    const columnOrder = eventView.getColumns();
-    const columnSortBy = eventView.getSorts();
+  }
+
+  const prependColumnWidths = shouldReplaceTableColumns
+    ? [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`]
+    : [];
+
+  if (!isTableWidget) {
+    // Updates fields by adding any individual terms from equation fields as a column
+    const equationFields = getFieldsFromEquations(fields);
+    equationFields.forEach(term => {
+      if (Array.isArray(fields) && !fields.includes(term)) {
+        fields.unshift(term);
+      }
+    });
+  }
+  const eventView = eventViewFromWidget(
+    tableWidget.title,
+    tableWidget.queries[0],
+    modalSelection,
+    tableWidget.displayType
+  );
+  const columnOrder = eventView.getColumns();
+  const columnSortBy = eventView.getSorts();
+
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
+    label: truncate(name || conditions, 120),
+    value: index,
+  }));
+
+  function renderWidgetViewer() {
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
-            <WidgetCardChartContainer
+            <MemoizedWidgetCardChartContainer
+              location={location}
+              router={router}
+              routes={routes}
+              params={params}
               api={api}
               organization={organization}
               selection={modalSelection}
@@ -135,8 +201,44 @@ function WidgetViewerModal(props: Props) {
                   datetime: {...modalSelection.datetime, start, end, period: null},
                 });
               }}
+              onLegendSelectChanged={({selected}) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+                      key => !selected[key]
+                    ),
+                  },
+                });
+              }}
+              legendOptions={{selected: disabledLegends}}
             />
           </Container>
+        )}
+        {widget.queries.length > 1 && (
+          <React.Fragment>
+            <TextContainer>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+              )}
+            </TextContainer>
+            <StyledSelectControl
+              value={selectedQueryIndex}
+              options={queryOptions}
+              onChange={(option: SelectValue<number>) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.QUERY]: option.value,
+                    [WidgetViewerQueryField.PAGE]: undefined,
+                    [WidgetViewerQueryField.CURSOR]: undefined,
+                  },
+                });
+              }}
+            />
+          </React.Fragment>
         )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
@@ -150,27 +252,54 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
+              cursor={cursor}
             >
-              {({transformedResults, loading}) => {
+              {({transformedResults, loading, pageLinks}) => {
                 return (
-                  <GridEditable
-                    isLoading={loading}
-                    data={transformedResults}
-                    columnOrder={columnOrder}
-                    columnSortBy={columnSortBy}
-                    grid={{
-                      renderHeadCell: renderGridHeaderCell({
-                        ...props,
-                      }) as (
-                        column: GridColumnOrder,
-                        columnIndex: number
-                      ) => React.ReactNode,
-                      renderBodyCell: renderGridBodyCell({
-                        ...props,
-                      }),
-                    }}
-                    location={location}
-                  />
+                  <React.Fragment>
+                    <GridEditable
+                      isLoading={loading}
+                      data={transformedResults}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        renderHeadCell: renderIssueGridHeaderCell({
+                          ...props,
+                          widget: tableWidget,
+                        }) as (
+                          column: GridColumnOrder,
+                          columnIndex: number
+                        ) => React.ReactNode,
+                        renderBodyCell: renderGridBodyCell({
+                          ...props,
+                          widget: tableWidget,
+                        }),
+                      }}
+                      location={location}
+                    />
+                    <StyledPagination
+                      pageLinks={pageLinks}
+                      onCursor={(nextCursor, _path, _query, delta) => {
+                        let nextPage = isNaN(page) ? delta : page + delta;
+                        let newCursor = nextCursor;
+                        // unset cursor and page when we navigate back to the first page
+                        // also reset cursor if somehow the previous button is enabled on
+                        // first page and user attempts to go backwards
+                        if (nextPage <= 0) {
+                          newCursor = undefined;
+                          nextPage = 0;
+                        }
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                            [WidgetViewerQueryField.PAGE]: nextPage,
+                          },
+                        });
+                      }}
+                    />
+                  </React.Fragment>
                 );
               }}
             </IssueWidgetQueries>
@@ -200,7 +329,7 @@ function WidgetViewerModal(props: Props) {
                       columnOrder={columnOrder}
                       columnSortBy={columnSortBy}
                       grid={{
-                        renderHeadCell: renderGridHeaderCell({
+                        renderHeadCell: renderDiscoverGridHeaderCell({
                           ...props,
                           widget: tableWidget,
                           tableData: tableResults?.[0],
@@ -210,17 +339,30 @@ function WidgetViewerModal(props: Props) {
                         ) => React.ReactNode,
                         renderBodyCell: renderGridBodyCell({
                           ...props,
-                          widget: tableWidget,
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
+                        renderPrependColumns: shouldReplaceTableColumns
+                          ? renderPrependColumns({
+                              ...props,
+                              eventView,
+                              tableData: tableResults?.[0],
+                            })
+                          : undefined,
+                        prependColumnWidths,
                       }}
                       location={location}
                     />
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={newCursor => {
-                        setCursor(newCursor);
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                          },
+                        });
                       }}
                     />
                   </React.Fragment>
@@ -231,7 +373,7 @@ function WidgetViewerModal(props: Props) {
         </TableContainer>
       </React.Fragment>
     );
-  };
+  }
 
   const StyledHeader = styled(Header)`
     ${headerCss}
@@ -250,7 +392,11 @@ function WidgetViewerModal(props: Props) {
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
-      path = getWidgetDiscoverUrl(primaryWidget, modalSelection, organization);
+      path = getWidgetDiscoverUrl(
+        {...primaryWidget, queries: tableWidget.queries},
+        modalSelection,
+        organization
+      );
       break;
   }
   return (
@@ -290,6 +436,7 @@ export const modalCss = css`
 
 const headerCss = css`
   margin: -${space(4)} -${space(4)} 0px -${space(4)};
+  line-height: normal;
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
@@ -301,8 +448,16 @@ const Container = styled('div')`
   position: relative;
 
   & > div {
-    padding: 20px 0px;
+    padding: ${space(1.5)} 0px;
   }
+`;
+
+const TextContainer = styled('div')`
+  padding-bottom: ${space(1.5)};
+`;
+
+const StyledSelectControl = styled(SelectControl)`
+  padding-top: 10px ${space(1.5)};
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width

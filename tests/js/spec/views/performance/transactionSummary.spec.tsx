@@ -1,13 +1,11 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Project} from 'sentry/types';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsSwitchContext} from 'sentry/views/performance/metricsSwitch';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -48,17 +46,8 @@ function initializeData({
   return initialData;
 }
 
-const TestComponent = ({
-  isMetricsData = false,
-  ...props
-}: React.ComponentProps<typeof TransactionSummary> & {
-  isMetricsData?: boolean;
-}) => {
-  return (
-    <MetricsSwitchContext.Provider value={{isMetricsData, setIsMetricsData: jest.fn()}}>
-      <TransactionSummary {...props} />
-    </MetricsSwitchContext.Provider>
-  );
+const TestComponent = ({...props}: React.ComponentProps<typeof TransactionSummary>) => {
+  return <TransactionSummary {...props} />;
 };
 
 describe('Performance > TransactionSummary', function () {
@@ -292,7 +281,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -331,7 +320,7 @@ describe('Performance > TransactionSummary', function () {
       features: ['incidents'],
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -349,7 +338,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -365,107 +354,10 @@ describe('Performance > TransactionSummary', function () {
     expect(vitalStatues[2]).toHaveTextContent('3%');
   });
 
-  it('renders Web Vitals widget - metrics based', async function () {
-    const fields = [
-      `count(${TransactionMetric.MEASUREMENTS_FCP})`,
-      `count(${TransactionMetric.MEASUREMENTS_LCP})`,
-      `count(${TransactionMetric.MEASUREMENTS_FID})`,
-      `count(${TransactionMetric.MEASUREMENTS_CLS})`,
-    ];
-
-    const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/tags/`,
-      body: [],
-    });
-
-    const metricsMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldsByMeasurementRating({fields}),
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionStatus({field}),
-      match: [MockApiClient.matchQuery({groupBy: ['transaction.status']})],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsField({field}),
-      match: [MockApiClient.matchQuery({groupBy: undefined})],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: null,
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: undefined,
-          field: [
-            'p50(sentry.transactions.transaction.duration)',
-            'p75(sentry.transactions.transaction.duration)',
-            'p95(sentry.transactions.transaction.duration)',
-            'p99(sentry.transactions.transaction.duration)',
-            'max(sentry.transactions.transaction.duration)',
-          ],
-        }),
-      ],
-    });
-
-    const {organization, router, routerContext} = initializeData({
-      project: TestStubs.Project({teams, platform: 'javascript'}),
-      query: {
-        query: 'transaction:/organizations/:orgId/issues/',
-      },
-    });
-
-    mountWithTheme(<TestComponent location={router.location} isMetricsData />, {
-      context: routerContext,
-      organization,
-    });
-
-    // It renders the web vitals widget
-    await screen.findByRole('heading', {name: 'Web Vitals'});
-
-    expect(metricsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [2],
-          environment: [],
-          field: [
-            'count(sentry.transactions.measurements.fcp)',
-            'count(sentry.transactions.measurements.lcp)',
-            'count(sentry.transactions.measurements.fid)',
-            'count(sentry.transactions.measurements.cls)',
-          ],
-          query: 'transaction:/organizations/:orgId/issues/',
-          groupBy: ['measurement_rating'],
-          interval: '1h',
-          statsPeriod: '14d',
-        }),
-      })
-    );
-
-    const vitalStatues = screen.getAllByTestId('vital-status');
-    expect(vitalStatues).toHaveLength(3);
-
-    expect(vitalStatues[0]).toHaveTextContent('78%');
-    expect(vitalStatues[1]).toHaveTextContent('6%');
-    expect(vitalStatues[2]).toHaveTextContent('17%');
-  });
-
   it('renders sidebar widgets', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -481,97 +373,6 @@ describe('Performance > TransactionSummary', function () {
     // Renders TPM widget
     expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
     expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
-  });
-
-  it('renders sidebar widgets - metrics based', async function () {
-    const field = `count(${TransactionMetric.TRANSACTION_DURATION})`;
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/tags/`,
-      body: [],
-    });
-
-    const failureRateRequestMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsFieldByTransactionStatus({field}),
-      match: [MockApiClient.matchQuery({groupBy: ['transaction.status']})],
-    });
-
-    const tpmRequestMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: TestStubs.MetricsField({field}),
-      match: [MockApiClient.matchQuery({groupBy: undefined})],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
-      body: null,
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: undefined,
-          field: [
-            'p50(sentry.transactions.transaction.duration)',
-            'p75(sentry.transactions.transaction.duration)',
-            'p95(sentry.transactions.transaction.duration)',
-            'p99(sentry.transactions.transaction.duration)',
-            'max(sentry.transactions.transaction.duration)',
-          ],
-        }),
-      ],
-    });
-
-    const {organization, router, routerContext} = initializeData();
-
-    mountWithTheme(<TestComponent location={router.location} isMetricsData />, {
-      context: routerContext,
-      organization,
-    });
-
-    // Renders Apdex widget
-    await screen.findByRole('heading', {name: 'Apdex'});
-    expect(screen.queryByTestId('apdex-summary-value')).not.toBeInTheDocument();
-
-    // Renders Failure Rate widget
-    expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
-    expect(failureRateRequestMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/metrics/data/',
-      expect.objectContaining({
-        query: {
-          environment: [],
-          field: ['count(sentry.transactions.transaction.duration)'],
-          groupBy: ['transaction.status'],
-          interval: '1h',
-          project: [2],
-          query: 'transaction:/performance',
-          statsPeriod: '14d',
-        },
-      })
-    );
-
-    expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('39.16%');
-
-    // Renders TPM widget
-    expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-
-    expect(tpmRequestMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/metrics/data/',
-      expect.objectContaining({
-        query: {
-          environment: [],
-          field: ['count(sentry.transactions.transaction.duration)'],
-          interval: '1h',
-          project: [2],
-          query: 'transaction:/performance',
-          statsPeriod: '14d',
-        },
-      })
-    );
-
-    expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('534.3016 tpm');
   });
 
   it('fetches transaction threshold', function () {
@@ -595,7 +396,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -622,7 +423,7 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -633,10 +434,10 @@ describe('Performance > TransactionSummary', function () {
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
   });
 
-  it('triggers a navigation on search', async function () {
+  it('triggers a navigation on search', function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -661,7 +462,7 @@ describe('Performance > TransactionSummary', function () {
   it('can mark a transaction as key', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -686,7 +487,7 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on transaction filter', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -713,7 +514,7 @@ describe('Performance > TransactionSummary', function () {
   it('renders pagination buttons', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -746,7 +547,7 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value'},
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -772,7 +573,7 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value event.type:transaction'},
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -792,7 +593,7 @@ describe('Performance > TransactionSummary', function () {
       features: ['performance-suspect-spans-view'],
     });
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -803,7 +604,7 @@ describe('Performance > TransactionSummary', function () {
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -825,7 +626,7 @@ describe('Performance > TransactionSummary', function () {
   it('appends tag value to existing query when clicked', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TestComponent location={router.location} />, {
+    render(<TestComponent location={router.location} />, {
       context: routerContext,
       organization,
     });

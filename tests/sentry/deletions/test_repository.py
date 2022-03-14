@@ -7,6 +7,7 @@ from sentry.exceptions import PluginError
 from sentry.models import (
     Commit,
     Integration,
+    OrganizationOption,
     ProjectCodeOwners,
     Repository,
     RepositoryProjectPathConfig,
@@ -139,4 +140,26 @@ class DeleteRepositoryTest(TransactionTestCase):
         assert msg.subject == "Unable to Delete Repository Webhooks"
         assert msg.to == [self.user.email]
         assert "secrets" not in msg.body
+        assert not Repository.objects.filter(id=repo.id).exists()
+
+    def test_botched_deletion(self):
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        # Left over from a botched deletion.
+        OrganizationOption.objects.create(
+            organization_id=self.organization.id,
+            key=repo.build_pending_deletion_key(),
+            value="",
+        )
+
+        deletion = ScheduledDeletion.schedule(repo, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
         assert not Repository.objects.filter(id=repo.id).exists()

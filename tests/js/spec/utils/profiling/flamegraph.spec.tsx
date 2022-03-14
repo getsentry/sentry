@@ -318,9 +318,7 @@ describe('flamegraph', () => {
   });
 
   it('Empty', () => {
-    expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000_000, 0))).toBe(
-      true
-    );
+    expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
   });
 
   it('withOffset', () => {
