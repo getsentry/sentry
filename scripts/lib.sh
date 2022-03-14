@@ -206,7 +206,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password
+        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
     else
         sentry createuser --superuser
     fi
@@ -224,6 +224,8 @@ bootstrap() {
     create-db
     apply-migrations
     create-user
+    # Load mocks requires a super user to exist, thus, we execute after create-user
+    bin/load-mocks
     build-platform-assets
 }
 
@@ -248,6 +250,8 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+    # This ensures that your set up as some data inside of it
+    bin/load-mocks
 }
 
 prerequisites() {
