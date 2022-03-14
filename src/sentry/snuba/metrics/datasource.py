@@ -281,6 +281,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
             ).get("data")
         except StopIteration:
+            # This can occur when requesting a list of derived metrics that are not have no data
+            # for the passed projects
             initial_query_results = {}
 
         # If we do not get any results from the first query, then there is no point in making
