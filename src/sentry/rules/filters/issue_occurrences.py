@@ -5,7 +5,7 @@ from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 
 
-class IssueOccurrencesForm(forms.Form):
+class IssueOccurrencesForm(forms.Form):  # type: ignore
     value = forms.IntegerField()
 
 

@@ -28,7 +28,7 @@ ATTR_CHOICES = [
 ]
 
 
-class EventAttributeForm(forms.Form):
+class EventAttributeForm(forms.Form):  # type: ignore
     attribute = forms.ChoiceField(choices=[(a, a) for a in ATTR_CHOICES])
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)

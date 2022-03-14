@@ -17,7 +17,7 @@ LEVEL_CHOICES = OrderedDict(
 )
 
 
-class LevelEventForm(forms.Form):
+class LevelEventForm(forms.Form):  # type: ignore
     level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 
