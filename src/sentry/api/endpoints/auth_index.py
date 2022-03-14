@@ -36,7 +36,7 @@ class AuthIndexEndpoint(Endpoint):
     permission_classes = ()
 
     @staticmethod
-    def _reauthenticate_with_sso(request, org_id=Superuser.org_id):
+    def _reauthenticate_with_sso(request, org_id):
         """
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
@@ -119,9 +119,9 @@ class AuthIndexEndpoint(Endpoint):
             try:
                 auth_identity = AuthIdentity.objects.get(user=request.user)
                 org_id = (
-                    auth_identity.auth_provider.organization_id
-                    if not request.user.is_superuser
-                    else None
+                    Superuser.org_id
+                    if request.user.is_superuser
+                    else auth_identity.auth_provider.organization_id
                 )
             except AuthIdentity.DoesNotExist:
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -188,7 +188,7 @@ class AuthIndexEndpoint(Endpoint):
             # If a superuser hitting this endpoint is not active, they are most likely
             # trying to become active, and likely need to re-identify with SSO to do so.
             if request.user.is_superuser and not is_active_superuser(request) and Superuser.org_id:
-                self._reauthenticate_with_sso(request)
+                self._reauthenticate_with_sso(request, Superuser.org_id)
 
         request.user = request._request.user
 
