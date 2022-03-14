@@ -26,6 +26,8 @@ describe('Dashboards util', () => {
         interval: '5m',
         queryConditions: ['title:test', 'event.type:test'],
         queryFields: ['count()', 'failure_count()'],
+        queryAggregates: ['count()', 'failure_count()'],
+        queryColumns: ['count()', 'failure_count()'],
         queryNames: ['1', '2'],
         queryOrderby: '',
         title: 'Widget Title',
@@ -74,6 +76,7 @@ describe('Dashboards util', () => {
     it('returns a widget when given string fields and conditions', () => {
       baseQuery.queryConditions = 'title:test';
       baseQuery.queryFields = 'count()';
+      baseQuery.queryAggregates = 'count()';
       const widget = constructWidgetFromQuery(baseQuery);
       expect(widget?.displayType).toEqual(DisplayType.LINE);
       expect(widget?.interval).toEqual('5m');

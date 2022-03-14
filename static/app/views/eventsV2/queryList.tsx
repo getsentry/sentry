@@ -109,6 +109,12 @@ class QueryList extends React.Component<Props> {
           : savedQuery?.yAxis ?? ['count()']),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
+        ...(typeof savedQuery?.yAxis === 'string'
+          ? [savedQuery?.yAxis]
+          : savedQuery?.yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };

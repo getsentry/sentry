@@ -250,8 +250,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         ...(displayType === DisplayType.TOP_N ? aggregates : []),
         ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
-      columns,
-      fields: defaultTableFields,
+      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
+      fields: [
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
     };

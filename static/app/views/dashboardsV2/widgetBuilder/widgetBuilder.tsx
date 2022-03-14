@@ -144,12 +144,10 @@ interface RouteParams {
 }
 
 interface QueryData {
-  queryAggregates: string[];
-  queryColumns: string[];
   queryConditions: string[];
+  queryFields: string[];
   queryNames: string[];
   queryOrderby: string;
-  queryFields?: string[];
 }
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
@@ -668,8 +666,10 @@ function WidgetBuilder({
     const queryData: QueryData = {
       queryNames: [],
       queryConditions: [],
-      queryAggregates: widgetData.queries[0].aggregates,
-      queryColumns: widgetData.queries[0].columns,
+      queryFields: [
+        ...widgetData.queries[0].columns,
+        ...widgetData.queries[0].aggregates,
+      ],
       queryOrderby: widgetData.queries[0].orderby,
     };
 
