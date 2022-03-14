@@ -319,10 +319,11 @@ class SpanTreeModel {
       for (let i = 1; i < descendantsSource.length; i++) {
         const currSpanModel = descendantsSource[i];
 
-        // We want to group siblings only if they share the same op and description
+        // We want to group siblings only if they share the same op and description, and if they have no children
         if (
           prevSpanModel.span.op === currSpanModel.span.op &&
-          prevSpanModel.span.description === currSpanModel.span.description
+          prevSpanModel.span.description === currSpanModel.span.description &&
+          currSpanModel.children.length === 0
         ) {
           currentGroup.push(currSpanModel);
         } else {
