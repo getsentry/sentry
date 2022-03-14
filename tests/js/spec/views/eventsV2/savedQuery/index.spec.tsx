@@ -36,8 +36,6 @@ function mount(
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
-  let initialData;
-
   const yAxis = ['count()', 'failure_count()'];
 
   const errorsQuery = {
@@ -55,29 +53,34 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
   const savedQuery = {...errorsViewSaved.toNewQuery(), yAxis};
 
-  beforeEach(() => {
-    initialData = initializeOrg({
-      organization: {
-        features: ['discover-query', 'widget-viewer-modal', 'dashboards-edit'],
-        apdexThreshold: 400,
-      },
-      router: {
-        location: {query: {}},
-      },
-      project: 1,
-      projects: [],
-    });
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
-  });
   describe('add dashboard widget', () => {
+    let initialData;
+    beforeEach(() => {
+      initialData = initializeOrg({
+        organization: {
+          features: ['discover-query', 'widget-viewer-modal', 'dashboards-edit'],
+          apdexThreshold: 400,
+        },
+        router: {
+          location: {query: {}},
+        },
+        project: 1,
+        projects: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+    });
+
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
     it('opens widget modal when add to dashboard is clicked', async () => {
       mount(
         initialData.router.location,
@@ -95,6 +98,56 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           defaultWidgetQuery: {
             conditions: 'event.type:error',
             fields: ['count()'],
+            name: '',
+            orderby: '-count',
+          },
+          displayType: 'line',
+        })
+      );
+    });
+
+    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+      mount(
+        initialData.router.location,
+        initialData.organization,
+        initialData.router,
+        errorsViewModified,
+        savedQuery,
+        yAxis
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+          defaultTitle: 'Errors by Title',
+          defaultWidgetQuery: {
+            conditions: 'event.type:error',
+            fields: ['count()', 'failure_count()'],
+            name: '',
+            orderby: '-count',
+          },
+          displayType: 'line',
+        })
+      );
+    });
+
+    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+      mount(
+        initialData.router.location,
+        initialData.organization,
+        initialData.router,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + failure_count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+          defaultTitle: 'Errors by Title',
+          defaultWidgetQuery: {
+            conditions: 'event.type:error',
+            fields: ['count()', 'failure_count()', 'equation|count() + failure_count()'],
             name: '',
             orderby: '-count',
           },
