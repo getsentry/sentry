@@ -23,9 +23,24 @@ type CloseFlamegraphSearchAction = {
   type: 'close search';
 };
 
+type ClearFlamegraphSearchAction = {
+  type: 'clear search';
+  payload?: {
+    open?: boolean;
+  };
+};
+
+type SetFlamegraphResultsAction = {
+  payload: {
+    query: string;
+    results: FlamegraphState['search']['results'];
+  };
+  type: 'set results';
+};
+
 type FlamegraphSearchArrowNavigationAction = {
   payload: number;
-  type: 'arrow navigation';
+  type: 'set search index position';
 };
 
 type SetFlamegraphAction = {
@@ -36,8 +51,10 @@ type SetFlamegraphAction = {
 export type FlamegraphStateAction =
   | OpenFlamegraphSearchAction
   | CloseFlamegraphSearchAction
+  | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
-  | SetFlamegraphAction;
+  | SetFlamegraphAction
+  | SetFlamegraphResultsAction;
 
 export const flamegraphReducer: React.Reducer<FlamegraphState, FlamegraphStateAction> = (
   state,
@@ -53,7 +70,21 @@ export const flamegraphReducer: React.Reducer<FlamegraphState, FlamegraphStateAc
     case 'close search': {
       return {...state, search: {...state.search, open: false}};
     }
-    case 'arrow navigation': {
+    case 'clear search': {
+      return {
+        ...state,
+        search: {
+          query: '',
+          index: null,
+          open: action.payload?.open ?? false,
+          results: null,
+        },
+      };
+    }
+    case 'set results': {
+      return {...state, search: {...state.search, ...action.payload}};
+    }
+    case 'set search index position': {
       return {...state, search: {...state.search, index: action.payload}};
     }
     default: {

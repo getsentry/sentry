@@ -6,8 +6,24 @@ import Fuse from 'fuse.js';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+
+function sortFrameResults(
+  frames: Record<string, FlamegraphFrame> | null
+): Array<FlamegraphFrame> {
+  // If frames have the same start times, move frames with lower stack depth first.
+  // This results in top down and left to right iteration
+  return Object.values(frames ?? {}).sort((a, b) =>
+    a.start === b.start
+      ? numericSort(a.depth, b.depth, 'asc')
+      : numericSort(a.start, b.start, 'asc')
+  );
+}
+
+const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 
 function frameSearch(
   query: string,
@@ -43,9 +59,7 @@ function frameSearch(
     return results;
   }
 
-  const fuseResults = index
-    .search(query)
-    .sort((a, b) => numericSort(a.item.start, b.item.start, 'asc'));
+  const fuseResults = index.search(query);
 
   for (let i = 0; i < fuseResults.length; i++) {
     const frame = fuseResults[i];
@@ -92,11 +106,7 @@ function FlamegraphSearch({
 }: FlamegraphSearchProps): React.ReactElement | null {
   const ref = React.useRef<HTMLInputElement>(null);
 
-  const [open, setOpen] = React.useState<boolean>(false);
-  const [selectedNode, setSelectedNode] = React.useState<FlamegraphFrame | null>();
-  const [searchResults, setSearchResults] = React.useState<
-    Record<string, FlamegraphFrame>
-  >({});
+  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
 
   const allFrames = React.useMemo(() => {
     if (Array.isArray(flamegraphs)) {
@@ -120,95 +130,84 @@ function FlamegraphSearch({
   const onZoomIntoFrame = React.useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoomIntoFrame', [frame]);
-      setSelectedNode(frame);
     },
     [canvasPoolManager]
   );
 
   const handleSearchInput = React.useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const query = evt.currentTarget.value;
-
-      if (!query) {
-        setSearchResults({});
-        canvasPoolManager.dispatch('searchResults', [{}]);
+      if (!evt.currentTarget.value) {
+        dispatchFlamegraphState({type: 'clear search', payload: {open: true}});
         return;
       }
 
-      const results = frameSearch(query, allFrames, searchIndex);
-
-      setSearchResults(results);
-      canvasPoolManager.dispatch('searchResults', [results]);
+      dispatchFlamegraphState({
+        type: 'set results',
+        payload: {
+          results: frameSearch(evt.currentTarget.value, allFrames, searchIndex),
+          query: evt.currentTarget.value,
+        },
+      });
     },
     [searchIndex, frames, canvasPoolManager, allFrames]
   );
 
   const onNextSearchClick = React.useCallback(() => {
-    const frames = Object.values(searchResults).sort((a, b) =>
-      a.start === b.start
-        ? numericSort(a.depth, b.depth, 'asc')
-        : numericSort(a.start, b.start, 'asc')
-    );
+    const frames = memoizedSortFrameResults(flamegraphState.search.results);
     if (!frames.length) {
       return undefined;
     }
 
-    if (!selectedNode) {
-      return onZoomIntoFrame(frames[0] ?? null);
-    }
-
-    const index = frames.findIndex(f => f.key === selectedNode.key);
-
-    if (index + 1 > frames.length - 1) {
+    if (
+      flamegraphState.search.index === null ||
+      flamegraphState.search.index === frames.length - 1
+    ) {
+      dispatchFlamegraphState({type: 'set search index position', payload: 0});
       return onZoomIntoFrame(frames[0]);
     }
-    return onZoomIntoFrame(frames[index + 1]);
-  }, [selectedNode, searchResults, onZoomIntoFrame]);
+
+    return onZoomIntoFrame(frames[flamegraphState.search.index + 1]);
+  }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
 
   const onPreviousSearchClick = React.useCallback(() => {
-    const frames = Object.values(searchResults).sort((a, b) =>
-      a.start === b.start
-        ? numericSort(a.depth, b.depth, 'asc')
-        : numericSort(a.start, b.start, 'asc')
-    );
+    const frames = memoizedSortFrameResults(flamegraphState.search.results);
     if (!frames.length) {
       return undefined;
     }
 
-    if (!selectedNode) {
-      return onZoomIntoFrame(frames[0] ?? null);
-    }
-    const index = frames.findIndex(f => f.key === selectedNode.key);
-
-    if (index - 1 < 0) {
+    if (flamegraphState.search.index === null || flamegraphState.search.index === 0) {
+      dispatchFlamegraphState({
+        type: 'set search index position',
+        payload: frames.length - 1,
+      });
       return onZoomIntoFrame(frames[frames.length - 1]);
     }
-    return onZoomIntoFrame(frames[index - 1]);
-  }, [selectedNode, searchResults, onZoomIntoFrame]);
+
+    return onZoomIntoFrame(frames[flamegraphState.search.index - 1]);
+  }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
 
   const onCmdF = React.useCallback(
     (evt: KeyboardEvent) => {
       if (evt.key === 'f' && evt.metaKey) {
         evt.preventDefault();
-        if (open) {
+        if (flamegraphState.search.open) {
           ref.current?.focus();
         } else {
-          setOpen(true);
+          dispatchFlamegraphState({type: 'open search'});
         }
+        return;
       }
       if (evt.key === 'Escape') {
-        setSearchResults({});
-        setOpen(false);
+        dispatchFlamegraphState({type: 'clear search'});
       }
     },
-    [open, setSearchResults]
+    [flamegraphState.search.open]
   );
 
   const onKeyDown = React.useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
       if (evt.key === 'Escape') {
-        setSearchResults({});
-        setOpen(false);
+        dispatchFlamegraphState({type: 'clear search'});
       }
       if (evt.key === 'ArrowDown') {
         evt.preventDefault();
@@ -219,7 +218,7 @@ function FlamegraphSearch({
         onPreviousSearchClick();
       }
     },
-    [onNextSearchClick, onPreviousSearchClick, setSearchResults]
+    [onNextSearchClick, onPreviousSearchClick]
   );
 
   React.useEffect(() => {
@@ -230,7 +229,7 @@ function FlamegraphSearch({
     };
   }, [onCmdF]);
 
-  return open ? (
+  return flamegraphState.search.open ? (
     <Input
       ref={ref}
       autoFocus
