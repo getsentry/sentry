@@ -237,7 +237,7 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
                 <HomePanelHeader>
                   <HomeLinkIcon to={LINKS.API}>
                     <HomeIcon>
-                      <IconLock size="lg" />
+                      <IconLock size="lg" isSolid />
                     </HomeIcon>
                     {t('API Keys')}
                   </HomeLinkIcon>

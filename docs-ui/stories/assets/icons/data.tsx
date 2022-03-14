@@ -346,8 +346,9 @@ export const icons: IconData[] = [
   },
   {
     id: 'lock',
-    groups: ['action'],
+    groups: ['action', 'status'],
     keywords: ['secure'],
+    additionalProps: ['isSolid'],
   },
   {
     id: 'grabbable',
