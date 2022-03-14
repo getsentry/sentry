@@ -47,6 +47,7 @@ type InviteModal = {
 export type GrowthEventParameters = {
   'growth.clicked_enter_sandbox': {
     scenario: string;
+    source?: string;
   };
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;

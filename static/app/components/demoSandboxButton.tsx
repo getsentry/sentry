@@ -32,6 +32,11 @@ interface DemoSandboxButtonProps extends ButtonPropsWithoutAriaLabel {
    * Which project we should link to in the sandbox
    */
   projectSlug?: 'react' | 'python' | 'ios' | 'android' | 'react-native';
+
+  /**
+   * Where is the component being used
+   */
+  source?: string;
 }
 
 /**
@@ -44,6 +49,7 @@ function DemoSandboxButton({
   projectSlug,
   errorType,
   clientData,
+  source,
   ...buttonProps
 }: DemoSandboxButtonProps): React.ReactElement {
   const organization: Organization = useOrganization();
@@ -75,6 +81,7 @@ function DemoSandboxButton({
         trackAdvancedAnalyticsEvent('growth.clicked_enter_sandbox', {
           scenario,
           organization,
+          source,
         })
       }
       {...buttonProps}
