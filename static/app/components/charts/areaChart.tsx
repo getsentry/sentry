@@ -10,10 +10,10 @@ type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
-export type AreaChartProps = Omit<ChartProps, 'series'> & {
+export interface AreaChartProps extends Omit<ChartProps, 'series'> {
   series: AreaChartSeries[];
   stacked?: boolean;
-};
+}
 
 export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
   return (

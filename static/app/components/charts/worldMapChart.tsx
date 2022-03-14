@@ -23,12 +23,12 @@ type MapChartSeries = Omit<Series, 'data'> & {
   data: MapChartSeriesDataUnit[];
 };
 
-export type WorldMapChartProps = Omit<ChartProps, 'series'> & {
+export interface WorldMapChartProps extends Omit<ChartProps, 'series'> {
   series: MapChartSeries[];
   fromDiscover?: boolean;
   fromDiscoverQueryList?: boolean;
   seriesOptions?: MapSeriesOption;
-};
+}
 
 const DEFAULT_ZOOM = 1.3;
 const DISCOVER_ZOOM = 1.1;
