@@ -3,7 +3,6 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location, Query} from 'history';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
@@ -12,17 +11,10 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
-import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
 import {TrendFunctionField} from '../../../trends/types';
-import {
-  generateTrendFunctionAsString,
-  trendParameterToMetricsField,
-} from '../../../trends/utils';
+import {generateTrendFunctionAsString} from '../../../trends/utils';
 import {ViewProps} from '../../../types';
 
 import Content from './content';
@@ -54,7 +46,6 @@ function TrendChart({
 }: Props) {
   const api = useApi();
   const theme = useTheme();
-  const {isMetricsData} = useMetricsSwitch();
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -124,55 +115,6 @@ function TrendChart({
   );
 
   const trendDisplay = generateTrendFunctionAsString(trendFunction, trendParameter);
-
-  if (isMetricsData) {
-    const parameter = trendParameterToMetricsField[trendParameter];
-
-    if (!parameter) {
-      return (
-        <Fragment>
-          {header}
-          <ErrorPanel>{`TODO: ${trendDisplay}`}</ErrorPanel>
-        </Fragment>
-      );
-    }
-
-    const field = `${trendFunction}(${parameter})`;
-
-    return (
-      <Fragment>
-        {header}
-        <MetricsRequest
-          {...requestCommonProps}
-          query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-          orgSlug={organization.slug}
-          field={[field]}
-        >
-          {trendRequestResponseProps => {
-            const {errored, loading, reloading} = trendRequestResponseProps;
-
-            const trendData = transformMetricsToArea(
-              {
-                location,
-                fields: [field],
-              },
-              trendRequestResponseProps
-            );
-
-            return (
-              <Content
-                series={trendData.data}
-                errored={errored}
-                loading={loading}
-                reloading={reloading}
-                {...contentCommonProps}
-              />
-            );
-          }}
-        </MetricsRequest>
-      </Fragment>
-    );
-  }
 
   return (
     <Fragment>

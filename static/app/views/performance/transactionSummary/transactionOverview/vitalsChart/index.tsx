@@ -16,14 +16,9 @@ import {
   getMeasurementSlug,
   WebVital,
 } from 'sentry/utils/discover/fields';
-import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
-import {transformMetricsToArea} from '../../../landing/widgets/transforms/transformMetricsToArea';
 import {ViewProps} from '../../../types';
-import {vitalToMetricsField} from '../../../vitalDetail/utils';
 
 import Content from './content';
 
@@ -50,7 +45,6 @@ function VitalsChart({
 }: Props) {
   const api = useApi();
   const theme = useTheme();
-  const {isMetricsData} = useMetricsSwitch();
 
   const handleLegendSelectChanged = (legendChange: {
     name: string;
@@ -131,48 +125,6 @@ function VitalsChart({
       />
     </HeaderTitleLegend>
   );
-
-  if (isMetricsData) {
-    const fields = vitals.map(v => `p75(${vitalToMetricsField[v]})`);
-
-    return (
-      <Fragment>
-        {header}
-        <MetricsRequest
-          {...requestCommonProps}
-          query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-          orgSlug={organization.slug}
-          field={fields}
-        >
-          {vitalRequestResponseProps => {
-            const {errored, loading, reloading} = vitalRequestResponseProps;
-
-            const series = fields.map(field => {
-              const {data} = transformMetricsToArea(
-                {
-                  location,
-                  fields: [field],
-                },
-                vitalRequestResponseProps
-              );
-
-              return data[0];
-            });
-
-            return (
-              <Content
-                series={series}
-                errored={errored}
-                loading={loading}
-                reloading={reloading}
-                {...contentCommonProps}
-              />
-            );
-          }}
-        </MetricsRequest>
-      </Fragment>
-    );
-  }
 
   const yAxis = vitals.map(v => `p75(${v})`);
 

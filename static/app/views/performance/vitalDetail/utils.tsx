@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color, Theme} from 'sentry/utils/theme';
@@ -143,13 +142,6 @@ export function getMaxOfSeries(series: Series[]) {
   }
   return max;
 }
-
-export const vitalToMetricsField: Record<string, TransactionMetric> = {
-  [WebVital.LCP]: TransactionMetric.MEASUREMENTS_LCP,
-  [WebVital.FCP]: TransactionMetric.MEASUREMENTS_FCP,
-  [WebVital.FID]: TransactionMetric.MEASUREMENTS_FID,
-  [WebVital.CLS]: TransactionMetric.MEASUREMENTS_CLS,
-};
 
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
   [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],

@@ -1,12 +1,10 @@
 import {Fragment} from 'react';
 import {Location} from 'history';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
-import {useMetricsSwitch} from 'sentry/views/performance/metricsSwitch';
 
 import {ViewProps} from '../../../types';
 import {filterToField, SpanOperationBreakdownFilter} from '../../filter';
@@ -20,8 +18,6 @@ type Props = ViewProps & {
 };
 
 function DurationPercentileChart({currentFilter, ...props}: Props) {
-  const {isMetricsData} = useMetricsSwitch();
-
   const header = (
     <HeaderTitleLegend>
       {currentFilter === SpanOperationBreakdownFilter.None
@@ -38,16 +34,6 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
       />
     </HeaderTitleLegend>
   );
-
-  if (isMetricsData) {
-    // TODO(metrics): Update this as soon as the API support all percentiles needed.
-    return (
-      <Fragment>
-        {header}
-        <ErrorPanel>{`TODO: Percentile`}</ErrorPanel>
-      </Fragment>
-    );
-  }
 
   function generateFields() {
     if (currentFilter === SpanOperationBreakdownFilter.None) {

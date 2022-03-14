@@ -20,7 +20,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {useMetricsSwitch} from './metricsSwitch';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
@@ -38,7 +37,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {isMetricsData} = useMetricsSwitch();
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
@@ -92,9 +90,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
-  const eventView = generatePerformanceEventView(location, projects, {
-    isMetricsData,
-  });
+  const eventView = generatePerformanceEventView(location, projects);
 
   function shouldShowOnboarding() {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.

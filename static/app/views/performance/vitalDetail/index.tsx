@@ -21,7 +21,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
 import {generatePerformanceVitalDetailView} from '../data';
-import {MetricsSwitchContext} from '../metricsSwitch';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 import VitalDetailContent from './vitalDetailContent';
@@ -40,13 +39,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(this.props.location, false),
+    eventView: generatePerformanceVitalDetailView(this.props.location),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(nextProps.location, false),
+      eventView: generatePerformanceVitalDetailView(nextProps.location),
     };
   }
 
@@ -105,19 +104,14 @@ class VitalDetail extends Component<Props, State> {
           <PageFiltersContainer>
             <StyledPageContent>
               <NoProjectMessage organization={organization}>
-                <MetricsSwitchContext.Consumer>
-                  {({isMetricsData}) => (
-                    <VitalDetailContent
-                      location={location}
-                      organization={organization}
-                      eventView={eventView}
-                      router={router}
-                      vitalName={vitalName || WebVital.LCP}
-                      isMetricsData={isMetricsData}
-                      api={api}
-                    />
-                  )}
-                </MetricsSwitchContext.Consumer>
+                <VitalDetailContent
+                  location={location}
+                  organization={organization}
+                  eventView={eventView}
+                  router={router}
+                  vitalName={vitalName || WebVital.LCP}
+                  api={api}
+                />
               </NoProjectMessage>
             </StyledPageContent>
           </PageFiltersContainer>

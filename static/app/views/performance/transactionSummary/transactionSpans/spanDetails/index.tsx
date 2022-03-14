@@ -44,7 +44,6 @@ export default function SpanDetails(props: Props) {
   const eventView = generateSpansEventView({
     location,
     transactionName,
-    isMetricsData: false,
   });
 
   return (
