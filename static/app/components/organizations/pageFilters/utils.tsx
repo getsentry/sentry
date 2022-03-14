@@ -79,7 +79,7 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
 export function getPathsWithNewFilters(organization: Organization): string[] {
   return (
     organization.features.includes('selection-filters-v2')
-      ? ['issues', 'user-feedback', 'alerts']
+      ? ['issues', 'user-feedback', 'alerts', 'monitors']
       : []
   ).map(route => `/organizations/${organization.slug}/${route}/`);
 }

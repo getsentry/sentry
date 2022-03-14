@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AutoplayVideo} from 'sentry/components/autoplayVideo';
 
@@ -39,9 +39,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    mountWithTheme(
-      <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
-    );
+    render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);
 
     expect(screen.getByLabelText('video')).toBeInTheDocument();
     expect(mock.current.muted).toBe(true);
@@ -57,9 +55,7 @@ describe('autoplayVideo', () => {
     // @ts-ignore we are mocking useRef
     React.useRef.mockImplementation(() => mock);
 
-    mountWithTheme(
-      <AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />
-    );
+    render(<AutoplayVideo aria-label="video" src="https://example.com/video.mp4" />);
 
     expect(screen.getByLabelText('video')).toBeInTheDocument();
     expect(mock.current.muted).toBe(true);

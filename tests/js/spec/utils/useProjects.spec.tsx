@@ -80,7 +80,7 @@ describe('useProjects', function () {
     expect(projects).toEqual(expect.arrayContaining([projectFoo]));
   });
 
-  it('only loads slugs when needed', async function () {
+  it('only loads slugs when needed', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = reactHooks.renderHook(props => useProjects(props), {

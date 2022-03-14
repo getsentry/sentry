@@ -1073,6 +1073,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListFilters
                 organization={organization}
                 query={query}
+                queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
                 display={this.getDisplay()}

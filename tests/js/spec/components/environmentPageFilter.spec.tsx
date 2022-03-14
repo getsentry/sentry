@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -40,7 +40,7 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pick environment', function () {
-    mountWithTheme(<EnvironmentPageFilter />, {
+    render(<EnvironmentPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -63,7 +63,7 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pin environment', async function () {
-    mountWithTheme(<EnvironmentPageFilter />, {
+    render(<EnvironmentPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -92,7 +92,7 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(<EnvironmentPageFilter />, {
+    render(<EnvironmentPageFilter />, {
       context: routerContext,
       organization,
     });

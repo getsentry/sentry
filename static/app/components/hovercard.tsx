@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
 import space from 'sentry/styles/space';
-import {domId} from 'sentry/utils/domId';
+import domId from 'sentry/utils/domId';
 
 export const HOVERCARD_PORTAL_ID = 'hovercard-portal';
 
