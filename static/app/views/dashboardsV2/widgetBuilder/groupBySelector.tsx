@@ -97,10 +97,9 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                 borderless
                 onClick={() => handleRemove(index)}
                 icon={<IconDelete />}
+                title={t('Remove group')}
                 aria-label={t('Remove group')}
-              >
-                {t('Remove group')}
-              </Button>
+              />
             )}
           </QueryFieldWrapper>
         ))}

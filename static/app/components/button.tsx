@@ -62,7 +62,7 @@ function BaseButton({
   to,
   busy,
   href,
-  title,
+  title: _title,
   icon,
   children,
   'aria-label': ariaLabel,
@@ -71,7 +71,7 @@ function BaseButton({
   align = 'center',
   priority,
   disabled = false,
-  tooltipProps,
+  tooltipProps: _tooltipProps,
   onClick,
   ...buttonProps
 }: ButtonProps) {
@@ -134,13 +134,13 @@ function BaseButton({
   );
 
   // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
-  if (title) {
-    return (
-      <Tooltip skipWrapper {...tooltipProps} title={title}>
-        {button}
-      </Tooltip>
-    );
-  }
+  // if (title) {
+  //   return (
+  //     <Tooltip skipWrapper {...tooltipProps} title={title}>
+  //       {button}
+  //     </Tooltip>
+  //   );
+  // }
 
   return button;
 }
