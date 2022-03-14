@@ -163,6 +163,15 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
   'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
   'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
+  'dashboards_views.widget_viewer.edit': 'Widget Viewer: Edit Widget Modal Opened',
+  'dashboards_views.widget_viewer.open': 'Widget Viewer: Opened',
+  'dashboards_views.widget_viewer.open_source':
+    'Widget Viewer: Opened in Discover/Issues',
+  'dashboards_views.widget_viewer.paginate': 'Widget Viewer: Paginate',
+  'dashboards_views.widget_viewer.select_query': 'Widget Viewer: Query Selected',
+  'dashboards_views.widget_viewer.sort': 'Widget Viewer: Table Sorted',
+  'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
+  'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
   ...dashboardsEventMapAddWidgetModal,
   ...dashboardsEventMapAddWidgetInBuilder,
 };
