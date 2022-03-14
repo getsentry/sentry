@@ -5114,6 +5114,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_performance_homepage_query(self):
         self.store_metric(
             1,
+            tags={
+                "transaction": "foo_transaction",
+                "is_tolerated": "false",
+                "is_satisfied": "true",
+            },
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            1,
             "measurements.fcp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -5139,7 +5148,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_metric(
             1,
             "user",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "is_user_miserable": "true"},
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -5153,8 +5162,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "p75(measurements.fid)",
                     "p75(measurements.cls)",
                     "count_unique(user)",
-                    # TODO: uncomment when misery is ready
-                    # "user_misery()",
+                    "apdex()",
+                    "count_miserable(user)",
+                    "user_misery()",
                 ],
                 "query": "event.type:transaction",
                 "metricsEnhanced": "1",
@@ -5170,4 +5180,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data["p75_measurements_lcp"] == 2.0
         assert data["p75_measurements_fid"] == 3.0
         assert data["p75_measurements_cls"] == 4.0
+        assert data["apdex"] == 1.0
+        assert data["count_miserable_user"] == 1.0
+        assert data["user_misery"] == 0.058
         assert response.data["meta"]["isMetricsData"]

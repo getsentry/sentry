@@ -101,7 +101,14 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
-from sentry.search.events.constants import METRICS_MAP
+from sentry.search.events.constants import (
+    METRIC_FALSE_VALUE,
+    METRIC_MISERABLE_TAG,
+    METRIC_SATISFIED_TAG,
+    METRIC_TOLERATED_TAG,
+    METRIC_TRUE_VALUE,
+    METRICS_MAP,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
@@ -1120,6 +1127,11 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
                 "environment",
                 "http.status",
                 "transaction.status",
+                METRIC_SATISFIED_TAG,
+                METRIC_TOLERATED_TAG,
+                METRIC_MISERABLE_TAG,
+                METRIC_TRUE_VALUE,
+                METRIC_FALSE_VALUE,
                 *self.METRIC_STRINGS,
                 *list(SPAN_STATUS_NAME_TO_CODE.keys()),
                 *list(METRICS_MAP.values()),
