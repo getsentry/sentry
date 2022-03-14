@@ -1,5 +1,5 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -57,7 +57,7 @@ describe('Performance > Landing > SamplingModal', function () {
   it('renders sampling modal', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(await screen.findByLabelText('Always show sampled data')).toBeInTheDocument();
     expect(
