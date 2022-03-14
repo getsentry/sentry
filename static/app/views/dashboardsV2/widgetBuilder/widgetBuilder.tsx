@@ -358,9 +358,12 @@ function WidgetBuilder({
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
-              query.columns = [...defaultTableColumns];
-              query.aggregates = [...defaultTableAggregates];
-              query.fields = [...defaultTableColumns, ...defaultTableAggregates];
+              query.columns = [...defaultWidgetQuery.columns];
+              query.aggregates = [...defaultWidgetQuery.aggregates];
+              query.fields = [
+                ...defaultWidgetQuery.columns,
+                ...defaultWidgetQuery.aggregates,
+              ];
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
