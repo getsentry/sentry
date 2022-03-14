@@ -1582,7 +1582,7 @@ def get_span_histogram_column(span, histogram_params):
     """
     span_op = span.op
     span_group = span.group
-    return f"spans_histogram({span_op}, {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
+    return f'spans_histogram("{span_op}", {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):

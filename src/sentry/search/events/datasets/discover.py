@@ -680,7 +680,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "spans_histogram",
                     required_args=[
-                        SnQLStringArg("spans_op"),
+                        SnQLStringArg("spans_op", True, True),
                         SnQLStringArg("spans_group"),
                         # the bucket_size and start_offset should already be adjusted
                         # using the multiplier before it is passed here
@@ -778,7 +778,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="number",
-                    private=True,
+                    private=False,
                 ),
             ]
         }
