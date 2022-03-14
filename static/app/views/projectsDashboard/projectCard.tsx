@@ -10,10 +10,10 @@ import Placeholder from 'sentry/components/placeholder';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ScoreCard, {
-  HeaderTitle,
   Score,
   ScorePanel,
   ScoreWrapper,
+  Title,
   Trend,
 } from 'sentry/components/scoreCard';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -338,9 +338,8 @@ const ScoreCardWrapper = styled('div')`
   ${ScorePanel} {
     min-height: auto;
   }
-  ${HeaderTitle} {
+  ${Title} {
     color: ${p => p.theme.gray300};
-    font-weight: 600;
   }
   ${ScoreWrapper} {
     flex-direction: column;

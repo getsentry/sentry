@@ -65,7 +65,7 @@ export const HeaderTitle = styled('div')`
   width: fit-content;
 `;
 
-const Title = styled('div')`
+export const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
   font-weight: 600;
