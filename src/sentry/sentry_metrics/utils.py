@@ -3,13 +3,19 @@ from typing import Optional, Sequence
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 
+#: Special integer used to represent a string missing from the indexer
+STRING_NOT_FOUND = -1
+
+#: Special integer returned by Snuba as tag value when a tag has not been set
+TAG_NOT_SET = 0
+
 
 class MetricIndexNotFound(InvalidParams):  # type: ignore
     pass
 
 
 def reverse_resolve(index: int) -> str:
-    assert index != 0
+    assert index > 0
     resolved = indexer.reverse_resolve(index)
     # The indexer should never return None for integers > 0:
     if resolved is None:
@@ -26,7 +32,7 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
     tuple for metric buckets that are missing that tag, i.e. `tags[123] == 0`.
     """
 
-    if index == 0:
+    if index == TAG_NOT_SET:
         return None
 
     return reverse_resolve(index)
@@ -55,7 +61,7 @@ def resolve_weak(string: str) -> int:
     """
     resolved = indexer.resolve(string)
     if resolved is None:
-        return 0
+        return STRING_NOT_FOUND
 
     return resolved  # type: ignore
 
@@ -68,7 +74,7 @@ def resolve_many_weak(strings: Sequence[str]) -> Sequence[int]:
     rv = []
     for string in strings:
         resolved = resolve_weak(string)
-        if resolved != 0:
+        if resolved != STRING_NOT_FOUND:
             rv.append(resolved)
 
     return rv
