@@ -202,7 +202,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
         return results
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
+    def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
