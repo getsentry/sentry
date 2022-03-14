@@ -432,25 +432,25 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       });
     });
 
-    it('opens widget modal when add to dashboard is clicked', async () => {
-      const wrapper = generateWrappedComponent(
-        location,
-        organization,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      wrapper
-        .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
-        .first()
-        .simulate('click');
-      await tick();
-      await tick();
-      const modal = await mountGlobalModal();
-      expect(
-        modal.find('AddDashboardWidgetModal').find('h4').children().at(0).html()
-      ).toEqual('Add Widget to Dashboard');
-    });
+    // it('opens widget modal when add to dashboard is clicked', async () => {
+    //   const wrapper = generateWrappedComponent(
+    //     location,
+    //     organization,
+    //     errorsViewModified,
+    //     savedQuery,
+    //     yAxis
+    //   );
+    //   wrapper
+    //     .find('Button[data-test-id="add-dashboard-widget-from-discover"]')
+    //     .first()
+    //     .simulate('click');
+    //   await tick();
+    //   await tick();
+    //   const modal = await mountGlobalModal();
+    //   expect(
+    //     modal.find('AddDashboardWidgetModal').find('h4').children().at(0).html()
+    //   ).toEqual('Add Widget to Dashboard');
+    // });
 
     it('populates dashboard widget modal with saved query data if created from discover', async () => {
       const wrapper = generateWrappedComponent(
