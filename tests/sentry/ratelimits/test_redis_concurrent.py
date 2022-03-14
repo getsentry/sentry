@@ -1,3 +1,6 @@
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 from freezegun import freeze_time
@@ -68,4 +71,25 @@ class ConcurrentLimiterTest(TestCase):
             )
 
     def test_finish_non_existent(self):
+        # this shouldn't crash
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
+
+    def test_concurrent(self):
+        def do_request():
+            uid = uuid.uuid4().hex
+            meta = self.backend.start_request("foo", 3, uid)
+            time.sleep(0.2)
+            self.backend.finish_request("foo", uid)
+            return meta
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            for _ in range(4):
+                futures.append(executor.submit(do_request))
+            results = []
+            for f in futures:
+                results.append(f.result())
+            print(results)
+            assert len([r for r in results if r.limit_exceeded]) == 1
+            time.sleep(0.3)
+            assert not do_request().limit_exceeded
