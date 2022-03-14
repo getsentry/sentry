@@ -2512,7 +2512,6 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
-<<<<<<< HEAD
 SUPERUSER_ORG_ID = 1
 
 SUPERUSER_ACCESS_CATEGORIES = [
@@ -2524,7 +2523,5 @@ SUPERUSER_ACCESS_CATEGORIES = [
     "onboarding_setup",
     "other",
 ]
-=======
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
->>>>>>> master
