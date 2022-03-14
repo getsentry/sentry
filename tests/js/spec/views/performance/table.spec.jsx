@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
@@ -25,6 +26,21 @@ function initializeData(projects, query, features = FEATURES) {
   ProjectsStore.loadInitialData(initialData.organization.projects);
   return initialData;
 }
+
+const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+  return (
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <Table
+        organization={data.organization}
+        location={data.router.location}
+        setError={jest.fn()}
+        summaryConditions=""
+        {...data}
+        {...rest}
+      />
+    </MEPSettingProvider>
+  );
+};
 
 function openContextMenu(wrapper, cellIndex) {
   const menu = wrapper.find('CellAction').at(cellIndex);
@@ -158,10 +174,9 @@ describe('Performance > Table', function () {
     });
 
     const wrapper = mountWithTheme(
-      <Table
+      <WrappedComponent
+        data={data}
         eventView={eventView}
-        organization={data.organization}
-        location={data.router.location}
         setError={jest.fn()}
         summaryConditions=""
         projects={projects}
