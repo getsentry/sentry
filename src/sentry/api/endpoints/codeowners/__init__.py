@@ -1,46 +1,20 @@
-import logging
-from typing import Any, Mapping, MutableMapping, Sequence, Union
+from __future__ import annotations
 
-from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from typing import Any, Mapping, MutableMapping
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry import analytics, features
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import (
-    ExternalActor,
-    Project,
-    ProjectCodeOwners,
-    RepositoryProjectPathConfig,
-    UserEmail,
-)
+from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
 
-logger = logging.getLogger(__name__)
-
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 100_000
-
-
-def validate_association(
-    raw_items: Sequence[Union[UserEmail, ExternalActor]],
-    associations: Sequence[Union[UserEmail, ExternalActor]],
-    type: str,
-) -> Sequence[str]:
-    raw_items_set = {str(item) for item in raw_items}
-    if type == "emails":
-        # associations are UserEmail objects
-        sentry_items = {item.email for item in associations}
-    else:
-        # associations are ExternalActor objects
-        sentry_items = {item.external_name for item in associations}
-    return list(raw_items_set.difference(sentry_items))
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -76,9 +50,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
         # Allow users to incrementally fix association errors; for CODEOWNERS with many external mappings.
-        associations, _ = ProjectCodeOwners.validate_codeowners_associations(
-            attrs["raw"], self.context["project"]
-        )
+        associations, _ = validate_codeowners_associations(attrs["raw"], self.context["project"])
 
         issue_owner_rules = convert_codeowners_syntax(
             attrs["raw"], associations, attrs["code_mapping_id"]
@@ -94,7 +66,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
                 "schema": validated_data,
             }
         except ValidationError as e:
-            raise serializers.ValidationError(e)
+            raise serializers.ValidationError(str(e))
 
     def validate_code_mapping_id(self, code_mapping_id: int) -> RepositoryProjectPathConfig:
         if ProjectCodeOwners.objects.filter(
@@ -141,7 +113,7 @@ class ProjectCodeOwnersMixin:
             )
         )
 
-    def track_response_code(self, type: str, status: str) -> None:
+    def track_response_code(self, type: str, status: int | str) -> None:
         if type in ["create", "update"]:
             metrics.incr(
                 f"codeowners.{type}.http_response",
@@ -150,77 +122,20 @@ class ProjectCodeOwnersMixin:
             )
 
 
-class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin):  # type: ignore
-    def get(self, request: Request, project: Project) -> Response:
-        """
-        Retrieve List of CODEOWNERS configurations for a project
-        ````````````````````````````````````````````
+from .details import ProjectCodeOwnersDetailsEndpoint
+from .external_actor.team_details import ExternalTeamDetailsEndpoint
+from .external_actor.team_index import ExternalTeamEndpoint
+from .external_actor.user_details import ExternalUserDetailsEndpoint
+from .external_actor.user_index import ExternalUserEndpoint
+from .index import ProjectCodeOwnersEndpoint
+from .request import ProjectCodeOwnersRequestEndpoint
 
-        Return a list of a project's CODEOWNERS configuration.
-
-        :auth: required
-        """
-
-        if not self.has_feature(request, project):
-            raise PermissionDenied
-
-        expand = request.GET.getlist("expand", [])
-        expand.append("errors")
-
-        codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
-
-        return Response(
-            serialize(
-                codeowners,
-                request.user,
-                serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(expand=expand),
-            ),
-            status.HTTP_200_OK,
-        )
-
-    def post(self, request: Request, project: Project) -> Response:
-        """
-        Upload a CODEOWNERS for project
-        `````````````
-
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project to get.
-        :param string raw: the raw CODEOWNERS text
-        :param string codeMappingId: id of the RepositoryProjectPathConfig object
-        :auth: required
-        """
-        if not self.has_feature(request, project):
-            self.track_response_code("create", PermissionDenied.status_code)
-            raise PermissionDenied
-
-        serializer = ProjectCodeOwnerSerializer(
-            context={
-                "ownership": self.get_ownership(project),
-                "project": project,
-            },
-            data={**request.data},
-        )
-
-        if serializer.is_valid():
-            project_codeowners = serializer.save()
-            self.track_response_code("create", status.HTTP_201_CREATED)
-            analytics.record(
-                "codeowners.created",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                codeowners_id=project_codeowners.id,
-            )
-            return Response(
-                serialize(
-                    project_codeowners,
-                    request.user,
-                    serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
-                        expand=["ownershipSyntax", "errors"]
-                    ),
-                ),
-                status=status.HTTP_201_CREATED,
-            )
-
-        self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+__all__ = (
+    "ExternalTeamEndpoint",
+    "ExternalTeamDetailsEndpoint",
+    "ExternalUserEndpoint",
+    "ExternalUserDetailsEndpoint",
+    "ProjectCodeOwnersEndpoint",
+    "ProjectCodeOwnersDetailsEndpoint",
+    "ProjectCodeOwnersRequestEndpoint",
+)

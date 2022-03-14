@@ -138,14 +138,14 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api} = this.props;
+    const {isEditing, organization, api, selection} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
     if (organization.features.includes('dashboards-metrics')) {
-      fetchMetricsFields(api, organization.slug);
-      fetchMetricsTags(api, organization.slug);
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
@@ -159,7 +159,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {isEditing, newWidget} = this.props;
+    const {api, organization, selection, isEditing, newWidget} = this.props;
 
     // Load organization tags when going into edit mode.
     // We use tags on the add widget modal.
@@ -169,8 +169,10 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
   }
 
@@ -547,9 +549,6 @@ class Dashboard extends Component<Props, State> {
     let {widgets} = dashboard;
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.ISSUE) {
-        return organization.features.includes('issues-in-dashboards');
-      }
       if (widgetType === WidgetType.METRICS) {
         return organization.features.includes('dashboards-metrics');
       }
@@ -602,9 +601,6 @@ class Dashboard extends Component<Props, State> {
     let {widgets} = dashboard;
     // Filter out any issue/metrics widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.ISSUE) {
-        return organization.features.includes('issues-in-dashboards');
-      }
       if (widgetType === WidgetType.METRICS) {
         return organization.features.includes('dashboards-metrics');
       }

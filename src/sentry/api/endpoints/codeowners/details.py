@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -7,23 +10,26 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.endpoints.project_ownership import ProjectOwnershipMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
-from sentry.models import ProjectCodeOwners
+from sentry.models import Project, ProjectCodeOwners
 
-from .project_codeowners import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
+from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 logger = logging.getLogger(__name__)
 
 
-class ProjectCodeOwnersDetailsEndpoint(
-    ProjectEndpoint, ProjectOwnershipMixin, ProjectCodeOwnersMixin
-):
+class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
     def convert_args(
-        self, request: Request, organization_slug, project_slug, codeowners_id, *args, **kwargs
-    ):
+        self,
+        request: Request,
+        organization_slug: str,
+        project_slug: str,
+        codeowners_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(
             request, organization_slug, project_slug, *args, **kwargs
         )
@@ -34,9 +40,9 @@ class ProjectCodeOwnersDetailsEndpoint(
         except ProjectCodeOwners.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return (args, kwargs)
+        return args, kwargs
 
-    def put(self, request: Request, project, codeowners) -> Response:
+    def put(self, request: Request, project: Project, codeowners: ProjectCodeOwners) -> Response:
         """
         Update a CodeOwners
         `````````````
@@ -54,16 +60,17 @@ class ProjectCodeOwnersDetailsEndpoint(
 
         serializer = ProjectCodeOwnerSerializer(
             instance=codeowners,
-            context={"ownership": self.get_ownership(project), "project": project},
+            context={"project": project},
             partial=True,
             data={**request.data},
         )
         if serializer.is_valid():
             updated_codeowners = serializer.save()
 
+            user_id = getattr(request.user, "id", None) or None
             analytics.record(
                 "codeowners.updated",
-                user_id=request.user.id if request.user and request.user.id else None,
+                user_id=user_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 codeowners_id=updated_codeowners.id,
@@ -83,7 +90,7 @@ class ProjectCodeOwnersDetailsEndpoint(
         self.track_response_code("update", status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, project, codeowners) -> Response:
+    def delete(self, request: Request, project: Project, codeowners: ProjectCodeOwners) -> Response:
         """
         Delete a CodeOwners
         """

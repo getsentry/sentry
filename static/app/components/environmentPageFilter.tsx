@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -35,14 +34,8 @@ function EnvironmentPageFilter({router, resetParamsOnChange = [], ...props}: Pro
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
-  const [selectedEnvironments, setSelectedEnvironments] = useState<string[] | null>(null);
-
-  const handleChangeEnvironments = (environments: string[] | null) => {
-    setSelectedEnvironments(environments);
-  };
-
-  const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
-    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
+  const handleUpdateEnvironments = (environments: string[]) => {
+    updateEnvironments(environments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });
@@ -79,7 +72,6 @@ function EnvironmentPageFilter({router, resetParamsOnChange = [], ...props}: Pro
       loadingProjects={!projectsLoaded || !isReady}
       selectedProjects={selection.projects}
       value={selection.environments}
-      onChange={handleChangeEnvironments}
       onUpdate={handleUpdateEnvironments}
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}

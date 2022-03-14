@@ -45,7 +45,9 @@ TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution"]
+MetricType = Literal["counter", "set", "distribution", "numeric"]
+
+MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distribution"]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -72,6 +74,7 @@ OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
 
+# ToDo add guages/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
@@ -109,6 +112,7 @@ _OPERATIONS_PERCENTILES = (
     "p99",
 )
 
+# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
 OPERATIONS = (
     "avg",
     "count_unique",
@@ -134,6 +138,14 @@ UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
 
 
 class DerivedMetricParseException(Exception):
+    ...
+
+
+class MetricDoesNotExistException(Exception):
+    ...
+
+
+class MetricDoesNotExistInIndexer(Exception):
     ...
 
 

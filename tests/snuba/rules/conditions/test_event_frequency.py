@@ -28,34 +28,33 @@ class FrequencyConditionMixin:
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
-        with freeze_time(before_now(minutes=0)):
-            event = self.store_event(
-                data={
-                    "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
-                    "user": {"id": uuid4().hex},
-                },
-                project_id=self.project.id,
+        event = self.store_event(
+            data={
+                "fingerprint": ["something_random"],
+                "timestamp": iso_format(before_now(minutes=minutes)),
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
+        if add_events:
+            self.increment(
+                event,
+                data["value"] + 1,
+                environment=self.environment.name,
+                timestamp=now() - timedelta(minutes=minutes),
             )
-            if add_events:
-                self.increment(
-                    event,
-                    data["value"] + 1,
-                    environment=self.environment.name,
-                    timestamp=now() - timedelta(minutes=minutes),
-                )
-                self.increment(
-                    event,
-                    data["value"] + 1,
-                    timestamp=now() - timedelta(minutes=minutes),
-                )
+            self.increment(
+                event,
+                data["value"] + 1,
+                timestamp=now() - timedelta(minutes=minutes),
+            )
 
-            if passes:
-                self.assertPasses(rule, event)
-                self.assertPasses(environment_rule, event)
-            else:
-                self.assertDoesNotPass(rule, event)
-                self.assertDoesNotPass(environment_rule, event)
+        if passes:
+            self.assertPasses(rule, event)
+            self.assertPasses(environment_rule, event)
+        else:
+            self.assertDoesNotPass(rule, event)
+            self.assertDoesNotPass(environment_rule, event)
 
 
 class StandardIntervalMixin:
@@ -83,12 +82,6 @@ class StandardIntervalMixin:
         data = {"interval": "1w", "value": 16}
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_thirty_days_with_events(self):
-        data = {"interval": "30d", "value": 6}
-        self._run_test(data=data, minutes=43200 - 1, passes=True, add_events=True)
-        data = {"interval": "30d", "value": 16}
-        self._run_test(data=data, minutes=43200 - 1, passes=False)
-
     def test_one_minute_no_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=False)
@@ -105,12 +98,8 @@ class StandardIntervalMixin:
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_thirty_days_no_events(self):
-        data = {"interval": "30d", "value": 6}
-        self._run_test(data=data, minutes=43200 - 1, passes=False)
-
     def test_comparison(self):
-        with freeze_time(before_now(minutes=0)):
+        with freeze_time(before_now(days=1).replace(hour=12, minute=30, second=0, microsecond=0)):
             # Test data is 4 events in the current period and 2 events in the comparison period, so
             # a 100% increase.
             event = self.store_event(
@@ -150,7 +139,7 @@ class StandardIntervalMixin:
             self.assertDoesNotPass(rule, event)
 
     def test_comparison_empty_comparison_period(self):
-        with freeze_time(before_now(minutes=0)):
+        with freeze_time(before_now(days=1).replace(hour=12, minute=30, second=0, microsecond=0)):
             # Test data is 1 event in the current period and 0 events in the comparison period. This
             # should always result in 0 and never fire.
             event = self.store_event(
@@ -200,6 +189,7 @@ class EventFrequencyConditionTestCase(
             )
 
 
+@freeze_time()
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
     StandardIntervalMixin,
@@ -225,12 +215,12 @@ class EventUniqueUserFrequencyConditionTestCase(
             )
 
 
+@freeze_time()
 class EventFrequencyPercentConditionTestCase(
     RuleTestCase,
     SnubaTestCase,
 ):
     rule_cls = EventFrequencyPercentCondition
-    test_event = None
 
     def _make_sessions(self, num, minutes):
         received = time.time() - minutes * 60
@@ -259,7 +249,7 @@ class EventFrequencyPercentConditionTestCase(
     def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment or self.environment.name != "prod":
             self.environment = self.create_environment(name="prod")
-        if not self.test_event:
+        if not hasattr(self, "test_event"):
             self.test_event = self.store_event(
                 data={
                     "fingerprint": ["something_random"],

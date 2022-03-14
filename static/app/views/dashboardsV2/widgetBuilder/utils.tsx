@@ -1,5 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
+import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
 import {
   aggregateOutputType,
@@ -7,7 +8,8 @@ import {
   isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export enum DisplayType {
   AREA = 'area',
@@ -25,6 +27,16 @@ export enum DataSet {
   ISSUES = 'issues',
   METRICS = 'metrics',
 }
+
+export enum SortDirection {
+  HIGH_TO_LOW = 'high_to_low',
+  LOW_TO_HIGH = 'low_to_high',
+}
+
+export const sortDirections = {
+  [SortDirection.HIGH_TO_LOW]: t('High to low'),
+  [SortDirection.LOW_TO_HIGH]: t('Low to high'),
+};
 
 export const displayTypes = {
   [DisplayType.AREA]: t('Area Chart'),
@@ -69,10 +81,17 @@ export function mapErrors(
   return update;
 }
 
-export function normalizeQueries(
-  displayType: DisplayType,
-  queries: Widget['queries']
-): Widget['queries'] {
+export function normalizeQueries({
+  displayType,
+  queries,
+  widgetType,
+  widgetBuilderNewDesign = false,
+}: {
+  displayType: DisplayType;
+  queries: Widget['queries'];
+  widgetBuilderNewDesign?: boolean;
+  widgetType?: Widget['widgetType'];
+}): Widget['queries'] {
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
@@ -93,6 +112,19 @@ export function normalizeQueries(
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
+    if (!queries[0].orderby && widgetBuilderNewDesign) {
+      const orderBy = (
+        widgetType === WidgetType.DISCOVER
+          ? generateOrderOptions({
+              widgetType,
+              widgetBuilderNewDesign,
+              ...getColumnsAndAggregates(queries[0].fields),
+            })[0].value
+          : IssueSortOptions.DATE
+      ) as string;
+      queries[0].orderby = orderBy;
+    }
+
     return queries;
   }
 
