@@ -1341,6 +1341,25 @@ def spans_histogram_query(
     extra_snql_condition=None,
     normalize_results=True,
 ):
+    """
+    API for generating histograms for span exclusive time.
+
+    :param [str] span: A span for which you want to generate histograms for. A span should passed in the following format - "{span_op}:{span_group}"
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param [Condition] extra_snql_condition: Adds any additional conditions to the histogram query
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
+    """
     multiplier = int(10 ** precision)
     if max_value is not None:
         max_value -= 0.1 / multiplier
