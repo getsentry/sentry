@@ -203,11 +203,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return results
 
     def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
+        """Get the contents of a file
+
+        See https://docs.github.com/en/rest/reference/repos#get-repository-content
+        """
         from base64 import b64decode
 
         contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
         encoded_content = contents["content"]
-        return b64decode(encoded_content)
+        return b64decode(encoded_content).decode("utf-8")
 
 
 class GitHubAppsClient(GitHubClientMixin):
