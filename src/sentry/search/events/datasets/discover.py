@@ -747,7 +747,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                                                                                         ),
                                                                                     ),
                                                                                     Column(
-                                                                                        "spans.exclusive_time_32"
+                                                                                        "spans.exclusive_time"
                                                                                     ),
                                                                                     Column(
                                                                                         "spans.op"
