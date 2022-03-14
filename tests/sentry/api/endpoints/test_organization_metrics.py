@@ -442,6 +442,57 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == []
 
+        # We need to ensure that if the tag is present in the indexer but has no values in the
+        # dataset, the intersection of it and other tags should not yield any results
+        indexer.record("random_tag")
+        response = self.get_success_response(
+            self.organization.slug,
+            "tag1",
+            metric=["metric1", "random_tag"],
+        )
+        assert response.data == []
+
+    @with_feature(FEATURE_FLAG)
+    def test_tag_values_for_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "release",
+            metric=["session.crash_free_rate", "session.init"],
+        )
+        assert response.data == [{"key": "release", "value": "foobar"}]
+
+        DERIVED_METRICS.update(
+            {
+                "crash_free_fake": SingularEntityDerivedMetric(
+                    metric_name="crash_free_fake",
+                    metrics=["session.crashed", "session.errored_set"],
+                    unit="percentage",
+                    snql=lambda *args, entity, metric_ids, alias=None: percentage(
+                        *args, entity, metric_ids, alias="crash_free_fake"
+                    ),
+                )
+            }
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "release",
+            metric=["crash_free_fake", "session.init"],
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
+            "Please revise the definition of these singular entity derived metrics"
+        )
+
 
 class OrganizationMetricDataTest(SessionMetricsTestCase, APITestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
