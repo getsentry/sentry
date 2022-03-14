@@ -86,6 +86,7 @@ describe('Modals -> WidgetViewerModal', function () {
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -478,6 +479,7 @@ describe('Modals -> WidgetViewerModal', function () {
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Issue Widget',
       displayType: DisplayType.TABLE,
       interval: '5m',
