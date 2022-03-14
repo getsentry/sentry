@@ -10,16 +10,14 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import GridEditable, {
-  COL_WIDTH_MINIMUM,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -40,7 +38,6 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
-  renderPrependColumns,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -118,17 +115,12 @@ function WidgetViewerModal(props: Props) {
   ].includes(widget.displayType);
 
   if (shouldReplaceTableColumns) {
-    tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
-    fields.splice(
-      0,
-      fields.length,
-      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
-    );
+    if (fields.length === 1) {
+      tableWidget.queries[0].orderby =
+        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    }
+    fields.unshift('title');
   }
-
-  const prependColumnWidths = shouldReplaceTableColumns
-    ? [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`]
-    : [];
 
   if (!isTableWidget) {
     // Updates fields by adding any individual terms from equation fields as a column
@@ -294,14 +286,6 @@ function WidgetViewerModal(props: Props) {
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
-                        renderPrependColumns: shouldReplaceTableColumns
-                          ? renderPrependColumns({
-                              ...props,
-                              eventView,
-                              tableData: tableResults?.[0],
-                            })
-                          : undefined,
-                        prependColumnWidths,
                       }}
                       location={location}
                     />
