@@ -163,13 +163,16 @@ class SpanGroupBar extends React.Component<Props> {
           isSpanGroupToggler
           onClick={event => {
             event.stopPropagation();
-            groupType === GroupType.DESCENDANTS
-              ? toggleSpanGroup()
-              : toggleSiblingSpanGroup &&
-                toggleSiblingSpanGroup(
-                  spanGrouping[0].span.op!,
-                  spanGrouping[0].span.description!
+            if (groupType === GroupType.DESCENDANTS) {
+              toggleSpanGroup();
+            } else {
+              if (spanGrouping[0].span.op && spanGrouping[0].span.description) {
+                toggleSiblingSpanGroup?.(
+                  spanGrouping[0].span.op,
+                  spanGrouping[0].span.description
                 );
+              }
+            }
           }}
         >
           <Count value={spanGrouping.length} />
