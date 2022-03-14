@@ -370,7 +370,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(wrapper.find('div[data-test-id="has-metrics-data-tag"]').text()).toEqual(
+    expect(wrapper.find('span[data-test-id="has-metrics-data-tag"]').text()).toEqual(
       'Sampled'
     );
   });
