@@ -310,15 +310,13 @@ class SnubaQueryBuilder:
             for field in query_definition.groupby
         ]
 
-    def _build_orderby(
-        self, query_definition: QueryDefinition, entity: str
-    ) -> Optional[List[OrderBy]]:
+    def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
             return None
         (op, metric_name), direction = query_definition.orderby
         metric_field_obj = metric_object_factory(op, metric_name)
         return metric_field_obj.generate_orderby_clause(
-            entity=entity, projects=self._projects, direction=direction
+            projects=self._projects, direction=direction
         )
 
     @staticmethod
@@ -354,21 +352,26 @@ class SnubaQueryBuilder:
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
             metric_field_obj = metric_object_factory(op, metric_name)
-            # `get_entity` is called the first, to fetch the entities, and validate especially in
-            # the case of SingularEntityDerivedMetric that it is actually composed of metrics in
-            # the same entity
+            # `get_entity` is called the first, to fetch the entities of constituent metrics,
+            # and validate especially in the case of SingularEntityDerivedMetric that it is
+            # actually composed of metrics that belong to the same entity
             try:
                 entity = metric_field_obj.get_entity(projects=self._projects)
             except MetricDoesNotExistException:
+                # If we get here, it means that one or more of the constituent metrics for a
+                # derived metric does not exist, and so no further attempts to query that derived
+                # metric will be made, and the field value will be set to the default value in
+                # the response
                 continue
 
             if not entity:
                 # ToDo(ahmed): When we get to an instance of a MetricFieldBase where entity is
-                #  None, we need to identify if it is None because it is from a composite entity
-                #  derived metric, and if that is the case, we need to traverse down the
-                #  constituent metrics dependency tree until we get to instance of single entity
-                #  derived metric, and add those to our queries so that we are able to generate
-                #  later on the composite value as a result of post query operation.
+                #  None, we know it is from a composite entity derived metric, and we need to
+                #  traverse down the constituent metrics dependency tree until we get to instances
+                #  of SingleEntityDerivedMetric, and add those to our queries so that we are able
+                #  to generate the original CompositeEntityDerivedMetric later on as a result of
+                #  a post query operation on the results of the constituent
+                #  SingleEntityDerivedMetric instances
                 continue
 
             if entity not in self._implemented_datasets:
@@ -387,9 +390,7 @@ class SnubaQueryBuilder:
             metric_ids_set = set()
             for op, name in fields:
                 metric_field_obj = metric_name_to_obj_dict[(op, name)]
-                select += metric_field_obj.generate_select_statements(
-                    entity=entity, projects=self._projects
-                )
+                select += metric_field_obj.generate_select_statements(projects=self._projects)
                 metric_ids_set |= metric_field_obj.generate_metric_ids()
 
             where_for_entity = [
@@ -399,7 +400,7 @@ class SnubaQueryBuilder:
                     list(metric_ids_set),
                 ),
             ]
-            orderby = self._build_orderby(query_definition, entity)
+            orderby = self._build_orderby(query_definition)
 
             queries_dict[entity] = self._build_totals_and_series_queries(
                 entity=entity,
