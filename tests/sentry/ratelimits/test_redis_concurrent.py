@@ -18,16 +18,15 @@ class ConcurrentLimiterTest(TestCase):
                     self.backend.start_request("foo", limit, f"request_id{i}").current_executions
                     == i
                 )
-            assert (
-                self.backend.start_request("foo", limit, "request_id_12").current_executions
-                == limit
-            )
 
-            for i in range(10):
-                # limit exceeded
-                assert self.backend.get_concurrent_requests("foo") == 8
+            info = self.backend.start_request("foo", limit, "request_id_12")
+            assert info.current_executions == limit
+            assert info.limit_exceeded
+
+            # limit exceeded
+            assert self.backend.get_concurrent_requests("foo") == limit
             self.backend.finish_request("foo", "request_id1")
-            assert self.backend.get_concurrent_requests("foo") == 7
+            assert self.backend.get_concurrent_requests("foo") == limit - 1
 
     def test_fails_open(self):
         class FakeClient:

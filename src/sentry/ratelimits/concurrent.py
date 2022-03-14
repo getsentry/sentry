@@ -46,8 +46,8 @@ class ConcurrentRateLimiter:
             res = rate_limit_info(
                 self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
             )
-            current_executions, limit_exceeded = res
-            return ConcurrentLimitInfo(limit, int(current_executions), bool(limit_exceeded))
+            current_executions, request_allowed = res
+            return ConcurrentLimitInfo(limit, int(current_executions), not bool(request_allowed))
         except Exception:
             logger.exception(
                 "Could not start request", dict(key=redis_key, limit=limit, request_uid=request_uid)
