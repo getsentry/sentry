@@ -1371,8 +1371,7 @@ def spans_histogram_query(
         Dataset.Discover,
         params,
         query=user_query,
-        # TODO figure out what should be passed to selected_columns
-        selected_columns=["spans.exclusive_time_32"],
+        selected_columns=[""],
         orderby=order_by,
         limitby=limit_by,
     )
