@@ -1325,16 +1325,22 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.anon_users_query = {
             "name": "Anonymous Users",
             "fields": ["count()"],
+            "aggregates": ["count()"],
+            "columns": [],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
+            "aggregates": ["count_unique(user.email)"],
+            "columns": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
+            "aggregates": ["count()"],
+            "columns": ["geo.country_code"],
             "conditions": "has:geo.country_code",
         }
 
@@ -1394,6 +1400,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["title"] == expected_widget.title
         if "interval" in data:
             assert data["interval"] == expected_widget.interval
+        if "limit" in data:
+            assert data["limit"] == expected_widget.limit
         if "displayType" in data:
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type

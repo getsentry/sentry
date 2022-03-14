@@ -1,7 +1,7 @@
 import range from 'lodash/range';
 
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -75,7 +75,7 @@ describe('TeamMisery', () => {
       match: [MockApiClient.matchQuery({statsPeriod: '8w'})],
     });
 
-    mountWithTheme(
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[project]}
@@ -102,7 +102,7 @@ describe('TeamMisery', () => {
   });
 
   it('should render empty state', async () => {
-    mountWithTheme(
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[]}
@@ -123,7 +123,7 @@ describe('TeamMisery', () => {
       body: {},
     });
 
-    mountWithTheme(
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[TestStubs.Project()]}
