@@ -1,8 +1,10 @@
 import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AreaChart from 'sentry/components/charts/areaChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
@@ -14,7 +16,8 @@ import {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = AsyncComponent['props'] &
-  DateTimeObject & {
+  DateTimeObject &
+  WithRouterProps & {
     orgId: string;
     organization: Organization;
     project: Project;
@@ -68,6 +71,7 @@ class AlertChart extends AsyncComponent<Props, State> {
   }
 
   renderChart() {
+    const {router, period, start, end, utc} = this.props;
     const {ruleFireHistory} = this.state;
 
     const series = {
@@ -82,20 +86,32 @@ class AlertChart extends AsyncComponent<Props, State> {
     };
 
     return (
-      <AreaChart
-        isGroupedByDate
-        showTimeInTooltip
-        grid={{
-          left: space(0.25),
-          right: space(2),
-          top: space(3),
-          bottom: 0,
-        }}
-        yAxis={{
-          minInterval: 1,
-        }}
-        series={[series]}
-      />
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        usePageDate
+      >
+        {zoomRenderProps => (
+          <AreaChart
+            {...zoomRenderProps}
+            isGroupedByDate
+            showTimeInTooltip
+            grid={{
+              left: space(0.25),
+              right: space(2),
+              top: space(3),
+              bottom: 0,
+            }}
+            yAxis={{
+              minInterval: 1,
+            }}
+            series={[series]}
+          />
+        )}
+      </ChartZoom>
     );
   }
 
@@ -123,7 +139,7 @@ class AlertChart extends AsyncComponent<Props, State> {
       <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
+            <HeaderTitleLegend>{t('Total Alerts')}</HeaderTitleLegend>
           </ChartHeader>
           {getDynamicText({
             value: this.renderChart(),
@@ -139,7 +155,7 @@ class AlertChart extends AsyncComponent<Props, State> {
   }
 }
 
-export default AlertChart;
+export default withRouter(AlertChart);
 
 const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
@@ -156,7 +172,7 @@ const FooterHeader = styled(SectionHeading)`
   align-items: center;
   margin: 0;
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
 
