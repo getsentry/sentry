@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
-from sentry.api.serializers import DetailedUserSerializer, serialize
+from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.models import Authenticator, Organization
@@ -40,7 +40,7 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         user = extract_lazy_object(request._request.user)
-        return Response(serialize(user, user, DetailedUserSerializer()))
+        return Response(serialize(user, user, DetailedSelfUserSerializer()))
 
     def post(self, request: Request) -> Response:
         """
