@@ -7,14 +7,14 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@babel/core": "~7.15.5",
-    "@babel/plugin-proposal-decorators": "~7.15.4",
-    "@babel/plugin-transform-react-jsx": "^7.14.9",
-    "@babel/plugin-transform-runtime": "~7.15.0",
-    "@babel/preset-env": "~7.15.6",
-    "@babel/preset-react": "^7.14.5",
-    "@babel/preset-typescript": "^7.15.0",
-    "@babel/runtime": "~7.15.4",
+    "@babel/core": "~7.17.5",
+    "@babel/plugin-proposal-decorators": "~7.17.2",
+    "@babel/plugin-transform-react-jsx": "^7.17.3",
+    "@babel/plugin-transform-runtime": "~7.17.0",
+    "@babel/preset-env": "~7.16.11",
+    "@babel/preset-react": "^7.16.7",
+    "@babel/preset-typescript": "^7.16.7",
+    "@babel/runtime": "~7.17.2",
     "@dnd-kit/core": "^3.1.1",
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.3.0",
@@ -144,7 +144,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@babel/plugin-transform-react-jsx-source": "^7.14.5",
+    "@babel/plugin-transform-react-jsx-source": "^7.16.7",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.4",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.3.13",
