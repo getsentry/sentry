@@ -127,7 +127,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
         user.save()
 
     # for self hosted to give superusers admin permissions
-    if superuser is True and settings.SENTRY_SELF_HOSTED:
+    if superuser is True and settings.SENTRY_SELF_HOSTED and not no_input:
         _set_user_permissions(user)
 
     click.echo(f"User {verb}: {email}")

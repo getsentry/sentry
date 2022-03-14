@@ -5,8 +5,6 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {MetricsSwitchContextContainer} from './metricsSwitch';
-
 type Props = {
   children: React.ReactChildren;
   organization: Organization;
@@ -28,7 +26,7 @@ function PerformanceContainer({organization, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <MetricsSwitchContextContainer>{children}</MetricsSwitchContextContainer>
+      {children}
     </Feature>
   );
 }

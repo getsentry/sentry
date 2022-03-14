@@ -1075,6 +1075,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enables experimental new-style selection filters to replace the GSH
     "organizations:selection-filters-v2": False,
+    # Enable experimental session replay features
+    "organizations:session-replay": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1669,7 +1671,7 @@ SENTRY_WATCHERS = (
 
 # Controls whether devserver spins up Relay, Kafka, and several ingest worker jobs to direct store traffic
 # through the Relay ingestion pipeline. Without, ingestion is completely disabled. Use `bin/load-mocks` to
-# generate fake data for local testing. You can also manually enable relay with the `--relay` flag to `devserver`.
+# generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
 SENTRY_USE_RELAY = False
