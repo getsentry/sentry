@@ -7,7 +7,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -114,9 +114,11 @@ function IssueListFilters({
           </DropdownsWrapper>
         )}
       </SearchContainer>
-      {hasPageFilters && queryCount > 0 && (
+      {hasPageFilters && (
         <ResultsRow>
-          <QueryCount>{`${queryCount} ${t('results found')}`}</QueryCount>
+          <QueryCount>
+            {queryCount > 0 && tct('[queryCount] results found', {queryCount})}
+          </QueryCount>
           <DisplayOptionsBar>
             {hasIssuePercentDisplay && (
               <IssueListDisplayOptions
