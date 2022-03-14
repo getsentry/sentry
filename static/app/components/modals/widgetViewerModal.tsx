@@ -355,7 +355,7 @@ function WidgetViewerModal(props: Props) {
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          {onEdit && (
+          {onEdit && widget.id && (
             <Button
               type="button"
               onClick={() => {
