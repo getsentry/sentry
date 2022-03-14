@@ -163,7 +163,6 @@ def adjust_settings_for_relay_tests(settings):
         }
     }
     settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
-    settings.SENTRY_USE_RELAY = True
 
 
 @pytest.fixture
