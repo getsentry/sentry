@@ -952,8 +952,8 @@ def sort_by_priority_list(incident_triggers):
     priority_dict = {
         (CRITICAL_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 0,
         (WARNING_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 1,
-        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
-        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
+        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
+        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
     }
     return sorted(
         incident_triggers,
