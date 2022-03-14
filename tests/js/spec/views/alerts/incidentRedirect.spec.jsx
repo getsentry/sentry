@@ -1,12 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import IncidentRedirect from 'sentry/views/alerts/incidentRedirect';
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('IncidentRedirect', () => {
   const params = {orgId: 'org-slug', alertId: '123'};
@@ -30,16 +30,16 @@ describe('IncidentRedirect', () => {
   });
 
   it('redirects to alert details page', async () => {
-    mountWithTheme(<IncidentRedirect params={params} organization={organization} />, {
+    render(<IncidentRedirect params={params} organization={organization} />, {
       context: routerContext,
     });
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'alert_details.viewed',
-      eventName: 'Alert Details: Viewed',
-      organization_id: 3,
-      alert_id: 123,
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'alert_details.viewed',
+      expect.objectContaining({
+        alert_id: 123,
+      })
+    );
 
     await waitFor(() => {
       expect(browserHistory.replace).toHaveBeenCalledWith({

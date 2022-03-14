@@ -85,6 +85,7 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   id: string;
   projects: string[];
   errors?: {detail: string}[];
+  lastTriggered?: string;
 };
 
 // Project's alert rule stats

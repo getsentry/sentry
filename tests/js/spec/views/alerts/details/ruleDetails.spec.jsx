@@ -1,7 +1,8 @@
 import {browserHistory} from 'react-router';
+import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import RuleDetailsContainer from 'sentry/views/alerts/details/index';
@@ -15,7 +16,9 @@ describe('AlertRuleDetails', () => {
   });
   const organization = context.organization;
   const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule();
+  const rule = TestStubs.ProjectAlertRule({
+    lastTriggered: moment().subtract(2, 'day').format(),
+  });
 
   const createWrapper = (props = {}) => {
     const params = {
@@ -23,7 +26,7 @@ describe('AlertRuleDetails', () => {
       projectId: project.slug,
       ruleId: rule.id,
     };
-    return mountWithTheme(
+    return render(
       <RuleDetailsContainer
         params={params}
         location={{query: {}}}
@@ -45,6 +48,7 @@ describe('AlertRuleDetails', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/stats/`,
@@ -53,7 +57,13 @@ describe('AlertRuleDetails', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/group-history/`,
-      body: [{count: 1, group: TestStubs.Group()}],
+      body: [
+        {
+          count: 1,
+          group: TestStubs.Group(),
+          lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
+        },
+      ],
       headers: {
         Link:
           '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -110,5 +120,12 @@ describe('AlertRuleDetails', () => {
         pageUtc: undefined,
       },
     });
+  });
+
+  it('should show the time since last triggered in sidebar', async () => {
+    createWrapper();
+
+    expect(await screen.findAllByText('Last Triggered')).toHaveLength(2);
+    expect(screen.getByText('2 days ago')).toBeInTheDocument();
   });
 });

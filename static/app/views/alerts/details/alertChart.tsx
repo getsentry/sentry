@@ -139,7 +139,7 @@ class AlertChart extends AsyncComponent<Props, State> {
       <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
+            <HeaderTitleLegend>{t('Total Alerts')}</HeaderTitleLegend>
           </ChartHeader>
           {getDynamicText({
             value: this.renderChart(),
@@ -172,7 +172,7 @@ const FooterHeader = styled(SectionHeading)`
   align-items: center;
   margin: 0;
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
 
