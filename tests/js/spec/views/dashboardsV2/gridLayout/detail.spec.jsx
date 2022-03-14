@@ -1,13 +1,7 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  act,
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -475,7 +469,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -508,7 +502,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -545,7 +539,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -581,7 +575,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -614,7 +608,7 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
@@ -639,7 +633,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '123'}}
@@ -673,7 +667,7 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
@@ -698,7 +692,7 @@ describe('Dashboards > Detail', function () {
     it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
 
-      rtlMountWithTheme(
+      render(
         <CreateDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}

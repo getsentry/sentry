@@ -1075,6 +1075,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enables experimental new-style selection filters to replace the GSH
     "organizations:selection-filters-v2": False,
+    # Enable experimental session replay features
+    "organizations:session-replay": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1667,11 +1669,12 @@ SENTRY_WATCHERS = (
     ),
 )
 
-# Controls whether DEVSERVICES will spin up a Relay and direct store traffic through Relay or not.
-# If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
-# will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
-# rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = True
+# Controls whether devserver spins up Relay, Kafka, and several ingest worker jobs to direct store traffic
+# through the Relay ingestion pipeline. Without, ingestion is completely disabled. Use `bin/load-mocks` to
+# generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
+# XXX: This is disabled by default as typical development workflows do not require end-to-end services running
+# and disabling optional services reduces resource consumption and complexity
+SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
@@ -2508,3 +2511,6 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+
+
+LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")

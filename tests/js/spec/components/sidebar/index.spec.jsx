@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -26,7 +26,7 @@ describe('Sidebar', function () {
     <SidebarContainer organization={organization} location={location} {...props} />
   );
 
-  const renderSidebar = props => mountWithTheme(getElement(props));
+  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({

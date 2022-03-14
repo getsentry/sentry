@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
 import Form from 'sentry/components/forms/form';
@@ -6,7 +6,7 @@ import FormModel from 'sentry/components/forms/model';
 
 describe('MultipleCheckboxField', function () {
   it('renders without form context', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <MultipleCheckboxField
         name="fieldName"
         choices={[
@@ -21,7 +21,7 @@ describe('MultipleCheckboxField', function () {
 
   it('renders with form context', function () {
     const model = new FormModel({initialData: {fieldName: ['1']}});
-    const {container} = mountWithTheme(
+    const {container} = render(
       <Form value={model}>
         <MultipleCheckboxField
           name="fieldName"

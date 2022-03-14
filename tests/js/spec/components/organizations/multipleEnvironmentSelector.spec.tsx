@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -49,7 +49,7 @@ describe('MultipleEnvironmentSelector', function () {
   function renderSelector(
     props?: Partial<React.ComponentProps<typeof MultipleEnvironmentSelector>>
   ) {
-    return mountWithTheme(<MultipleEnvironmentSelector {...selectorProps} {...props} />, {
+    return render(<MultipleEnvironmentSelector {...selectorProps} {...props} />, {
       context: routerContext,
     });
   }
