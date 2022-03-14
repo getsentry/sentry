@@ -643,10 +643,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            [self.action, other_action],
+            [other_action, self.action],
             [
-                (other_trigger.alert_threshold - 1, IncidentStatus.WARNING),
                 (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (other_trigger.alert_threshold - 1, IncidentStatus.WARNING),
             ],
         )
 
@@ -996,10 +996,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            [self.action, other_action],
+            [other_action, self.action],
             [
-                (rule.resolve_threshold - 1, IncidentStatus.WARNING),
                 (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
+                (rule.resolve_threshold - 1, IncidentStatus.WARNING),
             ],
         )
 
@@ -1201,9 +1201,58 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
             incident,
-            [self.action, other_action],
+            [other_action, self.action],
             [
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
                 (rule.resolve_threshold - 1, IncidentStatus.WARNING),
+            ],
+        )
+
+    def test_multiple_triggers_with_identical_actions_at_same_time(self):
+        # Check that both triggers fire if an update comes through that exceeds both of
+        # their thresholds
+        rule = self.rule
+        trigger = self.trigger
+        other_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 20
+        )
+        other_action = create_alert_rule_trigger_action(
+            other_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, other_trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [
+                self.action,
+            ],
+            [
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+            ],
+        )
+
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-9), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, other_trigger, 0, 0)
+        self.assert_no_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident,
+            [other_action],
+            [
                 (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
             ],
         )
