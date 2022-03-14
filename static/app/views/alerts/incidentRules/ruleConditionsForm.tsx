@@ -141,6 +141,93 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
+  renderEventTypeFilter() {
+    const {organization, disabled, alertType} = this.props;
+
+    const dataSourceOptions = [
+      {
+        label: t('Errors'),
+        options: [
+          {
+            value: Datasource.ERROR_DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
+          },
+          {
+            value: Datasource.DEFAULT,
+            label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
+          },
+          {
+            value: Datasource.ERROR,
+            label: DATA_SOURCE_LABELS[Datasource.ERROR],
+          },
+        ],
+      },
+    ];
+
+    if (organization.features.includes('performance-view') && alertType === 'custom') {
+      dataSourceOptions.push({
+        label: t('Transactions'),
+        options: [
+          {
+            value: Datasource.TRANSACTION,
+            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
+          },
+        ],
+      });
+    }
+    const formElemBaseStyle = {
+      padding: `${space(0.5)}`,
+      border: 'none',
+    };
+
+    return (
+      <FormField
+        name="datasource"
+        inline={false}
+        style={{
+          ...formElemBaseStyle,
+          minWidth: 300,
+          flex: 2,
+        }}
+        flexibleControlStateSize
+      >
+        {({onChange, onBlur, model}) => {
+          const formDataset = model.getValue('dataset');
+          const formEventTypes = model.getValue('eventTypes');
+          const mappedValue = convertDatasetEventTypesToSource(
+            formDataset,
+            formEventTypes
+          );
+          return (
+            <SelectControl
+              value={mappedValue}
+              inFieldLabel={t('Events: ')}
+              onChange={optionObj => {
+                const optionValue = optionObj.value;
+                onChange(optionValue, {});
+                onBlur(optionValue, {});
+                // Reset the aggregate to the default (which works across
+                // datatypes), otherwise we may send snuba an invalid query
+                // (transaction aggregate on events datasource = bad).
+                optionValue === 'transaction'
+                  ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                  : model.setValue('aggregate', DEFAULT_AGGREGATE);
+
+                // set the value of the dataset and event type from data source
+                const {dataset: datasetFromDataSource, eventTypes} =
+                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                model.setValue('dataset', datasetFromDataSource);
+                model.setValue('eventTypes', eventTypes);
+              }}
+              options={dataSourceOptions}
+              isDisabled={disabled}
+            />
+          );
+        }}
+      </FormField>
+    );
+  }
+
   renderInterval() {
     const {
       organization,
@@ -150,6 +237,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       timeWindow,
       comparisonDelta,
       comparisonType,
+      allowChangeEventTypes,
       onTimeWindowChange,
       onComparisonDeltaChange,
     } = this.props;
@@ -176,6 +264,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             </Tooltip>
           </StyledListTitle>
         </StyledListItem>
+        {hasAlertWizardV3 && allowChangeEventTypes && this.renderEventTypeFilter()}
         <FormRow>
           {timeWindowText && (
             <MetricField
@@ -254,7 +343,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       disabled,
       onFilterSearch,
       allowChangeEventTypes,
-      alertType,
       hasAlertWizardV3,
       dataset,
     } = this.props;
@@ -270,38 +358,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       value: null,
       label: t('All'),
     });
-
-    const dataSourceOptions = [
-      {
-        label: t('Errors'),
-        options: [
-          {
-            value: Datasource.ERROR_DEFAULT,
-            label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
-          },
-          {
-            value: Datasource.DEFAULT,
-            label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
-          },
-          {
-            value: Datasource.ERROR,
-            label: DATA_SOURCE_LABELS[Datasource.ERROR],
-          },
-        ],
-      },
-    ];
-
-    if (organization.features.includes('performance-view') && alertType === 'custom') {
-      dataSourceOptions.push({
-        label: t('Transactions'),
-        options: [
-          {
-            value: Datasource.TRANSACTION,
-            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
-          },
-        ],
-      });
-    }
 
     const transactionTags = [
       'transaction',
@@ -324,7 +380,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {hasAlertWizardV3 && this.renderInterval()}
-        <StyledListItem>{t('Filter events')}</StyledListItem>
+        {hasAlertWizardV3 ? (
+          <StyledListItem>{t('Filter environments')}</StyledListItem>
+        ) : (
+          <StyledListItem>{t('Filter events')}</StyledListItem>
+        )}
         <FormRow>
           <SelectField
             name="environment"
@@ -349,52 +409,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             flexibleControlStateSize
             inFieldLabel={t('Environment: ')}
           />
-          {allowChangeEventTypes && (
-            <FormField
-              name="datasource"
-              inline={false}
-              style={{
-                ...formElemBaseStyle,
-                minWidth: 300,
-                flex: 2,
-              }}
-              flexibleControlStateSize
-            >
-              {({onChange, onBlur, model}) => {
-                const formDataset = model.getValue('dataset');
-                const formEventTypes = model.getValue('eventTypes');
-                const mappedValue = convertDatasetEventTypesToSource(
-                  formDataset,
-                  formEventTypes
-                );
-                return (
-                  <SelectControl
-                    value={mappedValue}
-                    inFieldLabel={t('Events: ')}
-                    onChange={optionObj => {
-                      const optionValue = optionObj.value;
-                      onChange(optionValue, {});
-                      onBlur(optionValue, {});
-                      // Reset the aggregate to the default (which works across
-                      // datatypes), otherwise we may send snuba an invalid query
-                      // (transaction aggregate on events datasource = bad).
-                      optionValue === 'transaction'
-                        ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                        : model.setValue('aggregate', DEFAULT_AGGREGATE);
-
-                      // set the value of the dataset and event type from data source
-                      const {dataset: datasetFromDataSource, eventTypes} =
-                        DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                      model.setValue('dataset', datasetFromDataSource);
-                      model.setValue('eventTypes', eventTypes);
-                    }}
-                    options={dataSourceOptions}
-                    isDisabled={disabled}
-                  />
-                );
-              }}
-            </FormField>
-          )}
+          {!hasAlertWizardV3 && allowChangeEventTypes && this.renderEventTypeFilter()}
           <FormField
             name="query"
             inline={false}
