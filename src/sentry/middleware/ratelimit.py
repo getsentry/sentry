@@ -8,7 +8,12 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.ratelimits import above_rate_limit_check, get_rate_limit_key, get_rate_limit_value
+from sentry.ratelimits import (
+    above_rate_limit_check,
+    finish_request,
+    get_rate_limit_key,
+    get_rate_limit_value,
+)
 from sentry.types.ratelimit import RateLimitCategory, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
@@ -27,11 +32,10 @@ class RatelimitMiddleware(MiddlewareMixin):
             request.will_be_rate_limited = False
             request.rate_limit_category = None
             request.rate_limit_uid = uuid.uuid4().hex
-
-            key = get_rate_limit_key(view_func, request)
-            if key is None:
+            request.rate_limit_key = get_rate_limit_key(view_func, request)
+            if request.rate_limit_key is None:
                 return
-            category_str = key.split(":", 1)[0]
+            category_str = request.rate_limit_key.split(":", 1)[0]
             request.rate_limit_category = category_str
 
             rate_limit = get_rate_limit_value(
@@ -43,7 +47,7 @@ class RatelimitMiddleware(MiddlewareMixin):
                 return
 
             request.rate_limit_metadata = above_rate_limit_check(
-                key, rate_limit, request.rate_limit_uid
+                request.rate_limit_key, rate_limit, request.rate_limit_uid
             )
 
             # TODO: also limit by concurrent window once we have the data
@@ -68,4 +72,5 @@ class RatelimitMiddleware(MiddlewareMixin):
             response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
             response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
             response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
+        finish_request(request.rate_limit_key, request.rate_limit_uid)
         return response

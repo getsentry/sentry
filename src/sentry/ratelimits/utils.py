@@ -164,6 +164,10 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
     )
 
 
+def finish_request(key: str, request_uid: str) -> None:
+    concurrent_limiter().finish_request(key, request_uid)
+
+
 def for_organization_member_invite(
     organization: Organization,
     email: str,

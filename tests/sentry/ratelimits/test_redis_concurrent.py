@@ -66,3 +66,6 @@ class ConcurrentLimiterTest(TestCase):
             assert (
                 self.backend.start_request("foo", limit, "updated_request").current_executions == 1
             )
+
+    def test_finish_non_existent(self):
+        self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
