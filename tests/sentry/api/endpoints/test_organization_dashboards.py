@@ -494,6 +494,90 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected_query["aggregates"] = ["count()"]
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
+    def test_add_widget_with_limit(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": 6,
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+                {
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 5,
+                    "title": "Error count()",
+                    "queries": [
+                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        widgets = self.get_widgets(dashboard.id)
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        self.assert_serialized_widget(data["widgets"][1], widgets[1])
+
+    def test_add_widget_with_invalid_limit_above_maximum(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": 11,
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert b"Ensure this value is less than or equal to 10" in response.content
+
+    def test_add_widget_with_invalid_limit_below_minimum(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": 0,
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert b"Ensure this value is greater than or equal to 1" in response.content
+
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
         data = {
             "title": "Dashboard with null agg and cols",

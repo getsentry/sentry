@@ -233,6 +233,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
@@ -369,6 +370,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
+            limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
@@ -394,6 +396,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.limit = data.get("limit", widget.limit)
         widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
