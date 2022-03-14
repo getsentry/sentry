@@ -125,14 +125,14 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
     for derived_metric_name in found_derived_metrics:
         derived_metric_obj = DERIVED_METRICS[derived_metric_name]
-        metrics_meta += [
+        metrics_meta.append(
             MetricMeta(
                 name=derived_metric_obj.metric_name,
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,
             )
-        ]
+        )
     return sorted(metrics_meta, key=itemgetter("name"))
 
 
