@@ -137,7 +137,12 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
 
 
 def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
-    """Add a condition to filter by metrics. Return None if a name cannot be resolved."""
+    """
+    Returns a set of metric_ids that map to input metric names and raises an exception if
+    metric cannot be resolved in the indexer
+    """
+    if not metric_names:
+        return set()
     metric_ids = set()
     for name in metric_names:
         if name not in DERIVED_METRICS:
@@ -151,19 +156,40 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
     return metric_ids
 
 
+def _validate_requested_derived_metrics(
+    metric_names: Sequence[str], supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]]
+) -> None:
+    """
+    Function that takes metric_names list and a mapping of entity to its metric ids, and ensures
+    that all the derived metrics in the metric names list have constituent metric ids that are in
+    the same entity. Otherwise, it raises an exception as that indicates that an instance of
+    SingleEntityDerivedMetric was incorrectly setup with constituent metrics that span multiple
+    entities
+    """
+    requested_derived_metrics = {
+        metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
+    }
+    found_derived_metrics = get_available_derived_metrics(
+        supported_metric_ids_in_entities, requested_derived_metrics
+    )
+    if requested_derived_metrics != found_derived_metrics:
+        raise DerivedMetricParseException(
+            f"The following metrics {requested_derived_metrics - found_derived_metrics} "
+            f"cannot be computed from single entities. Please revise the definition of these "
+            f"singular entity derived metrics"
+        )
+
+
 def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]]) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names"""
     assert projects
 
-    metric_ids = set()
-    if metric_names:
-        try:
-            metric_ids = _get_metrics_filter_ids(metric_names)
-        except MetricDoesNotExistInIndexer:
-            return []
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))]
+    try:
+        metric_ids = _get_metrics_filter_ids(metric_names)
+    except MetricDoesNotExistInIndexer:
+        return []
     else:
-        where = []
+        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
     tag_ids_per_metric_id = defaultdict(list)
     # This dictionary is required as a mapping from an entity to the ids available in it to
@@ -201,23 +227,17 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
     tag_id_lists = tag_ids_per_metric_id.values()
     if metric_names:
         # If there are metric_ids that were not found in the dataset, then just return an []
-        if set(tag_ids_per_metric_id.keys()) != metric_ids:
+        if metric_ids != set(tag_ids_per_metric_id.keys()):
             # This can occur for metric names that don't have an equivalent in the dataset.
             return []
 
-        requested_derived_metrics = {
-            metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
-        }
-        found_derived_metrics = get_available_derived_metrics(
-            supported_metric_ids_in_entities, requested_derived_metrics
+        # At this point, we are sure that every metric_name/metric_id that was requested is
+        # present in the dataset, and now we need to check that all derived metrics requested are
+        # setup correctly
+        _validate_requested_derived_metrics(
+            metric_names=metric_names,
+            supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
-
-        if requested_derived_metrics != found_derived_metrics:
-            raise DerivedMetricParseException(
-                f"The following metrics {requested_derived_metrics - found_derived_metrics} "
-                f"cannot be computed from single entities. Please revise the definition of these "
-                f"singular entity derived metrics"
-            )
 
         # Only return tags that occur in all metrics
         tag_ids = set.intersection(*map(set, tag_id_lists))
@@ -240,20 +260,23 @@ def get_tag_values(
     if tag_id is None:
         raise InvalidParams
 
-    if metric_names:
-        try:
-            metric_ids = _get_metrics_filter_ids(metric_names)
-        except MetricDoesNotExistInIndexer:
-            return []
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))]
+    try:
+        metric_ids = _get_metrics_filter_ids(metric_names)
+    except MetricDoesNotExistInIndexer:
+        return []
     else:
-        where = []
+        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
-    tags = defaultdict(list)
+    tag_values = defaultdict(list)
+    # This dictionary is required as a mapping from an entity to the ids available in it to
+    # validate that constituent metrics of a SingleEntityDerivedMetric actually span a single
+    # entity by validating that the ids of the constituent metrics all lie in the same entity
+    supported_metric_ids_in_entities = {}
 
     column_name = f"tags[{tag_id}]"
     for metric_type in ("counter", "set", "distribution"):
-        # TODO: What if metric_id exists for multiple types / units?
+        supported_metric_ids_in_entities.setdefault(metric_type, [])
+
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         rows = run_metrics_query(
             entity_key=entity_key,
@@ -266,12 +289,27 @@ def get_tag_values(
         )
         for row in rows:
             value_id = row[column_name]
+            supported_metric_ids_in_entities[metric_type].append(row["metric_id"])
             if value_id > 0:
                 metric_id = row["metric_id"]
-                tags[metric_id].append(value_id)
+                tag_values[metric_id].append(value_id)
 
-    value_id_lists = tags.values()
+        # If we are trying to find the tag values for only one metric name, then no need to query
+        # other entities once we find data for that metric_name in one of the entities
+        if metric_names and len(metric_names) == 1 and rows:
+            break
+
+    value_id_lists = tag_values.values()
     if metric_names is not None:
+        if metric_ids != set(tag_values.keys()):
+            return []
+        # At this point, we are sure that every metric_name/metric_id that was requested is
+        # present in the dataset, and now we need to check that all derived metrics requested are
+        # setup correctly
+        _validate_requested_derived_metrics(
+            metric_names=metric_names,
+            supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+        )
         # Only return tags that occur in all metrics
         value_ids = set.intersection(*[set(ids) for ids in value_id_lists])
     else:
