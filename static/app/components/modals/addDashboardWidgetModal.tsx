@@ -436,11 +436,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             normalized.forEach(query => {
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              query.fields = [
-                ...(defined(defaultWidgetQuery.fields)
-                  ? [...defaultWidgetQuery.fields]
-                  : [...defaultWidgetQuery.columns, ...defaultWidgetQuery.aggregates]),
-              ];
+              query.fields = defined(defaultWidgetQuery.fields)
+                ? [...defaultWidgetQuery.fields]
+                : [...defaultWidgetQuery.columns, ...defaultWidgetQuery.aggregates];
               query.orderby = defaultWidgetQuery.orderby;
             });
           }

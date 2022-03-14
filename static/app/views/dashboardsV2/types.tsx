@@ -33,6 +33,9 @@ export type WidgetQuery = {
   conditions: string;
   name: string;
   orderby: string;
+  // Fields is replaced with aggregates + columns. It
+  // is currently used to track column order on table
+  // widgets.
   fields?: string[];
 };
 

@@ -185,10 +185,7 @@ class WidgetQueriesForm extends React.Component<Props> {
     const query = queries[0];
     const explodedFields = defined(query.fields)
       ? query.fields.map(field => explodeField({field}))
-      : [
-          ...query.columns.map(field => explodeField({field})),
-          ...query.aggregates.map(field => explodeField({field})),
-        ];
+      : [...query.columns, ...query.aggregates].map(field => explodeField({field}));
 
     return (
       <QueryWrapper>
