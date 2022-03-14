@@ -17,6 +17,7 @@ processed_profiles_publisher = None
     queue="profiles.process",
     default_retry_delay=5,
     max_retries=5,
+    acks_late=True,
 )
 def process_profile(profile: MutableMapping[str, Any]) -> None:
     global processed_profiles_publisher
