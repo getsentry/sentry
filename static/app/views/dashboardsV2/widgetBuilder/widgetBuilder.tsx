@@ -90,7 +90,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? 'count' : '',
-      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
+      limit: undefined,
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -99,7 +99,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
-      limit: widgetBuilderNewDesign ? DEFAULT_RESULTS_LIMIT : undefined,
+      limit: undefined,
     },
     [DataSet.METRICS]: {
       name: '',
@@ -180,9 +180,7 @@ function WidgetBuilder({
 
   const isEditing = defined(widgetIndex);
   const orgSlug = organization.slug;
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
+  const widgetBuilderNewDesign = true;
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -500,6 +498,12 @@ function WidgetBuilder({
     state.queries.forEach((query, index) => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
+
+      if (fieldStrings.length === 0) {
+        newQuery.limit = undefined;
+      } else {
+        newQuery.limit = newQuery.limit ?? DEFAULT_RESULTS_LIMIT;
+      }
 
       handleQueryChange(index, newQuery);
     });

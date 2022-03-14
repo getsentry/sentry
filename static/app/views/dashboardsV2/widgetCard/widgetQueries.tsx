@@ -31,7 +31,7 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
     data:
-      stats?.data.map(([timestamp, counts]) => ({
+      stats?.data?.map(([timestamp, counts]) => ({
         name: timestamp * 1000,
         value: counts.reduce((acc, {count}) => acc + count, 0),
       })) ?? [],
@@ -319,20 +319,15 @@ class WidgetQueries extends React.Component<Props, State> {
           partial: true,
         };
 
-        if (
-          organization.features.includes('new-widget-builder-experience-design') &&
-          query.columns?.length !== 0
-        ) {
-          requestData.topEvents = TOP_N;
+        if (true && query.columns?.length !== 0 && query.limit !== undefined) {
+          requestData.topEvents = query.limit;
           // Aggregates need to be in fields as well
           requestData.field = [...(query?.columns ?? []), ...(query?.aggregates ?? [])];
           requestData.orderby = query.columns?.[0];
         }
       }
 
-      if ((query.columns ?? []).length > 0 && query.limit) {
-        requestData.topEvents = query.limit;
-      }
+      console.log({requestData});
 
       return doEventsRequest(api, requestData);
     });

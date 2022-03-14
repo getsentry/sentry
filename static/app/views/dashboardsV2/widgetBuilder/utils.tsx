@@ -127,8 +127,8 @@ export function normalizeQueries({
         queries[0].orderby = orderBy;
       }
 
-      if (!queries[0].limit) {
-        queries[0].limit = DEFAULT_RESULTS_LIMIT;
+      if (!!queries[0].limit) {
+        queries[0].limit = undefined;
       }
     }
 
@@ -192,9 +192,9 @@ export function normalizeQueries({
         fields: referenceFields,
       };
 
-      if (widgetBuilderNewDesign) {
-        queryData.limit = queryData.limit ?? DEFAULT_RESULTS_LIMIT;
-      }
+      // if (widgetBuilderNewDesign) {
+      //   queryData.limit = queryData.limit ?? undefined;
+      // }
 
       return queryData;
     });
