@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
@@ -40,6 +40,19 @@ type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+function getVitalFields(baseField: string) {
+  const poorCountField = `count_web_vitals(${baseField}, poor)`;
+  const mehCountField = `count_web_vitals(${baseField}, meh)`;
+  const goodCountField = `count_web_vitals(${baseField}, good)`;
+
+  const vitalFields = {
+    poorCountField,
+    mehCountField,
+    goodCountField,
+  };
+  return vitalFields;
+}
+
 export function transformFieldsWithStops(props: {
   field: string;
   fields: string[];
@@ -56,30 +69,16 @@ export function transformFieldsWithStops(props: {
     };
   }
 
-  const poorCountField = `count_if(${field},greaterOrEquals,${poorStop})`;
-  const mehCountField = `equation|count_if(${field},greaterOrEquals,${mehStop}) - count_if(${field},greaterOrEquals,${poorStop})`;
-  const goodCountField = `equation|count_if(${field},greaterOrEquals,0) - count_if(${field},greaterOrEquals,${mehStop})`;
-
-  const otherRequiredFieldsForQuery = [
-    `count_if(${field},greaterOrEquals,${mehStop})`,
-    `count_if(${field},greaterOrEquals,0)`,
-  ];
-
-  const vitalFields = {
-    poorCountField,
-    mehCountField,
-    goodCountField,
-  };
+  const vitalFields = getVitalFields(field);
 
   const fieldsList = [
-    poorCountField,
-    ...otherRequiredFieldsForQuery,
-    mehCountField,
-    goodCountField,
+    vitalFields.poorCountField,
+    vitalFields.mehCountField,
+    vitalFields.goodCountField,
   ];
 
   return {
-    sortField: poorCountField,
+    sortField: vitalFields.poorCountField,
     vitalFields,
     fieldsList,
   };
@@ -195,8 +194,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return <Subtitle />;
         }
 
+        const vital = settingToVital[props.chartSetting];
+
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem),
+          [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem, vital),
         };
 
         return (
@@ -276,7 +277,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 });
 
                 const data = {
-                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(listItem),
+                  [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+                    listItem,
+                    vital
+                  ),
                 };
 
                 return (
@@ -313,11 +317,15 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   );
 }
 
-function getVitalDataForListItem(listItem: TableDataRow) {
+function getVitalDataForListItem(listItem: TableDataRow, vital: WebVital) {
+  const vitalFields = getVitalFields(vital);
+
   const poorData: number =
-    (listItem.count_if_measurements_lcp_greaterOrEquals_4000 as number) || 0;
-  const mehData: number = (listItem['equation[0]'] as number) || 0;
-  const goodData: number = (listItem['equation[1]'] as number) || 0;
+    (listItem[getAggregateAlias(vitalFields.poorCountField)] as number) || 0;
+  const mehData: number =
+    (listItem[getAggregateAlias(vitalFields.mehCountField)] as number) || 0;
+  const goodData: number =
+    (listItem[getAggregateAlias(vitalFields.goodCountField)] as number) || 0;
   const _vitalData = {
     poor: poorData,
     meh: mehData,
