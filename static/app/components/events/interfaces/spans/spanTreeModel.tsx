@@ -700,7 +700,10 @@ class SpanTreeModel {
     this.showSpanGroup = !this.showSpanGroup;
   };
 
-  toggleSiblingSpanGroup = (operation: string, description: string) => {
+  toggleSiblingSpanGroup = (
+    operation: string | undefined,
+    description: string | undefined
+  ) => {
     const key = `${operation}.${description}`;
 
     if (this.ungroupedSiblings.has(key)) {

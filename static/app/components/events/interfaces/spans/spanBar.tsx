@@ -117,7 +117,9 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
-  toggleSiblingSpanGroup: ((operation: string, description: string) => void) | undefined;
+  toggleSiblingSpanGroup:
+    | ((operation: string | undefined, description: string | undefined) => void)
+    | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
@@ -442,8 +444,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             event.stopPropagation();
             event.preventDefault();
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
-              toggleSiblingSpanGroup &&
-                toggleSiblingSpanGroup(span.op!, span.description!);
+              toggleSiblingSpanGroup?.(span.op, span.description);
             } else {
               toggleSpanGroup && toggleSpanGroup();
             }

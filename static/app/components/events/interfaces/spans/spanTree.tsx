@@ -217,7 +217,7 @@ class SpanTree extends React.Component<PropType> {
               spanGrouping={payload.spanGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleSpanGroup as () => void}
               groupType={GroupType.DESCENDANTS}
-              isLastSibling={payload.isLastSibling!}
+              isLastSibling={payload.isLastSibling ?? false}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -238,7 +238,7 @@ class SpanTree extends React.Component<PropType> {
               toggleSpanGroup={payload.toggleSiblingSpanGroup as () => void}
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               groupType={GroupType.SIBLINGS}
-              isLastSibling={payload.isLastSibling!}
+              isLastSibling={payload.isLastSibling ?? false}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -260,7 +260,7 @@ class SpanTree extends React.Component<PropType> {
         }
 
         let toggleSiblingSpanGroup:
-          | ((operation: string, description: string) => void)
+          | ((operation: string | undefined, description: string | undefined) => void)
           | undefined = undefined;
         if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;

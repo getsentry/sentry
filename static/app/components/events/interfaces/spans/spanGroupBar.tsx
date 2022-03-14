@@ -71,7 +71,10 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
-  toggleSiblingSpanGroup?: (operation: string, description: string) => void;
+  toggleSiblingSpanGroup?: (
+    operation: string | undefined,
+    description: string | undefined
+  ) => void;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -163,16 +166,12 @@ class SpanGroupBar extends React.Component<Props> {
           isSpanGroupToggler
           onClick={event => {
             event.stopPropagation();
-            if (groupType === GroupType.DESCENDANTS) {
-              toggleSpanGroup();
-            } else {
-              if (spanGrouping[0].span.op && spanGrouping[0].span.description) {
-                toggleSiblingSpanGroup?.(
+            groupType === GroupType.DESCENDANTS
+              ? toggleSpanGroup()
+              : toggleSiblingSpanGroup?.(
                   spanGrouping[0].span.op,
                   spanGrouping[0].span.description
                 );
-              }
-            }
           }}
         >
           <Count value={spanGrouping.length} />
@@ -381,13 +380,14 @@ class SpanGroupBar extends React.Component<Props> {
                         paddingTop: 0,
                       }}
                       onClick={() => {
-                        groupType === GroupType.DESCENDANTS
-                          ? toggleSpanGroup()
-                          : toggleSiblingSpanGroup &&
-                            toggleSiblingSpanGroup(
-                              spanGrouping[0].span.op!,
-                              spanGrouping[0].span.description!
-                            );
+                        if (groupType === GroupType.DESCENDANTS) {
+                          toggleSpanGroup();
+                        } else if (groupType === GroupType.SIBLINGS) {
+                          toggleSiblingSpanGroup?.(
+                            spanGrouping[0].span.op,
+                            spanGrouping[0].span.description
+                          );
+                        }
                       }}
                     >
                       <RowTitleContainer ref={generateContentSpanBarRef()}>
