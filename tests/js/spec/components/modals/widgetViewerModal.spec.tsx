@@ -1,7 +1,7 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -23,8 +23,8 @@ jest.mock('sentry/components/tooltip', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-function mountModal({initialData: {organization, routerContext}, widget}) {
-  return mountWithTheme(
+function renderModal({initialData: {organization, routerContext}, widget}) {
+  return render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
         Header={stubEl}
@@ -124,7 +124,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });
@@ -370,7 +372,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });
@@ -382,10 +386,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: ['-count']},
+        query: {sort: ['-count']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['-count']};
+      initialData.router.location.query = {sort: ['-count']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -424,6 +428,29 @@ describe('Modals -> WidgetViewerModal', function () {
     it('paginates to the next page', async function () {
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0'},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
@@ -473,7 +500,9 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
-      container = mountModal({initialData, widget: mockWidget}).container;
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      container = renderModal({initialData, widget: mockWidget}).container;
     });
 
     it('always queries geo.country_code in the table chart', async function () {
@@ -565,7 +594,9 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
-      const modal = mountModal({initialData, widget: mockWidget});
+      // Forbidden render in beforeEach
+      // eslint-disable-next-line
+      const modal = renderModal({initialData, widget: mockWidget});
       container = modal.container;
       rerender = modal.rerender;
     });
@@ -602,10 +633,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('events'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: 'freq'},
+        query: {sort: 'freq'},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['freq']};
+      initialData.router.location.query = {sort: ['freq']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -649,6 +680,29 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0', page: 1},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
   });

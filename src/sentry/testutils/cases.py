@@ -1394,6 +1394,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["title"] == expected_widget.title
         if "interval" in data:
             assert data["interval"] == expected_widget.interval
+        if "limit" in data:
+            assert data["limit"] == expected_widget.limit
         if "displayType" in data:
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type

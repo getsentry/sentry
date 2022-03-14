@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  mountWithTheme,
-  screen,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport from 'sentry/components/dataExport';
@@ -30,21 +24,21 @@ const mockRouterContext = mockOrganization =>
 
 describe('DataExport', function () {
   it('should not render anything for an unauthorized organization', function () {
-    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should render the button for an authorized organization', function () {
-    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
   it('should render custom children if provided', function () {
-    mountWithTheme(
+    render(
       <WrappedDataExport payload={mockPayload}>
         This is an example string
       </WrappedDataExport>,
@@ -60,7 +54,7 @@ describe('DataExport', function () {
       body: {id: 721},
     });
 
-    mountWithTheme(<WrappedDataExport payload={mockPayload} disabled />, {
+    render(<WrappedDataExport payload={mockPayload} disabled />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
@@ -75,7 +69,7 @@ describe('DataExport', function () {
       method: 'POST',
       body: {id: 721},
     });
-    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
@@ -108,7 +102,7 @@ describe('DataExport', function () {
       body: {id: 721},
     });
 
-    const {rerender} = mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    const {rerender} = render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
@@ -133,7 +127,7 @@ describe('DataExport', function () {
       statusCode: 400,
     });
 
-    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
@@ -160,7 +154,7 @@ describe('DataExport', function () {
       body: {detail: 'uh oh'},
     });
 
-    mountWithTheme(<WrappedDataExport payload={mockPayload} />, {
+    render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 

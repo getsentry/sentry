@@ -4,8 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import ModalActions from 'sentry/actions/modalActions';
 import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
@@ -17,17 +19,19 @@ const WrappedComponent = ({data}) => {
 
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-        eventView={eventView}
-        projects={data.projects}
-        selection={eventView.getPageFilters()}
-        shouldShowOnboarding={false}
-        handleSearch={() => {}}
-        handleTrendsClick={() => {}}
-        setError={() => {}}
-      />
+      <MEPSettingProvider>
+        <PerformanceLanding
+          organization={data.organization}
+          location={data.router.location}
+          eventView={eventView}
+          projects={data.projects}
+          selection={eventView.getPageFilters()}
+          shouldShowOnboarding={false}
+          handleSearch={() => {}}
+          handleTrendsClick={() => {}}
+          setError={() => {}}
+        />
+      </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
 };
@@ -101,6 +105,28 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
       true
     );
+  });
+
+  it('renders settings button for MEPS', async function () {
+    const data = initializeData({
+      features: ['performance-use-metrics'],
+    });
+
+    const spy = jest.spyOn(ModalActions, 'openModal');
+
+    wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
+      true
+    );
+    wrapper.find('button[data-test-id="open-meps-settings"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('renders frontend pageload view', async function () {

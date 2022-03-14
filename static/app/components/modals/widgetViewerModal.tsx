@@ -95,16 +95,14 @@ function WidgetViewerModal(props: Props) {
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-  const [pagination, setPagination] = React.useState<{page: number; cursor?: string}>({
-    cursor: undefined,
-    page: 0,
-  });
   const disabledLegends = decodeList(
     location.query[WidgetViewerQueryField.LEGEND]
   ).reduce((acc, legend) => {
     acc[legend] = false;
     return acc;
   }, {});
+  const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
+  const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
 
   // Use sort if provided by location query to sort table
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
@@ -234,6 +232,8 @@ function WidgetViewerModal(props: Props) {
                   query: {
                     ...location.query,
                     [WidgetViewerQueryField.QUERY]: option.value,
+                    [WidgetViewerQueryField.PAGE]: undefined,
+                    [WidgetViewerQueryField.CURSOR]: undefined,
                   },
                 });
               }}
@@ -252,7 +252,7 @@ function WidgetViewerModal(props: Props) {
                   ? FULL_TABLE_ITEM_LIMIT
                   : HALF_TABLE_ITEM_LIMIT
               }
-              cursor={pagination.cursor}
+              cursor={cursor}
             >
               {({transformedResults, loading, pageLinks}) => {
                 return (
@@ -280,9 +280,7 @@ function WidgetViewerModal(props: Props) {
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={(nextCursor, _path, _query, delta) => {
-                        let nextPage = isNaN(pagination.page)
-                          ? delta
-                          : pagination.page + delta;
+                        let nextPage = isNaN(page) ? delta : page + delta;
                         let newCursor = nextCursor;
                         // unset cursor and page when we navigate back to the first page
                         // also reset cursor if somehow the previous button is enabled on
@@ -291,7 +289,14 @@ function WidgetViewerModal(props: Props) {
                           newCursor = undefined;
                           nextPage = 0;
                         }
-                        setPagination({cursor: newCursor, page: nextPage});
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                            [WidgetViewerQueryField.PAGE]: nextPage,
+                          },
+                        });
                       }}
                     />
                   </React.Fragment>
@@ -310,7 +315,7 @@ function WidgetViewerModal(props: Props) {
                   : HALF_TABLE_ITEM_LIMIT
               }
               pagination
-              cursor={pagination.cursor}
+              cursor={cursor}
             >
               {({tableResults, loading, pageLinks}) => {
                 const isFirstPage = pageLinks
@@ -351,7 +356,13 @@ function WidgetViewerModal(props: Props) {
                     <StyledPagination
                       pageLinks={pageLinks}
                       onCursor={newCursor => {
-                        setPagination({cursor: newCursor, page: 0});
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                          },
+                        });
                       }}
                     />
                   </React.Fragment>
