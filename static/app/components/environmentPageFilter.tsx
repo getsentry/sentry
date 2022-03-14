@@ -14,13 +14,13 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   router: WithRouterProps['router'];
+  alignDropdown?: React.ComponentProps<
+    typeof MultipleEnvironmentSelector
+  >['alignDropdown'];
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
-  alignDropdown?: React.ComponentProps<
-    typeof MultipleEnvironmentSelector
-  >['alignDropdown'];
 };
 
 function EnvironmentPageFilter({router, resetParamsOnChange = [], alignDropdown}: Props) {
