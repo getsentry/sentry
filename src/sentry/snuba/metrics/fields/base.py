@@ -229,7 +229,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
     def __raise_entity_validation_exception(self, func_name: str):
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
-            f"SingularEntityDerivedMetric {self.metric_name} with a `projects attribute."
+            f"SingularEntityDerivedMetric {self.metric_name} with a `projects` attribute."
         )
 
     @classmethod

@@ -279,15 +279,15 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
             initial_query_results = raw_snql_query(
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
-            ).get("data")
+            )["data"]
         except StopIteration:
             # This can occur when requesting a list of derived metrics that are not have no data
             # for the passed projects
-            initial_query_results = {}
+            initial_query_results = []
 
         # If we do not get any results from the first query, then there is no point in making
         # the second query
-        if initial_query_results and len(initial_query_results) > 0:
+        if initial_query_results:
             # We no longer want the order by in the 2nd query because we already have the order of
             # the group by tags from the first query so we basically remove the order by columns,
             # and reset the query fields to the original fields because in the second query,
