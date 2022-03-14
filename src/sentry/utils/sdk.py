@@ -257,7 +257,7 @@ def configure_sdk():
     if relay_dsn:
         transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
-    elif internal_project_key and internal_project_key.dsn_private:
+    elif internal_project_key and internal_project_key.dsn_private and settings.SENTRY_USE_RELAY:
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
