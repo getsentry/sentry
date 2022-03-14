@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -19,7 +19,7 @@ describe('Onboarding', function () {
       },
     });
 
-    const {container} = mountWithTheme(
+    const {container} = render(
       <OrganizationContext.Provider value={organization}>
         <OnboardingController {...router} />
       </OrganizationContext.Provider>,
@@ -44,7 +44,7 @@ describe('Onboarding', function () {
       },
     });
 
-    mountWithTheme(
+    render(
       <OrganizationContext.Provider value={organization}>
         <OnboardingController {...router} />
       </OrganizationContext.Provider>,
@@ -68,7 +68,7 @@ describe('Onboarding', function () {
       },
     });
 
-    mountWithTheme(
+    render(
       <OrganizationContext.Provider value={organization}>
         <OnboardingController {...router} />
       </OrganizationContext.Provider>,
