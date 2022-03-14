@@ -326,7 +326,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         }
         return seriesName;
       },
-      ...(legendOptions ?? {}),
+      ...legendOptions,
     };
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';

@@ -88,6 +88,8 @@ function WidgetViewerModal(props: Props) {
     closeModal,
     onEdit,
     router,
+    routes,
+    params,
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
@@ -181,7 +183,10 @@ function WidgetViewerModal(props: Props) {
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
             <MemoizedWidgetCardChartContainer
-              {...props}
+              location={location}
+              router={router}
+              routes={routes}
+              params={params}
               api={api}
               organization={organization}
               selection={modalSelection}
