@@ -37,6 +37,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_1,
             name=self.anon_users_query["name"],
             fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -44,6 +46,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_1,
             name=self.known_users_query["name"],
             fields=self.known_users_query["fields"],
+            columns=self.known_users_query["columns"],
+            aggregates=self.known_users_query["aggregates"],
             conditions=self.known_users_query["conditions"],
             order=1,
         )
@@ -51,6 +55,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_2,
             name=self.geo_errors_query["name"],
             fields=self.geo_errors_query["fields"],
+            columns=self.geo_errors_query["columns"],
+            aggregates=self.geo_errors_query["aggregates"],
             conditions=self.geo_errors_query["conditions"],
             order=0,
         )
