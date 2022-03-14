@@ -31,6 +31,7 @@ const Heading = styled('div')`
   display: flex;
   align-self: center;
   margin: 0 ${space(2)};
+  color: ${p => p.theme.subText};
 `;
 
 const IssueWrapper = styled(Heading)`
