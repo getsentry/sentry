@@ -2,6 +2,7 @@ import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -22,7 +23,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -56,6 +57,12 @@ type WidgetCardChartProps = Pick<
   theme: Theme;
   widget: Widget;
   isMobile?: boolean;
+  legendOptions?: LegendComponentOption;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   onZoom?: EChartDataZoomHandler;
   windowWidth?: number;
 };
@@ -227,6 +234,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       widget,
       organization,
       onZoom,
+      legendOptions,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -267,7 +275,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       );
     }
 
-    const {location, router, selection} = this.props;
+    const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
 
     // Only allow height resizing for widgets that are on a dashboard
@@ -318,6 +326,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         }
         return seriesName;
       },
+      ...legendOptions,
     };
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
@@ -397,6 +406,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
                     ...(onZoom ? {onDataZoom: onZoom} : {}),
                     legend,
                     series,
+                    onLegendSelectChanged,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}
