@@ -1,6 +1,5 @@
-import {ComponentPropsWithoutRef, useEffect} from 'react';
+import {ComponentPropsWithoutRef} from 'react';
 
-import {logExperiment} from 'sentry/utils/analytics';
 import withExperiment from 'sentry/utils/withExperiment';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -13,12 +12,15 @@ type Props = Omit<ComponentPropsWithoutRef<typeof Onboarding>, 'projects'> & {
 };
 
 function OnboardingController({experimentAssignment, ...rest}: Props) {
+  /*
+  TODO: enable logExperiment after testing & launch
   useEffect(() => {
     logExperiment({
       key: 'TargetedOnboardingWelcomePageExperiment',
       organization: rest.organization,
     });
   }, []);
+  */
   if (rest.params.step === 'welcome' && experimentAssignment) {
     return <TargetedOnboarding />;
   }
