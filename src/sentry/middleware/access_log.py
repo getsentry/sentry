@@ -88,6 +88,10 @@ def access_log_middleware(
         # they make DB calls. For static urls that should not happen. Hence
         # this middleware is skipped for them. We don't care about its access
         # that much anyways
+
+        if not settings.LOG_API_ACCESS:
+            return get_response(request)
+
         if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
             return get_response(request)
         access_log_metadata = _AccessLogMetaData(request_start_time=time.time())
