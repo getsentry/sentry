@@ -179,6 +179,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
       widgetType = WidgetType.DISCOVER,
     } = this.props;
+    const isMetrics = widgetType === WidgetType.METRICS;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const query = queries[0];
@@ -255,9 +256,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           onChange={fields => {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
-            const aggregateAliasFieldStrings = aggregates.map(field =>
-              getAggregateAlias(field)
-            );
+            const aggregateAliasFieldStrings = isMetrics
+              ? fieldStrings
+              : fieldStrings.map(field => getAggregateAlias(field));
             queries.forEach((widgetQuery, queryIndex) => {
               const descending = widgetQuery.orderby.startsWith('-');
               const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
@@ -265,7 +266,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                 ? widgetQuery.fields
                 : [...widgetQuery.columns, ...widgetQuery.aggregates];
               const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(field =>
-                getAggregateAlias(field)
+                isMetrics ? field : getAggregateAlias(field)
               );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;

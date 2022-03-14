@@ -1,6 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 no-console:0 */
-import spawn from 'child_process';
+import {spawn} from 'child_process';
 import {stderr, stdout} from 'process';
 
 import sane from 'sane';

@@ -2,7 +2,7 @@ import {
   initializeData as _initializeData,
   initializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionAnomalies from 'sentry/views/performance/transactionSummary/transactionAnomalies';
@@ -46,7 +46,7 @@ describe('AnomaliesTab', function () {
       query: {project: '1', transaction: 'transaction'},
     });
 
-    mountWithTheme(<TransactionAnomalies location={initialData.router.location} />, {
+    render(<TransactionAnomalies location={initialData.router.location} />, {
       context: initialData.routerContext,
       organization: initialData.organization,
     });

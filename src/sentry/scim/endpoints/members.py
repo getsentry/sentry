@@ -232,7 +232,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context)
 
     @extend_schema(
-        operation_id="Delete an Organization Member",
+        operation_id="Delete an Organization Member via SCIM",
         parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
         request=None,
         responses={

@@ -2,12 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -61,7 +56,7 @@ function mountModal({
 }
 
 function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
-  return reactMountWithTheme(
+  return render(
     <AddDashboardWidgetModal
       Header={stubEl}
       Body={stubEl}
@@ -1212,7 +1207,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    reactMountWithTheme(
+    render(
       <AddDashboardWidgetModal
         Header={stubEl}
         Body={stubEl}
@@ -1485,6 +1480,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
             interval: '30m',
             project: [],
             statsPeriod: '14d',
+            per_page: 20,
+            orderBy: 'sum(sentry.sessions.session)',
           },
         })
       );

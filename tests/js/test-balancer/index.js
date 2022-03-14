@@ -1,6 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 
 class TestBalancer {
   constructor(globalConfig, options) {

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -78,7 +78,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([]);
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -111,7 +111,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('opens in issues page', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -142,7 +142,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -168,7 +168,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('disables the duplicate widget button if max widgets is reached', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -194,7 +194,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
     MemberListStore.loadInitialData([]);
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}

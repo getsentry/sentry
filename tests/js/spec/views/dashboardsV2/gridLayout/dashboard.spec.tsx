@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
@@ -171,7 +167,7 @@ describe('Dashboards > Dashboard', () => {
       MemberListStore.init();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
-      rtlMountWithTheme(
+      render(
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
@@ -188,7 +184,7 @@ describe('Dashboards > Dashboard', () => {
       );
     };
 
-    it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
+    it('dashboard displays issue widgets if the user has issue widgets feature flag', () => {
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
@@ -232,7 +228,7 @@ describe('Dashboards > Dashboard', () => {
           widgetLimitReached={false}
         />
       );
-      const {rerender} = rtlMountWithTheme(getDashboardComponent());
+      const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
     };
 
@@ -246,7 +242,7 @@ describe('Dashboards > Dashboard', () => {
       expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
-    it('duplicates the widget', async () => {
+    it('duplicates the widget', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
       const {rerender} = mount(dashboardWithOneWidget);
       userEvent.click(screen.getByLabelText('Duplicate Widget'));

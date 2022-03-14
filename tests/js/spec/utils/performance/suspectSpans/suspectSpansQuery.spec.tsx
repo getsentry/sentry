@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
@@ -24,14 +24,14 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -53,7 +53,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({spanOp: ['op1']})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -75,7 +75,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({spanGroup: ['aaaaaaaaaaaaaaaa']})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
@@ -97,7 +97,7 @@ describe('SuspectSpansQuery', function () {
       match: [MockApiClient.matchQuery({perSuspect: 1})],
     });
 
-    mountWithTheme(
+    render(
       <SuspectSpansQuery
         location={location}
         orgSlug="test-org"
