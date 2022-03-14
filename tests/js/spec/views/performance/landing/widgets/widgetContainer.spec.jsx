@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -12,9 +13,10 @@ import WidgetContainer from 'sentry/views/performance/landing/widgets/components
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}) => {
+const initializeData = (query = {}, rest = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
+    ...rest,
   });
 
   data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
@@ -22,24 +24,26 @@ const initializeData = (query = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-      <OrganizationContext.Provider value={data.organization}>
-        <WidgetContainer
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-            PerformanceWidgetSetting.DURATION_HISTOGRAM,
-          ]}
-          rowChartSettings={[]}
-          forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
-      </OrganizationContext.Provider>
-    </PerformanceDisplayProvider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+        <OrganizationContext.Provider value={data.organization}>
+          <WidgetContainer
+            allowedCharts={[
+              PerformanceWidgetSetting.TPM_AREA,
+              PerformanceWidgetSetting.FAILURE_RATE_AREA,
+              PerformanceWidgetSetting.USER_MISERY_AREA,
+              PerformanceWidgetSetting.DURATION_HISTOGRAM,
+            ]}
+            rowChartSettings={[]}
+            forceDefaultChartSetting
+            {...data}
+            {...rest}
+          />
+        </OrganizationContext.Provider>
+      </PerformanceDisplayProvider>
+    </MEPSettingProvider>
   );
 };
 
@@ -315,6 +319,59 @@ describe('Performance > Widgets > WidgetContainer', function () {
           yAxis: 'failure_rate()',
         }),
       })
+    );
+  });
+
+  it('Failure Rate Widget with MEP', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        meta: {
+          isMetricsData: true,
+        },
+      },
+    });
+
+    wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+      'Failure RateSampled'
+    );
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          interval: '1h',
+          partial: '1',
+          query: 'transaction.op:pageload',
+          statsPeriod: '14d',
+          yAxis: 'failure_rate()',
+        }),
+      })
+    );
+
+    expect(wrapper.find('span[data-test-id="has-metrics-data-tag"]').text()).toEqual(
+      'Sampled'
     );
   });
 
