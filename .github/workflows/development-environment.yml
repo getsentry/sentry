@@ -14,6 +14,10 @@ on:
       - 'requirements-*.txt'
 
 jobs:
+  # This workflow is optimized to test the dev env as fast as possible
+  # We can optimize this further by creating a workflow to only test the pyenv set up and here make
+  # use of the provided Python installation
+  # The bootstrap workflow (see after this) tests the experience of first time engineers
   dev-environment:
     name: dev docs set up
     runs-on: ${{ matrix.os }}
@@ -37,15 +41,29 @@ jobs:
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
-      - name: Install prerequisites
+      - name: Install Docker
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
-          make prerequisites
 
+      - name: Install missing brew packages
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 pyenv
+
+      - name: Install volta
+        run: |
+          curl https://get.volta.sh | bash
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$HOME/.volta/bin:$PATH"
+
+      # This handles Python's cache
       - name: Setup Python
         uses: ./.github/actions/setup-python
+        with:
+          # We don't want the dev env cache to be messing the Python tests' cache
+          cache-prefix: devenv-
+          cache-file-hash: ${{ hashFiles('**/requirements.txt')
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
@@ -59,21 +77,22 @@ jobs:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
           key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
-      - name: Set up development environment (mostly as per docs)
+      - name: Set up pyenv
         run: |
-          curl https://get.volta.sh | bash
-          export VOLTA_HOME="$HOME/.volta"
-          export PATH="$HOME/.volta/bin:$PATH"
           make setup-pyenv
           [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
           source ~/.zprofile
           [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
           [[ $(python -V) == "Python $(cat .python-version)" ]]
-          python -m venv .venv
-          source .venv/bin/activate
+          # python -m venv .venv
+          # source .venv/bin/activate
+
+      - name: Set up bootstrap related
           make bootstrap
           pre-commit
 
+  # We don't yet test the bootstrap step
+  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
   bootstrap-script:
     runs-on: macos-11
     timeout-minutes: 40
