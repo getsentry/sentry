@@ -1068,6 +1068,8 @@ SENTRY_FEATURES = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
+    # Enable autogrouping of sibling spans
+    "organizations:performance-autogroup-sibling-spans": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
