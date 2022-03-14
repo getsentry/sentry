@@ -87,6 +87,7 @@ jobs:
           python -m venv .venv
 
       - name: Test pre-commit
+        run: |
           source .venv/bin/activate
           pre-commit
 
