@@ -32,6 +32,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
     border-top-color: ${theme.border};
   }
 
+  pre,
+  code {
+    background-color: ${theme.backgroundSecondary};
+  }
+
+  pre {
+    color: ${theme.textColor};
+  }
+
+  code {
+    background-color: transparent;
+  }
+
   /**
    * See https://web.dev/prefers-reduced-motion/
    */
@@ -162,11 +175,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header a.help-link,
         .nav-header span.help-link a {
           color: ${theme.subText};
-        }
-        pre,
-        code {
-          background-color: ${theme.backgroundSecondary};
-          color: ${theme.textColor};
         }
         .search .search-input {
           background: ${theme.background};
