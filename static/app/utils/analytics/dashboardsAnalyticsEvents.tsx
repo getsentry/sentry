@@ -108,6 +108,38 @@ export type DashboardsEventParameters = {
   'dashboards_views.widget_library.switch_tab': {
     to: string;
   };
+  'dashboards_views.widget_viewer.edit': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.open': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.open_source': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.paginate': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.select_query': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.sort': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.toggle_legend': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.zoom': {
+    display_type: string;
+    widget_type: string;
+  };
 } & DashboardsEventParametersAddWidgetModal &
   DashboardsEventParametersAddWidgetInBuilder;
 
