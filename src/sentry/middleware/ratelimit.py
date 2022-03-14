@@ -14,7 +14,7 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
-from sentry.types.ratelimit import RateLimitCategory, RateLimitType
+from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -68,9 +68,14 @@ class RatelimitMiddleware(MiddlewareMixin):
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
     def process_response(self, request: Request, response: Response) -> Response:
-        if hasattr(request, "rate_limit_metadata"):
-            response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
-            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
-            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
+        rate_limit_metadata: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
+        if rate_limit_metadata:
+            response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
+            response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
+            response[
+                "X-Sentry-Rate-Limit-ConcurrentRemaining"
+            ] = rate_limit_metadata.concurrent_remaining
+            response["X-Sentry-Rate-Limit-ConcurrentLimit"] = rate_limit_metadata.concurrent_limit
         finish_request(request.rate_limit_key, request.rate_limit_uid)
         return response

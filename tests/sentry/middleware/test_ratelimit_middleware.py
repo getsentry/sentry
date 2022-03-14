@@ -1,4 +1,5 @@
-from time import time
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep, time
 from unittest.mock import patch
 
 from before_after import before
@@ -19,7 +20,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
-from sentry.ratelimits.config import get_default_rate_limits_for_group
+from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -230,9 +231,33 @@ class RaceConditionEndpoint(Endpoint):
         return Response({"ok": True})
 
 
+CONCURRENT_RATE_LIMIT = 3
+CONCURRENT_ENDPOINT_DURATION = 0.2
+
+
+class ConcurrentRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.USER: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+            },
+        },
+    )
+
+    def get(self, request):
+        sleep(CONCURRENT_ENDPOINT_DURATION)
+        return Response({"ok": True})
+
+
 urlpatterns = [
     url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
     url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+    url(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
 ]
 
 
@@ -294,3 +319,43 @@ class TestRatelimitHeader(APITestCase):
 
         assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+class TestConcurrentRateLimiter(APITestCase):
+    endpoint = "concurrent-endpoint"
+
+    def test_request_finishes(self):
+        # the endpoint in question has a concurrent rate limit of 3
+        # since it is called one after the other, the remaining concurrent
+        # requests should stay the same
+
+        # if the middleware did not call finish_request() then the second request
+        # would have a lower remaining concurrent request count
+        for _ in range(2):
+            response = self.get_success_response()
+            assert (
+                int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
+                == CONCURRENT_RATE_LIMIT - 1
+            )
+            assert int(response["X-Sentry-Rate-Limit-ConcurrentLimit"]) == CONCURRENT_RATE_LIMIT
+
+    def test_concurrent_request_rate_limiting(self):
+        """test the concurrent rate limiter end to-end"""
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            # dispatch more simultaneous requests to the endpoint than the concurrent limit
+            for _ in range(CONCURRENT_RATE_LIMIT + 1):
+                # sleep a little in between each submission
+                # TODO: This should not be necesary if the lua scripts are atomic
+                sleep(0.01)
+                futures.append(executor.submit(self.get_response))
+            results = []
+            for f in futures:
+                results.append(f.result())
+
+            limits = sorted(int(r["X-Sentry-Rate-Limit-ConcurrentRemaining"]) for r in results)
+            assert limits == [0, 0, *range(1, CONCURRENT_RATE_LIMIT)]
+            sleep(CONCURRENT_ENDPOINT_DURATION + 0.1)
+            response = self.get_success_response()
+            assert int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"]) == 2

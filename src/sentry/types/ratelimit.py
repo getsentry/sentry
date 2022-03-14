@@ -56,3 +56,9 @@ class RateLimitMeta:
     reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None
+
+    @property
+    def concurrent_remaining(self) -> int | None:
+        if self.concurrent_limit is not None and self.concurrent_requests is not None:
+            return self.concurrent_limit - self.concurrent_requests
+        return None
