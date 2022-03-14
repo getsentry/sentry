@@ -37,6 +37,10 @@ type Props = WithRouterProps & {
    * This component must be controlled using a value array
    */
   value: string[];
+  /**
+   * Aligns dropdown menu to left or right of button
+   */
+  alignDropdown?: 'left' | 'right';
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;
@@ -59,6 +63,7 @@ function MultipleEnvironmentSelector({
   projects,
   selectedProjects,
   value,
+  alignDropdown,
   customDropdownButton,
   customLoadingIndicator,
   detached,
@@ -217,7 +222,7 @@ function MultipleEnvironmentSelector({
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutoComplete
-          alignMenu="left"
+          alignMenu={alignDropdown}
           allowActorToggle
           closeOnSelect
           blendCorner={false}
