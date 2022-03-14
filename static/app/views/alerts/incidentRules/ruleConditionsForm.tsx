@@ -73,6 +73,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
+  formElemBaseStyle = {
+    padding: `${space(0.5)}`,
+    border: 'none',
+  };
 
   componentDidMount() {
     this.fetchData();
@@ -175,17 +179,13 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         ],
       });
     }
-    const formElemBaseStyle = {
-      padding: `${space(0.5)}`,
-      border: 'none',
-    };
 
     return (
       <FormField
         name="datasource"
         inline={false}
         style={{
-          ...formElemBaseStyle,
+          ...this.formElemBaseStyle,
           minWidth: 300,
           flex: 2,
         }}
@@ -242,11 +242,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       onComparisonDeltaChange,
     } = this.props;
 
-    const formElemBaseStyle = {
-      padding: `${space(0.5)}`,
-      border: 'none',
-    };
-
     const {labelText, timeWindowText} = getFunctionHelpText(alertType);
     const intervalLabelText = hasAlertWizardV3 ? t('Define your metric') : labelText;
 
@@ -273,7 +268,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               organization={organization}
               disabled={disabled}
               style={{
-                ...formElemBaseStyle,
+                ...this.formElemBaseStyle,
               }}
               inline={false}
               flexibleControlStateSize
@@ -369,11 +364,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     const eventOmitTags =
       dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
-    const formElemBaseStyle = {
-      padding: `${space(0.5)}`,
-      border: 'none',
-    };
-
     return (
       <React.Fragment>
         <ChartPanel>
@@ -390,7 +380,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="environment"
             placeholder={t('All')}
             style={{
-              ...formElemBaseStyle,
+              ...this.formElemBaseStyle,
               minWidth: 230,
               flex: 1,
             }}
@@ -414,7 +404,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="query"
             inline={false}
             style={{
-              ...formElemBaseStyle,
+              ...this.formElemBaseStyle,
               flex: '6 0 500px',
             }}
             flexibleControlStateSize
