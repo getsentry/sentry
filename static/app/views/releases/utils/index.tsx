@@ -200,7 +200,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: React.ReactNode; type: keyof Theme['tag']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),

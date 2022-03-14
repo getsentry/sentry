@@ -66,7 +66,7 @@ type Props = DefaultProps & {
   /**
    * String or element for the button contents.
    */
-  label?: React.ReactNode;
+  label?: NonNullable<React.ReactNode>;
 
   priority?: ButtonPriority;
 };

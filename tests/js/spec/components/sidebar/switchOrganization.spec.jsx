@@ -3,16 +3,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 
 describe('SwitchOrganization', function () {
-  const routerContext = TestStubs.routerContext();
-  const {organization} = routerContext.context;
-
   it('can list organizations', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization
-        organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
-      />,
-      routerContext
+        organizations={[TestStubs.Organization(), TestStubs.Organization({slug: 'org2'})]}
+      />
     );
 
     wrapper.find('SwitchOrganizationMenuActor').simulate('mouseEnter');
@@ -27,10 +23,9 @@ describe('SwitchOrganization', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization
-        organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
+        organizations={[TestStubs.Organization(), TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization
-      />,
-      routerContext
+      />
     );
 
     wrapper.find('SwitchOrganizationMenuActor').simulate('mouseEnter');
@@ -46,10 +41,9 @@ describe('SwitchOrganization', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization
-        organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
+        organizations={[TestStubs.Organization(), TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization={false}
-      />,
-      routerContext
+      />
     );
 
     wrapper.find('SwitchOrganizationMenuActor').simulate('mouseEnter');

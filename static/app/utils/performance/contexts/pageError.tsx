@@ -32,7 +32,7 @@ export const PageErrorAlert = () => {
   }
 
   return (
-    <Alert type="error" icon={<IconFlag size="md" />}>
+    <Alert type="error" data-test-id="page-error-alert" icon={<IconFlag size="md" />}>
       {pageError}
     </Alert>
   );

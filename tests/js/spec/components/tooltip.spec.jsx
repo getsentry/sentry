@@ -1,5 +1,5 @@
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -14,7 +14,7 @@ describe('Tooltip', function () {
   });
 
   it('renders', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>
@@ -23,12 +23,10 @@ describe('Tooltip', function () {
   });
 
   it('updates title', async function () {
-    const context = TestStubs.routerContext();
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
-      </Tooltip>,
-      {context}
+      </Tooltip>
     );
 
     // Change title
@@ -46,11 +44,10 @@ describe('Tooltip', function () {
   });
 
   it('disables and does not render', function () {
-    mountWithTheme(
+    render(
       <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('My Button'));
@@ -61,11 +58,10 @@ describe('Tooltip', function () {
   });
 
   it('does not render an empty tooltip', function () {
-    mountWithTheme(
+    render(
       <Tooltip delay={0} title="">
         <span>My Button</span>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
     userEvent.hover(screen.getByText('My Button'));
 
@@ -77,11 +73,10 @@ describe('Tooltip', function () {
   it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
     // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
     jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
-    mountWithTheme(
+    render(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('This text overflows'));
@@ -93,11 +88,10 @@ describe('Tooltip', function () {
 
   it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', function () {
     jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
-    mountWithTheme(
+    render(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
-      </Tooltip>,
-      {context: TestStubs.routerContext()}
+      </Tooltip>
     );
 
     userEvent.hover(screen.getByText('This text does not overflow'));

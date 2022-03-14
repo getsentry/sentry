@@ -14,4 +14,5 @@ class ProjectOwnershipSerializer(Serializer):
             "lastUpdated": obj.last_updated,
             "isActive": obj.is_active,
             "autoAssignment": obj.auto_assignment,
+            "codeownersAutoSync": obj.codeowners_auto_sync,
         }

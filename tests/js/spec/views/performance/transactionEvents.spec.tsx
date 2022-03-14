@@ -59,6 +59,10 @@ describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -148,6 +152,10 @@ describe('Performance > TransactionSummary', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+
     act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });

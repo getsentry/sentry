@@ -20,6 +20,5 @@ class TransitionalSerializerTest(TestCase):
     def test_read_pickle(self):
         assert self.transitional_serializer.loads(self.pickle_obj) == self.obj
 
-    # need to rollback json write
-    # def test_write(self):
-    #     assert self.transitional_serializer.dumps(self.obj) == self.json_obj
+    def test_write(self):
+        assert self.transitional_serializer.dumps(self.obj) == self.json_obj

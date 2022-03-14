@@ -1,34 +1,19 @@
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.utils import (
-    AtlassianConnectValidationError,
-    authenticate_asymmetric_jwt,
-    verify_claims,
-)
+from sentry.integrations.utils import authenticate_asymmetric_jwt, verify_claims
 from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 
 from ..integration import JiraIntegrationProvider
+from .base import JiraEndpointBase
 
 
-class JiraInstalledEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
-
-    @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
-
+class JiraInstalledEndpoint(JiraEndpointBase):
     def post(self, request: Request, *args, **kwargs) -> Response:
-        try:
-            token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
-        except (KeyError, IndexError):
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
+        token = self.get_token(request)
 
         state = request.data
         if not state:
@@ -36,14 +21,11 @@ class JiraInstalledEndpoint(Endpoint):
 
         key_id = jwt.peek_header(token).get("kid")
         if key_id:
-            try:
-                decoded_claims = authenticate_asymmetric_jwt(token, key_id)
-                verify_claims(decoded_claims, request.path, request.GET, method="POST")
-            except AtlassianConnectValidationError:
-                return self.respond(status=status.HTTP_400_BAD_REQUEST)
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+            verify_claims(decoded_claims, request.path, request.GET, method="POST")
 
         data = JiraIntegrationProvider().build_integration(state)
-        integration = ensure_integration("jira", data)
+        integration = ensure_integration(self.provider, data)
 
         # Sync integration metadata from Jira. This must be executed *after*
         # the integration has been installed on Jira as the access tokens will

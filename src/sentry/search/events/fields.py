@@ -355,7 +355,7 @@ FIELD_ALIASES = {
         PseudoField(
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,
-            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+            expression=["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
         ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -1015,6 +1015,7 @@ class StringArg(FunctionArg):
         unquote: Optional[bool] = False,
         unescape_quotes: Optional[bool] = False,
         optional_unquote: Optional[bool] = False,
+        allowed_strings: Optional[List[str]] = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -1026,6 +1027,7 @@ class StringArg(FunctionArg):
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
         self.optional_unquote = optional_unquote
+        self.allowed_strings = allowed_strings
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.unquote:
@@ -1036,6 +1038,9 @@ class StringArg(FunctionArg):
                 value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
+        if self.allowed_strings:
+            if value not in self.allowed_strings:
+                raise InvalidFunctionArgument(f"string must be one of {self.allowed_strings}")
         return f"'{value}'"
 
 
@@ -1451,7 +1456,7 @@ class DiscoverFunction:
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
-        self.name = name
+        self.name: str = name
         self.required_args = [] if required_args is None else required_args
         self.optional_args = [] if optional_args is None else optional_args
         self.calculated_args = [] if calculated_args is None else calculated_args

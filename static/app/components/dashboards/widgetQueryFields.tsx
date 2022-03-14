@@ -13,9 +13,8 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
-import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueOption, QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -111,6 +110,15 @@ function WidgetQueryFields({
   const doNotValidateYAxis = displayType === 'big_number';
 
   const filterPrimaryOptions = option => {
+    if (widgetType === WidgetType.METRICS) {
+      if (displayType === DisplayType.TABLE) {
+        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
+      }
+      if (displayType === DisplayType.TOP_N) {
+        return option.value.kind === FieldValueKind.TAG;
+      }
+    }
+
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -124,50 +132,45 @@ function WidgetQueryFields({
       }
     }
 
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
-    }
-
     return option.value.kind === FieldValueKind.FUNCTION;
   };
 
-  const filterAggregateParameters = fieldValue => option => {
-    // Only validate function parameters for timeseries widgets and
-    // world map widgets.
-    if (doNotValidateYAxis) {
-      return true;
-    }
-
-    if (fieldValue.kind !== 'function') {
-      return true;
-    }
-
-    if (isMetricWidget) {
-      return true;
-    }
-
-    const functionName = fieldValue.function[0];
-    const primaryOutput = aggregateFunctionOutputType(
-      functionName as string,
-      option.value.meta.name
-    );
-    if (primaryOutput) {
-      return isLegalYAxisType(primaryOutput);
-    }
-
-    if (option.value.kind === FieldValueKind.FUNCTION) {
-      // Functions are not legal options as an aggregate/function parameter.
-      return false;
-    }
-
-    return isLegalYAxisType(option.value.meta.dataType);
+  const filterMetricsOptions = option => {
+    return option.value.kind === FieldValueKind.FUNCTION;
   };
+
+  const filterAggregateParameters =
+    (fieldValue: QueryFieldValue) => (option: FieldValueOption) => {
+      // Only validate function parameters for timeseries widgets and
+      // world map widgets.
+      if (doNotValidateYAxis) {
+        return true;
+      }
+
+      if (fieldValue.kind !== 'function') {
+        return true;
+      }
+
+      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
+        return true;
+      }
+
+      const functionName = fieldValue.function[0];
+      const primaryOutput = aggregateFunctionOutputType(
+        functionName as string,
+        option.value.meta.name
+      );
+      if (primaryOutput) {
+        return isLegalYAxisType(primaryOutput);
+      }
+
+      if (option.value.kind === FieldValueKind.FUNCTION) {
+        // Functions are not legal options as an aggregate/function parameter.
+        return false;
+      }
+
+      return isLegalYAxisType(option.value.meta.dataType);
+    };
 
   const hideAddYAxisButton =
     (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
@@ -175,6 +178,10 @@ function WidgetQueryFields({
       fields.length === 3);
 
   const canDelete = fields.length > 1;
+
+  const noFieldsMessage = isMetricWidget
+    ? t('There are no metrics for this project.')
+    : undefined;
 
   if (displayType === 'table') {
     return (
@@ -195,6 +202,7 @@ function WidgetQueryFields({
           organization={organization}
           filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
+          noFieldsMessage={noFieldsMessage}
         />
       </Field>
     );
@@ -223,6 +231,7 @@ function WidgetQueryFields({
             organization={organization}
             filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
             source={widgetType}
+            noFieldsMessage={noFieldsMessage}
           />
         </Field>
         <Field
@@ -239,13 +248,14 @@ function WidgetQueryFields({
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={
-                isMetricWidget
-                  ? generateMetricsWidgetFieldOptions()
-                  : generateFieldOptions({organization})
+                isMetricWidget ? fieldOptions : generateFieldOptions({organization})
               }
               onChange={value => handleTopNChangeField(value)}
-              filterPrimaryOptions={filterPrimaryOptions}
+              filterPrimaryOptions={
+                isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
+              }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
+              noFieldsMessage={noFieldsMessage}
             />
           </QueryFieldWrapper>
         </Field>
@@ -274,6 +284,7 @@ function WidgetQueryFields({
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(field)}
               otherColumns={fields}
+              noFieldsMessage={noFieldsMessage}
             />
             {(canDelete || field.kind === 'equation') && (
               <Button
@@ -293,14 +304,16 @@ function WidgetQueryFields({
           <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-          <Button
-            size="small"
-            aria-label={t('Add an Equation')}
-            onClick={handleAddEquation}
-            icon={<IconAdd isCircled />}
-          >
-            {t('Add an Equation')}
-          </Button>
+          {!isMetricWidget && (
+            <Button
+              size="small"
+              aria-label={t('Add an Equation')}
+              onClick={handleAddEquation}
+              icon={<IconAdd isCircled />}
+            >
+              {t('Add an Equation')}
+            </Button>
+          )}
         </Actions>
       )}
     </Field>

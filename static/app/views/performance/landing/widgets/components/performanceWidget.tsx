@@ -8,6 +8,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
 import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
@@ -65,16 +66,18 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 
   return (
     <Fragment>
-      <QueryHandler
-        eventView={props.eventView}
-        widgetData={widgetData}
-        setWidgetDataForKey={setWidgetDataForKey}
-        removeWidgetDataForKey={removeWidgetDataForKey}
-        queryProps={props}
-        queries={queries}
-        api={api}
-      />
-      <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+      <MEPDataProvider>
+        <QueryHandler
+          eventView={props.eventView}
+          widgetData={widgetData}
+          setWidgetDataForKey={setWidgetDataForKey}
+          removeWidgetDataForKey={removeWidgetDataForKey}
+          queryProps={props}
+          queries={queries}
+          api={api}
+        />
+        <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+      </MEPDataProvider>
     </Fragment>
   );
 }

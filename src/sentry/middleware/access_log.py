@@ -9,6 +9,8 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from . import is_frontend_request
+
 api_access_logger = logging.getLogger("sentry.access.api")
 
 
@@ -51,9 +53,7 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
-
-        request_access = getattr(request, "access", None)
-        org_id = getattr(request_access, "organization_id", None)
+        org_id = getattr(getattr(request, "organization", None), "id", None)
 
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
@@ -65,6 +65,7 @@ def _create_api_access_log(
             user_id=str(user_id),
             is_app=str(is_app),
             token_type=str(_get_token_name(request_auth)),
+            is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
             auth_id=str(auth_id),
             path=str(request.path),
@@ -87,6 +88,10 @@ def access_log_middleware(
         # they make DB calls. For static urls that should not happen. Hence
         # this middleware is skipped for them. We don't care about its access
         # that much anyways
+
+        if not settings.LOG_API_ACCESS:
+            return get_response(request)
+
         if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
             return get_response(request)
         access_log_metadata = _AccessLogMetaData(request_start_time=time.time())

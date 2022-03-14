@@ -18,7 +18,7 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     expect(wrapper).toSnapshot();
   });
@@ -41,7 +41,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
     expect(wrapper).toSnapshot();
   });
 
@@ -63,7 +63,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />);
 
     const disconnectRequest = {
       url: `${ENDPOINT}social-identity/1/`,

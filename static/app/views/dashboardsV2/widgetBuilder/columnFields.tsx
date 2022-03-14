@@ -31,12 +31,11 @@ export function ColumnFields({
   onChange,
 }: Props) {
   return (
-    <ColumnCollectionField
+    <Field
       inline={false}
       error={errors?.find(error => error?.fields)?.fields}
       flexibleControlStateSize
       stacked
-      required
     >
       {displayType === DisplayType.TABLE ? (
         <ColumnCollectionEdit
@@ -57,14 +56,10 @@ export function ColumnFields({
           source={widgetType}
         />
       )}
-    </ColumnCollectionField>
+    </Field>
   );
 }
 
 const ColumnCollectionEdit = styled(ColumnEditCollection)`
   margin-top: ${space(1)};
-`;
-
-const ColumnCollectionField = styled(Field)`
-  padding: ${space(1)} 0;
 `;

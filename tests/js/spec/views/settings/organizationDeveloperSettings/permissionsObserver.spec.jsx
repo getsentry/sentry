@@ -13,8 +13,7 @@ describe('PermissionsObserver', () => {
           scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
           events={['issue']}
         />
-      </Form>,
-      TestStubs.routerContext()
+      </Form>
     );
   });
 

@@ -5,7 +5,6 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
-import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
@@ -83,8 +82,6 @@ class ResultsChart extends Component<ResultsChartProps> {
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
-        : yAxisValue.length > 1 && !isDaily
-        ? AreaChart
         : undefined;
     const interval =
       display === DisplayModes.BAR

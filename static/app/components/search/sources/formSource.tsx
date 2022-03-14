@@ -3,10 +3,11 @@ import {withRouter, WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
-import {ChildProps, Result} from './types';
+import {ChildProps, Result, ResultItem} from './types';
+import {strGetFn} from './utils';
 
 type Props = WithRouterProps<{orgId: string}> & {
   children: (props: ChildProps) => React.ReactElement;
@@ -21,11 +22,11 @@ type Props = WithRouterProps<{orgId: string}> & {
   /**
    * fusejs options.
    */
-  searchOptions?: Fuse.FuseOptions<FormSearchField>;
+  searchOptions?: Fuse.IFuseOptions<FormSearchField>;
 };
 
 type State = {
-  fuzzy: null | Fuse<FormSearchField, Fuse.FuseOptions<FormSearchField>>;
+  fuzzy: null | Fuse<FormSearchField>;
 };
 
 class FormSource extends React.Component<Props, State> {
@@ -48,20 +49,20 @@ class FormSource extends React.Component<Props, State> {
 
   async createSearch(searchMap: Props['searchMap']) {
     this.setState({
-      fuzzy: await createFuzzySearch<FormSearchField>(searchMap || [], {
+      fuzzy: await createFuzzySearch(searchMap || [], {
         ...this.props.searchOptions,
         keys: ['title', 'description'],
+        getFn: strGetFn,
       }),
     });
   }
 
   render() {
     const {searchMap, query, params, children} = this.props;
+    const {fuzzy} = this.state;
 
-    let results: Result[] = [];
-    if (this.state.fuzzy) {
-      const rawResults = this.state.fuzzy.search<FormSearchField, true, true>(query);
-      results = rawResults.map<Result>(value => {
+    const results =
+      fuzzy?.search(query).map<Result>(value => {
         const {item, ...rest} = value;
         return {
           item: {
@@ -71,11 +72,10 @@ class FormSource extends React.Component<Props, State> {
             to: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
               item.field.name
             )}`,
-          },
+          } as ResultItem,
           ...rest,
         };
-      });
-    }
+      }) ?? [];
 
     return children({
       isLoading: searchMap === null,
@@ -110,5 +110,4 @@ class FormSourceContainer extends React.Component<ContainerProps, ContainerState
     return <FormSource searchMap={this.state.searchMap} {...this.props} />;
   }
 }
-
 export default withRouter(FormSourceContainer);

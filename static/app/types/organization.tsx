@@ -33,7 +33,6 @@ export type Organization = OrganizationSummary & {
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
-  apdexThreshold: number;
   attachmentsRole: string;
   availableRoles: {id: string; name: string}[];
   dataScrubber: boolean;
@@ -193,6 +192,7 @@ export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isMetricsData?: boolean;
   order?: number;
   start?: number;
   totals?: {count: number};

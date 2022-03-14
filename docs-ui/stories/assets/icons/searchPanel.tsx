@@ -106,7 +106,7 @@ const SearchPanel = () => {
 
   const fuse = new Fuse(icons, {
     keys: ['id', 'groups', 'keywords'],
-    limit: 5,
+    threshold: 0.3,
   });
 
   const debouncedSearch = useCallback(
@@ -114,7 +114,7 @@ const SearchPanel = () => {
       if (!newQuery) {
         setResults(groupedIcons);
       } else {
-        const searchResults = fuse.search(newQuery, {limit: 5});
+        const searchResults = fuse.search(newQuery).map(result => result.item);
         const namedIcons = addIconNames(searchResults);
         const enumeratedIcons = enumerateIconVariants(namedIcons);
 
@@ -132,7 +132,7 @@ const SearchPanel = () => {
     <Wrap>
       <TextField
         name="query"
-        placeholder="Search icons"
+        placeholder="Search icons by name or similar keywords"
         value={query}
         onChange={value => {
           setQuery(value as string);
@@ -171,13 +171,14 @@ const GroupWrap = styled('div')`
 `;
 
 const GroupLabel = styled('p')`
-  font-size: 1.125rem;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: bold;
   margin-bottom: 0;
 `;
 
 const GroupIcons = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: ${space(1)};
   margin-top: ${space(1)};
 `;

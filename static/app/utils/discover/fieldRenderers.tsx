@@ -661,11 +661,13 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
@@ -675,7 +677,7 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -698,13 +700,15 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldFormatter(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

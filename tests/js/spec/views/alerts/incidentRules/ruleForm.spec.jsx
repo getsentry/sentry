@@ -1,13 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {metric} from 'sentry/utils/analytics';
@@ -29,7 +23,7 @@ describe('Incident Rules Form', () => {
     organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
   });
   const createWrapper = props =>
-    mountWithTheme(
+    render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
@@ -186,11 +180,11 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      expect(screen.getByLabelText('change')).toBeInTheDocument();
-      expect(screen.getByLabelText('change')).toBeChecked();
+      expect(screen.getByLabelText('Select Percent Change')).toBeInTheDocument();
+      expect(screen.getByLabelText('Select Percent Change')).toBeChecked();
 
-      userEvent.click(screen.getByLabelText('count'));
-      await waitFor(() => expect(screen.getByLabelText('count')).toBeChecked());
+      userEvent.click(screen.getByLabelText('Select Count'));
+      await waitFor(() => expect(screen.getByLabelText('Select Count')).toBeChecked());
 
       userEvent.click(screen.getByLabelText('Save Rule'));
 

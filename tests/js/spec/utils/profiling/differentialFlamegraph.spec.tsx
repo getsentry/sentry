@@ -1,6 +1,6 @@
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
@@ -25,8 +25,10 @@ const makeFlamegraph = (profile: Profiling.EventedProfile) => {
       createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}])
     ),
     0,
-    false,
-    false
+    {
+      inverted: false,
+      leftHeavy: false,
+    }
   );
 };
 

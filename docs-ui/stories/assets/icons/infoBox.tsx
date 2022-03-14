@@ -9,10 +9,10 @@ import IconSample from './sample';
 import {ExtendedIconData, SelectedIcon} from './searchPanel';
 
 type Props = {
+  groupId: string;
   icon: ExtendedIconData;
   selectedIcon: SelectedIcon;
   setSelectedIcon: Dispatch<SetStateAction<SelectedIcon>>;
-  groupId: string;
 };
 
 const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
@@ -37,7 +37,7 @@ const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
           >
             <IconSample
               name={icon.name}
-              size="xl"
+              size="sm"
               color="gray500"
               {...icon.defaultProps}
             />
@@ -55,13 +55,18 @@ const IconInfoBox = ({icon, selectedIcon, setSelectedIcon, groupId}: Props) => {
 export default IconInfoBox;
 
 const BoxWrap = styled('div')<{selected: boolean}>`
-  grid-column-end: span 1;
-  text-align: center;
-  justify-content: center;
-  padding: ${space(2)};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: ${space(1)};
   border: solid 1px transparent;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
+
+  svg {
+    flex-shrink: 0;
+    width: 24px;
+  }
 
   &:hover {
     border-color: ${p => p.theme.innerBorder};
@@ -81,8 +86,8 @@ const BoxWrap = styled('div')<{selected: boolean}>`
 
 const Name = styled('p')`
   position: relative;
-  margin-top: ${space(1)};
+  line-height: 1;
   margin-bottom: 0;
-  font-size: 0.875rem;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-transform: capitalize;
 `;

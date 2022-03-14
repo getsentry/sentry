@@ -1,6 +1,6 @@
 import {vec2} from 'gl-matrix';
 
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
 import {CursorRenderer} from 'sentry/utils/profiling/renderers/cursorRenderer';
 

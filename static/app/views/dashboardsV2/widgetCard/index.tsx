@@ -5,15 +5,15 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
+import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconOpen} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconExpand, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -42,6 +42,7 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
+  index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
   noLazyLoad?: boolean;
@@ -50,6 +51,7 @@ type Props = WithRouterProps & {
   onEdit?: () => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -141,7 +143,13 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
+      location,
+      showWidgetViewerButton,
+      router,
+      isEditing,
+      index,
     } = this.props;
+    const id = widget.id ?? index;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -151,19 +159,24 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            <Feature
-              organization={organization}
-              features={['organizations:widget-viewer-modal']}
-            >
+            {showWidgetViewerButton && !isEditing && id && (
               <OpenWidgetViewerButton
+                aria-label={t('Open Widget Viewer')}
+                priority="link"
+                size="zero"
+                icon={<IconExpand size="xs" />}
                 onClick={() => {
-                  openWidgetViewerModal({
-                    organization,
-                    widget,
-                  });
+                  if (!isWidgetViewerPath(location.pathname)) {
+                    router.push({
+                      pathname: `${location.pathname}${
+                        location.pathname.endsWith('/') ? '' : '/'
+                      }widget/${id}/`,
+                      query: location.query,
+                    });
+                  }
                 }}
               />
-            </Feature>
+            )}
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -271,14 +284,12 @@ const WidgetHeader = styled('div')`
   padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 
-const OpenWidgetViewerButton = styled(IconOpen)`
-  &:hover {
-    cursor: pointer;
-  }
-  margin: auto;
+const OpenWidgetViewerButton = styled(Button)`
   margin-left: ${space(0.5)};
-  height: ${p => p.theme.fontSizeMedium};
+  margin-right: auto;
+  color: ${p => p.theme.textColor};
 `;

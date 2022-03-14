@@ -11,30 +11,12 @@ import useTeams from 'sentry/utils/useTeams';
 
 import Filter from './filter';
 
-const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
-
 type Props = {
   handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   selectedTeams: Set<string>;
   selectedStatus?: Set<string>;
   showStatus?: boolean;
 };
-
-export function getTeamParams(team?: string | string[]): string[] {
-  if (team === undefined) {
-    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
-  }
-
-  if (team === '') {
-    return [];
-  }
-
-  if (Array.isArray(team)) {
-    return team;
-  }
-
-  return [team];
-}
 
 function TeamFilter({
   selectedTeams,

@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
-  waitFor,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -92,7 +92,7 @@ describe('Custom Repositories', function () {
   });
 
   it('renders', async function () {
-    const {rerender} = mountWithTheme(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />);
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -135,11 +135,9 @@ describe('Custom Repositories', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText('This feature is not enabled on your Sentry installation.')
-      ).not.toBeInTheDocument();
-    });
+    await waitForElementToBeRemoved(() =>
+      screen.queryByText('This feature is not enabled on your Sentry installation.')
+    );
 
     // Renders disabled repository list
     rerender(
@@ -185,7 +183,7 @@ describe('Custom Repositories', function () {
   it('renders with custom-symbol-sources feature enabled', async function () {
     const newOrganization = {...organization, features: ['custom-symbol-sources']};
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />
     );
 
@@ -238,7 +236,7 @@ describe('Custom Repositories', function () {
   it('renders with app-store-connect-multiple feature enabled', async function () {
     const newOrganization = {...organization, features: ['app-store-connect-multiple']};
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}
@@ -275,13 +273,13 @@ describe('Custom Repositories', function () {
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
   });
 
-  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', async function () {
+  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
     const newOrganization = {
       ...organization,
       features: ['custom-symbol-sources', 'app-store-connect-multiple'],
     };
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}

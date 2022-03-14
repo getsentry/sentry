@@ -1,6 +1,7 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -61,6 +62,7 @@ type Props = DefaultProps & {
   >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
+  router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   updateCallback: () => void;
@@ -122,6 +124,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     };
   }
 
+  static defaultProps: DefaultProps = {
+    disabled: false,
+  };
+
+  state: State = {
+    isNewQuery: true,
+    isEditingQuery: false,
+
+    queryName: '',
+  };
+
   /**
    * Stop propagation for the input and container so people can interact with
    * the inputs in the dropdown.
@@ -136,17 +149,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       event.preventDefault();
       event.stopPropagation();
     }
-  };
-
-  static defaultProps: DefaultProps = {
-    disabled: false,
-  };
-
-  state: State = {
-    isNewQuery: true,
-    isEditingQuery: false,
-
-    queryName: '',
   };
 
   onBlurInput = (event: React.FormEvent<HTMLInputElement>) => {
@@ -234,11 +236,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery, yAxis} = this.props;
+    const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
     const defaultTableColumns = eventView.fields.map(({field}) => field);
     const sort = eventView.sorts[0];
+
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       fields: [
@@ -254,14 +257,30 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       saved_query: !!savedQuery,
     });
 
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns,
+          defaultTitle,
+          displayType,
+        },
+      });
+      return;
+    }
+
     openAddDashboardWidgetModal({
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
       defaultTableColumns,
-      defaultTitle:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined),
+      defaultTitle,
       displayType,
     });
   };
@@ -375,6 +394,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
           referrer="discover"
+          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
       </GuideAnchor>

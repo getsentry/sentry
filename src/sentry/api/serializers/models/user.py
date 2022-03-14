@@ -1,4 +1,7 @@
+import itertools
+import warnings
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence, Union, cast
 
 from django.conf import settings
@@ -7,6 +10,7 @@ from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -19,6 +23,7 @@ from sentry.models import (
     UserEmail,
     UserOption,
     UserPermission,
+    UserRoleUser,
 )
 from sentry.utils.avatar import get_gravatar_url
 
@@ -55,13 +60,8 @@ class _Identity(TypedDict):
     name: str
     organization: _Organization
     provider: _Provider
-    dateVerified: str
-    dateSynced: str
-
-
-class _UserSerializerAvatar(TypedDict):
-    avatarType: str
-    avatarUuid: Optional[str]
+    dateVerified: datetime
+    dateSynced: datetime
 
 
 class _UserOptions(TypedDict):
@@ -74,7 +74,7 @@ class _UserOptions(TypedDict):
 
 class UserSerializerResponseOptional(TypedDict, total=False):
     identities: List[_Identity]
-    avatar: _UserSerializerAvatar
+    avatar: SerializedAvatarFields
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):
@@ -86,10 +86,10 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     isActive: bool
     hasPasswordAuth: bool
     isManaged: bool
-    dateJoined: str
-    lastLogin: str
+    dateJoined: datetime
+    lastLogin: datetime
     has2fa: bool
-    lastActive: str
+    lastActive: datetime
     isSuperuser: bool
     isStaff: bool
     experiments: Dict[str, Any]  # TODO
@@ -180,7 +180,7 @@ class UserSerializer(Serializer):  # type: ignore
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
 
         if attrs.get("avatar"):
-            avatar: _UserSerializerAvatar = {
+            avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
                 "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
             }
@@ -212,12 +212,15 @@ class UserSerializer(Serializer):  # type: ignore
 
 
 class DetailedUserSerializerResponse(UserSerializerResponse):
-    permissions: Any
     authenticators: List[Any]  # TODO
     canReset2fa: bool
 
 
 class DetailedUserSerializer(UserSerializer):
+    """
+    Used in situations like when a member admin (on behalf of an organization) looks up memberships.
+    """
+
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
 
@@ -226,10 +229,6 @@ class DetailedUserSerializer(UserSerializer):
             Authenticator.objects.filter(user__in=item_list),
             "user_id",
             lambda x: not x.interface.is_backup_interface,
-        )
-
-        permissions = manytoone_to_dict(
-            UserPermission.objects.filter(user__in=item_list), "user_id"
         )
 
         memberships = manytoone_to_dict(
@@ -241,8 +240,6 @@ class DetailedUserSerializer(UserSerializer):
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
-            attrs[item]["permissions"] = permissions[item.id]
-
             # org can reset 2FA if the user is only in one org
             attrs[item]["canReset2fa"] = len(memberships[item.id]) == 1
 
@@ -258,8 +255,6 @@ class DetailedUserSerializer(UserSerializer):
         # for requests that require an *active* session, they should prompt
         # on-demand. This ensures things like links to the Sentry admin can
         # still easily be rendered.
-        d["isSuperuser"] = obj.is_superuser
-        d["permissions"] = [up.permission for up in attrs["permissions"]]
         d["authenticators"] = [
             {
                 "id": str(a.id),
@@ -271,4 +266,74 @@ class DetailedUserSerializer(UserSerializer):
             for a in attrs["authenticators"]
         ]
         d["canReset2fa"] = attrs["canReset2fa"]
+        return d
+
+
+class DetailedSelfUserSerializerResponse(UserSerializerResponse):
+    permissions: Any
+    authenticators: List[Any]  # TODO
+
+
+class DetailedSelfUserSerializer(UserSerializer):
+    """
+    Return additional information for operating on behalf of a user, like their permissions.
+
+    Should only be returned when acting on behalf of the user, or acting on behalf of a Sentry `users.admin`.
+    """
+
+    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+        attrs = super().get_attrs(item_list, user)
+
+        # ignore things that aren't user controlled (like recovery codes)
+        authenticators = manytoone_to_dict(
+            Authenticator.objects.filter(user__in=item_list),
+            "user_id",
+            lambda x: not x.interface.is_backup_interface,
+        )
+
+        permissions = manytoone_to_dict(
+            UserPermission.objects.filter(user__in=item_list), "user_id"
+        )
+        # XXX(dcramer): theres def a way to write this query using djangos awkward orm magic to cache it using `UserRole`
+        # but at least someone can understand this direction of access/optimization
+        roles = {
+            ur.user_id: ur.role.permissions
+            for ur in UserRoleUser.objects.filter(user__in=item_list).select_related("role")
+        }
+
+        for item in item_list:
+            attrs[item]["authenticators"] = authenticators[item.id]
+            attrs[item]["permissions"] = {p.permission for p in permissions[item.id]} | set(
+                itertools.chain(roles.get(item.id, []))
+            )
+
+        return attrs
+
+    def serialize(
+        self, obj: User, attrs: MutableMapping[User, Any], user: User
+    ) -> DetailedSelfUserSerializerResponse:
+        d = cast(DetailedSelfUserSerializerResponse, super().serialize(obj, attrs, user))
+
+        # safety check to never return this information if the acting user is not 1) this user, 2) an admin
+        if user.id == obj.id or user.is_superuser:
+            # XXX(dcramer): we don't use is_active_superuser here as we simply
+            # want to tell the UI that we're an authenticated superuser, and
+            # for requests that require an *active* session, they should prompt
+            # on-demand. This ensures things like links to the Sentry admin can
+            # still easily be rendered.
+            d["permissions"] = sorted(attrs["permissions"])
+            d["authenticators"] = [
+                {
+                    "id": str(a.id),
+                    "type": a.interface.interface_id,
+                    "name": str(a.interface.name),
+                    "dateCreated": a.created_at,
+                    "dateUsed": a.last_used_at,
+                }
+                for a in attrs["authenticators"]
+            ]
+        else:
+            warnings.warn(
+                "Incorrectly calling `DetailedSelfUserSerializer`. See docstring for details."
+            )
         return d

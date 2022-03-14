@@ -31,8 +31,6 @@ EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
 
-ISSUE_WIDGET_FEATURE = ["organizations:issues-in-dashboards"]
-
 WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 
@@ -56,7 +54,11 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
-            widget=self.existing_widget, fields=["count()"], order=0
+            widget=self.existing_widget,
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            order=0,
         )
         self.page = DashboardDetailPage(
             self.browser, self.client, organization=self.organization, dashboard=self.dashboard
@@ -224,7 +226,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -267,7 +271,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -314,13 +320,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.click_dashboard_add_widget_button()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(widget_title)
-            self.browser.element('[aria-label="issue"]').click()
+            self.browser.element(
+                '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
+            ).click()
             button = self.browser.element('[data-test-id="add-widget"]')
             button.click()
 
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + ISSUE_WIDGET_FEATURE + GRID_LAYOUT_FEATURE
-        ):
+        with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
 
@@ -339,7 +345,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -379,7 +387,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
 
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -424,7 +434,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
-            widget=existing_widget, fields=["count_unique(issue)"], order=0
+            widget=existing_widget,
+            fields=["count_unique(issue)"],
+            columns=[],
+            aggregates=["count_unique(issue)"],
+            order=0,
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -455,7 +469,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         )
         DashboardWidgetQuery.objects.bulk_create(
             [
-                DashboardWidgetQuery(widget=existing_widget, fields=["count()"], order=0)
+                DashboardWidgetQuery(
+                    widget=existing_widget,
+                    fields=["count()"],
+                    columns=[],
+                    aggregates=["count()"],
+                    order=0,
+                )
                 for existing_widget in existing_widgets
             ]
         )
@@ -476,7 +496,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
-            widget=existing_widget, fields=["count_unique(issue)"], order=0
+            widget=existing_widget,
+            fields=["count_unique(issue)"],
+            columns=[],
+            aggregates=["count_unique(issue)"],
+            order=0,
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -507,7 +531,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             interval="1d",
         )
         DashboardWidgetQuery.objects.create(
-            widget=existing_widget, fields=["count_unique(issue)"], order=0
+            widget=existing_widget,
+            fields=["count_unique(issue)"],
+            columns=[],
+            aggregates=["count_unique(issue)"],
+            order=0,
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -640,7 +668,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             ]
         )
         DashboardWidgetQuery.objects.bulk_create(
-            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            DashboardWidgetQuery(
+                widget=widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+            )
             for widget in existing_widgets
         )
         with self.feature(
@@ -691,7 +721,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             ]
         )
         DashboardWidgetQuery.objects.bulk_create(
-            DashboardWidgetQuery(widget=widget, fields=["count()"], order=0)
+            DashboardWidgetQuery(
+                widget=widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+            )
             for widget in existing_widgets
         )
         with self.feature(

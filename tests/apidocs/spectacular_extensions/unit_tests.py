@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from typing import List, Optional, Union
 
+import pytest
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import Literal, TypedDict
 
@@ -33,6 +36,11 @@ class BasicSerializerResponse(BasicSerializerOptional):
 
 class BasicSerializer(Serializer):
     def serialize() -> BasicSerializerResponse:
+        return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
+
+
+class FailSerializer(Serializer):
+    def serialize():
         return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
 
 
@@ -83,3 +91,9 @@ def test_sentry_inline_response_serializer_extension():
             "required": ["b", "c", "d", "e", "f", "g", "h"],
         },
     }
+
+
+def test_sentry_fails_when_serializer_not_typed():
+    seralizer_extension = SentryResponseSerializerExtension(FailSerializer)
+    with pytest.raises(TypeError):
+        seralizer_extension.map_serializer(None, None)

@@ -134,6 +134,26 @@ export class SentryAppExternalForm extends Component<Props, State> {
     }
   };
 
+  getDefaultFieldValue = (field: FieldFromSchema) => {
+    // Interpret the default if a getFieldDefault function is provided.
+    const {resetValues, getFieldDefault} = this.props;
+    let defaultValue;
+
+    // Override this default if a reset value is provided
+    if (field.default && getFieldDefault) {
+      defaultValue = getFieldDefault(field);
+    }
+
+    const reset = ((resetValues || {}).settings || []).find(
+      value => value.name === field.name
+    );
+
+    if (reset) {
+      defaultValue = reset.value;
+    }
+    return defaultValue;
+  };
+
   debouncedOptionLoad = debounce(
     // debounce is used to prevent making a request for every input change and
     // instead makes the requests every 200ms
@@ -256,8 +276,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // async only used for select components
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
-    const defaultResetValues = (this.props.resetValues || {}).settings || [];
-
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
@@ -266,12 +284,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
-      const defaultValue = defaultResetValues.reduce((acc, curr) => {
-        if (curr.name === field.name) {
-          acc = curr.value;
-        }
-        return acc;
-      }, undefined);
+      const defaultValue = this.getDefaultFieldValue(field);
       // filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
@@ -286,28 +299,22 @@ export class SentryAppExternalForm extends Component<Props, State> {
       if (isAsync) {
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
-    } else if (['text', 'textarea'].includes(fieldToPass.type || '')) {
-      // Interpret the default if a getFieldDefault function is provided
-      let defaultValue = '';
-      if (field.default && this.props.getFieldDefault) {
-        defaultValue = this.props.getFieldDefault(field);
+
+      if (field.depends_on) {
+        // check if this is dependent on other fields which haven't been set yet
+        const shouldDisable = field.depends_on.some(
+          dependentField => !hasValue(this.model.getValue(dependentField))
+        );
+        if (shouldDisable) {
+          fieldToPass = {...fieldToPass, disabled: true};
+        }
       }
-      // Override this default if a reset value is provided
-      defaultValue = defaultResetValues[field.name] || defaultValue;
+    }
+    if (['text', 'textarea'].includes(fieldToPass.type || '')) {
       fieldToPass = {
         ...fieldToPass,
-        defaultValue,
+        defaultValue: this.getDefaultFieldValue(field),
       };
-    }
-
-    if (field.depends_on) {
-      // check if this is dependent on other fields which haven't been set yet
-      const shouldDisable = field.depends_on.some(
-        dependentField => !hasValue(this.model.getValue(dependentField))
-      );
-      if (shouldDisable) {
-        fieldToPass = {...fieldToPass, disabled: true};
-      }
     }
 
     // if we have a uri, we need to set extra parameters

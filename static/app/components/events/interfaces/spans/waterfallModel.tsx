@@ -4,17 +4,15 @@ import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
 import {EventTransaction} from 'sentry/types/event';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
 import {
   FilterSpans,
-  FuseResult,
   IndexedFusedSpan,
   ParsedTraceType,
   RawSpanType,
-  SpanFuseOptions,
   TraceBound,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
@@ -26,7 +24,7 @@ class WaterfallModel {
   event: Readonly<EventTransaction>;
   rootSpan: SpanTreeModel;
   parsedTrace: ParsedTraceType;
-  fuse: Fuse<string, SpanFuseOptions> | undefined = undefined;
+  fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
 
   // readable/writable state
   operationNameFilters: ActiveOperationFilter = noFilter;
@@ -189,7 +187,7 @@ class WaterfallModel {
       return;
     }
 
-    const results = this.fuse.search<FuseResult>(searchQuery);
+    const results = this.fuse.search(searchQuery);
 
     const spanIDs: Set<string> = results.reduce((setOfSpanIDs: Set<string>, result) => {
       const spanID = getSpanID(result.item.span);
@@ -202,10 +200,7 @@ class WaterfallModel {
     }, new Set<string>());
 
     this.searchQuery = searchQuery;
-    this.filterSpans = {
-      results,
-      spanIDs,
-    };
+    this.filterSpans = {spanIDs, results};
   }
 
   toggleSpanGroup = (spanID: string) => {

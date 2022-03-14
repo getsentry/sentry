@@ -35,6 +35,7 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
+    NON_FAILURE_STATUS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
@@ -53,6 +54,7 @@ from sentry.search.events.constants import (
     TIMESTAMP_TO_HOUR_ALIAS,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
+    VITAL_THRESHOLDS,
 )
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
@@ -154,11 +156,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                                 "notIn",
                                 [
                                     self.builder.column("transaction.status"),
-                                    (
-                                        SPAN_STATUS_NAME_TO_CODE["ok"],
-                                        SPAN_STATUS_NAME_TO_CODE["cancelled"],
-                                        SPAN_STATUS_NAME_TO_CODE["unknown"],
-                                    ),
+                                    [
+                                        SPAN_STATUS_NAME_TO_CODE[status]
+                                        for status in NON_FAILURE_STATUS
+                                    ],
                                 ],
                             )
                         ],
@@ -220,6 +221,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                         [],
                         alias,
                     ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_web_vitals",
+                    required_args=[
+                        NumericColumn("column"),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -718,7 +728,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("toStartOfDay", [self.builder.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
 
     def _resolve_user_display_alias(self, _: str) -> SelectType:
-        columns = ["user.email", "user.username", "user.ip"]
+        columns = ["user.email", "user.username", "user.id", "user.ip"]
         return Function(
             "coalesce", [self.builder.column(column) for column in columns], USER_DISPLAY_ALIAS
         )
@@ -994,6 +1004,54 @@ class DiscoverDatasetConfig(DatasetConfig):
             ]
 
         return Function("apdex", function_args, alias)
+
+    def _resolve_web_vital_function(
+        self, args: Mapping[str, str | Column], alias: str
+    ) -> SelectType:
+        column = args["column"]
+        quality = args["quality"].lower()
+
+        if column.subscriptable != "measurements":
+            raise InvalidSearchQuery("count_web_vitals only supports measurements")
+        elif column.key not in VITAL_THRESHOLDS:
+            raise InvalidSearchQuery(f"count_web_vitals doesn't support {column.key}")
+
+        if quality == "good":
+            return Function(
+                "countIf",
+                [Function("lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
+                alias,
+            )
+        elif quality == "meh":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "and",
+                        [
+                            Function("greater", [column, VITAL_THRESHOLDS[column.key]["meh"]]),
+                            Function(
+                                "lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["poor"]]
+                            ),
+                        ],
+                    )
+                ],
+                alias,
+            )
+        else:
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greater",
+                        [
+                            column,
+                            VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
 
     def _resolve_count_miserable_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:

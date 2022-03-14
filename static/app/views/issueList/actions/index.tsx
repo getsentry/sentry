@@ -22,7 +22,7 @@ import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 type Props = {
   allResultsVisible: boolean;
   api: Client;
-  displayCount: React.ReactElement;
+  displayCount: React.ReactNode;
   displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;

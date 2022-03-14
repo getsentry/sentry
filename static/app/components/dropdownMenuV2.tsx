@@ -48,6 +48,11 @@ type Props = {
    */
   menuTitle?: string;
   onClose?: () => void;
+  /**
+   * Current width of the trigger element. This is used as the menu's minumum
+   * width.
+   */
+  triggerWidth?: number;
 } & AriaMenuOptions<MenuItemProps> &
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
@@ -59,6 +64,7 @@ function Menu({
   placement = 'bottom left',
   closeOnSelect = true,
   triggerRef,
+  triggerWidth,
   isSubmenu,
   menuTitle,
   closeRootMenu,
@@ -108,6 +114,10 @@ function Menu({
     placement,
     containerPadding,
     isOpen: true,
+    // useOverlayPosition's algorithm doesn't work well for submenus on viewport
+    // scroll. Changing the boundary element (document.body by default) seems to
+    // fix this.
+    boundaryElement: document.querySelector<HTMLElement>('.app') ?? undefined,
   });
 
   // Store whether this menu/submenu is the current focused one, which in a
@@ -224,7 +234,10 @@ function Menu({
         <MenuWrap
           ref={menuRef}
           {...modifiedMenuProps}
-          style={{maxHeight: positionProps.style?.maxHeight}}
+          style={{
+            maxHeight: positionProps.style?.maxHeight,
+            minWidth: triggerWidth,
+          }}
         >
           {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
           {renderCollection(stateCollection)}

@@ -2,42 +2,41 @@ import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 
-type InputFieldProps = React.ComponentProps<typeof InputField>;
+export interface SelectFieldProps<OptionType>
+  extends InputFieldProps,
+    Omit<ControlProps<OptionType>, 'onChange'> {
+  /**
+   * Should the select be clearable?
+   */
+  allowClear?: boolean;
+  /**
+   * Should the select allow empty values?
+   */
+  allowEmpty?: boolean;
+  /**
+   * Allow specific options to be 'confirmed' with a confirmation message.
+   *
+   * The key is the value that should be confirmed, the value is the message
+   * to display in the confirmation modal.
+   *
+   * XXX: This only works when using the new-style options format, and _only_
+   * if the value object has a `value` attribute in the option. The types do
+   * not correctly reflect this so be careful!
+   */
+  confirm?: Record<string, React.ReactNode>;
+  /**
+   * A label that is shown inside the select control.
+   */
+  inFieldLabel?: string;
+  small?: boolean;
+}
 
-type Props<OptionType> = InputFieldProps &
-  Omit<ControlProps<OptionType>, 'onChange'> & {
-    /**
-     * Should the select be clearable?
-     */
-    allowClear?: boolean;
-    /**
-     * Should the select allow empty values?
-     */
-    allowEmpty?: boolean;
-    /**
-     * Allow specific options to be 'confirmed' with a confirmation message.
-     *
-     * The key is the value that should be confirmed, the value is the message
-     * to display in the confirmation modal.
-     *
-     * XXX: This only works when using the new-style options format, and _only_
-     * if the value object has a `value` attribute in the option. The types do
-     * not correctly reflect this so be careful!
-     */
-    confirm?: Record<string, React.ReactNode>;
-    /**
-     * A label that is shown inside the select control.
-     */
-    inFieldLabel?: string;
-    small?: boolean;
-  };
-
-function getChoices<T>(props: Props<T>): Choices {
+function getChoices<T>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
     return choices(props);
@@ -58,7 +57,7 @@ function isArray<T>(maybe: T | OptionsType<T>): maybe is OptionsType<T> {
 
 export default class SelectField<
   OptionType extends SelectValue<any>
-> extends React.Component<Props<OptionType>> {
+> extends React.Component<SelectFieldProps<OptionType>> {
   static defaultProps = {
     allowClear: false,
     allowEmpty: false,

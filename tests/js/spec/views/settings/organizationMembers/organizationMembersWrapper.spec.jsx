@@ -56,8 +56,7 @@ describe('OrganizationMembersWrapper', function () {
 
   it('can invite member', function () {
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps} />,
-      TestStubs.routerContext()
+      <OrganizationMembersWrapper organization={organization} {...defaultProps} />
     );
 
     const inviteButton = wrapper.find('StyledButton');
@@ -75,8 +74,7 @@ describe('OrganizationMembersWrapper', function () {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
-      TestStubs.routerContext()
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />
     );
 
     const inviteButton = wrapper.find('StyledButton');
@@ -94,8 +92,7 @@ describe('OrganizationMembersWrapper', function () {
     const wrapper = mountWithTheme(
       <OrganizationMembersWrapper organization={organization} {...defaultProps}>
         <OrganizationMembersList {...defaultProps} router={{routes: []}} />
-      </OrganizationMembersWrapper>,
-      TestStubs.routerContext()
+      </OrganizationMembersWrapper>
     );
 
     expect(wrapper.find('OrganizationMembersList').exists()).toBe(true);

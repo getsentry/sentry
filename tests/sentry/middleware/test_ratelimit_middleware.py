@@ -2,7 +2,6 @@ from time import time
 from unittest.mock import patch
 
 from before_after import before
-from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
@@ -20,6 +19,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
+from sentry.ratelimits.config import get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -113,12 +113,13 @@ class RatelimitMiddlewareTest(TestCase):
     def test_get_rate_limit_key(self):
         # Import an endpoint
 
-        view = OrganizationGroupIndexEndpoint
+        view = OrganizationGroupIndexEndpoint.as_view()
 
         # Test for default IP
         request = self.factory.get("/")
         assert (
-            get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            get_rate_limit_key(view, request)
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
         # Test when IP address is missing
         request.META["REMOTE_ADDR"] = None
@@ -128,7 +129,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
             get_rate_limit_key(view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
         # Test for users
@@ -136,7 +137,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request)
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for user auth tokens
@@ -145,14 +146,14 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request)
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for sentryapp auth tokens:
         self.populate_sentry_app_request(request)
         assert (
             get_rate_limit_key(view, request)
-            == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
         # Test for apikey
@@ -163,7 +164,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.auth = api_key
         assert (
             get_rate_limit_key(view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
 
@@ -174,18 +175,15 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
+        assert get_rate_limit_value("GET", TestEndpoint, "ip") == get_default_rate_limits_for_group(
+            "default", RateLimitCategory.IP
         )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "org")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["org"]
-        )
-        assert (
-            get_rate_limit_value("DELETE", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "org"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
+        assert get_rate_limit_value(
+            "DELETE", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
         """Override one or more of the default rate limits"""
@@ -197,23 +195,15 @@ class TestGetRateLimitValue(TestCase):
             }
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
-        )
+        # get is not overriddent for user, hence we use the default
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
+        # get is not overriddent for IP, hence we use the default
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "ip"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
         assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
-
-    def test_non_endpoint(self):
-        """views that don't inherit Endpoint shouldn not return a value"""
-
-        class TestEndpoint:
-            pass
-
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):
@@ -275,7 +265,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    @patch("sentry.ratelimits.utils.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
@@ -284,7 +274,7 @@ class TestRatelimitHeader(APITestCase):
             - UI Statistics Endpoints
             - Endpoints that don't inherit api.base.Endpoint
         """
-        can_be_ratelimited_patch.return_value = False
+        can_be_ratelimited_patch.return_value = None
         response = self.get_response()
         assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
         assert "X-Sentry-Rate-Limit-Limit" not in response._headers

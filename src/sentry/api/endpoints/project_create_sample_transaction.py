@@ -75,7 +75,7 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
 
         data = fix_event_data(data)
         event = create_sample_event_basic(
-            data, project.id, raw=True, skip_send_first_transaction=True
+            data, project.id, raw=True, skip_send_first_transaction=True, tagged=True
         )
 
         data = serialize(event, request.user)

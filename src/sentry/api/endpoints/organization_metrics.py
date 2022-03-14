@@ -11,10 +11,11 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
     get_series,
-    get_single_metric,
+    get_single_metric_info,
     get_tag_values,
     get_tags,
 )
+from sentry.snuba.metrics.utils import DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -40,7 +41,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         try:
-            metric = get_single_metric(projects, metric_name)
+            metric = get_single_metric_info(projects, metric_name)
         except InvalidParams:
             raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
 
@@ -68,7 +69,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
-        except InvalidParams as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
@@ -87,7 +88,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tag_values = get_tag_values(projects, tag_name, metric_names)
-        except InvalidParams as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:
@@ -105,6 +106,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    default_per_page = 50
+
     def get(self, request: Request, organization) -> Response:
         if not features.has("organizations:metrics", organization, actor=request.user):
             return Response(status=404)
@@ -117,14 +120,14 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(projects, query)
-            except (InvalidField, InvalidParams) as exc:
+            except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
                 raise (ParseError(detail=str(exc)))
             return data
 
         return self.paginate(
             request,
             paginator=MetricsDataSeriesPaginator(data_fn=data_fn),
-            default_per_page=50,
+            default_per_page=self.default_per_page,
             max_per_page=100,
         )
 

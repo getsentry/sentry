@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 import {Frame} from '../frame';
 import {
@@ -15,10 +15,6 @@ import {
 } from '../gl/utils';
 
 import {fragment, vertex} from './shaders';
-
-export function uniqueFrameKey(frame: FlamegraphFrame): string {
-  return `${frame.frame.key + String(frame.start)}`;
-}
 
 class FlamegraphRenderer {
   canvas: HTMLCanvasElement | null;
@@ -102,57 +98,14 @@ class FlamegraphRenderer {
     this.frames = [...this.flamegraph.frames];
     this.roots = this.flamegraph.frames.filter(f => !f.parent);
 
-    // If our flamegraph has color encoding, then just pull the colors into the color buffer.
-    // This happens with differential flamegraphs, where the color changes are encoded at the time
-    // when we construct the differential flamegraph.
-    if (this.flamegraph.colors) {
-      this.colorMap = this.flamegraph.colors;
-
-      const length = this.frames.length;
-
-      for (let index = 0; index < length; index++) {
-        const frame = this.frames[index];
-        const c = this.colorMap.get(
-          frame.frame.name + (frame.frame.file ? frame.frame.file : '')
-        );
-
-        const colorWithAlpha = c
-          ? c.length === 3
-            ? [...c, 1]
-            : c
-          : this.theme.COLORS.FRAME_FALLBACK_COLOR;
-
-        // @TODO figure out if we can pack the colors, we are allocating 6x the memory here
-        const offset = index * VERTICES * COLOR_COMPONENTS;
-        if (this.theme.CONFIG.HIGHLIGHT_RECURSION && !frame.frame.recursive) {
-          for (let i = 0; i < VERTICES; i++) {
-            const colorOffset = offset + i * COLOR_COMPONENTS;
-            this.colors[colorOffset] = this.theme.COLORS.FRAME_FALLBACK_COLOR[0];
-            this.colors[colorOffset + 1] = this.theme.COLORS.FRAME_FALLBACK_COLOR[1];
-            this.colors[colorOffset + 2] = this.theme.COLORS.FRAME_FALLBACK_COLOR[2];
-            this.colors[colorOffset + 3] = this.theme.COLORS.FRAME_FALLBACK_COLOR[3];
-          }
-        } else {
-          // @TODO figure out if we can pack the colors, we are allocating 6x the memory here
-          for (let i = 0; i < VERTICES; i++) {
-            const colorOffset = offset + i * COLOR_COMPONENTS;
-            this.colors[colorOffset] = colorWithAlpha[0];
-            this.colors[colorOffset + 1] = colorWithAlpha[1];
-            this.colors[colorOffset + 2] = colorWithAlpha[2];
-            this.colors[colorOffset + 3] = colorWithAlpha[3];
-          }
-        }
-      }
-    } else {
-      // Generate colors for the flamegraph
-      const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
-        this.frames.map(f => f.frame),
-        this.theme.COLORS.COLOR_MAP,
-        this.theme.COLORS.COLOR_BUCKET
-      );
-      this.colorMap = colorMap;
-      this.colors = colorBuffer;
-    }
+    // Generate colors for the flamegraph
+    const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
+      this.frames,
+      this.theme.COLORS.COLOR_MAP,
+      this.theme.COLORS.COLOR_BUCKET
+    );
+    this.colorMap = colorMap;
+    this.colors = colorBuffer;
 
     this.initCanvasContext();
     this.initPhysicalSpace();
@@ -546,10 +499,7 @@ class FlamegraphRenderer {
   }
 
   getColorForFrame(frame: Frame): number[] {
-    return (
-      this.colorMap.get(frame.name + (frame.file ? frame.file : '')) ??
-      this.theme.COLORS.FRAME_FALLBACK_COLOR
-    );
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }
 
   getConfigSpaceCursor(

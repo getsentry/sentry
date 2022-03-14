@@ -205,7 +205,7 @@ const IgnoreActions = ({
     <ButtonBar merged>
       <IgnoreButton
         size="xsmall"
-        tooltipProps={{delay: 300}}
+        tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
@@ -228,6 +228,7 @@ const IgnoreActions = ({
         )}
         menuTitle={t('Ignore')}
         items={dropdownItems}
+        isDisabled={disabled}
       />
     </ButtonBar>
   );

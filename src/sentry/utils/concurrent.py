@@ -124,7 +124,7 @@ class Executor:
 
     Future = TimedFuture
 
-    def submit(self, callable, priority=0, block=True, timeout=None):
+    def submit(self, callable, priority=0, block=True, timeout=None) -> TimedFuture:
         """
         Enqueue a task to be executed, returning a ``TimedFuture``.
 

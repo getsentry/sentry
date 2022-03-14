@@ -13,7 +13,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -260,7 +260,9 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <StyledSdkUpdatesAlert />
+              <Layout.Main fullWidth>
+                <StyledSdkUpdatesAlert />
+              </Layout.Main>
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
                 organization={organization}
@@ -360,10 +362,6 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-bottom: 0;
   }
 `;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

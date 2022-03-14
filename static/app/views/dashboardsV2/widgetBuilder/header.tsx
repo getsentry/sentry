@@ -3,7 +3,6 @@ import * as React from 'react';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Confirm from 'sentry/components/confirm';
 import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -11,27 +10,20 @@ import {t} from 'sentry/locale';
 
 import {DashboardDetails} from '../types';
 
-type Props = {
+interface Props {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   onChangeTitle: (title: string) => void;
   orgSlug: string;
   title: string;
-  disabled?: boolean;
-  isEditing?: boolean;
-  onDelete?: () => void;
-  onSave?: (event: React.MouseEvent) => void;
-};
+}
 
-function Header({
+export function Header({
   title,
   orgSlug,
   goBackLocation,
   dashboardTitle,
   onChangeTitle,
-  onSave,
-  onDelete,
-  isEditing,
 }: Props) {
   return (
     <Layout.Header>
@@ -51,10 +43,11 @@ function Header({
         />
         <Layout.Title>
           <EditableText
+            aria-label={t('Widget title')}
             value={title}
             onChange={onChangeTitle}
-            errorMessage={t('Please set a title for this widget')}
-            successMessage={t('Widget title updated successfully')}
+            errorMessage={t('Widget title is required')}
+            maxLength={255}
           />
         </Layout.Title>
       </Layout.HeaderContent>
@@ -63,34 +56,20 @@ function Header({
         <ButtonBar gap={1}>
           <Button
             title={t(
-              "You’re seeing the metrics project because you have the feature flag 'organizations:metrics' enabled. Send us feedback via email."
+              'How do you like the new widget builder? Send us feedback via email.'
             )}
-            href="mailto:metrics-feedback@sentry.io?subject=Metrics Feedback"
+            href="mailto:new-widget-builder-experience@sentry.io?subject=New Widget Builder Experience Feedback"
           >
             {t('Give Feedback')}
           </Button>
-          <Button to={goBackLocation}>{t('Cancel')}</Button>
-          {isEditing && onDelete && (
-            <Confirm
-              priority="danger"
-              message={t('Are you sure you want to delete this widget?')}
-              onConfirm={onDelete}
-            >
-              <Button priority="danger">{t('Delete')}</Button>
-            </Confirm>
-          )}
           <Button
-            priority="primary"
-            onClick={onSave}
-            disabled={!onSave}
-            title={!onSave ? t('This feature is not yet available') : undefined}
+            external
+            href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
-            {isEditing ? t('Update Widget') : t('Add Widget')}
+            {t('Read the docs')}
           </Button>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>
   );
 }
-
-export default Header;

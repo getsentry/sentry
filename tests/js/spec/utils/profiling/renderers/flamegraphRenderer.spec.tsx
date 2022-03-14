@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -31,8 +31,7 @@ const makeFlamegraph = (
       createFrameIndex(frames ?? [{name: 'f0'}])
     ),
     0,
-    false,
-    false
+    {inverted: false, leftHeavy: false}
   );
 };
 
@@ -127,41 +126,6 @@ describe('flamegraphRenderer', () => {
 
       expect(renderer.colors).toEqual([1, 0, 0, 1]);
     });
-    it('uses the colors set on flamegraph', () => {
-      const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(makeContextMock()),
-      });
-
-      const flamegraph = makeFlamegraph();
-      flamegraph.colors = new Map([['f0', [1, 0, 0, 1]]]);
-
-      const renderer = new FlamegraphRenderer(
-        canvas as HTMLCanvasElement,
-        flamegraph,
-        LightFlamegraphTheme,
-        vec2.fromValues(0, 0)
-      );
-
-      expect(renderer.colors.slice(0, 4)).toEqual([1, 0, 0, 1]);
-    });
-    it('adds the alpha color channel if none is set', () => {
-      const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(makeContextMock()),
-      });
-
-      const flamegraph = makeFlamegraph();
-      // No alpha channel
-      flamegraph.colors = new Map([['f0', [1, 0, 0]]]);
-
-      const renderer = new FlamegraphRenderer(
-        canvas as HTMLCanvasElement,
-        flamegraph,
-        LightFlamegraphTheme,
-        vec2.fromValues(0, 0)
-      );
-
-      expect(renderer.colors.slice(0, 4)).toEqual([1, 0, 0, 1]);
-    });
   });
 
   it('inits vertices', () => {
@@ -170,8 +134,6 @@ describe('flamegraphRenderer', () => {
     });
 
     const flamegraph = makeFlamegraph();
-    // No alpha channel
-    flamegraph.colors = new Map([['f0', [1, 0, 0]]]);
 
     const renderer = new FlamegraphRenderer(
       canvas as HTMLCanvasElement,
@@ -342,7 +304,6 @@ describe('flamegraphRenderer', () => {
     });
 
     const flamegraph = makeFlamegraph();
-    flamegraph.colors = new Map([['f0', [1, 0, 0, 1]]]);
 
     const renderer = new FlamegraphRenderer(
       canvas as HTMLCanvasElement,
@@ -351,8 +312,10 @@ describe('flamegraphRenderer', () => {
       vec2.fromValues(0, 0)
     );
 
-    expect(renderer.getColorForFrame(flamegraph.frames[0].frame)).toEqual([1, 0, 0, 1]);
-    expect(renderer.getColorForFrame(new Frame({key: 0, name: 'Unknown'}))).toEqual(
+    expect(renderer.getColorForFrame(flamegraph.frames[0].frame)).toEqual([
+      0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
+    ]);
+    expect(renderer.getColorForFrame(new Frame({key: 20, name: 'Unknown'}))).toEqual(
       LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR
     );
   });

@@ -3,9 +3,21 @@ import {
   constructWidgetFromQuery,
   eventViewFromWidget,
   getFieldsFromEquations,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
 
 describe('Dashboards util', () => {
+  const selection = {
+    datetime: {
+      period: '7d',
+      utc: null,
+      start: null,
+      end: null,
+    },
+    environments: [],
+    projects: [],
+  };
   describe('constructWidgetFromQuery', () => {
     let baseQuery;
     beforeEach(() => {
@@ -28,12 +40,16 @@ describe('Dashboards util', () => {
         {
           name: '1',
           fields: ['count()', 'failure_count()'],
+          aggregates: ['count()', 'failure_count()'],
+          columns: [],
           conditions: 'title:test',
           orderby: '',
         },
         {
           name: '2',
           fields: ['count()', 'failure_count()'],
+          aggregates: ['count()', 'failure_count()'],
+          columns: [],
           conditions: 'event.type:test',
           orderby: '',
         },
@@ -66,6 +82,8 @@ describe('Dashboards util', () => {
         {
           name: '1',
           fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
           conditions: 'title:test',
           orderby: '',
         },
@@ -73,16 +91,6 @@ describe('Dashboards util', () => {
     });
   });
   describe('eventViewFromWidget', () => {
-    const selection = {
-      datetime: {
-        period: '7d',
-        utc: null,
-        start: null,
-        end: null,
-      },
-      environments: [],
-      projects: [],
-    };
     let widget;
     beforeEach(() => {
       widget = {
@@ -138,6 +146,77 @@ describe('Dashboards util', () => {
           'count()',
           'count_if(transaction.duration,greater,300)',
         ])
+      );
+    });
+  });
+
+  describe('getWidgetDiscoverUrl', function () {
+    let widget;
+    beforeEach(() => {
+      widget = {
+        title: 'Test Query',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.DISCOVER,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()'],
+            orderby: '',
+          },
+        ],
+      };
+    });
+    it('returns the discover url of the widget query', () => {
+      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      expect(url).toEqual(
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
+      );
+    });
+    it('returns the discover url of a topn widget query', () => {
+      widget = {
+        ...widget,
+        ...{
+          displayType: DisplayType.TOP_N,
+          queries: [
+            {
+              name: '',
+              conditions: 'error.unhandled:true',
+              fields: ['error.type', 'count()'],
+              orderby: '-count',
+            },
+          ],
+        },
+      };
+      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      expect(url).toEqual(
+        '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+      );
+    });
+  });
+  describe('getWidgetIssueUrl', function () {
+    let widget;
+    beforeEach(() => {
+      widget = {
+        title: 'Test Query',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.ISSUE,
+        interval: '5m',
+        queries: [
+          {
+            name: '',
+            conditions: 'is:unresolved',
+            fields: ['events'],
+            orderby: 'date',
+          },
+        ],
+      };
+    });
+    it('returns the issue url of the widget query', () => {
+      const url = getWidgetIssueUrl(widget, selection, TestStubs.Organization());
+      expect(url).toEqual(
+        '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
     });
   });

@@ -67,9 +67,12 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
     consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
         override_params={
+            "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": False,
             "enable.auto.offset.store": False,
             "group.id": group_id,
+            # `default.topic.config` is now deprecated.
+            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
             "default.topic.config": {"auto.offset.reset": auto_offset_reset},
             # overridden to reduce memory usage when there's a large backlog
             "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
@@ -95,7 +98,7 @@ class MetricsBatchBuilder:
     def __init__(self, max_batch_size: int, max_batch_time: float) -> None:
         self.__messages: MessageBatch = []
         self.__max_batch_size = max_batch_size
-        self.__deadline = time.time() + max_batch_time
+        self.__deadline = time.time() + max_batch_time / 1000.0
         self.__offsets: Set[int] = set()
 
     def __len__(self) -> int:
@@ -623,7 +626,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
             self.__started = time.time()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        position = Position(message.offset, message.timestamp)
+        position = Position(message.next_offset, message.timestamp)
         self.__producer.produce(
             topic=self.__producer_topic,
             key=None,

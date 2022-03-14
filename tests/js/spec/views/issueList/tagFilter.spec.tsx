@@ -1,5 +1,5 @@
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -43,7 +43,7 @@ describe('IssueListTagFilter', function () {
     );
 
   it('calls API and renders options when opened', async function () {
-    mountWithTheme(
+    render(
       <IssueListTagFilter
         tag={tag}
         value=""

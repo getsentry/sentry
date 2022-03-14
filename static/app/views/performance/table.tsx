@@ -18,12 +18,13 @@ import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverOrMetricsQuery from 'sentry/utils/discover/discoverOrMetricsQuery';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -31,7 +32,10 @@ import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {
+  normalizeSearchConditionsWithTransactionName,
+  transactionSummaryRouteWithQuery,
+} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -125,10 +129,9 @@ class _Table extends React.Component<Props, State> {
         return;
       }
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 
@@ -367,8 +370,7 @@ class _Table extends React.Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
 
-    const {widths, transaction, transactionThreshold, transactionThresholdMetric} =
-      this.state;
+    const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
       .getColumns()
       // remove team_key_transactions from the column order as we'll be rendering it
@@ -393,7 +395,7 @@ class _Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverOrMetricsQuery
+        <DiscoverQuery
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
@@ -401,7 +403,6 @@ class _Table extends React.Component<Props, State> {
           referrer="api.performance.landing-table"
           transactionName={transaction}
           transactionThreshold={transactionThreshold}
-          transactionThresholdMetric={transactionThresholdMetric}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>
@@ -422,7 +423,7 @@ class _Table extends React.Component<Props, State> {
               <Pagination pageLinks={pageLinks} />
             </React.Fragment>
           )}
-        </DiscoverOrMetricsQuery>
+        </DiscoverQuery>
       </div>
     );
   }

@@ -5,12 +5,7 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.ratelimits import (
-    above_rate_limit_check,
-    can_be_ratelimited,
-    get_rate_limit_key,
-    get_rate_limit_value,
-)
+from sentry.ratelimits import above_rate_limit_check, get_rate_limit_key, get_rate_limit_value
 from sentry.types.ratelimit import RateLimitCategory
 
 DEFAULT_ERROR_MESSAGE = (
@@ -26,9 +21,6 @@ class RatelimitMiddleware(MiddlewareMixin):
         """Check if the endpoint call will violate."""
         request.will_be_rate_limited = False
         request.rate_limit_category = None
-
-        if not can_be_ratelimited(request, view_func):
-            return
 
         key = get_rate_limit_key(view_func, request)
         if key is None:

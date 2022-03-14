@@ -24,8 +24,7 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 
@@ -65,8 +64,7 @@ describe('ProjectCard', function () {
           latestDeploys,
         })}
         params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(wrapper.find('Deploy')).toHaveLength(2);
@@ -98,8 +96,7 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const total = wrapper.find('a[data-test-id="project-errors"]');
@@ -127,8 +124,7 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     const total = wrapper.find('a[data-test-id="project-errors"]');
@@ -145,8 +141,7 @@ describe('ProjectCard', function () {
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
         params={{orgId: 'org-slug'}}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
     expect(wrapper.find('Placeholder')).toHaveLength(1);

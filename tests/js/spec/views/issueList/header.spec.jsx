@@ -239,8 +239,7 @@ describe('IssueListHeader', () => {
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
-      />,
-      TestStubs.routerContext()
+      />
     );
     const inboxTab = wrapper.find('Link').at(2);
     inboxTab.simulate('click');

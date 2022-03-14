@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AreaChart from 'sentry/components/charts/areaChart';
@@ -31,8 +31,8 @@ describe('Incident Rules Create', () => {
   });
 
   it('renders a metric', async () => {
-    const {organization, project, routerContext} = initializeOrg();
-    mountWithTheme(
+    const {organization, project} = initializeOrg();
+    render(
       <TriggersChart
         api={api}
         organization={organization}
@@ -41,8 +41,7 @@ describe('Incident Rules Create', () => {
         timeWindow={1}
         aggregate="count()"
         triggers={[]}
-      />,
-      {context: routerContext}
+      />
     );
 
     await tick();
@@ -54,7 +53,7 @@ describe('Incident Rules Create', () => {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '10000m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
@@ -67,7 +66,7 @@ describe('Incident Rules Create', () => {
         query: {
           project: ['2'],
           query: 'event.type:error',
-          statsPeriod: '1d',
+          statsPeriod: '10000m',
           environment: [],
         },
       })

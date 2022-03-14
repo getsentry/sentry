@@ -16,6 +16,7 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -137,14 +138,20 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization} = this.props;
+    const {isEditing, organization, api, selection} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
+    }
+
+    if (organization.features.includes('dashboards-metrics')) {
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+
     this.addNewWidget();
 
     // Get member list data for issue widgets
@@ -152,7 +159,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {isEditing, newWidget} = this.props;
+    const {api, organization, selection, isEditing, newWidget} = this.props;
 
     // Load organization tags when going into edit mode.
     // We use tags on the add widget modal.
@@ -162,8 +169,10 @@ class Dashboard extends Component<Props, State> {
     if (newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
-    if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
+    if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
+      fetchMetricsFields(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
   }
 
@@ -215,7 +224,38 @@ class Dashboard extends Component<Props, State> {
       selection,
       handleUpdateWidgetList,
       handleAddCustomWidget,
+      router,
+      location,
+      paramDashboardId,
     } = this.props;
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.opened', {
+        organization,
+      });
+
+      if (paramDashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        });
+        return;
+      }
+
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DASHBOARDS,
+        },
+      });
+
+      return;
+    }
+
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
       organization,
     });
@@ -240,29 +280,6 @@ class Dashboard extends Component<Props, State> {
       selection,
       onAddWidget: handleAddCustomWidget,
       source: DashboardWidgetSource.DASHBOARDS,
-    });
-  };
-
-  handleOpenWidgetBuilder = () => {
-    const {router, location, paramDashboardId, organization} = this.props;
-
-    if (paramDashboardId) {
-      router.push({
-        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      });
-      return;
-    }
-
-    router.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-      query: {
-        ...location.query,
-        source: DashboardWidgetSource.DASHBOARDS,
-      },
     });
   };
 
@@ -322,7 +339,7 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget) => () => {
+  handleEditWidget = (widget: Widget, index: number) => () => {
     const {
       organization,
       dashboard,
@@ -332,14 +349,19 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
       onSetWidgetToBeUpdated,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
       onSetWidgetToBeUpdated(widget);
+
+      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
+        organization,
+      });
 
       if (paramDashboardId) {
         router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${widget.id}/edit/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -349,12 +371,14 @@ class Dashboard extends Component<Props, State> {
       }
 
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${widget.id}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
       });
+
+      return;
     }
 
     trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
@@ -392,7 +416,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget),
+      onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
     };
@@ -407,6 +431,7 @@ class Dashboard extends Component<Props, State> {
             dragId={dragId}
             isMobile={isMobile}
             windowWidth={windowWidth}
+            index={String(index)}
           />
         </GridItem>
       );
@@ -414,7 +439,9 @@ class Dashboard extends Component<Props, State> {
 
     const key = generateWidgetId(widget, index);
     const dragId = key;
-    return <SortableWidget {...widgetProps} key={key} dragId={dragId} />;
+    return (
+      <SortableWidget {...widgetProps} key={key} dragId={dragId} index={String(index)} />
+    );
   }
 
   handleLayoutChange = (_, allLayouts: Layouts) => {
@@ -520,10 +547,13 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
@@ -559,11 +589,7 @@ class Dashboard extends Component<Props, State> {
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
           >
-            <AddWidget
-              orgFeatures={organization.features}
-              onAddWidget={this.handleStartAdd}
-              onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-            />
+            <AddWidget onAddWidget={this.handleStartAdd} />
           </AddWidgetWrapper>
         )}
       </GridLayout>
@@ -573,10 +599,13 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue widgets if the user does not have the feature flag
-    if (!organization.features.includes('issues-in-dashboards')) {
-      widgets = widgets.filter(({widgetType}) => widgetType !== WidgetType.ISSUE);
-    }
+    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    widgets = widgets.filter(({widgetType}) => {
+      if (widgetType === WidgetType.METRICS) {
+        return organization.features.includes('dashboards-metrics');
+      }
+      return true;
+    });
 
     const items = this.getWidgetIds();
 
@@ -601,11 +630,7 @@ class Dashboard extends Component<Props, State> {
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && !!!widgetLimitReached && (
-              <AddWidget
-                orgFeatures={organization.features}
-                onAddWidget={this.handleStartAdd}
-                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-              />
+              <AddWidget onAddWidget={this.handleStartAdd} />
             )}
           </SortableContext>
         </WidgetContainer>

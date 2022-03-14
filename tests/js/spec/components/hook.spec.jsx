@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
@@ -7,7 +7,6 @@ describe('Hook', function () {
   const Wrapper = function Wrapper(props) {
     return <div data-test-id="wrapper" {...props} />;
   };
-  const context = TestStubs.routerContext();
 
   beforeEach(function () {
     HookStore.add('footer', ({organization} = {}) => (
@@ -23,11 +22,10 @@ describe('Hook', function () {
   });
 
   it('renders component from a hook', function () {
-    mountWithTheme(
+    render(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
-      </div>,
-      {context}
+      </div>
     );
 
     expect(HookStore.hooks.footer).toHaveLength(1);
@@ -36,12 +34,11 @@ describe('Hook', function () {
   });
 
   it('renders an invalid hook', function () {
-    mountWithTheme(
+    render(
       <div>
         <Hook name="invalid-hook" organization={TestStubs.Organization()} />
         invalid
-      </div>,
-      {context}
+      </div>
     );
 
     expect(screen.queryByText('org-slug')).not.toBeInTheDocument();
@@ -49,11 +46,10 @@ describe('Hook', function () {
   });
 
   it('can re-render when hooks get after initial render', function () {
-    mountWithTheme(
+    render(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()} />
-      </div>,
-      {context}
+      </div>
     );
 
     expect(screen.getByTestId('wrapper')).toBeInTheDocument();
@@ -70,13 +66,12 @@ describe('Hook', function () {
   });
 
   it('can use children as a render prop', function () {
-    mountWithTheme(
+    render(
       <div>
         <Hook name="footer" organization={TestStubs.Organization()}>
           {({hooks}) => hooks.map((hook, i) => <Wrapper key={i}>{hook}</Wrapper>)}
         </Hook>
-      </div>,
-      {context}
+      </div>
     );
 
     HookStore.add('footer', () => (

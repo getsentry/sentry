@@ -3,7 +3,7 @@ import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import NavTabs from 'sentry/components/navTabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -363,9 +363,9 @@ const Footer = styled('div')`
   padding-left: ${space(1.5)};
 `;
 
-type FooterButtonProps = {
+interface FooterButtonProps extends ButtonPropsWithoutAriaLabel {
   error?: string | null;
-} & React.ComponentProps<typeof Button>;
+}
 
 const FooterButton = styled(Button)<FooterButtonProps>`
   font-size: 13px;

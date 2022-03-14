@@ -1,9 +1,4 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {createTeam} from 'sentry/actionCreators/teams';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
@@ -24,7 +19,7 @@ describe('CreateTeamModal', function () {
   });
 
   it('calls createTeam action creator on submit', async function () {
-    mountWithTheme(
+    render(
       <CreateTeamModal
         Body={p => p.children}
         Header={p => p.children}
@@ -32,8 +27,7 @@ describe('CreateTeamModal', function () {
         closeModal={closeModal}
         onClose={onClose}
         onSuccess={onSuccess}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     userEvent.type(screen.getByText('Team Name'), 'new-team');

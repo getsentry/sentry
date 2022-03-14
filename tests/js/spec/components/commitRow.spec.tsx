@@ -1,6 +1,4 @@
-import {fireEvent, render, screen} from '@testing-library/react';
-
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -60,7 +58,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    mountWithTheme(<CommitRow commit={commit} />);
+    render(<CommitRow commit={commit} />);
     expect(
       screen.getByText(
         textWithMarkupMatcher(
@@ -86,7 +84,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    mountWithTheme(<CommitRow commit={commit} />);
+    render(<CommitRow commit={commit} />);
 
     expect(screen.getByText(/ref\(commitRow\): refactor to fc/)).toBeInTheDocument();
   });

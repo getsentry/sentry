@@ -32,7 +32,6 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.decorators import public
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import (
@@ -111,9 +110,9 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
-@public(methods={"GET", "DELETE", "PATCH"})
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
+    public = {"GET", "DELETE", "PATCH"}
 
     def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
@@ -233,7 +232,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context)
 
     @extend_schema(
-        operation_id="Delete an Organization Member",
+        operation_id="Delete an Organization Member via SCIM",
         parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
         request=None,
         responses={
@@ -251,9 +250,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
-@public(methods={"GET", "POST"})
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
+    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Members",
@@ -366,6 +365,14 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         ],
     )
     def post(self, request: Request, organization) -> Response:
+        """
+        Create a new Organization Member via a SCIM Users POST Request.
+        - `userName` should be set to the SAML field used for email, and active should be set to `true`.
+        - Sentry's SCIM API doesn't currently support setting users to inactive,
+        and the member will be deleted if inactive is set to `false`.
+        - The API also does not support setting secondary emails.
+        """
+
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),

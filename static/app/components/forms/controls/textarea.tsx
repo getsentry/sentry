@@ -7,24 +7,25 @@ import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
-type Props = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'> &
-  InputProps & {
-    /**
-     * Enable autosizing of the textarea.
-     */
-    autosize?: boolean;
-    /**
-     * Max number of rows to default to.
-     */
-    maxRows?: number;
-    /**
-     * Number of rows to default to.
-     */
-    rows?: number;
-  };
+export interface TextAreaProps
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'>,
+    InputProps {
+  /**
+   * Enable autosizing of the textarea.
+   */
+  autosize?: boolean;
+  /**
+   * Max number of rows to default to.
+   */
+  maxRows?: number;
+  /**
+   * Number of rows to default to.
+   */
+  rows?: number;
+}
 
 const TextAreaControl = React.forwardRef(function TextAreaControl(
-  {autosize, rows, maxRows, ...p}: Props,
+  {autosize, rows, maxRows, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (

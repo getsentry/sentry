@@ -1,10 +1,9 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
 
 jest.mock('sentry/utils/localStorage');
@@ -131,14 +130,10 @@ describe('TeamStatsIssues', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <TeamStatsIssues router={mockRouter} location={{}} />
-      </OrganizationContext.Provider>,
-      {
-        context,
-      }
-    );
+    return render(<TeamStatsIssues router={mockRouter} location={{}} />, {
+      context,
+      organization,
+    });
   }
 
   it('defaults to first team', () => {

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -20,7 +19,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
-import {MetricsSwitch} from '../metricsSwitch';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
@@ -123,6 +121,7 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        aria-label={t('Create Alert')}
       />
     );
   }
@@ -218,17 +217,6 @@ class TransactionHeader extends React.Component<Props> {
     }
   }
 
-  handleSwitchMetrics = () => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: undefined,
-      },
-    });
-  };
-
   render() {
     const {organization, location, projectId, transactionName, currentTab} = this.props;
 
@@ -261,7 +249,6 @@ class TransactionHeader extends React.Component<Props> {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <MetricsSwitch onSwitch={this.handleSwitchMetrics} />
             <Feature organization={organization} features={['incidents']}>
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
@@ -277,20 +264,19 @@ class TransactionHeader extends React.Component<Props> {
             >
               {t('Overview')}
             </ListLink>
-            {this.renderWebVitalsTab()}
-            <ListLink
-              to={tagsTarget}
-              isActive={() => currentTab === Tab.Tags}
-              onClick={this.trackTabClick(Tab.Tags)}
-            >
-              {t('Tags')}
-            </ListLink>
             <ListLink
               to={eventsTarget}
               isActive={() => currentTab === Tab.Events}
               onClick={this.trackTabClick(Tab.Events)}
             >
               {t('All Events')}
+            </ListLink>
+            <ListLink
+              to={tagsTarget}
+              isActive={() => currentTab === Tab.Tags}
+              onClick={this.trackTabClick(Tab.Tags)}
+            >
+              {t('Tags')}
             </ListLink>
             <Feature
               organization={organization}
@@ -320,6 +306,7 @@ class TransactionHeader extends React.Component<Props> {
                 <FeatureBadge type="alpha" noTooltip />
               </ListLink>
             </Feature>
+            {this.renderWebVitalsTab()}
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

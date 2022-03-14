@@ -11,7 +11,7 @@ from sentry.utils.services import Service
 from .event_manager import default_manager
 
 
-class Analytics(Service, abc.ABC):  # type: ignore
+class Analytics(Service, abc.ABC):
     __all__ = ("record", "validate")
 
     event_manager = default_manager

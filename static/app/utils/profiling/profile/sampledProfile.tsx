@@ -67,13 +67,15 @@ export class SampledProfile extends Profile {
 
       node.addToTotalWeight(weight);
 
-      let start = framesInStack.length - 1;
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
       // We check the stack in a top-down order to find the first recursive frame.
+      let start = framesInStack.length - 1;
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
-          node.setRecursive(node);
+          // The recursion edge is bidirectional
+          framesInStack[start].setRecursive(node);
+          node.setRecursive(framesInStack[start]);
           break;
         }
         start--;

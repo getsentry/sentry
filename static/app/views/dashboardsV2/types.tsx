@@ -8,6 +8,8 @@ import {User} from 'sentry/types';
 // limit that can be changed if necessary.
 export const MAX_WIDGETS = 30;
 
+export const DEFAULT_TABLE_LIMIT = 5;
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',
@@ -30,6 +32,8 @@ export type WidgetQuery = {
   fields: string[];
   name: string;
   orderby: string;
+  aggregates?: string[];
+  columns?: string[];
 };
 
 export type Widget = {

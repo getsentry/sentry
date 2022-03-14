@@ -105,8 +105,12 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                 </div>
                 {commits.length > 3 && !commitsExpanded ? (
                   <ViewMoreButton
+                    priority="link"
+                    size="zero"
                     onClick={() => this.setState({commitsExpanded: true})}
-                  />
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -126,7 +130,13 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     ))}
                 </div>
                 {rules.length > 3 && !rulesExpanded ? (
-                  <ViewMoreButton onClick={() => this.setState({rulesExpanded: true})} />
+                  <ViewMoreButton
+                    priority="link"
+                    size="zero"
+                    onClick={() => this.setState({rulesExpanded: true})}
+                  >
+                    {t('View more')}
+                  </ViewMoreButton>
                 ) : null}
               </React.Fragment>
             )}
@@ -198,13 +208,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled(
-  (p: Omit<React.ComponentProps<typeof Button>, 'aria-label'>) => (
-    <Button {...p} priority="link" size="zero">
-      {t('View more')}
-    </Button>
-  )
-)`
+const ViewMoreButton = styled(Button)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};

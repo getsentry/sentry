@@ -3,15 +3,14 @@ import {t} from 'sentry/locale';
 import {WeightedNode} from './weightedNode';
 
 export class Frame extends WeightedNode {
-  key: string | number;
-  name: string;
-  file?: string;
-  line?: number;
-  column?: number;
-  is_application: boolean;
-  image?: string;
-  resource?: string;
-  recursive?: Frame;
+  readonly key: string | number;
+  readonly name: string;
+  readonly file?: string;
+  readonly line?: number;
+  readonly column?: number;
+  readonly is_application: boolean;
+  readonly image?: string;
+  readonly resource?: string;
 
   static Root = new Frame(
     {

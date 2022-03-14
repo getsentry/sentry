@@ -19,7 +19,7 @@ import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import OrganizationContextContainer from 'sentry/views/organizationContext';
+import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -970,7 +970,7 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
+          path="widget/:widgetIndex/edit/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
@@ -984,7 +984,13 @@ function buildRoutes() {
         path="/organizations/:orgId/dashboards/new/:templateId"
         componentPromise={() => import('sentry/views/dashboardsV2/create')}
         component={SafeLazyLoad}
-      />
+      >
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/create')}
+          component={SafeLazyLoad}
+        />
+      </Route>
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -995,13 +1001,18 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
+          path="widget/:widgetIndex/edit/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
           componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
+          component={SafeLazyLoad}
+        />
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/view')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -1119,6 +1130,24 @@ function buildRoutes() {
       <Route
         path="/organizations/:orgId/monitors/:monitorId/edit/"
         componentPromise={() => import('sentry/views/monitors/edit')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
+  const replayRoutes = (
+    <Route
+      path="/organizations/:orgId/replays/"
+      componentPromise={() => import('sentry/views/replays')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/replays/replays')}
+        component={SafeLazyLoad}
+      />
+      <Route
+        path=":eventSlug/"
+        componentPromise={() => import('sentry/views/replays/details')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1836,6 +1865,11 @@ function buildRoutes() {
         componentPromise={() => import('sentry/views/profiling/content')}
         component={SafeLazyLoad}
       />
+      <Route
+        path="flamegraph/:projectId/:eventId"
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/profiling/flamegraph')}
+      />
     </Route>
   );
 
@@ -1849,6 +1883,7 @@ function buildRoutes() {
       {groupDetailsRoutes}
       {alertRoutes}
       {monitorsRoutes}
+      {replayRoutes}
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}

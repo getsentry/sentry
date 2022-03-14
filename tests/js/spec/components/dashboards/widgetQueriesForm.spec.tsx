@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
-import {DisplayType, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 describe('WidgetQueriesForm', function () {
@@ -13,7 +14,7 @@ describe('WidgetQueriesForm', function () {
   const queries: WidgetQuery[] = [
     {
       conditions: 'event.type:',
-      fields: ['count()'],
+      fields: ['count()', 'release'],
       name: '',
       orderby: '-count',
     },
@@ -23,7 +24,7 @@ describe('WidgetQueriesForm', function () {
     queries[0] = newQuery;
   });
 
-  function TestComponent() {
+  function TestComponent(props: Partial<WidgetQueriesForm['props']>) {
     return (
       <WidgetQueriesForm
         displayType={DisplayType.TABLE}
@@ -67,6 +68,8 @@ describe('WidgetQueriesForm', function () {
         canAddSearchConditions
         handleAddSearchConditions={jest.fn()}
         handleDeleteQuery={jest.fn()}
+        widgetType={WidgetType.DISCOVER}
+        {...props}
       />
     );
   }
@@ -95,7 +98,7 @@ describe('WidgetQueriesForm', function () {
   });
 
   it('only calls onChange once when selecting a value from the autocomplete dropdown', async function () {
-    mountWithTheme(<TestComponent />);
+    render(<TestComponent />);
     userEvent.click(screen.getByRole('textbox', {name: 'Search events'}));
     expect(await screen.findByText('Recent Searches')).toBeInTheDocument();
     userEvent.click(screen.getByText(':transaction'));
@@ -104,10 +107,30 @@ describe('WidgetQueriesForm', function () {
   });
 
   it('changes orderby to the new field', function () {
-    const {rerender} = mountWithTheme(<TestComponent />);
+    const {rerender} = render(<TestComponent />);
     userEvent.click(screen.getByText('count()'));
     userEvent.click(screen.getByText('count_unique()'));
     rerender(<TestComponent />);
     expect(screen.getByText('count_unique() desc')).toBeInTheDocument();
+  });
+
+  it('does not show metrics tags in orderby', function () {
+    const field = `sum(${SessionMetric.SESSION})`;
+    render(
+      <TestComponent
+        widgetType={WidgetType.METRICS}
+        queries={[
+          {
+            conditions: '',
+            fields: [field, 'release'],
+            name: '',
+            orderby: field,
+          },
+        ]}
+      />
+    );
+    userEvent.click(screen.getByText('sum(sentry.sessions.session) asc'));
+    expect(screen.getByText('sum(sentry.sessions.session) desc')).toBeInTheDocument();
+    expect(screen.queryByText('release asc')).not.toBeInTheDocument();
   });
 });

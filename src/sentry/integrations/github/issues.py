@@ -146,6 +146,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
                 ),
                 "type": "textarea",
                 "required": False,
+                "autosize": True,
                 "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
             },
         ]

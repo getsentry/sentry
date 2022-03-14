@@ -11,9 +11,10 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -182,10 +183,7 @@ function IncompatibleQueryAlert({
   );
 }
 
-type CreateAlertFromViewButtonProps = Omit<
-  React.ComponentProps<typeof Button>,
-  'aria-label'
-> & {
+type CreateAlertFromViewButtonProps = ButtonProps & {
   /**
    * Discover query used to create the alert
    */
@@ -327,12 +325,12 @@ function CreateAlertFromViewButton({
 type Props = {
   organization: Organization;
   hideIcon?: boolean;
-  iconProps?: React.ComponentProps<typeof IconSiren>;
+  iconProps?: SVGIconProps;
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
-  React.ComponentProps<typeof Button>;
+  ButtonProps;
 
 const CreateAlertButton = withRouter(
   ({

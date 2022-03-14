@@ -3,17 +3,19 @@ import logging
 import pytest
 from django.conf.urls import url
 from django.test import override_settings
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import ApiToken
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         return Response({"ok": True})
@@ -29,13 +31,16 @@ class DummyFailEndpoint(Endpoint):
 class RateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(0, 1),
-            RateLimitCategory.USER: RateLimit(0, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(0, 1),
+                RateLimitCategory.USER: RateLimit(0, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+            },
         },
-    }
+    )
 
     def get(self, request):
         return Response({"ok": True})
@@ -59,14 +64,25 @@ access_log_fields = (
 )
 
 
+class MyOrganizationEndpoint(OrganizationEndpoint):
+    def get(self, request, organization):
+        return Response({"ok": True})
+
+
 urlpatterns = [
     url(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     url(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
     url(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+        MyOrganizationEndpoint.as_view(),
+        name="sentry-api-0-organization-stats-v2",
+    ),
 ]
 
 
 @override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
+@override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -74,9 +90,13 @@ class LogCaptureAPITestCase(APITestCase):
 
     def assert_access_log_recorded(self):
         sentinel = object()
-        for record in self._caplog.records:
+        for record in self.captured_logs:
             for field in access_log_fields:
-                assert getattr(record, field, sentinel) != sentinel
+                assert getattr(record, field, sentinel) != sentinel, field
+
+    @property
+    def captured_logs(self):
+        return [r for r in self._caplog.records if r.name == "sentry.access.api"]
 
 
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
@@ -88,7 +108,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
-        assert self._caplog.records[0].token_type == "None"
+        assert self.captured_logs[0].token_type == "None"
 
 
 class TestAccessLogSuccess(LogCaptureAPITestCase):
@@ -100,7 +120,19 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self._caplog.records[0].token_type == "ApiToken"
+        assert self.captured_logs[0].token_type == "ApiToken"
+
+
+@override_settings(LOG_API_ACCESS=False)
+class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
+
+    endpoint = "dummy-endpoint"
+
+    def test_access_log_success(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        self.login_as(user=self.create_user())
+        self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
+        assert len(self.captured_logs) == 0
 
 
 class TestAccessLogFail(LogCaptureAPITestCase):
@@ -109,3 +141,24 @@ class TestAccessLogFail(LogCaptureAPITestCase):
     def test_access_log_fail(self):
         self.get_error_response(status_code=500)
         self.assert_access_log_recorded()
+
+
+class TestOrganizationIdPresent(LogCaptureAPITestCase):
+    endpoint = "sentry-api-0-organization-stats-v2"
+
+    def setUp(self):
+        self.login_as(user=self.user)
+
+    def test_org_id_populated(self):
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": [-1],
+                "category": ["error"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+        )
+
+        assert self.captured_logs[0].organization_id == str(self.organization.id)

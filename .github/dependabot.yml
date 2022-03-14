@@ -73,7 +73,6 @@ updates:
       - dependency-name: "fuse.js"
       - dependency-name: "gettext-parser"
       - dependency-name: "jest"
-      - dependency-name: "jest-circus"
       - dependency-name: "jest-junit"
       - dependency-name: "less"
       - dependency-name: "marked"
@@ -97,6 +96,6 @@ updates:
       timezone: America/Los_Angeles
       time: "09:00"
     reviewers:
-      - "@getsentry/team-webplatform"
+      - "@getsentry/team-web-backend"
     allow:
       - dependency-name: "sentry-sdk"

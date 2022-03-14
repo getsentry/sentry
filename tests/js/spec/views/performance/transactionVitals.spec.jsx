@@ -79,6 +79,10 @@ describe('Performance > Web Vitals', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -133,6 +137,12 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+  });
+
+  afterEach(() => {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 
   it('render no access without feature', async function () {

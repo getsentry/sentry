@@ -3,7 +3,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-import pytz
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -23,13 +22,21 @@ def result_sorted(result):
     return result
 
 
+ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
+TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=2)
+MOCK_DATETIME = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=303000)
+MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
+SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
+
+
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
 
     def setup_fixture(self):
-        self.timestamp = to_timestamp(datetime.datetime(2021, 1, 14, 12, 27, 28, tzinfo=pytz.utc))
+        self.timestamp = to_timestamp(MOCK_DATETIME)
         self.received = self.timestamp
         self.session_started = self.timestamp // 3600 * 3600  # round to the hour
 
@@ -175,18 +182,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             "Use a larger interval, or a smaller date range."
         }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_timeseries_interval(self):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
         )
 
+        start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
+
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-01-14T00:00:00Z",
-            "end": "2021-01-14T12:28:00Z",
+            "start": start_of_day_snuba_format,
+            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
             "query": "",
-            "intervals": ["2021-01-14T00:00:00Z"],
+            "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
         }
 
@@ -196,33 +205,35 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-01-13T18:00:00Z",
-            "end": "2021-01-14T12:28:00Z",
+            "start": TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
+            "end": MOCK_DATETIME.replace(minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [
-                "2021-01-13T18:00:00Z",
-                "2021-01-14T00:00:00Z",
-                "2021-01-14T06:00:00Z",
-                "2021-01-14T12:00:00Z",
+                TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
+                MOCK_DATETIME.replace(hour=0, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
+                MOCK_DATETIME.replace(hour=6, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
+                MOCK_DATETIME.replace(hour=12, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
             ],
             "groups": [
                 {"by": {}, "series": {"sum(session)": [0, 1, 2, 6]}, "totals": {"sum(session)": 9}}
             ],
         }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_user_all_accessible(self):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
             user=self.user2,
         )
 
+        start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
+
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-01-14T00:00:00Z",
-            "end": "2021-01-14T12:28:00Z",
+            "start": start_of_day_snuba_format,
+            "end": MOCK_DATETIME.replace(hour=12, minute=28, second=0).strftime(SNUBA_TIME_FORMAT),
             "query": "",
-            "intervals": ["2021-01-14T00:00:00Z"],
+            "intervals": [start_of_day_snuba_format],
             "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
         }
 
@@ -235,7 +246,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "No projects available"}
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
     def test_minute_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
@@ -248,14 +259,20 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
             assert result_sorted(response.data) == {
-                "start": "2021-01-14T12:00:00Z",
-                "end": "2021-01-14T12:38:00Z",
+                "start": MOCK_DATETIME.replace(hour=12, minute=0, second=0).strftime(
+                    SNUBA_TIME_FORMAT
+                ),
+                "end": MOCK_DATETIME.replace(hour=12, minute=38, second=0).strftime(
+                    SNUBA_TIME_FORMAT
+                ),
                 "query": "",
                 "intervals": [
-                    "2021-01-14T12:00:00Z",
-                    "2021-01-14T12:10:00Z",
-                    "2021-01-14T12:20:00Z",
-                    "2021-01-14T12:30:00Z",
+                    *[
+                        MOCK_DATETIME.replace(hour=12, minute=min, second=0).strftime(
+                            SNUBA_TIME_FORMAT
+                        )
+                        for min in [0, 10, 20, 30]
+                    ],
                 ],
                 "groups": [
                     {
@@ -266,7 +283,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 ],
             }
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
     def test_10s_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
@@ -291,7 +308,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 # to one hour, and the resolution will still be one minute:
                 assert len(response.data["intervals"]) == 38
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_filter_projects(self):
         response = self.do_request(
             {
@@ -307,7 +324,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [5]}, "totals": {"sum(session)": 5}}
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_filter_environment(self):
         response = self.do_request(
             {
@@ -339,7 +356,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_filter_release(self):
         response = self.do_request(
             {
@@ -396,7 +413,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_filter_unknown_release(self):
         response = self.do_request(
             {
@@ -411,7 +428,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_project(self):
         response = self.do_request(
             {
@@ -442,7 +459,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_environment(self):
         response = self.do_request(
             {
@@ -468,7 +485,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_release(self):
         response = self.do_request(
             {
@@ -499,7 +516,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_status(self):
         response = self.do_request(
             {
@@ -535,7 +552,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_groupby_cross(self):
         response = self.do_request(
             {
@@ -571,7 +588,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_users_groupby(self):
         response = self.do_request(
             {
@@ -631,7 +648,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         "p99(session.duration)": 79159.99999999999,
     }
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_duration_percentiles(self):
         response = self.do_request(
             {
@@ -662,7 +679,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         for key, series in group["series"].items():
             assert series == pytest.approx([expected[key]])
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_duration_percentiles_groupby(self):
         response = self.do_request(
             {
@@ -700,7 +717,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
-    @freeze_time("2021-01-14T12:37:28.303Z")
+    @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded(self):
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
@@ -739,7 +756,109 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 },
             ]
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
+    @freeze_time(MOCK_DATETIME)
+    def test_snuba_limit_exceeded_groupby_status(self):
+        """Get consistent result when grouping by status"""
+        # 2 * 3 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
+            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+        ):
+
+            response = self.do_request(
+                {
+                    "project": [-1],
+                    "statsPeriod": "3d",
+                    "interval": "1d",
+                    "field": ["sum(session)", "count_unique(user)"],
+                    "groupBy": ["project", "release", "environment", "session.status"],
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data)["groups"] == [
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "session.status": "abnormal",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "session.status": "crashed",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                        "session.status": "errored",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "session.status": "healthy",
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 3, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "session.status": "abnormal",
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "session.status": "crashed",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                        "session.status": "errored",
+                    },
+                    "totals": {"sum(session)": 1, "count_unique(user)": 1},
+                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 1]},
+                },
+                {
+                    "by": {
+                        "session.status": "healthy",
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 1, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 0]},
+                },
+            ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_environment_filter_not_present_in_query(self):
         self.create_environment(name="abc")
         response = self.do_request(

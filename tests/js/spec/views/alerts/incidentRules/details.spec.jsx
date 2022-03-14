@@ -1,16 +1,12 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {metric} from 'sentry/utils/analytics';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/incidentRules/types';
 
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
@@ -58,7 +54,7 @@ describe('Incident Rules Details', function () {
   });
 
   it('renders and edits trigger', async function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
@@ -77,7 +73,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
@@ -90,8 +86,7 @@ describe('Incident Rules Details', function () {
           onChangeTitle={onChangeTitleMock}
           project={project}
         />
-      </Fragment>,
-      {context: routerContext}
+      </Fragment>
     );
 
     // has existing trigger
@@ -163,9 +158,13 @@ describe('Incident Rules Details', function () {
   });
 
   it('clears trigger', async function () {
-    const {organization, project, routerContext} = initializeOrg();
+    const {organization, project} = initializeOrg();
     const rule = TestStubs.IncidentRule();
-    rule.triggers.push({label: 'warning', alertThreshold: 13, actions: []});
+    rule.triggers.push({
+      label: AlertRuleTriggerType.WARNING,
+      alertThreshold: 13,
+      actions: [],
+    });
     rule.resolveThreshold = 12;
 
     const onChangeTitleMock = jest.fn();
@@ -185,7 +184,7 @@ describe('Incident Rules Details', function () {
       body: rule,
     });
 
-    mountWithTheme(
+    render(
       <Fragment>
         <GlobalModal />
         <IncidentRulesDetails
@@ -198,8 +197,7 @@ describe('Incident Rules Details', function () {
           onChangeTitle={onChangeTitleMock}
           project={project}
         />
-      </Fragment>,
-      {context: routerContext}
+      </Fragment>
     );
 
     // has existing trigger

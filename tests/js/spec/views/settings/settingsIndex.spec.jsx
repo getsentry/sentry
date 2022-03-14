@@ -63,10 +63,7 @@ describe('SettingsIndex', function () {
         url: `/organizations/${organization.slug}/`,
       });
       ConfigStore.config.isSelfHosted = false;
-      wrapper = mountWithTheme(
-        <SettingsIndex router={TestStubs.router()} params={{}} />,
-        TestStubs.routerContext()
-      );
+      wrapper = mountWithTheme(<SettingsIndex router={TestStubs.router()} params={{}} />);
     });
 
     it('fetches org details for SidebarDropdown', function () {

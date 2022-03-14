@@ -16,7 +16,11 @@ from sentry.incidents.action_handlers import (
     SlackActionHandler,
     generate_incident_trigger_email_context,
 )
-from sentry.incidents.logic import update_incident_status
+from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
+    WARNING_TRIGGER_LABEL,
+    update_incident_status,
+)
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
@@ -148,7 +152,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test(self):
-        status = TriggerStatus.ACTIVE
+        trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
@@ -188,7 +192,11 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
         }
         assert expected == generate_incident_trigger_email_context(
-            self.project, incident, action.alert_rule_trigger, status
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
         )
 
     def test_resolve(self):
@@ -196,10 +204,35 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         generated_email_context = generate_incident_trigger_email_context(
-            self.project, incident, action.alert_rule_trigger, status
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            status,
+            IncidentStatus.CLOSED,
         )
         assert generated_email_context["threshold"] == 100
         assert generated_email_context["threshold_direction_string"] == "<"
+
+    def test_resolve_critical_trigger_with_warning(self):
+        status = TriggerStatus.RESOLVED
+        rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=rule)
+        crit_trigger = self.create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(crit_trigger, triggered_for_incident=incident)
+        self.create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 50)
+        generated_email_context = generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            crit_trigger,
+            status,
+            IncidentStatus.WARNING,
+        )
+        assert generated_email_context["threshold"] == 100
+        assert generated_email_context["threshold_direction_string"] == "<"
+        assert not generated_email_context["is_critical"]
+        assert generated_email_context["is_warning"]
+        assert generated_email_context["status"] == "Warning"
+        assert generated_email_context["status_key"] == "warning"
 
     def test_context_for_crash_rate_alert(self):
         """
@@ -216,7 +249,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
         assert (
             generate_incident_trigger_email_context(
-                self.project, incident, action.alert_rule_trigger, status
+                self.project, incident, action.alert_rule_trigger, status, IncidentStatus.CRITICAL
             )["aggregate"]
             == "percentage(sessions_crashed, sessions)"
         )
@@ -237,7 +270,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
         generated_email_context = generate_incident_trigger_email_context(
-            self.project, incident, action.alert_rule_trigger, status
+            self.project, incident, action.alert_rule_trigger, status, IncidentStatus.CLOSED
         )
         assert generated_email_context["aggregate"] == "percentage(sessions_crashed, sessions)"
         assert generated_email_context["threshold"] == 100
@@ -256,7 +289,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
         assert "prod" == generate_incident_trigger_email_context(
-            self.project, incident, action.alert_rule_trigger, status
+            self.project, incident, action.alert_rule_trigger, status, IncidentStatus.CRITICAL
         ).get("environment")
 
 
@@ -286,7 +319,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
         )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
-            handler.fire(1000)
+            handler.fire(1000, IncidentStatus(incident.status))
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == "[{}] {} - {}".format(
@@ -341,12 +374,12 @@ class SlackActionHandlerTest(FireTest, TestCase):
         handler = SlackActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            action, incident, metric_value, method
+            incident, metric_value
         )
 
     def test_fire_metric_alert(self):
@@ -397,12 +430,12 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         handler = SlackActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            action, incident, metric_value, method
+            incident, metric_value
         )
 
     def test_fire_metric_alert(self):
@@ -432,7 +465,7 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         handler = SlackActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value)
+            handler.fire(metric_value, IncidentStatus(incident.status))
 
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
@@ -483,11 +516,11 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
         handler = MsTeamsActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = json.loads(responses.calls[1].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
-            action, incident, metric_value, method
+            incident, IncidentStatus(incident.status), metric_value
         )
 
     def test_fire_metric_alert(self):
@@ -528,14 +561,16 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         update_incident_status(
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
-        action = self.create_alert_rule_trigger_action(
+        self.create_alert_rule_trigger_action(
             target_identifier=self.service.id,
             type=AlertRuleTriggerAction.Type.PAGERDUTY,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration=self.integration,
         )
         metric_value = 1000
-        data = build_incident_attachment(action, incident, self.integration_key, metric_value)
+        data = build_incident_attachment(
+            incident, self.integration_key, IncidentStatus(incident.status), metric_value
+        )
 
         assert data["routing_key"] == self.integration_key
         assert data["event_action"] == "trigger"
@@ -570,11 +605,11 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         handler = PagerDutyActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = responses.calls[0].request.body
 
         assert json.loads(data) == build_incident_attachment(
-            action, incident, self.service.integration_key, metric_value, method
+            incident, self.service.integration_key, IncidentStatus(incident.status), metric_value
         )
 
     def test_fire_metric_alert(self):
@@ -635,9 +670,14 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
         handler = SentryAppActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = responses.calls[0].request.body
-        assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
+        assert (
+            json.dumps(
+                build_incident_attachment(incident, IncidentStatus(incident.status), metric_value)
+            )
+            in data
+        )
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
@@ -695,9 +735,14 @@ class SentryAppAlerRuleUIComponentActionHandlerTest(FireTest, TestCase):
         handler = SentryAppActionHandler(action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value)
+            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
         data = responses.calls[0].request.body
-        assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
+        assert (
+            json.dumps(
+                build_incident_attachment(incident, IncidentStatus(incident.status), metric_value)
+            )
+            in data
+        )
         # Check that the Alert Rule UI Component settings are returned
         assert json.loads(data)["data"]["metric_alert"]["alert_rule"]["triggers"][0]["actions"][0][
             "settings"

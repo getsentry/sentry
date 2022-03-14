@@ -10,6 +10,8 @@ import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import AsyncView from 'sentry/views/asyncView';
 
+const IGNORED_FIELDS = ['Sprint'];
+
 type Props = {
   // Comes from the in-code definition of a `TicketEventAction`.
   formFields: {[key: string]: any};
@@ -75,7 +77,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   getEndPointString(): string {
     const {instance, organization} = this.props;
-    return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
+    return `/organizations/${organization.slug}/integrations/${instance.integration}/?ignored=${IGNORED_FIELDS}`;
   }
 
   /**

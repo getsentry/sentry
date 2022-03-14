@@ -35,10 +35,10 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
@@ -226,7 +226,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
        * Sometimes, there can be matches that don't include any
        * indices. These matches are often noise, so exclude them.
        */
-      .filter(({matches}) => matches.length)
+      .filter(({matches}) => matches?.length)
       .map(({item}) => item.transaction.event_id);
 
     /**

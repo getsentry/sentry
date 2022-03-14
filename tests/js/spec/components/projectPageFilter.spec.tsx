@@ -1,11 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('ProjectPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
@@ -40,14 +39,10 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pick project', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <ProjectPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -70,14 +65,10 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pin selection', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <ProjectPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -97,14 +88,10 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <ProjectPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -139,14 +126,10 @@ describe('ProjectPageFilter', function () {
   });
 
   it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <ProjectPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Confirm initial selection
     expect(screen.getByText('My Projects')).toBeInTheDocument();

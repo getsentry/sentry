@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -22,7 +23,6 @@ import SuspectSpansQuery, {
 import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
-import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
 import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
@@ -196,7 +196,7 @@ function SpanDetailsHeader(props: HeaderProps) {
         <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
-        <SectionHeading>{t('Exclusive Time Percentiles')}</SectionHeading>
+        <SectionHeading>{t('Self Time Percentiles')}</SectionHeading>
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
@@ -244,7 +244,7 @@ function SpanDetailsHeader(props: HeaderProps) {
         </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
+        <SectionHeading>{t('Total Self Time')}</SectionHeading>
         <SectionBody>
           {defined(sumExclusiveTime) ? (
             <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />

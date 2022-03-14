@@ -18,6 +18,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.BooleanField()
+    codeownersAutoSync = serializers.BooleanField(default=True)
 
     @staticmethod
     def _validate_no_codeowners(rules):
@@ -79,6 +80,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 ownership.fallthrough = fallthrough
                 changed = True
 
+        if "codeownersAutoSync" in self.validated_data:
+            codeowners_auto_sync = self.validated_data["codeownersAutoSync"]
+            if ownership.codeowners_auto_sync != codeowners_auto_sync:
+                ownership.codeowners_auto_sync = codeowners_auto_sync
+                changed = True
+
         changed = self.__modify_auto_assignment(ownership) or changed
 
         if changed:
@@ -104,7 +111,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return changed
 
 
-class ProjectOwnershipMixin:
+class ProjectOwnershipEndpoint(ProjectEndpoint):
     def get_ownership(self, project):
         try:
             return ProjectOwnership.objects.get(project=project)
@@ -115,8 +122,6 @@ class ProjectOwnershipMixin:
                 last_updated=None,
             )
 
-
-class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project's Ownership configuration

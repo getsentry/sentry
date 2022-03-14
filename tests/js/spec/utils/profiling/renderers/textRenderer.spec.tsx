@@ -1,7 +1,7 @@
 import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -25,7 +25,7 @@ const makeBaseFlamegraph = (): Flamegraph => {
     createFrameIndex([{name: 'f0'}, {name: 'f1'}])
   );
 
-  return new Flamegraph(profile, 0, false, false);
+  return new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 };
 
 describe('TextRenderer', () => {
@@ -83,7 +83,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockReturnValue({width: 10}),
@@ -132,7 +132,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
@@ -185,7 +185,7 @@ describe('TextRenderer', () => {
       createFrameIndex([{name: longFrameName}])
     );
 
-    const flamegraph = new Flamegraph(profile, 0, false, false);
+    const flamegraph = new Flamegraph(profile, 0, {inverted: false, leftHeavy: false});
 
     const context: Partial<CanvasRenderingContext2D> = {
       measureText: jest.fn().mockImplementation(n => {
