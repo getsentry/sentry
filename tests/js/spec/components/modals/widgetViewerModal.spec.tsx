@@ -260,6 +260,37 @@ describe('Modals -> WidgetViewerModal', function () {
         '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&field=count%28%29&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d&yAxis=count%28%29'
       );
     });
+
+    it('renders with first legend disabled by default', function () {
+      // Rerender with first legend disabled
+      initialData.router.location.query = {legend: ['Query Name']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            legend: expect.objectContaining({
+              selected: {'Query Name': false},
+            }),
+          }),
+        }),
+        {}
+      );
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {

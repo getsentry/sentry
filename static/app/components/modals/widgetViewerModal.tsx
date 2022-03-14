@@ -23,7 +23,7 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -34,7 +34,7 @@ import {
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
-import WidgetCardChartContainer from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
+import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -62,6 +62,22 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 
+// WidgetCardChartContainer rerenders if selection was changed.
+// This is required because we want to prevent ECharts interactions from
+// causing unnecessary rerenders which can break persistent legends functionality.
+const MemoizedWidgetCardChartContainer = React.memo(
+  WidgetCardChartContainer,
+  (props, prevProps) => {
+    return (
+      props.selection === prevProps.selection &&
+      props.location.query[WidgetViewerQueryField.QUERY] ===
+        prevProps.location.query[WidgetViewerQueryField.QUERY] &&
+      props.location.query[WidgetViewerQueryField.SORT] ===
+        prevProps.location.query[WidgetViewerQueryField.SORT]
+    );
+  }
+);
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -74,11 +90,19 @@ function WidgetViewerModal(props: Props) {
     closeModal,
     onEdit,
     router,
+    routes,
+    params,
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+  const disabledLegends = decodeList(
+    location.query[WidgetViewerQueryField.LEGEND]
+  ).reduce((acc, legend) => {
+    acc[legend] = false;
+    return acc;
+  }, {});
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
 
@@ -172,16 +196,13 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewer() {
     return (
       <React.Fragment>
-        {widget.queries.length > 1 && (
-          <TextContainer>
-            {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-            )}
-          </TextContainer>
-        )}
         {widget.displayType !== DisplayType.TABLE && (
           <Container>
-            <WidgetCardChartContainer
+            <MemoizedWidgetCardChartContainer
+              location={location}
+              router={router}
+              routes={routes}
+              params={params}
               api={api}
               organization={organization}
               selection={modalSelection}
@@ -198,25 +219,44 @@ function WidgetViewerModal(props: Props) {
                   datetime: {...modalSelection.datetime, start, end, period: null},
                 });
               }}
+              onLegendSelectChanged={({selected}) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+                      key => !selected[key]
+                    ),
+                  },
+                });
+              }}
+              legendOptions={{selected: disabledLegends}}
             />
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledSelectControl
-            value={selectedQueryIndex}
-            options={queryOptions}
-            onChange={(option: SelectValue<number>) =>
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.QUERY]: option.value,
-                  [WidgetViewerQueryField.PAGE]: undefined,
-                  [WidgetViewerQueryField.CURSOR]: undefined,
-                },
-              })
-            }
-          />
+          <React.Fragment>
+            <TextContainer>
+              {t(
+                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+              )}
+            </TextContainer>
+            <StyledSelectControl
+              value={selectedQueryIndex}
+              options={queryOptions}
+              onChange={(option: SelectValue<number>) => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.QUERY]: option.value,
+                    [WidgetViewerQueryField.PAGE]: undefined,
+                    [WidgetViewerQueryField.CURSOR]: undefined,
+                  },
+                });
+              }}
+            />
+          </React.Fragment>
         )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
@@ -431,7 +471,7 @@ const Container = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding-top: ${space(1.5)};
+  padding-bottom: ${space(1.5)};
 `;
 
 const StyledSelectControl = styled(SelectControl)`
