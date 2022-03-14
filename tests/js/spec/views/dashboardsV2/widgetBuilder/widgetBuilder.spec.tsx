@@ -1412,8 +1412,8 @@ describe('WidgetBuilder', function () {
       });
 
       await screen.findByText('Group your results');
-      userEvent.click(screen.getByText('Add Group'));
-      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+      // userEvent.click(screen.getByText('Add Group'));
+      // expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
       // userEvent.click(screen.getAllByLabelText('Remove group')[1]);
       // expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
