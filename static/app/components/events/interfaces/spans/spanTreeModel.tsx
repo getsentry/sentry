@@ -419,10 +419,12 @@ class SpanTreeModel {
         });
 
         if (this.isSpanFilteredOut(props, group[0])) {
-          acc.descendants.push({
-            type: 'filtered_out',
-            span: group[0].span,
-          });
+          group.forEach(spanModel =>
+            acc.descendants.push({
+              type: 'filtered_out',
+              span: spanModel.span,
+            })
+          );
           return acc;
         }
 
