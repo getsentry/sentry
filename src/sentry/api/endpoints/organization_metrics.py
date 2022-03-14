@@ -69,7 +69,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
-        except InvalidParams as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
