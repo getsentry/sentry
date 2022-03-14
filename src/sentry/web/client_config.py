@@ -81,7 +81,7 @@ def _get_public_dsn():
     if settings.SENTRY_FRONTEND_DSN:
         return settings.SENTRY_FRONTEND_DSN
 
-    if not settings.SENTRY_USE_RELAY:
+    if settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         return ""
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
