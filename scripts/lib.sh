@@ -24,7 +24,10 @@ require() {
 }
 
 configure-sentry-cli() {
-    # SENTRY_DSN is currently exported in .envrc
+    # XXX: For version 1.70.1 there's a bug hitting SENTRY_CLI_NO_EXIT_TRAP: unbound variable
+    # We can remove this after it's fixed
+    # https://github.com/getsentry/sentry-cli/pull/1059
+    export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | bash
@@ -203,7 +206,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password
+        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
     else
         sentry createuser --superuser
     fi
@@ -221,6 +224,8 @@ bootstrap() {
     create-db
     apply-migrations
     create-user
+    # Load mocks requires a super user to exist, thus, we execute after create-user
+    bin/load-mocks
     build-platform-assets
 }
 
@@ -245,6 +250,8 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+    # This ensures that your set up as some data inside of it
+    bin/load-mocks
 }
 
 prerequisites() {
