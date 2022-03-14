@@ -2,6 +2,7 @@ import {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -21,15 +22,17 @@ function TransactionAnomalies(props: Props) {
   const {location, organization, projects} = props;
 
   return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.Anomalies}
-      generateEventView={generateAnomaliesEventView}
-      getDocumentTitle={getDocumentTitle}
-      childComponent={AnomaliesContent}
-    />
+    <MEPSettingProvider>
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.Anomalies}
+        generateEventView={generateAnomaliesEventView}
+        getDocumentTitle={getDocumentTitle}
+        childComponent={AnomaliesContent}
+      />
+    </MEPSettingProvider>
   );
 }
 
