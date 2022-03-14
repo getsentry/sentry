@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Tooltip from 'sentry/components/tooltip';
+import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
@@ -11,6 +12,7 @@ type Props = {
   onSelect: (sort: string) => void;
   query: string;
   sort: string;
+  hasPageFilters?: boolean;
 };
 
 export function getSortTooltip(key: IssueSortOptions) {
@@ -33,7 +35,7 @@ export function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
+const IssueListSortOptions = ({onSelect, sort, query, hasPageFilters}: Props) => {
   const sortKey = sort || IssueSortOptions.DATE;
 
   const getMenuItem = (key: IssueSortOptions): React.ReactNode => (
@@ -51,7 +53,16 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
 
   return (
     <StyledDropdownControl
-      buttonProps={{prefix: t('Sort by')}}
+      buttonProps={
+        hasPageFilters
+          ? {
+              borderless: true,
+              size: 'small',
+              icon: <IconSort />,
+            }
+          : {prefix: t('Sort by')}
+      }
+      detached={hasPageFilters}
       label={getSortLabel(sortKey)}
     >
       <React.Fragment>
