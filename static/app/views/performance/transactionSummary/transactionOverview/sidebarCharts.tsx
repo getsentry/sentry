@@ -9,7 +9,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkPoint from 'sentry/components/charts/components/markPoint';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -64,7 +64,7 @@ type Props = Pick<
     errored: boolean;
     loading: boolean;
     reloading: boolean;
-    series: React.ComponentProps<typeof LineChart>['series'];
+    series: LineChartProps['series'];
   };
   eventView: EventView;
   location: Location;

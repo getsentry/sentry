@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';

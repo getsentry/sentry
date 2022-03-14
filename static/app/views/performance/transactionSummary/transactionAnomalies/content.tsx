@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

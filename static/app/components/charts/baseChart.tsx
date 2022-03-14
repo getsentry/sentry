@@ -129,6 +129,7 @@ type Props = {
    * provided with the current theme
    */
   colors?: string[] | ((theme: Theme) => string[]);
+  'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
    */
@@ -275,6 +276,7 @@ type Props = {
    * Additionally a `truncate` option
    */
   xAxis?: (XAXisComponentOption & Truncateable) | null;
+
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
@@ -338,6 +340,7 @@ function BaseChartUnwrapped({
   transformSinglePointToBar = false,
   transformSinglePointToLine = false,
   onChartReady = () => {},
+  'data-test-id': dataTestId,
 }: Props) {
   const theme = useTheme();
 
@@ -520,7 +523,7 @@ function BaseChartUnwrapped({
   );
 
   return (
-    <ChartContainer autoHeightResize={autoHeightResize}>
+    <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
