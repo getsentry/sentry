@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence
 
 from django.utils import timezone
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -160,6 +161,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
+
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -224,6 +226,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
             raise ParseError(detail=str(e))
+
+        if not isinstance(request.successful_authenticator, SessionAuthentication):
+            if end - start > timedelta(days=30):
+                return Response({"detail": "Query range exceed maximum allowed value"}, status=400)
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
