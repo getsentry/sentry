@@ -35,6 +35,8 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
+    MISERY_ALPHA,
+    MISERY_BETA,
     NON_FAILURE_STATUS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
@@ -198,8 +200,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     # for an intuitive explanation of the Beta Distribution Function.
                     optional_args=[
                         NullableNumberRange("satisfaction", 0, None),
-                        with_default(5.8875, NumberRange("alpha", 0, None)),
-                        with_default(111.8625, NumberRange("beta", 0, None)),
+                        with_default(MISERY_ALPHA, NumberRange("alpha", 0, None)),
+                        with_default(MISERY_BETA, NumberRange("beta", 0, None)),
                     ],
                     calculated_args=[
                         {
