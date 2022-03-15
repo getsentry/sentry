@@ -721,7 +721,7 @@ describe('WaterfallModel', () => {
     expect(spans).toEqual(expected);
   });
 
-  it('toggleSpanGroup()', () => {
+  it('toggleSpanSubTree()', () => {
     const waterfallModel = new WaterfallModel(event);
 
     let spans = waterfallModel.getWaterfall({
@@ -731,8 +731,8 @@ describe('WaterfallModel', () => {
 
     expect(spans).toEqual(fullWaterfall);
 
-    // toggle a span group to hide their sub-tree
-    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+    // toggle a span to hide their sub-tree
+    waterfallModel.toggleSpanSubTree('a453cc713e5baf9c');
 
     spans = waterfallModel.getWaterfall({
       viewStart: 0,
@@ -746,8 +746,8 @@ describe('WaterfallModel', () => {
       })
     );
 
-    // toggle a span group to reveal their sub-tree
-    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+    // toggle a span to reveal their sub-tree
+    waterfallModel.toggleSpanSubTree('a453cc713e5baf9c');
 
     spans = waterfallModel.getWaterfall({
       viewStart: 0,

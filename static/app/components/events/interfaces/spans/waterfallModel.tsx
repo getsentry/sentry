@@ -72,7 +72,7 @@ class WaterfallModel {
 
       // span sub-tree toggling
       hiddenSpanSubTrees: observable,
-      toggleSpanGroup: action,
+      toggleSpanSubTree: action,
 
       // trace bounds
       traceBounds: observable,
@@ -203,7 +203,7 @@ class WaterfallModel {
     this.filterSpans = {spanIDs, results};
   }
 
-  toggleSpanGroup = (spanID: string) => {
+  toggleSpanSubTree = (spanID: string) => {
     if (this.hiddenSpanSubTrees.has(spanID)) {
       this.hiddenSpanSubTrees.delete(spanID);
       return;

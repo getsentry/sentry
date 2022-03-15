@@ -136,7 +136,7 @@ class SpanTree extends React.Component<PropType> {
   }
 
   toggleSpanTree = (spanID: string) => () => {
-    this.props.waterfallModel.toggleSpanGroup(spanID);
+    this.props.waterfallModel.toggleSpanSubTree(spanID);
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
