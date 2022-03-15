@@ -2,6 +2,7 @@
 export enum WidgetViewerQueryField {
   SORT = 'sort',
   QUERY = 'query',
+  LEGEND = 'legend',
   PAGE = 'page',
   CURSOR = 'cursor',
 }

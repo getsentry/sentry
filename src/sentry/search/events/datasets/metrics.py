@@ -137,6 +137,22 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "p100",
+                    optional_args=[
+                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "maxIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "count_unique",
                     required_args=[fields.FunctionArg("column")],
                     calculated_args=[resolve_metric_id],
@@ -148,6 +164,16 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_web_vitals",
+                    required_args=[
+                        fields.FunctionArg("column"),
+                        fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_web_vital_function,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -247,6 +273,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
+    # Query Functions
     def _resolve_count_if(
         self,
         metric_condition: Function,
@@ -419,6 +446,50 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+        quality = args["quality"].lower()
+
+        if column not in [
+            "measurements.lcp",
+            "measurements.fcp",
+            "measurements.fp",
+            "measurements.fid",
+            "measurements.cls",
+        ]:
+            raise InvalidSearchQuery("count_web_vitals only supports measurements")
+
+        measurement_rating = self.builder.resolve_column("measurement_rating")
+
+        quality_id = indexer.resolve(quality)
+        if quality_id is None:
+            return Function(
+                # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
+                "toUInt64",
+                [0],
+                alias,
+            )
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function("equals", [measurement_rating, quality_id]),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
             ],
             alias,
         )
