@@ -839,11 +839,9 @@ function WidgetBuilder({
                   />
                   {widgetBuilderNewDesign && isTimeseriesChart && (
                     <GroupByStep
-                      columns={
-                        state.queries[0].columns
-                          ?.filter(field => !(field === 'equation|'))
-                          .map(field => explodeField({field})) ?? []
-                      }
+                      columns={state.queries[0].columns
+                        .filter(field => !(field === 'equation|'))
+                        .map(field => explodeField({field}))}
                       onGroupByChange={handleGroupByChange}
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />

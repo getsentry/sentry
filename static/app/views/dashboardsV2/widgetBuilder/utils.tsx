@@ -176,6 +176,7 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
+        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
         fields: referenceAggregates,
       };
