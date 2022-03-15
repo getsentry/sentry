@@ -94,7 +94,7 @@ class TestSchemaValidation(TestCase):
         validate_ui_element_schema(schema)
 
     @invalid_schema_with_error_message(
-        "Element has type 'other'. Type must be one of the following: ['issue-link', 'issue-media', 'stacktrace-link']"
+        "Element has type 'other'. Type must be one of the following: ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']"
     )
     def test_invalid_schema_type_invalid(self):
         schema = {"elements": [{"type": "other"}]}
