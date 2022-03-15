@@ -86,6 +86,7 @@ describe('Modals -> WidgetViewerModal', function () {
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -254,6 +255,37 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d'
+      );
+    });
+
+    it('renders with first legend disabled by default', function () {
+      // Rerender with first legend disabled
+      initialData.router.location.query = {legend: ['Query Name']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            legend: expect.objectContaining({
+              selected: {'Query Name': false},
+            }),
+          }),
+        }),
+        {}
       );
     });
   });
@@ -501,6 +533,7 @@ describe('Modals -> WidgetViewerModal', function () {
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Issue Widget',
       displayType: DisplayType.TABLE,
       interval: '5m',
