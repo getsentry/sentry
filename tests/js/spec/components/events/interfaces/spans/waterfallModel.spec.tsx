@@ -423,7 +423,7 @@ describe('WaterfallModel', () => {
       },
       treeDepth: 2,
       continuingTreeDepths: [],
-      spanGrouping: [
+      spanNestedGrouping: [
         {
           type: 'span',
           span: {
@@ -657,7 +657,8 @@ describe('WaterfallModel', () => {
     });
 
     assert(
-      fullWaterfall[10].type === 'span_group_chain' && fullWaterfall[10].spanGrouping
+      fullWaterfall[10].type === 'span_group_chain' &&
+        fullWaterfall[10].spanNestedGrouping
     );
     expected = [
       {
@@ -692,11 +693,11 @@ describe('WaterfallModel', () => {
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10].spanGrouping[0].span,
+        span: fullWaterfall[10].spanNestedGrouping[0].span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10].spanGrouping[1].span,
+        span: fullWaterfall[10].spanNestedGrouping[1].span,
       },
       {
         type: 'filtered_out',
@@ -914,7 +915,7 @@ describe('WaterfallModel', () => {
           parent_span_id: 'foo',
           span_id: 'bar',
         },
-        spanGrouping: [
+        spanNestedGrouping: [
           {
             ...fullWaterfall[1],
             isLastSibling: true,

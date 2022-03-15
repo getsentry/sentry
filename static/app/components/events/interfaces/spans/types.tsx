@@ -59,7 +59,7 @@ export type FetchEmbeddedChildrenState =
 
 export type SpanGroupProps = {
   showNestedSpanGroup: boolean;
-  spanGrouping: EnhancedSpan[] | undefined;
+  spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleSpanGroup: (() => void) | undefined;
 };
 

@@ -181,8 +181,8 @@ class SpanTreeModel {
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
     showNestedSpanGroup: boolean;
-    spanGrouping: EnhancedSpan[] | undefined;
     spanGroups: Set<String>;
+    spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleSpanGroup: (() => void) | undefined;
     treeDepth: number;
   }): EnhancedProcessedSpanType[] => {
@@ -197,7 +197,7 @@ class SpanTreeModel {
       previousSiblingEndTimestamp,
       event,
       isOnlySibling,
-      spanGrouping,
+      spanNestedGrouping,
       toggleSpanGroup,
       showNestedSpanGroup,
       addTraceBounds,
@@ -223,13 +223,13 @@ class SpanTreeModel {
       isOnlySibling && !this.isRoot && (descendantsSource.length !== 1 || hideSpanTree);
     const isFirstSpanOfGroup =
       shouldGroup &&
-      (spanGrouping === undefined ||
-        (Array.isArray(spanGrouping) && spanGrouping.length === 0));
+      (spanNestedGrouping === undefined ||
+        (Array.isArray(spanNestedGrouping) && spanNestedGrouping.length === 0));
 
     if (
       isLastSpanOfGroup &&
-      Array.isArray(spanGrouping) &&
-      spanGrouping.length >= 1 &&
+      Array.isArray(spanNestedGrouping) &&
+      spanNestedGrouping.length >= 1 &&
       !showNestedSpanGroup
     ) {
       // We always want to indent the last span of the span group chain
@@ -240,12 +240,12 @@ class SpanTreeModel {
       // Since there is no concept of "backtracking" when constructing the span tree,
       // we will need to reconstruct the tree depth information. This is only neccessary
       // when the span group chain is hidden/collapsed.
-      if (spanGrouping.length === 1) {
-        const treeDepthEntry = isOrphanSpan(spanGrouping[0].span)
-          ? ({type: 'orphan', depth: spanGrouping[0].treeDepth} as OrphanTreeDepth)
-          : spanGrouping[0].treeDepth;
+      if (spanNestedGrouping.length === 1) {
+        const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0].span)
+          ? ({type: 'orphan', depth: spanNestedGrouping[0].treeDepth} as OrphanTreeDepth)
+          : spanNestedGrouping[0].treeDepth;
 
-        if (!spanGrouping[0].isLastSibling) {
+        if (!spanNestedGrouping[0].isLastSibling) {
           continuingTreeDepths = [...continuingTreeDepths, treeDepthEntry];
         }
       }
@@ -253,7 +253,9 @@ class SpanTreeModel {
 
     // Criteria for propagating information about the span group to the last span of the span group chain
     const spanGroupingCriteria =
-      isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length > 1;
+      isLastSpanOfGroup &&
+      Array.isArray(spanNestedGrouping) &&
+      spanNestedGrouping.length > 1;
 
     const wrappedSpan: EnhancedSpan = {
       type: this.isRoot ? 'root_span' : 'span',
@@ -325,8 +327,8 @@ class SpanTreeModel {
             previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
             event,
             isOnlySibling: descendantsSource.length === 1,
-            spanGrouping: shouldGroup
-              ? [...(spanGrouping ?? []), wrappedSpan]
+            spanNestedGrouping: shouldGroup
+              ? [...(spanNestedGrouping ?? []), wrappedSpan]
               : undefined,
             toggleSpanGroup: isNotLastSpanOfGroup
               ? toggleSpanGroup === undefined
@@ -385,8 +387,8 @@ class SpanTreeModel {
 
     if (
       isLastSpanOfGroup &&
-      Array.isArray(spanGrouping) &&
-      spanGrouping.length > 1 &&
+      Array.isArray(spanNestedGrouping) &&
+      spanNestedGrouping.length > 1 &&
       !showNestedSpanGroup &&
       wrappedSpan.type === 'span'
     ) {
@@ -395,7 +397,7 @@ class SpanTreeModel {
         span: this.span,
         treeDepth: treeDepth - 1,
         continuingTreeDepths,
-        spanGrouping,
+        spanNestedGrouping,
         showNestedSpanGroup,
         toggleSpanGroup: wrappedSpan.toggleSpanGroup,
       };
@@ -420,16 +422,20 @@ class SpanTreeModel {
     }
 
     // Do not autogroup groups that will only have two spans
-    if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
+    if (
+      isLastSpanOfGroup &&
+      Array.isArray(spanNestedGrouping) &&
+      spanNestedGrouping.length === 1
+    ) {
       if (!showNestedSpanGroup) {
-        const parentSpan = spanGrouping[0].span;
+        const parentSpan = spanNestedGrouping[0].span;
         const parentSpanBounds = generateBounds({
           startTimestamp: parentSpan.start_timestamp,
           endTimestamp: parentSpan.timestamp,
         });
         const isParentSpanOutOfView = !parentSpanBounds.isSpanVisibleInView;
         if (!isParentSpanOutOfView) {
-          return [spanGrouping[0], wrappedSpan, ...descendants];
+          return [spanNestedGrouping[0], wrappedSpan, ...descendants];
         }
       }
 
