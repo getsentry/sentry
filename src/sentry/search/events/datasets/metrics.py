@@ -6,7 +6,7 @@ from snuba_sdk import Column, Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import constants, fields
+from sentry.search.events import constants, field_aliases, fields, filter_aliases
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -25,6 +25,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
+            constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
     @property
@@ -32,6 +33,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -264,6 +266,12 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return function_converter
 
+    # Field Aliases
+    def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        return field_aliases.resolve_team_key_transaction_alias(
+            self.builder, resolve_metric_index=True
+        )
+
     # Query Filters
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
@@ -449,6 +457,9 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _resolve_web_vital_function(
         self,
