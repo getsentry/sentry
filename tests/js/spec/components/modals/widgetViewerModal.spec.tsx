@@ -74,6 +74,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
+      aggregates: ['count()', 'failure_count()'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -81,11 +83,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const additionalMockQuery = {
       conditions: '',
       fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '2',
       name: 'Another Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -168,7 +173,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await screen.findByRole('button', {name: 'Open in Discover'})
       ).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-timestamp&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
       );
     });
 
@@ -253,7 +258,7 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&field=count%28%29&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -294,6 +299,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
+      aggregates: ['count()'],
+      columns: ['error.type'],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -460,6 +467,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
+      aggregates: ['p75(measurements.lcp)'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -527,11 +536,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
+      columns: ['events', 'status', 'title'],
+      aggregates: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Issue Widget',
       displayType: DisplayType.TABLE,
       interval: '5m',
