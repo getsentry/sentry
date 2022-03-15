@@ -4,13 +4,13 @@ import pick from 'lodash/pick';
 
 import {Permissions} from 'sentry/types';
 
-const PERMISSION_LEVELS = {
+const PERMISSION_LEVELS: Record<string, number> = {
   read: 0,
   write: 1,
   admin: 2,
 };
 
-const HUMAN_RESOURCE_NAMES = {
+const HUMAN_RESOURCE_NAMES: Record<string, string> = {
   project: 'Project',
   team: 'Team',
   release: 'Release',
@@ -41,6 +41,11 @@ type PermissionLevelResources = {
  */
 const permissionLevel = (scope: string): number => {
   const permission = scope.split(':')[1];
+
+  if (PERMISSION_LEVELS[permission] === undefined) {
+    throw new TypeError(`Unsupported permission level ${permission}`);
+  }
+
   return PERMISSION_LEVELS[permission];
 };
 
@@ -92,7 +97,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':');
-      permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
+      permissions[HUMAN_RESOURCE_NAMES[resource] as keyof Permissions] = permission;
     }
   });
 

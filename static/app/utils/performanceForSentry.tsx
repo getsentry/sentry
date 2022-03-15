@@ -99,7 +99,7 @@ export const VisuallyCompleteWithData = ({
 
       if (!isVisuallyCompleteSet.current) {
         const time = performance.now();
-        transaction.registerBeforeFinishCallback((t, _) => {
+        transaction.registerBeforeFinishCallback((t: any) => {
           // Should be called after performance entries finish callback.
           t.setMeasurements({
             ...t._measurements,
@@ -130,7 +130,7 @@ export const VisuallyCompleteWithData = ({
             return;
           }
 
-          transaction.registerBeforeFinishCallback(t => {
+          transaction.registerBeforeFinishCallback((t: any) => {
             if (!browserPerformanceTimeOrigin) {
               return;
             }

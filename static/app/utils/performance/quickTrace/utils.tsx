@@ -9,6 +9,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
+  EventLite,
   QuickTrace,
   QuickTraceEvent,
   TraceFull,
@@ -173,9 +174,9 @@ export function parseQuickTrace(
         e.generation === 0
     ) ?? null;
 
-  const isChildren = e => e.parent_event_id === current.event_id;
+  const isChildren = (e: EventLite) => e.parent_event_id === current.event_id;
 
-  const isDescendant = e =>
+  const isDescendant = (e: EventLite) =>
     // the current generation needs to be known to determine a descendant
     current.generation !== null &&
     // the event's generation needs to be known to determine a descendant
@@ -183,7 +184,7 @@ export function parseQuickTrace(
     // a descendant is the generation after the direct children
     current.generation + 1 < e.generation;
 
-  const isAncestor = e =>
+  const isAncestor = (e: EventLite) =>
     // the current generation needs to be known to determine an ancestor
     current.generation !== null &&
     // the event's generation needs to be known to determine an ancestor
@@ -302,11 +303,11 @@ export function filterTrace(
   );
 }
 
-export function isTraceFull(transaction): transaction is TraceFull {
+export function isTraceFull(transaction: any): transaction is TraceFull {
   return Boolean((transaction as TraceFull).event_id);
 }
 
-export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
+export function isTraceFullDetailed(transaction: any): transaction is TraceFullDetailed {
   return Boolean((transaction as TraceFullDetailed).event_id);
 }
 

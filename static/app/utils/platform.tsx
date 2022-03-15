@@ -1,6 +1,6 @@
 import {mobile} from 'sentry/data/platformCategories';
 
-export function isNativePlatform(platform: string | undefined) {
+export function isNativePlatform(platform: string | undefined): boolean {
   switch (platform) {
     case 'cocoa':
     case 'objc':
@@ -13,10 +13,10 @@ export function isNativePlatform(platform: string | undefined) {
   }
 }
 
-export function isMobilePlatform(platform: string | undefined) {
+export function isMobilePlatform(platform: string | undefined): boolean {
   if (!platform) {
     return false;
   }
 
-  return ([...mobile] as string[]).includes(platform);
+  return !!mobile.find(p => p === platform);
 }

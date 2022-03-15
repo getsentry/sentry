@@ -8,7 +8,7 @@ const safeLinkPattern = /^(https?:|mailto:)/i;
 
 const safeImagePattern = /^https?:\/\/./i;
 
-function isSafeHref(href: string, pattern: RegExp) {
+function isSafeHref(href: string, pattern: RegExp): boolean {
   try {
     return pattern.test(decodeURIComponent(unescape(href)));
   } catch {

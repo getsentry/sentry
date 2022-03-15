@@ -347,8 +347,8 @@ export function filterSessionsInTimeWindow(
   });
 
   const groups = sessions.groups.map(group => {
-    const series = {};
-    const totals = {};
+    const series: Record<string, number[]> = {};
+    const totals: Record<string, number> = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
       series[field] = group.series[field].filter((value, index) => {

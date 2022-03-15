@@ -1,11 +1,11 @@
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-type Props = {
+export interface CountProps {
   value: string | number;
   className?: string;
-};
+}
 
-function Count({value, className}: Props) {
+function Count({value, className}: CountProps): React.ReactElement {
   return (
     <span className={className} title={value?.toLocaleString()}>
       {formatAbbreviatedNumber(value)}

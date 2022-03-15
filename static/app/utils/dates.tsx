@@ -168,11 +168,15 @@ export function intervalToMilliseconds(interval: string): number {
     return 0;
   }
   const [, value, unit] = matches;
-  const multipliers = {
+  const multipliers: Record<string, number> = {
     d: 60 * 60 * 24,
     h: 60 * 60,
     m: 60,
   };
+
+  if (multipliers[unit] === undefined) {
+    throw new TypeError(`Unknown multiplier for unit ${unit}`);
+  }
   return parseInt(value, 10) * multipliers[unit] * 1000;
 }
 

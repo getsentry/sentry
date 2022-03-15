@@ -8,7 +8,15 @@ import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-const recordAnalyticsFirstEvent = ({key, organization, project}) =>
+const recordAnalyticsFirstEvent = ({
+  key,
+  organization,
+  project,
+}: {
+  key: string;
+  organization: Organization;
+  project: Project;
+}) =>
   analytics(`onboarding_v2.${key}`, {
     org_id: parseInt(organization.id, 10),
     project: parseInt(project.id, 10),
@@ -64,7 +72,7 @@ class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
-    let firstEvent = null;
+    let firstEvent: FirstIssue | null = null;
     let firstIssue: Group | boolean | null = null;
 
     try {
@@ -92,7 +100,7 @@ class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
       Sentry.captureException(new Error(`Error polling for first ${eventType} event`));
     }
 
-    if (firstEvent === null || firstEvent === false) {
+    if (firstEvent === null) {
       return;
     }
 

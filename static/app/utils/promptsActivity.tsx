@@ -6,7 +6,7 @@ import moment from 'moment';
  *
  * @param snoozedTs Snoozed timestamp
  */
-export function snoozedDays(snoozedTs: number) {
+export function snoozedDays(snoozedTs: number): number {
   const now = moment.utc();
   const snoozedOn = moment.unix(snoozedTs).utc();
   return now.diff(snoozedOn, 'days');

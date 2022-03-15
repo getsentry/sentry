@@ -49,7 +49,7 @@ export default class RequestError extends Error {
     this.name = name;
   }
 
-  removeFrames(numLinesToRemove) {
+  removeFrames(numLinesToRemove: number) {
     // Drop some frames so stack trace starts at callsite
     //
     // Note that babel will add a call to support extending Error object

@@ -8,7 +8,7 @@ const SUPERUSER_COOKIE_NAME = 'su';
  * Checking for just isSuperuser on a config object may not be enough as backend often checks for *active* superuser.
  * We therefore check both isSuperuser flag AND superuser session cookie.
  */
-export function isActiveSuperuser() {
+export function isActiveSuperuser(): boolean {
   const {isSuperuser} = ConfigStore.get('user') || {};
 
   if (isSuperuser) {

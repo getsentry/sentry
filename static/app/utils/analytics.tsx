@@ -210,7 +210,7 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 /**
  * Used to pass data between startTransaction and endTransaction
  */
-const transactionDataStore = new Map<string, object>();
+const transactionDataStore = new Map<string, Transaction>();
 
 const getCurrentTransaction = () => {
   return Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -221,12 +221,13 @@ metric.startTransaction = ({name, traceId, op}) => {
     traceId = getCurrentTransaction()?.traceId;
   }
   const transaction = Sentry.startTransaction({name, op, traceId});
-  transactionDataStore[name] = transaction;
+  transactionDataStore.set(name, transaction);
   return transaction;
 };
 
 metric.endTransaction = ({name}) => {
-  const transaction = transactionDataStore[name];
+  const transaction = transactionDataStore.get(name);
+
   if (transaction) {
     transaction.finish();
   }

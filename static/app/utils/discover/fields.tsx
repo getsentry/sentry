@@ -34,7 +34,13 @@ export type ParsedFunction = {
   name: string;
 };
 
-type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+type ValidateColumnValueFunction = ({
+  name,
+  dataType,
+}: {
+  dataType: ColumnType;
+  name: string;
+}) => boolean;
 
 export type ValidateColumnTypes =
   | ColumnType[]
