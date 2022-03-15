@@ -282,7 +282,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
-        if not data.get("limit") and data.get("display_type") == DashboardWidgetDisplayTypes.TOP_N:
+        if data.get("display_type") == DashboardWidgetDisplayTypes.TOP_N and not data.get("limit"):
             data["limit"] = 5
         return data
 
