@@ -63,7 +63,7 @@ jobs:
         with:
           # We don't want the dev env cache to be messing the Python tests' cache
           cache-prefix: devenv-
-          cache-file-hash: ${{ hashFiles('**/requirements.txt')
+          cache-file-hash: ${{ hashFiles('**/requirements.txt') }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
