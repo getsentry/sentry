@@ -84,12 +84,9 @@ export class RenderField extends Component<RenderProps, State> {
     );
 
     // build sets of values used so we don't let the user select them twice
-    const projectIdsUsed = new Set(existingValues.map(tuple => tuple[0]));
     const mappedValuesUsed = new Set(existingValues.map(tuple => tuple[1]));
 
-    const projectOptions = sentryProjects
-      .filter(project => !projectIdsUsed.has(project.id))
-      .map(({slug, id}) => ({label: slug, value: id}));
+    const projectOptions = sentryProjects.map(({slug, id}) => ({label: slug, value: id}));
 
     const mappedItemsToShow = mappedDropdownItems.filter(
       item => !mappedValuesUsed.has(item.value)
