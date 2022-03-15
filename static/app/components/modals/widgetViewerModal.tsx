@@ -9,6 +9,7 @@ import moment from 'moment';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
@@ -19,8 +20,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -122,16 +125,20 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
-  const fields = tableWidget.queries[0].fields;
+  const {aggregates, columns} = tableWidget.queries[0];
+
+  const fields = defined(tableWidget.queries[0].fields)
+    ? tableWidget.queries[0].fields
+    : [...columns, ...aggregates];
 
   // World Map view should always have geo.country in the table chart
   if (
     widget.displayType === DisplayType.WORLD_MAP &&
-    !fields.includes(GEO_COUNTRY_CODE)
+    !columns.includes(GEO_COUNTRY_CODE)
   ) {
     fields.unshift(GEO_COUNTRY_CODE);
+    columns.unshift(GEO_COUNTRY_CODE);
   }
-
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns = [
     DisplayType.AREA,
@@ -143,6 +150,11 @@ function WidgetViewerModal(props: Props) {
   if (shouldReplaceTableColumns) {
     tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
     fields.splice(
+      0,
+      fields.length,
+      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
+    );
+    columns.splice(
       0,
       fields.length,
       ...['title', 'event.type', 'project', 'user.display', 'timestamp']
@@ -160,8 +172,15 @@ function WidgetViewerModal(props: Props) {
       if (Array.isArray(fields) && !fields.includes(term)) {
         fields.unshift(term);
       }
+      if (isAggregateField(term) && !aggregates.includes(term)) {
+        aggregates.unshift(term);
+      }
+      if (!isAggregateField(term) && !columns.includes(term)) {
+        columns.unshift(term);
+      }
     });
   }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
@@ -446,11 +465,12 @@ function WidgetViewerModal(props: Props) {
         <Tooltip title={widget.title} showOnlyOnOverflow>
           <WidgetTitle>{widget.title}</WidgetTitle>
         </Tooltip>
+        <FeatureBadge type="beta" />
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
         <ButtonBar gap={1}>
-          {onEdit && (
+          {onEdit && widget.id && (
             <Button
               type="button"
               onClick={() => {
@@ -494,6 +514,7 @@ export const modalCss = css`
 const headerCss = css`
   margin: -${space(4)} -${space(4)} 0px -${space(4)};
   line-height: normal;
+  display: flex;
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
@@ -510,7 +531,8 @@ const Container = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding-bottom: ${space(1.5)};
+  padding: ${space(2)} 0 ${space(1.5)} 0;
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledSelectControl = styled(SelectControl)`

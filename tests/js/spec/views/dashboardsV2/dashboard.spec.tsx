@@ -24,6 +24,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
         orderby: '',
       },
     ],

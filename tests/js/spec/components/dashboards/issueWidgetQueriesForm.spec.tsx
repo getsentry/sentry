@@ -99,6 +99,8 @@ function renderComponent(
       query={{
         conditions: 'assigned:',
         fields: ['issue', 'assignee'],
+        columns: ['issue', 'assignee'],
+        aggregates: ['issue', 'assignee'],
         name: '',
         orderby: 'date',
       }}
