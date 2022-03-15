@@ -1194,6 +1194,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         "sentry.api.endpoints.organization_metrics.OrganizationMetricsDataEndpoint.default_per_page",
         1,
     )
+    @freeze_time("2021-12-11 03:21:30")
     def test_no_limit_with_series(self):
         """Pagination args do not apply to series"""
         indexer.record("session.status")
@@ -1292,6 +1293,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
 
+    @freeze_time("2021-12-11 03:21:30")
     def test_crash_free_percentage_with_orderby(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
