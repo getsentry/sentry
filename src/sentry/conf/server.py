@@ -924,8 +924,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable obtaining and using API keys.
-    "organizations:alert-rule-ui-component": False,
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
     # Alert wizard redesign version 3
