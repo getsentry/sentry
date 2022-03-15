@@ -475,7 +475,7 @@ describe('WaterfallModel', () => {
           toggleSpanGroup: undefined,
         },
       ],
-      showSpanGroup: false,
+      showNestedSpanGroup: false,
       toggleSpanGroup: expect.any(Function),
     },
     {
@@ -933,7 +933,7 @@ describe('WaterfallModel', () => {
             toggleSpanGroup: undefined,
           },
         ],
-        showSpanGroup: false,
+        showNestedSpanGroup: false,
         toggleSpanGroup: expect.any(Function),
       },
       {

@@ -300,7 +300,7 @@ class WaterfallModel {
       isOnlySibling: true,
       spanGrouping: undefined,
       toggleSpanGroup: undefined,
-      showSpanGroup: false,
+      showNestedSpanGroup: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
     });

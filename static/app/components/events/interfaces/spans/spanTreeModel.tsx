@@ -180,7 +180,7 @@ class SpanTreeModel {
     operationNameFilters: ActiveOperationFilter;
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
-    showSpanGroup: boolean;
+    showNestedSpanGroup: boolean;
     spanGrouping: EnhancedSpan[] | undefined;
     spanGroups: Set<String>;
     toggleSpanGroup: (() => void) | undefined;
@@ -199,7 +199,7 @@ class SpanTreeModel {
       isOnlySibling,
       spanGrouping,
       toggleSpanGroup,
-      showSpanGroup,
+      showNestedSpanGroup,
       addTraceBounds,
       removeTraceBounds,
     } = props;
@@ -230,7 +230,7 @@ class SpanTreeModel {
       isLastSpanOfGroup &&
       Array.isArray(spanGrouping) &&
       spanGrouping.length >= 1 &&
-      !showSpanGroup
+      !showNestedSpanGroup
     ) {
       // We always want to indent the last span of the span group chain
       treeDepth = treeDepth + 1;
@@ -269,7 +269,7 @@ class SpanTreeModel {
         removeTraceBounds,
       }),
       toggleSpanGroup:
-        spanGroupingCriteria && toggleSpanGroup && !showSpanGroup
+        spanGroupingCriteria && toggleSpanGroup && !showNestedSpanGroup
           ? toggleSpanGroup
           : isFirstSpanOfGroup && this.showNestedSpanGroup && !hideSpanTree
           ? this.toggleSpanGroup
@@ -289,7 +289,7 @@ class SpanTreeModel {
       shouldGroup &&
       !isLastSpanOfGroup &&
       ((toggleSpanGroup === undefined && !this.showNestedSpanGroup) ||
-        (toggleSpanGroup !== undefined && !showSpanGroup));
+        (toggleSpanGroup !== undefined && !showNestedSpanGroup));
 
     const descendantContinuingTreeDepths =
       isLastSibling || shouldHideSpanOfGroup
@@ -333,10 +333,10 @@ class SpanTreeModel {
                 ? this.toggleSpanGroup
                 : toggleSpanGroup
               : undefined,
-            showSpanGroup: isNotLastSpanOfGroup
+            showNestedSpanGroup: isNotLastSpanOfGroup
               ? toggleSpanGroup === undefined
                 ? this.showNestedSpanGroup
-                : showSpanGroup
+                : showNestedSpanGroup
               : false,
             addTraceBounds,
             removeTraceBounds,
@@ -387,7 +387,7 @@ class SpanTreeModel {
       isLastSpanOfGroup &&
       Array.isArray(spanGrouping) &&
       spanGrouping.length > 1 &&
-      !showSpanGroup &&
+      !showNestedSpanGroup &&
       wrappedSpan.type === 'span'
     ) {
       const spanGroupChain: EnhancedProcessedSpanType = {
@@ -396,7 +396,7 @@ class SpanTreeModel {
         treeDepth: treeDepth - 1,
         continuingTreeDepths,
         spanGrouping,
-        showSpanGroup,
+        showNestedSpanGroup,
         toggleSpanGroup: wrappedSpan.toggleSpanGroup,
       };
 
@@ -421,7 +421,7 @@ class SpanTreeModel {
 
     // Do not autogroup groups that will only have two spans
     if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
-      if (!showSpanGroup) {
+      if (!showNestedSpanGroup) {
         const parentSpan = spanGrouping[0].span;
         const parentSpanBounds = generateBounds({
           startTimestamp: parentSpan.start_timestamp,
