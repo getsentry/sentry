@@ -1,4 +1,4 @@
-const FILE_EXTENSION_TO_PLATFORM = {
+const FILE_EXTENSION_TO_PLATFORM: Record<string, string> = {
   jsx: 'react',
   tsx: 'react',
   js: 'javascript',

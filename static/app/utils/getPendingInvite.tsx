@@ -7,12 +7,22 @@ type PendingInvite = {
   url: string;
 };
 
-export default function getPendingInvite(): PendingInvite | null {
-  const data = Cookies.get('pending-invite');
+function isPendingInvite(invite: any): invite is PendingInvite {
+  return 'memberId' in invite && 'token' in invite && 'url' in invite;
+}
 
-  if (!data) {
+export default function getPendingInvite(): PendingInvite | null {
+  const rawPendingInviteCookie = Cookies.get('pending-invite');
+
+  if (rawPendingInviteCookie) {
+    const parsedPendingInvite = qs.parse(rawPendingInviteCookie);
+
+    if (isPendingInvite(parsedPendingInvite)) {
+      return parsedPendingInvite;
+    }
+
     return null;
   }
 
-  return qs.parse(data) as any;
+  return null;
 }

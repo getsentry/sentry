@@ -2,7 +2,7 @@ import {ResponseMeta} from 'sentry/api';
 
 import RequestError from './requestError';
 
-const ERROR_MAP = {
+const ERROR_MAP: Record<number, string> = {
   0: 'CancelledError',
   400: 'BadRequestError',
   401: 'UnauthorizedError',

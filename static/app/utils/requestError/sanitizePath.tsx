@@ -2,7 +2,7 @@
  * Remove slugs from the path - we do not want them displayed in the Issues Stream (having them in issue details is ok)
  */
 
-const SHORTENED_TYPE = {
+const SHORTENED_TYPE: Record<string, string> = {
   organizations: 'org',
   customers: 'customer',
   projects: 'project',

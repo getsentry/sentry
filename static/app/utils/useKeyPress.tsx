@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-function useKeyPress(targetKey: React.KeyboardEvent['key']) {
+function useKeyPress(targetKey: React.KeyboardEvent['key']): boolean {
   const [keyPressed, setKeyPressed] = useState(false);
 
   useEffect(() => {

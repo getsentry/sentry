@@ -18,7 +18,7 @@ export default function getStacktraceBody(event: Event) {
     if (!msg) {
       return [];
     }
-    return msg?.data?.formatted && [msg.data.formatted];
+    return msg?.data?.formatted ? [msg.data.formatted] : undefined;
   }
 
   if (!exc.data) {

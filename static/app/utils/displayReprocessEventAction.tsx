@@ -71,14 +71,21 @@ function isNativeEvent(event: Event, exceptionEntry: EntryException) {
 
 //  Checks whether an event indicates that it has an associated minidump.
 function isMinidumpEvent(exceptionEntry: EntryException) {
-  const {data} = exceptionEntry;
-  return (data.values ?? []).some(value => value.mechanism?.type === 'minidump');
+  if (!exceptionEntry.data.values?.length) {
+    return false;
+  }
+  return exceptionEntry.data.values.some(value => value.mechanism?.type === 'minidump');
 }
 
 // Checks whether an event indicates that it has an apple crash report.
 function isAppleCrashReportEvent(exceptionEntry: EntryException) {
-  const {data} = exceptionEntry;
-  return (data.values ?? []).some(value => value.mechanism?.type === 'applecrashreport');
+  if (!exceptionEntry.data.values?.length) {
+    return false;
+  }
+
+  return exceptionEntry.data.values.some(
+    value => value.mechanism?.type === 'applecrashreport'
+  );
 }
 
 export function displayReprocessEventAction(orgFeatures: Array<string>, event?: Event) {
@@ -86,10 +93,9 @@ export function displayReprocessEventAction(orgFeatures: Array<string>, event?: 
     return false;
   }
 
-  const {entries} = event;
-  const exceptionEntry = entries.find(entry => entry.type === EntryType.EXCEPTION) as
-    | EntryException
-    | undefined;
+  const exceptionEntry = event.entries.find(
+    entry => entry.type === EntryType.EXCEPTION
+  ) as EntryException | undefined;
 
   if (!exceptionEntry) {
     return false;

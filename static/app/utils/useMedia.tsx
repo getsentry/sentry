@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 /**
  * Hook that updates when a media query result changes
  */
-export default function useMedia(query: string) {
+export default function useMedia(query: string): boolean {
   if (!window.matchMedia) {
     return false;
   }

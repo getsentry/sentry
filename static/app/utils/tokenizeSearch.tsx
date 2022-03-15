@@ -12,15 +12,15 @@ export type Token = {
   key?: string;
 };
 
-function isOp(t: Token) {
+function isOp(t: Token): boolean {
   return t.type === TokenType.OPERATOR;
 }
 
-function isBooleanOp(value: string) {
+function isBooleanOp(value: string): boolean {
   return ['OR', 'AND'].includes(value.toUpperCase());
 }
 
-function isParen(token: Token, character: '(' | ')') {
+function isParen(token: Token, character: '(' | ')'): boolean {
   return (
     token !== undefined &&
     isOp(token) &&
@@ -192,7 +192,7 @@ export class MutableSearch {
     // to see if that open paren corresponds to a closed paren with one or fewer items inside.
     // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
-    const cleanParens = (_, idx: number) => !parensToDelete.includes(idx);
+    const cleanParens = (_: any, idx: number) => !parensToDelete.includes(idx);
     do {
       if (parensToDelete.length) {
         this.tokens = this.tokens.filter(cleanParens);

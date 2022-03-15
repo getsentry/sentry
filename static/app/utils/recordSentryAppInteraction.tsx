@@ -2,11 +2,11 @@ import {Client} from 'sentry/api';
 
 type TSDBField = 'sentry_app_viewed' | 'sentry_app_component_interacted';
 
-export const recordInteraction = async (
+export async function recordInteraction(
   sentryAppSlug: string,
   field: TSDBField,
   data?: object
-): Promise<void> => {
+): Promise<void> {
   const api = new Client();
   const endpoint = `/sentry-apps/${sentryAppSlug}/interaction/`;
 
@@ -17,4 +17,4 @@ export const recordInteraction = async (
       ...data,
     },
   });
-};
+}

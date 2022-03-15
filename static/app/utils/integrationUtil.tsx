@@ -33,14 +33,14 @@ import {
 } from 'sentry/utils/analytics/integrationAnalyticsEvents';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
-const mapIntegrationParams = analyticsParams => {
+const mapIntegrationParams = (analyticsParams: Record<string, string>) => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
   // Passing in a dummy value of published in those cases
-  const fullParams = {...analyticsParams};
+  const shallowParamCopy = {...analyticsParams};
   if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
-    fullParams.integration_status = 'published';
+    shallowParamCopy.integration_status = 'published';
   }
-  return fullParams;
+  return shallowParamCopy;
 };
 
 export const trackIntegrationAnalytics = makeAnalyticsFunction<
@@ -55,7 +55,9 @@ export const trackIntegrationAnalytics = makeAnalyticsFunction<
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
  */
-const generateFeaturesList = p => (
+const generateFeaturesList = (p: {
+  features: {description: React.ReactNode; featureGate: string}[];
+}) => (
   <ul>
     {p.features.map((f, i) => (
       <li key={i}>{f.description}</li>
@@ -255,7 +257,7 @@ export const getExternalActorEndpointDetails = (
   };
 };
 
-export const sentryNameToOption = ({id, name}): Result => ({
+export const sentryNameToOption = ({id, name}: {id: string; name: string}): Result => ({
   value: id,
   label: name,
 });

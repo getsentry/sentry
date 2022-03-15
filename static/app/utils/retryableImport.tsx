@@ -6,7 +6,7 @@ export default async function retryableImport<T>(
   fn: () => Promise<{default: T}>
 ): Promise<T> {
   let retries = 0;
-  const tryLoad = async () => {
+  const tryLoad = async (): Promise<any> => {
     try {
       const module = await fn();
       return module.default ?? module;

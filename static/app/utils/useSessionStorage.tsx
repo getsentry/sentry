@@ -1,4 +1,4 @@
-import {Dispatch, SetStateAction, useEffect, useState} from 'react';
+import {Dispatch, SetStateAction, useCallback, useEffect, useState} from 'react';
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -39,10 +39,10 @@ function useSessionStorage<T>(
     }
   }, [state]);
 
-  function removeItem() {
+  const removeItem = useCallback(() => {
     sessionStorage.removeItem(key);
     setState(undefined);
-  }
+  }, []);
 
   return [state, setState, removeItem];
 }

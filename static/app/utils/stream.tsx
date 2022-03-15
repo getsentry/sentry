@@ -29,7 +29,7 @@ export function queryToObj(queryStr = ''): QueryObj {
       obj[tagKey] = value;
     }
     return obj;
-  }, {});
+  }, {} as QueryObj);
 
   queryObj.__text = '';
   if (text.length) {

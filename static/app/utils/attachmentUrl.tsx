@@ -12,14 +12,23 @@ type Props = {
   projectId: string;
 };
 
-function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {
-  function getDownloadUrl() {
-    return `/api/0/projects/${organization.slug}/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
-  }
+function getDownloadUrl(
+  organization: Organization,
+  projectId: Props['projectId'],
+  eventId: Props['eventId'],
+  attachment: IssueAttachment
+) {
+  return `/api/0/projects/${organization.slug}/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
+}
 
+function AttachmentUrl({attachment, organization, eventId, projectId, children}: Props) {
   return (
     <Role role={organization.attachmentsRole}>
-      {({hasRole}) => children(hasRole ? getDownloadUrl() : null)}
+      {({hasRole}) =>
+        children(
+          hasRole ? getDownloadUrl(organization, projectId, eventId, attachment) : null
+        )
+      }
     </Role>
   );
 }

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
-import Count from 'sentry/components/count';
+import Count, {CountProps} from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import Tooltip from 'sentry/components/tooltip';
@@ -268,7 +268,9 @@ const SecondaryCount = styled(Count)`
   }
 `;
 
-const WrappedCount = styled(({value, ...p}) => (
+interface WrappedCountProps extends React.HTMLAttributes<HTMLDivElement>, CountProps {}
+
+const WrappedCount = styled(({value, ...p}: WrappedCountProps) => (
   <div {...p}>
     <Count value={value} />
   </div>
@@ -307,7 +309,7 @@ const LinksContainer = styled('span')`
  * @returns {Function}
  */
 export function getIssueFieldRenderer(
-  field: string
+  field: keyof typeof SPECIAL_FIELDS
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
