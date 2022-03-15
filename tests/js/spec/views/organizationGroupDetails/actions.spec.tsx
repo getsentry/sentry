@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
@@ -24,7 +24,7 @@ const organization = TestStubs.Organization({
 });
 
 function renderComponent(event?: Event) {
-  return mountWithTheme(
+  return render(
     <GroupActions
       group={group}
       project={project}
@@ -42,8 +42,8 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = renderComponent();
-      expect(wrapper).toSnapshot();
+      const {container} = renderComponent();
+      expect(container).toSnapshot();
     });
   });
 
@@ -58,9 +58,9 @@ describe('GroupActions', function () {
     });
 
     it('can subscribe', function () {
-      const wrapper = renderComponent();
-      const btn = wrapper.find('button[aria-label="Subscribe"]');
-      btn.simulate('click');
+      renderComponent();
+      const subscribe = screen.getByLabelText('Subscribe');
+      userEvent.click(subscribe);
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -82,9 +82,9 @@ describe('GroupActions', function () {
     });
 
     it('can bookmark', function () {
-      const wrapper = renderComponent();
-      const btn = wrapper.find('button[aria-label="Bookmark"]');
-      btn.simulate('click');
+      renderComponent();
+      const subscribe = screen.getByLabelText('Bookmark');
+      userEvent.click(subscribe);
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
@@ -96,11 +96,13 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2', function () {
-      const wrapper = renderComponent();
+    it('renders ReprocessAction component if org has feature flag reprocessing-v2', async function () {
+      const event = TestStubs.EventStacktraceException({
+        platform: 'native',
+      });
 
-      const reprocessActionButton = wrapper.find('ReprocessAction');
-      expect(reprocessActionButton).toBeTruthy();
+      renderComponent(event);
+      expect(await screen.findByLabelText('Reprocess this issue')).toBeInTheDocument();
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
@@ -110,16 +112,15 @@ describe('GroupActions', function () {
 
       const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
 
-      const wrapper = renderComponent(event);
+      renderComponent(event);
+      const btn = await screen.findByLabelText('Reprocess this issue');
+      expect(btn).toBeInTheDocument();
 
-      const reprocessActionButton = wrapper.find('ReprocessAction');
-      expect(reprocessActionButton).toBeTruthy();
+      // Skip hover to avoid the delayed tooltip from trying to render (it will
+      // happen outside of the RTL work loop)
+      userEvent.click(btn, undefined, {skipHover: true});
 
-      reprocessActionButton.simulate('click');
-
-      await tick();
-
-      expect(onReprocessEventFunc).toHaveBeenCalled();
+      await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
 });
