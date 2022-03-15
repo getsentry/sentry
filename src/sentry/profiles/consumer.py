@@ -15,12 +15,12 @@ def get_profiles_consumer(
 ) -> BatchingKafkaConsumer:
     return create_batching_kafka_consumer(
         {topic},
-        worker=ProfilesWorker(),
+        worker=ProfilesConsumer(),
         **options,
     )
 
 
-class ProfilesWorker(AbstractBatchWorker):  # type: ignore
+class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
     def process_message(self, message: Message) -> Optional[MutableMapping[str, Any]]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = dict(json.loads(message["payload"]))

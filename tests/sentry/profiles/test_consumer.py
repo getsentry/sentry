@@ -1,56 +1,31 @@
 from datetime import datetime
-from typing import Any, MutableMapping, Sequence
+from unittest.mock import Mock
 
 import msgpack
-from confluent_kafka import Producer
-from django.conf import settings
 from exam import fixture
 
-from sentry.profiles.consumer import get_profiles_consumer
+from sentry.profiles.consumer import ProfilesConsumer
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.utils import json
 
 
 class ProfilesConsumerTest(TestCase, SnubaTestCase):
     @fixture
-    def valid_payload(self):
+    def valid_message(self):
         return {
             "organization_id": 1,
             "project_id": 1,
-            "received": datetime.utcnow().timestamp(),
-            "payload": {},
+            "received": int(datetime.utcnow().timestamp()),
+            "payload": json.dumps({"platform": "android", "profile": ""}),
         }
 
-    @fixture
-    def topic(self):
-        return "profiles"
+    def test_process(self):
+        consumer = ProfilesConsumer()
+        message = Mock()
+        message.value.return_value = msgpack.packb(self.valid_message)
+        profile = consumer.process_message(message)
 
-    @fixture
-    def producer(self):
-        cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
-        config = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
-                "bootstrap.servers"
-            ],
-            "session.timeout.ms": 6000,
-        }
-        return Producer(config)
+        for k in ["organization_id", "project_id", "received"]:
+            assert k in profile
 
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
-
-    def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
-        for p in profiles:
-            for k in ["project_id", "organization_id", "received"]:
-                assert k in p
-
-    def test_normal(self):
-        consumer = get_profiles_consumer()
-
-        consumer.flush_batch = self.flush_batch
-        consumer.run()
-
-        self.producer.produce(self.topic, msgpack.packb(self.valid_payalod))
-        self.producer.flush()
+        assert isinstance(profile["received"], int)
