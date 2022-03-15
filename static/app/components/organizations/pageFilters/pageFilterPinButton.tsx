@@ -28,7 +28,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
       <PinButton
         className={className}
         aria-pressed={pinned}
-        aria-label={t('Pin')}
+        aria-label={t('Lock filter')}
         onClick={onPin}
         size={size}
         pinned={pinned}
