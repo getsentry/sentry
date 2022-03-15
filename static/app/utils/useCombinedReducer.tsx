@@ -23,7 +23,7 @@ type AllReducerAction<M> = M extends ReducersObject
   : never;
 
 type CombinedState<S> = {} & S;
-type CombinedReducer<M extends ReducersObject> = Reducer<
+export type CombinedReducer<M extends ReducersObject> = Reducer<
   CombinedState<ReducersState<M>>,
   AllReducerAction<M>
 >;
@@ -31,13 +31,16 @@ type CombinedReducer<M extends ReducersObject> = Reducer<
 export function makeCombinedReducers<M extends ReducersObject>(
   reducers: M
 ): CombinedReducer<M> {
-  const keys = Object.keys(reducers);
+  const keys: (keyof M)[] = Object.keys(reducers);
 
   return (state, action) => {
+    const nextState = {} as ReducersState<M>;
+
     for (const key of keys) {
-      state[key as keyof M] = reducers[key](state[key], action);
+      nextState[key] = reducers[key](state[key], action);
     }
-    return state;
+
+    return nextState;
   };
 }
 

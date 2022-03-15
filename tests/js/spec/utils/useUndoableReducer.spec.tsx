@@ -1,5 +1,9 @@
+import {useReducer} from 'react';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {combinedReducers} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
+import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
   makeUndoableReducer,
   UndoableNode,
@@ -19,7 +23,9 @@ describe('makeUndoableReducer', () => {
     ).not.toThrow();
   });
   it('calls undo/redo if action matches', () => {
-    const mockFirstReducer = jest.fn().mockImplementation(v => ++v);
+    const mockFirstReducer = jest.fn().mockImplementation(v => {
+      return ++v;
+    });
 
     const reducer = makeUndoableReducer(mockFirstReducer);
 
@@ -39,6 +45,8 @@ describe('makeUndoableReducer', () => {
 
     expect(reducer(first, {type: 'redo'})).toEqual(current);
     expect(reducer(current, {type: 'undo'})).toEqual(first);
+    expect(mockFirstReducer).not.toHaveBeenCalled();
+
     expect(reducer(current, 'add')).toEqual({
       previous: current,
       current: 2,
@@ -52,7 +60,7 @@ describe('makeUndoableReducer', () => {
       const reducer = jest
         .fn()
         .mockImplementation((state: number, action: 'add' | 'subtract') =>
-          action === 'add' ? ++state : --state
+          action === 'add' ? state + 1 : state - 1
         );
 
       const {result} = reactHooks.renderHook(() => useUndoableReducer(reducer, 100));
@@ -64,7 +72,7 @@ describe('makeUndoableReducer', () => {
       const reducer = jest
         .fn()
         .mockImplementation((state: number, action: 'add' | 'subtract') =>
-          action === 'add' ? ++state : --state
+          action === 'add' ? state + 1 : state - 1
         );
 
       const {result} = reactHooks.renderHook(() => useUndoableReducer(reducer, 0));
@@ -81,7 +89,7 @@ describe('makeUndoableReducer', () => {
     it('can undo state', () => {
       const {result} = reactHooks.renderHook(() =>
         useUndoableReducer(
-          jest.fn().mockImplementation(s => ++s),
+          jest.fn().mockImplementation(s => s + 1),
           0
         )
       );
@@ -96,19 +104,87 @@ describe('makeUndoableReducer', () => {
     it('can redo state', () => {
       const {result} = reactHooks.renderHook(() =>
         useUndoableReducer(
-          jest.fn().mockImplementation(s => ++s),
+          jest.fn().mockImplementation(s => {
+            return s + 1;
+          }),
           0
         )
       );
 
-      reactHooks.act(() => result.current[1](0));
-      expect(result.current[0]).toEqual(1);
+      reactHooks.act(() => result.current[1](0)); // 0 + 1
+      reactHooks.act(() => result.current[1](1)); // 1 + 1
 
-      reactHooks.act(() => result.current[1]({type: 'undo'}));
+      reactHooks.act(() => result.current[1]({type: 'undo'})); // 2 -> 1
+      reactHooks.act(() => result.current[1]({type: 'undo'})); // 1 -> 0
       expect(result.current[0]).toEqual(0);
 
-      reactHooks.act(() => result.current[1]({type: 'redo'}));
-      expect(result.current[0]).toEqual(1);
+      reactHooks.act(() => result.current[1]({type: 'redo'})); // 0 -> 1
+      reactHooks.act(() => result.current[1]({type: 'redo'})); // 1 -> 2
+      expect(result.current[0]).toEqual(2);
+
+      reactHooks.act(() => result.current[1]({type: 'redo'})); // 2 -> undefined
+      expect(result.current[0]).toEqual(2);
     });
+  });
+
+  it('can work with primitives', () => {
+    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) => {
+      if (action.type === 'add') {
+        return state + 1;
+      }
+      return state - 1;
+    };
+
+    const {result} = reactHooks.renderHook(() =>
+      useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
+        previous: undefined,
+        current: {
+          simple: 0,
+        },
+        next: undefined,
+      })
+    );
+
+    reactHooks.act(() => result.current[1]({type: 'add'}));
+    expect(result.current[0].current.simple).toBe(1);
+
+    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    expect(result.current[0].current.simple).toBe(0);
+
+    reactHooks.act(() => result.current[1]({type: 'redo'}));
+    expect(result.current[0].current.simple).toBe(1);
+  });
+
+  it('can work with objects', () => {
+    const {result} = reactHooks.renderHook(() =>
+      useReducer(makeUndoableReducer(combinedReducers), {
+        previous: undefined,
+        current: {
+          preferences: {
+            colorCoding: 'by symbol name',
+            sorting: 'call order',
+            view: 'top down',
+          },
+          search: {
+            open: false,
+            index: null,
+            results: null,
+            query: '',
+          },
+        },
+        next: undefined,
+      })
+    );
+
+    reactHooks.act(() =>
+      result.current[1]({type: 'set color coding', payload: 'by library'})
+    );
+    expect(result.current[0].current.preferences.colorCoding).toBe('by library');
+
+    reactHooks.act(() => result.current[1]({type: 'undo'}));
+    expect(result.current[0].current.preferences.colorCoding).toBe('by symbol name');
+
+    reactHooks.act(() => result.current[1]({type: 'redo'}));
+    expect(result.current[0].current.preferences.colorCoding).toBe('by library');
   });
 });
