@@ -202,6 +202,25 @@ const QueryCount = styled('p')`
 
 const DisplayOptionsBar = styled(PageFilterBar)`
   height: auto;
+  position: relative;
+
+  /* box-shadow trick to get an inset border, so the dropdown's border 
+  aligns with the one on the table below */
+  border: none;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
+    /* make sure that the border is on top of the trigger buttons */
+    z-index: ${p => p.theme.zIndex.issuesList.displayOptions + 1};
+  }
+
   button[aria-haspopup='listbox'] {
     font-weight: 600;
   }
