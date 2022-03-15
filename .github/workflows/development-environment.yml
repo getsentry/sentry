@@ -14,18 +14,12 @@ on:
       - 'requirements-*.txt'
 
 jobs:
-  # This workflow is optimized to test the dev env as fast as possible
-  # We can optimize this further by creating a workflow to only test the pyenv set up and here make
-  # use of the provided Python installation
-  # The bootstrap workflow (see after this) tests the experience of first time engineers
-  dev-environment:
-    name: dev docs set up
-    runs-on: ${{ matrix.os }}
+  # This workflow is optimized to test the dev env with dev services as fast as possible
+  # The bootstrap workflow (see last workflow) tests the experience of first time engineers
+  docker-setup:
+    name: Docker set up
+    runs-on: macos-11
     timeout-minutes: 40
-    strategy:
-      matrix:
-        os: [macos-11.0]
-      fail-fast: false
     env:
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
@@ -49,7 +43,7 @@ jobs:
 
       - name: Install missing brew packages
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 pyenv
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1
 
       - name: Install volta
         run: |
@@ -61,21 +55,51 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
-          # We don't want the dev env cache to be messing the Python tests' cache
+          # The dev env cache includes optional packages
           cache-prefix: devenv-
-          cache-file-hash: ${{ hashFiles('**/requirements.txt') }}
-
-      - name: Cache (pyenv)
-        uses: actions/cache@v2
-        with:
-          path: ~/.pyenv
-          key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
+          cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
           key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
+
+      # This tests pre-commit installation,
+      - name: make bootstrap step
+        run: |
+          make bootstrap
+
+  # The pyenv set up takes long, thus, separating it into its own
+  pyenv-setup:
+    name: pyenv set up
+    runs-on: macos-11
+    timeout-minutes: 20
+    env:
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Install pyenv
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
+
+      # This handles Python's cache
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+        with:
+          # The dev env cache includes optional packages
+          cache-prefix: devenv-
+          cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
+
+      - name: Cache (pyenv)
+        uses: actions/cache@v2
+        with:
+          path: ~/.pyenv
+          key: devenv-${{ runner.os }}-pyenv-${{ hashFiles('.python-version') }}
 
       - name: Set up pyenv
         run: |
@@ -85,15 +109,7 @@ jobs:
           [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
-
-      - name: Test pre-commit
-        run: |
-          source .venv/bin/activate
-          pre-commit
-
-      - name: make bootstrap step
-        run: |
-          make bootstrap
+          make install-py-dev
 
 
   # We don't yet test the bootstrap step
