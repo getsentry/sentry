@@ -62,7 +62,7 @@ jobs:
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --detectOpenHandles
+          yarn test-ci tests/js/spec/views/dashboardsV2/widgetBuilder/widgetBuilder.spec.tsx --detectOpenHandles
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
