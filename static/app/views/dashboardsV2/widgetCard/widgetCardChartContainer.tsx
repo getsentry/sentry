@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import {LegendComponentOption} from 'echarts';
 
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -11,7 +12,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
@@ -36,13 +38,19 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   isMobile?: boolean;
+  legendOptions?: LegendComponentOption;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
-function WidgetCardChartContainer({
+export function WidgetCardChartContainer({
   location,
   router,
   api,
@@ -54,6 +62,8 @@ function WidgetCardChartContainer({
   tableItemLimit,
   windowWidth,
   onZoom,
+  onLegendSelectChanged,
+  legendOptions,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -73,11 +83,16 @@ function WidgetCardChartContainer({
       return <LoadingPlaceholder height="200px" />;
     }
 
+    const query = widget.queries[0];
+    const queryFields = defined(query.fields)
+      ? query.fields
+      : [...query.columns, ...query.aggregates];
+
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
-        fields={widget.queries[0].fields}
+        fields={queryFields}
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}
@@ -180,6 +195,8 @@ function WidgetCardChartContainer({
                 isMobile={isMobile}
                 windowWidth={windowWidth}
                 onZoom={onZoom}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={legendOptions}
               />
             </React.Fragment>
           );

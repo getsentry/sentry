@@ -42,6 +42,7 @@ class DashboardWidgetSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
+            "limit": obj.limit,
             # Default to discover type if null
             "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
             or DashboardWidgetTypes.TYPE_NAMES[0],
