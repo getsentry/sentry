@@ -1587,6 +1587,7 @@ class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
     def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
         now = int(time.time())
 
