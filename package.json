@@ -181,7 +181,7 @@
     "size-limit": "^5.0.5",
     "speed-measure-webpack-plugin": "^1.5.0",
     "storybook-dark-mode": "^1.0.8",
-    "stylelint": "14.3.0",
+    "stylelint": "14.5.3",
     "stylelint-config-prettier": "^9.0.3",
     "stylelint-config-recommended": "^6.0.0",
     "tocbot": "^4.13.4",
