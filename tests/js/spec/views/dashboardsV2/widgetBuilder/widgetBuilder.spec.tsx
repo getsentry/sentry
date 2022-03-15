@@ -1362,115 +1362,115 @@ describe('WidgetBuilder', function () {
   });
 
   describe('group by field', function () {
-    // it('does not contain functions as options', async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
-
-    //   await screen.findByText('Group your results');
-
-    //   expect(screen.getByText('Select group')).toBeInTheDocument();
-
-    //   userEvent.click(screen.getByText('Select group'));
-
-    //   // Only one f(x) field set in the y-axis selector
-    //   expect(screen.getByText('f(x)')).toBeInTheDocument();
-    // });
-
-    // it('adds more fields when Add Group is clicked', async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
-
-    //   await screen.findByText('Group your results');
-    //   userEvent.click(screen.getByText('Add Group'));
-    //   expect(await screen.findAllByText('Select group')).toHaveLength(2);
-    // });
-
-    // it('allows adding up to GROUP_BY_LIMIT fields', async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
-
-    //   await screen.findByText('Group your results');
-
-    //   for (let i = 0; i < 19; i++) {
-    //     userEvent.click(screen.getByText('Add Group'));
-    //   }
-
-    //   expect(await screen.findAllByText('Select group')).toHaveLength(20);
-    //   expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
-    // });
-
-    // it('allows deleting groups until there is one left', async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
-
-    //   await screen.findByText('Group your results');
-    //   userEvent.click(screen.getByText('Add Group'));
-    //   expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
-
-    //   userEvent.click(screen.getAllByLabelText('Remove group')[1]);
-    //   expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
-    // });
-
-    it("doesn't reset group by when changing y-axis", async function () {
+    it('does not contain functions as options', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
-      userEvent.click(screen.getByText('count()'));
-      userEvent.click(screen.getByText(/count_unique/));
+      await screen.findByText('Group your results');
 
-      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('Select group')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select group'));
+
+      // Only one f(x) field set in the y-axis selector
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
     });
 
-    it("doesn't erase the selection when switching to another time series", async function () {
+    it('adds more fields when Add Group is clicked', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
-
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Area Chart'));
-
-      expect(screen.getByText('project')).toBeInTheDocument();
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(await screen.findAllByText('Select group')).toHaveLength(2);
     });
 
-    it('sends a top N request when a grouping is selected', async function () {
+    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await screen.findByText('Group your results');
 
-      // TODO: This should change after adding a limit and sorting field
-      expect(eventsStatsMock).toHaveBeenNthCalledWith(
-        2,
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: '',
-            yAxis: ['count()'],
-            field: ['project', 'count()'],
-            topEvents: 5,
-            orderby: 'project',
-          }),
-        })
-      );
+      for (let i = 0; i < 19; i++) {
+        userEvent.click(screen.getByText('Add Group'));
+      }
+
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
+
+    it('allows deleting groups until there is one left', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+
+      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+    });
+
+    // it("doesn't reset group by when changing y-axis", async function () {
+    //   renderTestComponent({
+    //     query: {displayType: 'line'},
+    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    //   });
+
+    //   userEvent.click(await screen.findByText('Group your results'));
+    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
+    //   userEvent.click(screen.getByText('count()'));
+    //   userEvent.click(screen.getByText(/count_unique/));
+
+    //   expect(screen.getByText('project')).toBeInTheDocument();
+    // });
+
+    // it("doesn't erase the selection when switching to another time series", async function () {
+    //   renderTestComponent({
+    //     query: {displayType: 'line'},
+    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    //   });
+
+    //   userEvent.click(await screen.findByText('Group your results'));
+    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+    //   userEvent.click(screen.getByText('Line Chart'));
+    //   userEvent.click(screen.getByText('Area Chart'));
+
+    //   expect(screen.getByText('project')).toBeInTheDocument();
+    // });
+
+    // it('sends a top N request when a grouping is selected', async function () {
+    //   renderTestComponent({
+    //     query: {displayType: 'line'},
+    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    //   });
+
+    //   userEvent.click(await screen.findByText('Group your results'));
+    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+    //   // TODO: This should change after adding a limit and sorting field
+    //   expect(eventsStatsMock).toHaveBeenNthCalledWith(
+    //     2,
+    //     '/organizations/org-slug/events-stats/',
+    //     expect.objectContaining({
+    //       query: expect.objectContaining({
+    //         query: '',
+    //         yAxis: ['count()'],
+    //         field: ['project', 'count()'],
+    //         topEvents: 5,
+    //         orderby: 'project',
+    //       }),
+    //     })
+    //   );
+    // });
   });
 });
