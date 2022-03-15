@@ -43,6 +43,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()', 'failure_count()'],
+      aggregates: ['count()', 'failure_count()'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -143,6 +145,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   it('links user to the query in discover with additional field when a world map query is selected from the modal', async function () {
     mockWidget.queries[0].fields = ['count()'];
+    mockWidget.queries[0].aggregates = ['count()'];
     mockWidget.displayType = DisplayType.WORLD_MAP;
     const wrapper = mountModal({initialData, widget: mockWidget});
     await tick();

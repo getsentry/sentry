@@ -127,6 +127,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
+
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
@@ -329,7 +330,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       ...legendOptions,
     };
 
-    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
+    const axisField = widget.queries[0]?.aggregates?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
     const chartOptions = {
       autoHeightResize,
