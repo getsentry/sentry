@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: api docs test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         python-version: [3.8.12]

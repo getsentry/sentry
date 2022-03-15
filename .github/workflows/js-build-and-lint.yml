@@ -11,7 +11,7 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
 
@@ -116,7 +116,7 @@ jobs:
           yarn storybook-build
 
   webpack:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
 

@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: plugins test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 10
     strategy:
       matrix:

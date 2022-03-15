@@ -16,7 +16,7 @@ on:
 jobs:
   frontend:
     name: frontend tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 20
     strategy:
       matrix:
@@ -88,7 +88,7 @@ jobs:
 
   webpack:
     name: create frontend bundle
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 10
     outputs:
       dist-path: ${{ steps.config.outputs.dist-path }}
@@ -145,7 +145,7 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 20
     strategy:
       matrix:
@@ -208,7 +208,7 @@ jobs:
 
   chartcuterie:
     name: chartcuterie integration
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 30
     strategy:
       matrix:
