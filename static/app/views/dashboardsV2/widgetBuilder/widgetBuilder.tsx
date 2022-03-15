@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -269,13 +269,21 @@ function WidgetBuilder({
     };
   });
 
-  const [blurTimeout] = useState<null | number>(null);
+  const blurTimeout = useRef<null | number>(null);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
   }, [source]);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeout.current) {
+        window.clearTimeout(blurTimeout.current);
+      }
+    };
+  }, []);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -961,6 +969,9 @@ function WidgetBuilder({
                                   //     setBlurTimeout(null);
                                   //   }, 200)
                                   // );
+                                  blurTimeout.current = window.setTimeout(() => {
+                                    blurTimeout.current = null;
+                                  }, 200);
 
                                   const newQuery: WidgetQuery = {
                                     ...state.queries[queryIndex],
@@ -969,7 +980,7 @@ function WidgetBuilder({
                                   handleQueryChange(queryIndex, newQuery);
                                 }}
                                 onBlur={field => {
-                                  if (!blurTimeout) {
+                                  if (!blurTimeout.current) {
                                     const newQuery: WidgetQuery = {
                                       ...state.queries[queryIndex],
                                       conditions: field,
