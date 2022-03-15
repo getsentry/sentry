@@ -282,6 +282,7 @@ function WidgetBuilder({
       if (blurTimeout.current) {
         window.clearTimeout(blurTimeout.current);
       }
+      api.clear();
     };
   }, []);
 
