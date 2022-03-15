@@ -83,7 +83,7 @@ export class RenderField extends Component<RenderProps, State> {
       mappedDropdownItems.map(item => [item.value, item])
     );
 
-    // build sets of values used so we don't let the user select them twice
+    // prevent a single mapped item from being associated with multiple Sentry projects
     const mappedValuesUsed = new Set(existingValues.map(tuple => tuple[1]));
 
     const projectOptions = sentryProjects.map(({slug, id}) => ({label: slug, value: id}));
