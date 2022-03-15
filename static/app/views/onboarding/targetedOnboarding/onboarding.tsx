@@ -27,9 +27,7 @@ export default function Onboarding() {
       <SentryDocumentTitle title={t('Welcome')} />
       <Header>
         <LogoSvg />
-        <HeaderRight>
-          <Hook name="onboarding:targeted-onboarding-header" />
-        </HeaderRight>
+        <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container>
         <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
@@ -75,10 +73,4 @@ const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
-`;
-const HeaderRight = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${space(1)};
 `;
