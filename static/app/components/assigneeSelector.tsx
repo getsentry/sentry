@@ -215,6 +215,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
     const {size} = this.props;
+    const sessionUser = ConfigStore.get('user');
 
     return {
       value: {type: 'member', assignee: member},
@@ -229,7 +230,9 @@ class AssigneeSelector extends React.Component<Props, State> {
             <UserAvatar user={member} size={size} />
           </IconContainer>
           <Label>
-            <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            <Highlight text={inputValue}>
+              {sessionUser.id === member.id ? t('Me') : member.name || member.email}
+            </Highlight>
             {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
@@ -301,9 +304,21 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
+    const sessionUser =
+      members.find(member => member.value.assignee.id === ConfigStore.get('user').id) ??
+      [];
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
+
+    // filter out session user from Suggested
+    const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
+      assignee => {
+        return assignee.value.type === 'member'
+          ? assignee.value.assignee.id !== sessionUser.value.assignee.id
+          : assignee;
+      }
+    );
     const assigneeIds = new Set(
-      suggestedAssignees.map(
+      filteredSuggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
       )
     );
@@ -312,7 +327,10 @@ class AssigneeSelector extends React.Component<Props, State> {
       return !assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`);
     });
     const filteredMembers: ItemsBeforeFilter = members.filter(member => {
-      return !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`);
+      return (
+        !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`) &&
+        member.value.assignee.id !== sessionUser.value.assignee.id
+      );
     });
 
     const dropdownItems: ItemsBeforeFilter = [
@@ -332,9 +350,15 @@ class AssigneeSelector extends React.Component<Props, State> {
       dropdownItems.unshift({
         label: this.renderDropdownGroupLabel(t('Suggested')),
         id: 'suggested-header',
-        items: suggestedAssignees,
+        items: filteredSuggestedAssignees,
       });
     }
+
+    dropdownItems.unshift({
+      hideGroupLabel: true,
+      id: 'sessionUser-header',
+      items: [sessionUser],
+    });
 
     return dropdownItems;
   }
