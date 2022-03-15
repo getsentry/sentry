@@ -268,17 +268,11 @@ def check_only_one_of_each_element(instance):
                 raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
 
 
-def validate_ui_element_schema(instance, features=None):
-    features = features or {}
-    available_element_types = (
-        ["issue-link", "issue-media", "stacktrace-link"]
-        if not features.get("organizations:alert-rule-ui-component", False)
-        else ELEMENT_TYPES
-    )
+def validate_ui_element_schema(instance):
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
-        check_each_element_for_error(instance, element_types=available_element_types)
+        check_each_element_for_error(instance, element_types=ELEMENT_TYPES)
         check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e

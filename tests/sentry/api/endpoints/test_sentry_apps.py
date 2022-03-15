@@ -441,7 +441,6 @@ class PostSentryAppsTest(SentryAppsTest):
             ]
         }
 
-    @with_feature("organizations:alert-rule-ui-component")
     def test_create_alert_rule_action_with_feature_flag(self):
         expected = {**EXPECTED, "schema": {"elements": [self.create_alert_rule_action_schema()]}}
 
@@ -450,7 +449,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert expected.items() <= json.loads(response.content).items()
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:alert-rule-ui-component")
     def test_wrong_schema_format(self, record):
         kwargs = {
             "schema": {
