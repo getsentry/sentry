@@ -430,6 +430,48 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Worst LCP widget - MEP', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
+        isMEPEnabled
+      />
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Worst LCP Web Vitals'
+    );
+    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_web_vitals(measurements.lcp, poor)',
+            'count_web_vitals(measurements.lcp, meh)',
+            'count_web_vitals(measurements.lcp, good)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_web_vitals(measurements.lcp, poor)',
+          statsPeriod: '7d',
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+  });
+
   it('Worst FCP widget', async function () {
     const data = initializeData();
 
@@ -735,6 +777,44 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
+        }),
+      })
+    );
+
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
+  });
+
+  it('Most slow frames widget - MEP', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+        isMEPEnabled
+      />
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Slow Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
+          noPagination: true,
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          sort: '-avg(measurements.frames_slow)',
+          statsPeriod: '7d',
+          metricsEnhanced: '1',
         }),
       })
     );
