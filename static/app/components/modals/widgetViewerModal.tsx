@@ -9,6 +9,7 @@ import moment from 'moment';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
@@ -423,6 +424,7 @@ function WidgetViewerModal(props: Props) {
         <Tooltip title={widget.title} showOnlyOnOverflow>
           <WidgetTitle>{widget.title}</WidgetTitle>
         </Tooltip>
+        <FeatureBadge type="beta" />
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
@@ -455,6 +457,7 @@ export const modalCss = css`
 const headerCss = css`
   margin: -${space(4)} -${space(4)} 0px -${space(4)};
   line-height: normal;
+  display: flex;
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
@@ -471,7 +474,8 @@ const Container = styled('div')`
 `;
 
 const TextContainer = styled('div')`
-  padding-bottom: ${space(1.5)};
+  padding: ${space(2)} 0 ${space(1.5)} 0;
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledSelectControl = styled(SelectControl)`
