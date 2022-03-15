@@ -1435,58 +1435,58 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
     });
 
-    // it("doesn't reset group by when changing y-axis", async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
+    it("doesn't reset group by when changing y-axis", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
-    //   userEvent.click(await screen.findByText('Group your results'));
-    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
-    //   userEvent.click(screen.getByText('count()'));
-    //   userEvent.click(screen.getByText(/count_unique/));
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      userEvent.click(screen.getByText('count()'));
+      userEvent.click(screen.getByText(/count_unique/));
 
-    //   expect(screen.getByText('project')).toBeInTheDocument();
-    // });
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
 
-    // it("doesn't erase the selection when switching to another time series", async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
+    it("doesn't erase the selection when switching to another time series", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
-    //   userEvent.click(await screen.findByText('Group your results'));
-    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
-    //   userEvent.click(screen.getByText('Line Chart'));
-    //   userEvent.click(screen.getByText('Area Chart'));
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Area Chart'));
 
-    //   expect(screen.getByText('project')).toBeInTheDocument();
-    // });
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
 
-    // it('sends a top N request when a grouping is selected', async function () {
-    //   renderTestComponent({
-    //     query: {displayType: 'line'},
-    //     orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-    //   });
+    it('sends a top N request when a grouping is selected', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
-    //   userEvent.click(await screen.findByText('Group your results'));
-    //   userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
-    //   // TODO: This should change after adding a limit and sorting field
-    //   expect(eventsStatsMock).toHaveBeenNthCalledWith(
-    //     2,
-    //     '/organizations/org-slug/events-stats/',
-    //     expect.objectContaining({
-    //       query: expect.objectContaining({
-    //         query: '',
-    //         yAxis: ['count()'],
-    //         field: ['project', 'count()'],
-    //         topEvents: TOP_N,
-    //         orderby: 'project',
-    //       }),
-    //     })
-    //   );
-    // });
+      // TODO: This should change after adding a limit and sorting field
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: 5,
+            orderby: 'project',
+          }),
+        })
+      );
+    });
   });
 });
