@@ -21,7 +21,7 @@ HttpMethodName = str
 RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
 # This default value is going to shrink over time
-_SENTRY_RATELIMITER_DEFAULT = 570
+_SENTRY_RATELIMITER_DEFAULT = 520
 
 
 _SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
