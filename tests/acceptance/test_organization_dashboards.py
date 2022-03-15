@@ -773,7 +773,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 1}},
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
         with self.feature(
             FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
         ):
@@ -821,7 +823,9 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 3, "minH": 2}},
         )
-        DashboardWidgetQuery.objects.create(widget=existing_widget, fields=["count()"], order=0)
+        DashboardWidgetQuery.objects.create(
+            widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
+        )
         with self.feature(
             FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
         ):
