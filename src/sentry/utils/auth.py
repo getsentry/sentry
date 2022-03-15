@@ -372,5 +372,5 @@ class EmailAuthBackend(ModelBackend):
 
 def make_login_link_with_redirect(path, redirect):
     query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
-    redirect_uri = f"{path}?{(query_string)}"
+    redirect_uri = f"{path}?{query_string}"
     return redirect_uri
