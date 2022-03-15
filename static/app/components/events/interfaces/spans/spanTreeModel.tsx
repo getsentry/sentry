@@ -239,12 +239,12 @@ class SpanTreeModel {
       // we will need to reconstruct the tree depth information. This is only neccessary
       // when the span group chain is hidden/collapsed.
       if (spanGrouping.length === 1) {
-        const treeDepthEntryFoo = isOrphanSpan(spanGrouping[0].span)
+        const treeDepthEntry = isOrphanSpan(spanGrouping[0].span)
           ? ({type: 'orphan', depth: spanGrouping[0].treeDepth} as OrphanTreeDepth)
           : spanGrouping[0].treeDepth;
 
         if (!spanGrouping[0].isLastSibling) {
-          continuingTreeDepths = [...continuingTreeDepths, treeDepthEntryFoo];
+          continuingTreeDepths = [...continuingTreeDepths, treeDepthEntry];
         }
       }
     }
