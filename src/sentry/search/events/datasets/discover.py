@@ -10,9 +10,8 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, ProjectTeam, Release, SemverFilter
+from sentry.models import Environment, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
@@ -20,6 +19,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
+from sentry.search.events import field_aliases, filter_aliases
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
@@ -35,6 +35,8 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
+    MISERY_ALPHA,
+    MISERY_BETA,
     NON_FAILURE_STATUS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
@@ -58,7 +60,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
-    MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     ColumnArg,
     ColumnTagArg,
     ConditionArg,
@@ -198,8 +199,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     # for an intuitive explanation of the Beta Distribution Function.
                     optional_args=[
                         NullableNumberRange("satisfaction", 0, None),
-                        with_default(5.8875, NumberRange("alpha", 0, None)),
-                        with_default(111.8625, NumberRange("beta", 0, None)),
+                        with_default(MISERY_ALPHA, NumberRange("alpha", 0, None)),
+                        with_default(MISERY_BETA, NumberRange("beta", 0, None)),
                     ],
                     calculated_args=[
                         {
@@ -898,47 +899,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
-        team_ids = self.builder.params.get("team_id")
-
-        if org_id is None or team_ids is None or project_ids is None:
-            raise TypeError("Team key transactions parameters cannot be None")
-
-        team_key_transactions = list(
-            TeamKeyTransaction.objects.filter(
-                organization_id=org_id,
-                project_team__in=ProjectTeam.objects.filter(
-                    project_id__in=project_ids, team_id__in=team_ids
-                ),
-            )
-            .order_by("transaction", "project_team__project_id")
-            .values_list("project_team__project_id", "transaction")
-            .distinct("transaction", "project_team__project_id")[
-                :MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
-            ]
-        )
-
-        count = len(team_key_transactions)
-
-        # NOTE: this raw count is not 100% accurate because if it exceeds
-        # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
-        sentry_sdk.set_tag("team_key_txns.count", count)
-        sentry_sdk.set_tag(
-            "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
-        )
-
-        if count == 0:
-            return Function("toInt8", [0], TEAM_KEY_TRANSACTION_ALIAS)
-
-        return Function(
-            "in",
-            [
-                (self.builder.column("project_id"), self.builder.column("transaction")),
-                team_key_transactions,
-            ],
-            TEAM_KEY_TRANSACTION_ALIAS,
-        )
+        return field_aliases.resolve_team_key_transaction_alias(self.builder)
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
@@ -1266,21 +1227,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        value = search_filter.value.value
-        key_transaction_expr = self.builder.resolve_field_alias(TEAM_KEY_TRANSACTION_ALIAS)
-
-        if search_filter.value.raw_value == "":
-            return Condition(
-                key_transaction_expr, Op.NEQ if search_filter.operator == "!=" else Op.EQ, 0
-            )
-        if value in ("1", 1):
-            return Condition(key_transaction_expr, Op.EQ, 1)
-        if value in ("0", 0):
-            return Condition(key_transaction_expr, Op.EQ, 0)
-
-        raise InvalidSearchQuery(
-            "Invalid value for key_transaction condition. Accepted values are 1, 0"
-        )
+        return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """
