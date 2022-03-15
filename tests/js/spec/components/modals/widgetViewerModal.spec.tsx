@@ -707,5 +707,29 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
+
+    it('displays with correct table column widths', function () {
+      initialData.router.location.query = {width: ['-1', '-1', '575']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(screen.getByTestId('grid-editable')).toHaveStyle({
+        'grid-template-columns':
+          ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
+      });
+    });
   });
 });
