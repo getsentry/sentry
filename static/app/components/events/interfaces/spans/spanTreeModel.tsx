@@ -40,6 +40,8 @@ class SpanTreeModel {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
+  // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
+  // On initial render, they're visually grouped together.
   showNestedSpanGroup: boolean = false;
 
   constructor(
