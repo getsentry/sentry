@@ -213,6 +213,8 @@ def devserver(
     if ingest in (True, False):
         settings.SENTRY_USE_RELAY = ingest
 
+    os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
+
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
