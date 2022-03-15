@@ -398,8 +398,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to update.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
-        :param string team: the slug of new team for the project. Note, will be deprecated
-                            soon when multiple teams can have access to a project.
         :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
