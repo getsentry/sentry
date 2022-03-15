@@ -35,7 +35,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/compression-webpack-plugin": "^6.0.5",
     "@types/diff": "5.0.1",
-    "@types/dompurify": "^2.2.3",
+    "@types/dompurify": "^2.3.3",
     "@types/enzyme": "^3.10.10",
     "@types/jest": "^27.4.1",
     "@types/js-cookie": "^2.2.7",
