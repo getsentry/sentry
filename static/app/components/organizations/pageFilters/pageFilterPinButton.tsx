@@ -24,7 +24,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
   };
 
   return (
-    <Tooltip title="Apply filter across all pages" delay={1000}>
+    <Tooltip title="Apply filter across all pages">
       <PinButton
         className={className}
         aria-pressed={pinned}
