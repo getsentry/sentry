@@ -1,11 +1,11 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProgressBar from 'sentry/components/progressBar';
 
 describe('ProgressBar', function () {
   it('basic', function () {
     const progressBarValue = 50;
-    const {container} = mountWithTheme(<ProgressBar value={progressBarValue} />);
+    const {container} = render(<ProgressBar value={progressBarValue} />);
     expect(container).toSnapshot();
 
     const elementProperties = screen.getByRole('progressbar');

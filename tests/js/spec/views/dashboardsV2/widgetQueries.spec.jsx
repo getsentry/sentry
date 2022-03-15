@@ -14,21 +14,49 @@ describe('Dashboards > WidgetQueries', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'default',
+      },
     ],
   };
   const singleQueryWidget = {
     title: 'Errors',
     interval: '5m',
     displayType: 'line',
-    queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'errors'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'errors',
+      },
+    ],
   };
   const tableWidget = {
     title: 'SDK',
     interval: '5m',
     displayType: 'table',
-    queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+    queries: [
+      {
+        conditions: 'event.type:error',
+        fields: ['sdk.name'],
+        aggregates: [],
+        columns: ['sdk.name'],
+        name: 'sdk',
+      },
+    ],
   };
   const selection = {
     projects: [1],
@@ -258,8 +286,20 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['title'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 
@@ -308,7 +348,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'big_number',
-          queries: [{conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['sdk.name'],
+              aggregates: [],
+              columns: ['sdk.name'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -362,7 +410,15 @@ describe('Dashboards > WidgetQueries', function () {
           title: 'SDK',
           interval: '5m',
           displayType: 'world_map',
-          queries: [{conditions: 'event.type:error', fields: ['count()'], name: 'sdk'}],
+          queries: [
+            {
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: [],
+              columns: ['count()'],
+              name: 'sdk',
+            },
+          ],
         }}
         organization={initialData.organization}
         selection={selection}
@@ -420,8 +476,20 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
       displayType: 'table',
       queries: [
-        {conditions: 'event.type:error', fields: ['sdk.name'], name: 'sdk'},
-        {conditions: 'title:ValueError', fields: ['title'], name: 'title'},
+        {
+          conditions: 'event.type:error',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'sdk',
+        },
+        {
+          conditions: 'title:ValueError',
+          fields: ['sdk.name'],
+          aggregates: [],
+          columns: ['sdk.name'],
+          name: 'title',
+        },
       ],
     };
 

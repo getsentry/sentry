@@ -323,14 +323,14 @@ class QueryField extends React.Component<Props> {
     const {fieldValue} = this.props;
     let {fieldOptions} = this.props;
 
-    if (fieldValue.kind === 'function') {
+    if (fieldValue?.kind === 'function') {
       const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
       }
     }
 
-    if (fieldValue.kind === 'field') {
+    if (fieldValue?.kind === 'field') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
@@ -341,7 +341,7 @@ class QueryField extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      fieldValue.kind === FieldValueKind.FUNCTION
+      fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
@@ -582,7 +582,7 @@ class QueryField extends React.Component<Props> {
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
-    if (fieldValue.kind === FieldValueKind.EQUATION) {
+    if (fieldValue?.kind === FieldValueKind.EQUATION) {
       return (
         <Container
           className={className}

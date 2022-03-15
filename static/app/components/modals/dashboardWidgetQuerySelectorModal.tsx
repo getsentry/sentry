@@ -45,7 +45,9 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
       // Pull a max of 3 valid Y-Axis from the widget
       const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
       discoverLocation.query.yAxis = [
-        ...new Set(query.fields.filter(field => yAxisOptions.includes(field))),
+        ...new Set(
+          query.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+        ),
       ].slice(0, 3);
       switch (widget.displayType) {
         case DisplayType.BAR:

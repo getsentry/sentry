@@ -1,11 +1,6 @@
 import moment from 'moment';
 
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -63,7 +58,7 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
       {organization: TestStubs.Organization()}
     );
@@ -98,10 +93,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -124,10 +118,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     await waitFor(() =>
       expect(
@@ -152,10 +145,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -178,10 +170,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     await waitFor(() =>
       expect(
@@ -204,10 +195,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -227,10 +217,9 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    mountWithTheme(
-      <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />,
-      {organization: TestStubs.Organization()}
-    );
+    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} selection={filters} />, {
+      organization: TestStubs.Organization(),
+    });
 
     userEvent.click(await screen.findByText(/Remind me later/));
 

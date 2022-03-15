@@ -1,16 +1,16 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NotAvailable from 'sentry/components/notAvailable';
 
 describe('NotAvailable', function () {
   it('renders', function () {
-    mountWithTheme(<NotAvailable />);
+    render(<NotAvailable />);
     expect(screen.getByText('\u2014')).toBeInTheDocument();
   });
 
   it('renders with tooltip', function () {
     jest.useFakeTimers();
-    mountWithTheme(<NotAvailable tooltip="Tooltip text" />);
+    render(<NotAvailable tooltip="Tooltip text" />);
     expect(screen.getByText('\u2014')).toBeInTheDocument();
     expect(screen.queryByText('Tooltip text')).not.toBeInTheDocument();
 
