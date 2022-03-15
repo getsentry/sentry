@@ -6,9 +6,10 @@ from unittest import mock
 from unittest.mock import patch
 
 from django.urls import reverse
+from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import ApiToken
+from sentry.models import ApiToken, timedelta
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
@@ -922,7 +923,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 "count_unique(sentry.transactions.user)": [users],
             }
 
-    @freeze_time("2018-12-11 03:21:34")
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=34))
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1194,7 +1195,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         "sentry.api.endpoints.organization_metrics.OrganizationMetricsDataEndpoint.default_per_page",
         1,
     )
-    @freeze_time("2021-12-11 03:21:30")
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=30))
     def test_no_limit_with_series(self):
         """Pagination args do not apply to series"""
         indexer.record("session.status")
@@ -1293,14 +1294,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
 
-    @freeze_time("2021-12-11 03:21:30")
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage_with_orderby(self):
+        ts = time.time()
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(time.time() // 60 - minute) * 60,
+                        started=(ts // 60 - minute) * 60,
                         status=status,
                         release="foobar@1.0",
                     )
@@ -1309,7 +1311,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(ts // 60 - minute) * 60,
                     status="ok",
                     release="foobar@2.0",
                 )
