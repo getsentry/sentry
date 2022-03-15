@@ -112,18 +112,11 @@ jobs:
       SHELL: /bin/zsh
 
     steps:
-      - name: foo
-        env:
-          # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.ref }}
-        run: |
-          env | sort
-
       - name: Run bootstrap code
         env:
           STRAP_DEBUG: 1
           # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.ref }}
+          CI_CHECKOUT_BRANCH: ${{ github.head_ref }}
         # XXX: temp url
         run: |
           bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/armenzg/ci/support-different-branch-testing/bootstrap.sh)
