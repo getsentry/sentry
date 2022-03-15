@@ -1,12 +1,12 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {combineReducers, useCombinedReducer} from 'sentry/utils/useCombinedReducer';
+import {makeCombinedReducers, useCombinedReducer} from 'sentry/utils/useCombinedReducer';
 
-describe('combineReducers', () => {
+describe('makeCombinedReducers', () => {
   it('calls reducer only with subset of state', () => {
     const mockFirstReducer = jest.fn();
 
-    const reducer = combineReducers({first: mockFirstReducer, second: jest.fn()});
+    const reducer = makeCombinedReducers({first: mockFirstReducer, second: jest.fn()});
     reducer({first: 'first', second: ''}, 'action');
 
     expect(mockFirstReducer).toHaveBeenCalledWith('first', 'action');
@@ -16,7 +16,10 @@ describe('combineReducers', () => {
     const mockFirstReducer = jest.fn();
     const mockSecondReducer = jest.fn();
 
-    const reducer = combineReducers({first: mockFirstReducer, second: mockSecondReducer});
+    const reducer = makeCombinedReducers({
+      first: mockFirstReducer,
+      second: mockSecondReducer,
+    });
     reducer({first: 'first', second: 'second'}, 'action');
 
     expect(mockFirstReducer).toHaveBeenCalledWith('first', 'action');
