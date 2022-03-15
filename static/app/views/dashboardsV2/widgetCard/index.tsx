@@ -56,18 +56,31 @@ type Props = WithRouterProps & {
   windowWidth?: number;
 };
 
-class WidgetCard extends React.Component<Props> {
-  renderToolbar() {
-    const {
-      onEdit,
-      onDelete,
-      onDuplicate,
-      draggableProps,
-      hideToolbar,
-      isEditing,
-      isMobile,
-    } = this.props;
-
+function WidgetCard({
+  api,
+  organization,
+  selection,
+  widget,
+  isMobile,
+  renderErrorMessage,
+  tableItemLimit,
+  windowWidth,
+  noLazyLoad,
+  location,
+  showWidgetViewerButton,
+  router,
+  isEditing,
+  index,
+  widgetLimitReached,
+  isPreview,
+  showContextMenu,
+  draggableProps,
+  hideToolbar,
+  onDelete,
+  onEdit,
+  onDuplicate,
+}: Props) {
+  function renderToolbar() {
     if (!isEditing) {
       return null;
     }
@@ -99,20 +112,7 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  renderContextMenu() {
-    const {
-      widget,
-      selection,
-      organization,
-      showContextMenu,
-      isPreview,
-      widgetLimitReached,
-      onEdit,
-      onDuplicate,
-      onDelete,
-      isEditing,
-    } = this.props;
-
+  function renderContextMenu() {
     if (isEditing) {
       return null;
     }
@@ -132,54 +132,50 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {
-      api,
-      organization,
-      selection,
-      widget,
-      isMobile,
-      renderErrorMessage,
-      tableItemLimit,
-      windowWidth,
-      noLazyLoad,
-      location,
-      showWidgetViewerButton,
-      router,
-      isEditing,
-      index,
-    } = this.props;
-    const id = widget.id ?? index;
-    return (
-      <ErrorBoundary
-        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
-        <StyledPanel isDragging={false}>
-          <WidgetHeader>
-            <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
-              <WidgetTitle>{widget.title}</WidgetTitle>
-            </Tooltip>
-            {showWidgetViewerButton && !isEditing && id && (
-              <OpenWidgetViewerButton
-                aria-label={t('Open Widget Viewer')}
-                priority="link"
-                size="zero"
-                icon={<IconExpand size="xs" />}
-                onClick={() => {
-                  if (!isWidgetViewerPath(location.pathname)) {
-                    router.push({
-                      pathname: `${location.pathname}${
-                        location.pathname.endsWith('/') ? '' : '/'
-                      }widget/${id}/`,
-                      query: location.query,
-                    });
-                  }
-                }}
-              />
-            )}
-            {this.renderContextMenu()}
-          </WidgetHeader>
-          {noLazyLoad ? (
+  const id = widget.id ?? index;
+
+  return (
+    <ErrorBoundary
+      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+    >
+      <StyledPanel isDragging={false}>
+        <WidgetHeader>
+          <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
+            <WidgetTitle>{widget.title}</WidgetTitle>
+          </Tooltip>
+          {showWidgetViewerButton && !isEditing && id && (
+            <OpenWidgetViewerButton
+              aria-label={t('Open Widget Viewer')}
+              priority="link"
+              size="zero"
+              icon={<IconExpand size="xs" />}
+              onClick={() => {
+                if (!isWidgetViewerPath(location.pathname)) {
+                  router.push({
+                    pathname: `${location.pathname}${
+                      location.pathname.endsWith('/') ? '' : '/'
+                    }widget/${id}/`,
+                    query: location.query,
+                  });
+                }
+              }}
+            />
+          )}
+          {renderContextMenu()}
+        </WidgetHeader>
+        {noLazyLoad ? (
+          <WidgetCardChartContainer
+            api={api}
+            organization={organization}
+            selection={selection}
+            widget={widget}
+            isMobile={isMobile}
+            renderErrorMessage={renderErrorMessage}
+            tableItemLimit={tableItemLimit}
+            windowWidth={windowWidth}
+          />
+        ) : (
+          <LazyLoad once resize height={200}>
             <WidgetCardChartContainer
               api={api}
               organization={organization}
@@ -190,25 +186,12 @@ class WidgetCard extends React.Component<Props> {
               tableItemLimit={tableItemLimit}
               windowWidth={windowWidth}
             />
-          ) : (
-            <LazyLoad once resize height={200}>
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-              />
-            </LazyLoad>
-          )}
-          {this.renderToolbar()}
-        </StyledPanel>
-      </ErrorBoundary>
-    );
-  }
+          </LazyLoad>
+        )}
+        {renderToolbar()}
+      </StyledPanel>
+    </ErrorBoundary>
+  );
 }
 
 export default withApi(withOrganization(withPageFilters(withRouter(WidgetCard))));

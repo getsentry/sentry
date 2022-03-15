@@ -11,7 +11,7 @@ import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineChart from 'sentry/components/charts/lineChart';
 import {getInterval, processTableResults} from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';

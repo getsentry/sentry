@@ -24,7 +24,7 @@ import {
   processTableResults,
   RELEASE_LINES_THRESHOLD,
 } from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';

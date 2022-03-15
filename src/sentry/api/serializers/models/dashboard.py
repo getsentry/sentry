@@ -59,6 +59,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "fields": obj.fields,
             "aggregates": obj.aggregates,
             "columns": obj.columns,
+            "limit": obj.limit,
             "conditions": str(obj.conditions),
             "orderby": str(obj.orderby),
             "widgetId": str(obj.widget_id),

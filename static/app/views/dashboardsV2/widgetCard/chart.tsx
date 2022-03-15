@@ -16,7 +16,7 @@ import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
@@ -331,6 +331,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
+
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -437,6 +438,7 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+
 const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
