@@ -52,7 +52,6 @@ default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:alert-filters", OrganizationFeature)
-default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature, True)
 default_manager.add("organizations:alert-rule-status-page", OrganizationFeature, True)
 default_manager.add("organizations:alert-wizard-v3", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)

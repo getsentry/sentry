@@ -76,9 +76,7 @@ class TestSchemaValidation(TestCase):
         }
 
     def test_valid_schema_with_options(self):
-        validate_ui_element_schema(
-            self.schema, features={"organizations:alert-rule-ui-component": True}
-        )
+        validate_ui_element_schema(self.schema)
 
     @invalid_schema_with_error_message("'elements' is a required property")
     def test_invalid_schema_elements_missing(self):
@@ -96,7 +94,7 @@ class TestSchemaValidation(TestCase):
         validate_ui_element_schema(schema)
 
     @invalid_schema_with_error_message(
-        "Element has type 'other'. Type must be one of the following: ['issue-link', 'issue-media', 'stacktrace-link']"
+        "Element has type 'other'. Type must be one of the following: ['issue-link', 'alert-rule-action', 'issue-media', 'stacktrace-link']"
     )
     def test_invalid_schema_type_invalid(self):
         schema = {"elements": [{"type": "other"}]}
@@ -145,7 +143,7 @@ class TestSchemaValidation(TestCase):
                 }
             ]
         }
-        validate_ui_element_schema(schema, features={"organizations:alert-rule-ui-component": True})
+        validate_ui_element_schema(schema)
 
     @invalid_schema_with_error_message(
         "Elements of type ['text', 'textarea'] may only have a default value of the following: ['issue.title', 'issue.description'], but issue.someone was found."
@@ -171,4 +169,4 @@ class TestSchemaValidation(TestCase):
                 }
             ]
         }
-        validate_ui_element_schema(schema, features={"organizations:alert-rule-ui-component": True})
+        validate_ui_element_schema(schema)

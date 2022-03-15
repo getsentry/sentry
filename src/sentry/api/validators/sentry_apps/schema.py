@@ -218,9 +218,7 @@ def check_elements_is_array(instance):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
-def check_each_element_for_error(instance, element_types=None):
-    element_types = element_types or ELEMENT_TYPES
-
+def check_each_element_for_error(instance):
     if "elements" not in instance:
         return
 
@@ -228,9 +226,9 @@ def check_each_element_for_error(instance, element_types=None):
         if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
         found_type = element["type"]
-        if found_type not in element_types:
+        if found_type not in ELEMENT_TYPES:
             raise SchemaValidationError(
-                f"Element has type '{found_type}'. Type must be one of the following: {element_types}"
+                f"Element has type '{found_type}'. Type must be one of the following: {ELEMENT_TYPES}"
             )
         validate_text_component_defaults(element, found_type)
         try:
@@ -268,17 +266,11 @@ def check_only_one_of_each_element(instance):
                 raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
 
 
-def validate_ui_element_schema(instance, features=None):
-    features = features or {}
-    available_element_types = (
-        ["issue-link", "issue-media", "stacktrace-link"]
-        if not features.get("organizations:alert-rule-ui-component", False)
-        else ELEMENT_TYPES
-    )
+def validate_ui_element_schema(instance):
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
-        check_each_element_for_error(instance, element_types=available_element_types)
+        check_each_element_for_error(instance)
         check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e

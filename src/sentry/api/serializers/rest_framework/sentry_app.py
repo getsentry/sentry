@@ -52,7 +52,7 @@ class SchemaField(serializers.Field):
             return {}
 
         try:
-            validate_ui_element_schema(data, self.context["features"])
+            validate_ui_element_schema(data)
         except SchemaValidationError as e:
             raise ValidationError(e.message)  # noqa: B306
 
