@@ -371,6 +371,9 @@ class EmailAuthBackend(ModelBackend):
 
 
 def make_login_link_with_redirect(path, redirect):
+    if not is_valid_redirect(redirect):
+        return path
+
     query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
     redirect_uri = f"{path}?{query_string}"
     return redirect_uri
