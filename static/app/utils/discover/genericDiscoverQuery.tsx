@@ -45,6 +45,10 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   /**
+   * Extra query parameters to be added.
+   */
+  queryExtras?: Record<string, string>;
+  /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
    * on the OrganizationEventsV2Endpoint view.
    */
@@ -154,6 +158,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     if (referrer) {
       payload.referrer = referrer;
     }
+
+    Object.assign(payload, props.queryExtras ?? {});
 
     return payload;
   }
