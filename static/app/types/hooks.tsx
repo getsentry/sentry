@@ -196,6 +196,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': GenericComponentHook;
 };
 
 /**
