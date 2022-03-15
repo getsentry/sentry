@@ -9,7 +9,6 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   explodeField,
@@ -78,9 +77,9 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
 
   render() {
     const {organization, error, query, tags, fieldOptions, onChange} = this.props;
-    const explodedFields = defined(query.fields)
-      ? query.fields.map(field => explodeField({field}))
-      : [...query.columns, ...query.aggregates].map(field => explodeField({field}));
+    const explodedFields = (query.fields ?? [...query.columns, ...query.aggregates]).map(
+      field => explodeField({field})
+    );
     const {blurTimeout} = this.state;
 
     return (

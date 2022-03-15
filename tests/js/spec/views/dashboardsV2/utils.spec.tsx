@@ -27,7 +27,7 @@ describe('Dashboards util', () => {
         queryConditions: ['title:test', 'event.type:test'],
         queryFields: ['count()', 'failure_count()'],
         queryAggregates: ['count()', 'failure_count()'],
-        queryColumns: ['count()', 'failure_count()'],
+        queryColumns: [],
         queryNames: ['1', '2'],
         queryOrderby: '',
         title: 'Widget Title',
