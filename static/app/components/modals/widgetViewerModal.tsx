@@ -198,7 +198,7 @@ function WidgetViewerModal(props: Props) {
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
-          <Container>
+          <Container height={widget.displayType !== DisplayType.BIG_NUMBER ? 300 : null}>
             <MemoizedWidgetCardChartContainer
               location={location}
               router={router}
@@ -232,6 +232,7 @@ function WidgetViewerModal(props: Props) {
                 });
               }}
               legendOptions={{selected: disabledLegends}}
+              expandNumbers
             />
           </Container>
         )}
@@ -463,8 +464,8 @@ const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
 `;
 
-const Container = styled('div')`
-  height: 300px;
+const Container = styled('div')<{height?: number | null}>`
+  height: ${p => (defined(p.height) ? `${p.height}px` : 'auto')};
   max-height: 300px;
   position: relative;
 

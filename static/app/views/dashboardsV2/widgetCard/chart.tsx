@@ -56,6 +56,7 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -165,13 +166,18 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     }
 
     const {containerHeight} = this.state;
-    const {organization, widget, isMobile} = this.props;
+    const {organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
       const fields = Object.keys(tableMeta ?? {});
 
       const field = fields[0];
+
+      // Change tableMeta for the field from integer to number so we it doesn't get shortened
+      if (!!expandNumbers && tableMeta[field] === 'integer') {
+        tableMeta[field] = 'number';
+      }
 
       if (!field || !result.data.length) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
@@ -196,7 +202,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       }
 
       // The font size is the container height, minus the top and bottom padding
-      const fontSize = containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10);
+      const fontSize = !!!expandNumbers
+        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
+        : `max(min(8vw, 90px), ${space(4)})`;
 
       return (
         <BigNumber key={`big_number:${result.title}`} style={{fontSize}}>
