@@ -293,7 +293,7 @@ class WaterfallModel {
       isLastSibling: true,
       continuingTreeDepths: [],
       hiddenSpanSubTrees: this.hiddenSpanSubTrees,
-      spanGroups: new Set(),
+      spanAncestors: new Set(),
       filterSpans: this.filterSpans,
       previousSiblingEndTimestamp: undefined,
       event: this.event,

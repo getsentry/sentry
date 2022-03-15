@@ -181,7 +181,7 @@ class SpanTreeModel {
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
     showNestedSpanGroup: boolean;
-    spanGroups: Set<String>;
+    spanAncestors: Set<String>;
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleSpanGroup: (() => void) | undefined;
     treeDepth: number;
@@ -192,7 +192,7 @@ class SpanTreeModel {
       isLastSibling,
       hiddenSpanSubTrees,
       // The set of ancestor span IDs whose sub-tree that the span belongs to
-      spanGroups,
+      spanAncestors,
       filterSpans,
       previousSiblingEndTimestamp,
       event,
@@ -206,7 +206,7 @@ class SpanTreeModel {
     let {treeDepth, continuingTreeDepths} = props;
 
     const parentSpanID = getSpanID(this.span);
-    const childSpanGroup = new Set(spanGroups);
+    const childSpanGroup = new Set(spanAncestors);
     childSpanGroup.add(parentSpanID);
 
     const descendantsSource = this.showEmbeddedChildren
@@ -299,7 +299,7 @@ class SpanTreeModel {
         : [...continuingTreeDepths, treeDepthEntry];
 
     for (const hiddenSpanSubTree of hiddenSpanSubTrees) {
-      if (spanGroups.has(hiddenSpanSubTree)) {
+      if (spanAncestors.has(hiddenSpanSubTree)) {
         // If this span is hidden, then all the descendants are hidden as well
         return [];
       }
@@ -322,7 +322,7 @@ class SpanTreeModel {
             isLastSibling: index === lastIndex,
             continuingTreeDepths: descendantContinuingTreeDepths,
             hiddenSpanSubTrees,
-            spanGroups: new Set(childSpanGroup),
+            spanAncestors: new Set(childSpanGroup),
             filterSpans,
             previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
             event,
