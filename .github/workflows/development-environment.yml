@@ -101,6 +101,7 @@ jobs:
           path: ~/.pyenv
           key: devenv-${{ runner.os }}-pyenv-${{ hashFiles('.python-version') }}
 
+      # Only after we source ~/.zprofile that the right Python will be selected
       - name: Set up pyenv
         run: |
           make setup-pyenv
@@ -109,6 +110,8 @@ jobs:
           [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
+          source .venv/bin/activate
+          [[ $(python -V) == "Python $(cat .python-version)" ]]
           make install-py-dev
 
 
