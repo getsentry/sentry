@@ -206,8 +206,8 @@ class SpanTreeModel {
     let {treeDepth, continuingTreeDepths} = props;
 
     const parentSpanID = getSpanID(this.span);
-    const childSpanGroup = new Set(spanAncestors);
-    childSpanGroup.add(parentSpanID);
+    const nextSpanAncestors = new Set(spanAncestors);
+    nextSpanAncestors.add(parentSpanID);
 
     const descendantsSource = this.showEmbeddedChildren
       ? [...this.embeddedChildren, ...this.children]
@@ -322,7 +322,7 @@ class SpanTreeModel {
             isLastSibling: index === lastIndex,
             continuingTreeDepths: descendantContinuingTreeDepths,
             hiddenSpanSubTrees,
-            spanAncestors: new Set(childSpanGroup),
+            spanAncestors: new Set(nextSpanAncestors),
             filterSpans,
             previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
             event,
