@@ -254,6 +254,14 @@ reset-db() {
     bin/load-mocks
 }
 
+prerequisites() {
+    if [ -z "${CI+x}" ]; then
+        brew update -q && brew bundle -q
+    else
+        HOMEBREW_NO_AUTO_UPDATE=on brew install libxmlsec1 pyenv
+    fi
+}
+
 direnv-help() {
     cat >&2 <<EOF
 If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.
