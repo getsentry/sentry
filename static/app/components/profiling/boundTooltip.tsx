@@ -98,7 +98,8 @@ function BoundTooltip({
   );
 
   let cursorHorizontalPosition = logicalSpaceCursor[0];
-  const cursorVerticalPosition = logicalSpaceCursor[1];
+  // Move the tooltip just beneath the cursor so that the text isn't covered.
+  const cursorVerticalPosition = logicalSpaceCursor[1] + 8;
 
   const mid = bounds.width / 2;
 
