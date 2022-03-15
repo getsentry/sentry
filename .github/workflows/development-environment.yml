@@ -77,7 +77,7 @@ jobs:
     runs-on: macos-11
     timeout-minutes: 15
     env:
-      # Make the shell to be Mac's default
+      # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
       SHELL: /bin/zsh
 
     steps:
