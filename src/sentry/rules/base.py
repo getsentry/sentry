@@ -52,7 +52,7 @@ class RuleBase(abc.ABC):
     @property
     @abc.abstractmethod
     def id(self) -> str:
-        raise NotImplementedError
+        pass
 
     def is_enabled(self):
         return True
