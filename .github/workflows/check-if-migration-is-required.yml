@@ -4,7 +4,7 @@ on: pull_request
 jobs:
   should-check:
     name: did files change
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -22,7 +22,7 @@ jobs:
 
   main:
     name: check migration
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         python-version: [3.8.12]

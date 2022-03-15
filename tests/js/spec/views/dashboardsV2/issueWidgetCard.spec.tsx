@@ -24,6 +24,8 @@ describe('Dashboards > IssueWidgetCard', function () {
       {
         conditions: 'event.type:default',
         fields: ['issue', 'assignee', 'title'],
+        columns: ['issue', 'assignee', 'title'],
+        aggregates: [],
         name: '',
         orderby: IssueSortOptions.FREQ,
       },
