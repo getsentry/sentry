@@ -117,7 +117,7 @@ jobs:
           STRAP_DEBUG: 1
           # XXX: This should point to whatever GITHUB ref
           # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: armenzg/ci/support-different-branch-testing
+          CI_CHECKOUT_BRANCH: armenzg/ci/dev-env-faster
         # XXX: temp url
         run: |
           bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/armenzg/ci/support-different-branch-testing/bootstrap.sh)
