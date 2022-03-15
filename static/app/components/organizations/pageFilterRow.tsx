@@ -12,7 +12,7 @@ type CheckboxRenderOptions = {
   checked?: boolean;
 };
 
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   checked: boolean;
   children: React.ReactNode;
   onCheckClick: (event: React.MouseEvent) => void;
@@ -23,7 +23,7 @@ type Props = {
    * prop along with the `checked` boolean.
    */
   renderCheckbox?: (options: CheckboxRenderOptions) => React.ReactNode;
-};
+}
 
 function PageFilterRow({
   checked,
@@ -57,27 +57,26 @@ function PageFilterRow({
 const MultiselectCheckbox = styled(CheckboxFancy)`
   position: relative;
   margin: 0 ${space(1)};
+  margin-right: ${space(0.75)};
 
   /* Make the hitbox of the checkbox a bit larger */
   &:after {
     content: '';
     position: absolute;
     top: -${space(2)};
-    right: -${space(2)};
+    right: -${space(1.5)};
     bottom: -${space(2)};
     left: -${space(2)};
   }
 `;
 
 const Container = styled('div')<{isChecked: boolean}>`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content;
   align-items: center;
-  justify-content: space-between;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 400;
   padding-left: ${space(0.5)};
-  height: ${p => p.theme.headerSelectorRowHeight}px;
-  flex-shrink: 0;
 
   ${MultiselectCheckbox} {
     opacity: ${p => (p.isChecked ? 1 : 0.33)};

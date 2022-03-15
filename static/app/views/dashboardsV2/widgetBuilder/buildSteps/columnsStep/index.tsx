@@ -23,6 +23,8 @@ import {ColumnFields} from './columnFields';
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  explodedAggregates: QueryFieldValue[];
+  explodedColumns: QueryFieldValue[];
   explodedFields: QueryFieldValue[];
   onGetAmendedFieldOptions: (
     measurements: MeasurementCollection
@@ -46,6 +48,8 @@ export function ColumnsStep({
   onGetAmendedFieldOptions,
   queryErrors,
   explodedFields,
+  explodedColumns,
+  explodedAggregates,
 }: Props) {
   return (
     <BuildStep
@@ -80,7 +84,9 @@ export function ColumnsStep({
               displayType={displayType}
               organization={organization}
               widgetType={widgetType}
-              columns={explodedFields}
+              columns={explodedColumns}
+              aggregates={explodedAggregates}
+              fields={explodedFields}
               errors={queryErrors}
               fieldOptions={onGetAmendedFieldOptions(measurements)}
               onChange={onYAxisOrColumnFieldChange}
@@ -92,7 +98,9 @@ export function ColumnsStep({
           displayType={displayType}
           organization={organization}
           widgetType={widgetType}
-          columns={explodedFields}
+          columns={explodedColumns}
+          aggregates={explodedAggregates}
+          fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
           fieldOptions={generateIssueWidgetFieldOptions()}
           onChange={newFields => {

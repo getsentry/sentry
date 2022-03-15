@@ -30,7 +30,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-  getColumnsAndAggregates,
+  getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -211,7 +211,8 @@ function WidgetBuilder({
                     generateOrderOptions({
                       widgetType: WidgetType.DISCOVER,
                       widgetBuilderNewDesign,
-                      ...getColumnsAndAggregates(defaultWidgetQuery.fields),
+                      columns: defaultWidgetQuery.columns,
+                      aggregates: defaultWidgetQuery.aggregates,
                     })[0].value,
                 }
               : {...defaultWidgetQuery}
@@ -331,22 +332,19 @@ function WidgetBuilder({
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
+              query.columns = [...defaultWidgetQuery.columns];
+              query.aggregates = [...defaultWidgetQuery.aggregates];
               query.fields = [...defaultTableColumns];
-              const {columns, aggregates} = getColumnsAndAggregates([
-                ...defaultTableColumns,
-              ]);
-              query.aggregates = aggregates;
-              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
-              query.fields = [...defaultWidgetQuery.fields];
-              const {columns, aggregates} = getColumnsAndAggregates([
-                ...defaultWidgetQuery.fields,
-              ]);
-              query.aggregates = aggregates;
-              query.columns = columns;
+              query.fields = [
+                ...defaultWidgetQuery.columns,
+                ...defaultWidgetQuery.aggregates,
+              ];
+              query.aggregates = [...defaultWidgetQuery.aggregates];
+              query.columns = [...defaultWidgetQuery.columns];
               if (!!defaultWidgetQuery.orderby) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
@@ -438,7 +436,41 @@ function WidgetBuilder({
     });
   }
 
+  function handleYAxisChange(newYAxis: QueryFieldValue[]) {
+    const aggregateAliasFieldStrings = newYAxis.map(generateFieldAsString);
+
+    for (const index in state.queries) {
+      const queryIndex = Number(index);
+      const query = state.queries[queryIndex];
+
+      const descending = query.orderby.startsWith('-');
+      const orderbyAggregateAliasField = query.orderby.replace('-', '');
+      const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
+      const newQuery = cloneDeep(query);
+      newQuery.aggregates = aggregateAliasFieldStrings;
+      newQuery.fields = [...newQuery.columns, ...aggregateAliasFieldStrings];
+      if (
+        !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+        query.orderby !== ''
+      ) {
+        if (prevAggregateAliasFieldStrings.length === newYAxis.length) {
+          // The Field that was used in orderby has changed. Get the new field.
+          newQuery.orderby = `${descending && '-'}${
+            aggregateAliasFieldStrings[
+              prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+            ]
+          }`;
+        } else {
+          newQuery.orderby = '';
+        }
+      }
+
+      handleQueryChange(queryIndex, newQuery);
+    }
+  }
+
   function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
+    const {aggregates, columns} = getColumnsAndAggregatesAsStrings(newFields);
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
@@ -448,10 +480,9 @@ function WidgetBuilder({
 
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
-      const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
+      const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
       newQuery.fields = fieldStrings;
-      const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
       newQuery.aggregates = aggregates;
       newQuery.columns = columns;
       if (
@@ -621,7 +652,10 @@ function WidgetBuilder({
     const queryData: QueryData = {
       queryNames: [],
       queryConditions: [],
-      queryFields: widgetData.queries[0].fields,
+      queryFields: [
+        ...widgetData.queries[0].columns,
+        ...widgetData.queries[0].aggregates,
+      ],
       queryOrderby: widgetData.queries[0].orderby,
     };
 
@@ -701,7 +735,12 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
-  const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
+  const {columns, aggregates, fields} = state.queries[0];
+  const explodedColumns = columns.map(field => explodeField({field}));
+  const explodedAggregates = aggregates.map(field => explodeField({field}));
+  const explodedFields = defined(fields)
+    ? fields.map(field => explodeField({field}))
+    : [...explodedColumns, ...explodedAggregates];
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -751,6 +790,8 @@ function WidgetBuilder({
                       onQueryChange={handleQueryChange}
                       onYAxisOrColumnFieldChange={handleYAxisOrColumnFieldChange}
                       explodedFields={explodedFields}
+                      explodedColumns={explodedColumns}
+                      explodedAggregates={explodedAggregates}
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
@@ -759,8 +800,8 @@ function WidgetBuilder({
                       displayType={state.displayType}
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
-                      onYAxisOrColumnFieldChange={handleYAxisOrColumnFieldChange}
-                      explodedFields={explodedFields}
+                      onYAxisChange={handleYAxisChange}
+                      aggregates={explodedAggregates}
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}

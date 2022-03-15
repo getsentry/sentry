@@ -9,14 +9,13 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
-from sentry.search.events.fields import resolve_field_list
-from sentry.search.events.filter import get_filter
+from sentry.search.events.builder import QueryBuilder
 from sentry.utils import metrics
 from sentry.utils.compat import map
-from sentry.utils.snuba import MAX_FIELDS
+from sentry.utils.snuba import MAX_FIELDS, Dataset
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -93,18 +92,16 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                snuba_filter = get_filter(query_info["query"], processor.params)
-                if len(equations) > 0:
-                    resolved_equations, _, _ = resolve_equation_list(equations, fields)
-                else:
-                    resolved_equations = []
-                resolve_field_list(
-                    fields.copy(),
-                    snuba_filter,
+                builder = QueryBuilder(
+                    Dataset.Discover,
+                    processor.params,
+                    query=query_info["query"],
+                    selected_columns=fields.copy(),
+                    equations=equations,
                     auto_fields=True,
                     auto_aggregations=True,
-                    resolved_equations=resolved_equations,
                 )
+                builder.get_snql_query()
             except InvalidSearchQuery as err:
                 raise serializers.ValidationError(str(err))
 

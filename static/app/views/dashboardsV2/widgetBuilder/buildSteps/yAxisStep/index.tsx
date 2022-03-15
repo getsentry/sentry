@@ -12,12 +12,12 @@ import {BuildStep} from '../buildStep';
 import {YAxisSelector} from './yAxisSelector';
 
 interface Props {
+  aggregates: QueryFieldValue[];
   displayType: DisplayType;
-  explodedFields: QueryFieldValue[];
   onGetAmendedFieldOptions: (
     measurements: MeasurementCollection
   ) => ReturnType<typeof generateFieldOptions>;
-  onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
+  onYAxisChange: (newFields: QueryFieldValue[]) => void;
   widgetType: WidgetType;
   queryErrors?: Record<string, any>[];
 }
@@ -25,8 +25,8 @@ interface Props {
 export function YAxisStep({
   displayType,
   queryErrors,
-  explodedFields,
-  onYAxisOrColumnFieldChange,
+  aggregates,
+  onYAxisChange,
   onGetAmendedFieldOptions,
   widgetType,
 }: Props) {
@@ -50,9 +50,9 @@ export function YAxisStep({
           <YAxisSelector
             widgetType={widgetType}
             displayType={displayType}
-            fields={explodedFields}
+            aggregates={aggregates}
             fieldOptions={onGetAmendedFieldOptions(measurements)}
-            onChange={onYAxisOrColumnFieldChange}
+            onChange={onYAxisChange}
             errors={queryErrors}
           />
         )}

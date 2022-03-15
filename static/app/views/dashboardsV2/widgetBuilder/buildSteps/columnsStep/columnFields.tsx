@@ -11,9 +11,11 @@ import {WidgetType} from '../../../types';
 import {DisplayType} from '../../utils';
 
 interface Props {
+  aggregates: QueryFieldValue[];
   columns: QueryFieldValue[];
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
+  fields: QueryFieldValue[];
   onChange: (newColumns: QueryFieldValue[]) => void;
   organization: Organization;
   widgetType: WidgetType;
@@ -21,10 +23,12 @@ interface Props {
 }
 
 export function ColumnFields({
+  aggregates,
+  columns,
   displayType,
   fieldOptions,
   widgetType,
-  columns,
+  fields,
   organization,
   errors,
   onChange,
@@ -38,7 +42,7 @@ export function ColumnFields({
     >
       {displayType === DisplayType.TABLE ? (
         <ColumnCollectionEdit
-          columns={columns}
+          columns={fields}
           onChange={onChange}
           fieldOptions={fieldOptions}
           organization={organization}
@@ -46,9 +50,9 @@ export function ColumnFields({
         />
       ) : (
         <ColumnCollectionEdit
-          columns={columns.slice(0, columns.length - 1)}
+          columns={[...columns, ...aggregates.slice(0, aggregates.length - 1)]}
           onChange={newColumns => {
-            onChange([...newColumns, columns[columns.length - 1]]);
+            onChange([...newColumns, fields[fields.length - 1]]);
           }}
           fieldOptions={fieldOptions}
           organization={organization}

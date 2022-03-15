@@ -162,6 +162,7 @@ class TeamProjects extends React.Component<Props, State> {
               size="small"
               disabled={!canWrite}
               icon={<IconSubtract isCircled size="xs" />}
+              aria-label={t('Remove')}
               onClick={() => {
                 this.handleLinkProject(project, 'remove');
               }}

@@ -3,7 +3,6 @@ import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -47,7 +46,8 @@ export function SortByStep({
                 ? generateOrderOptions({
                     widgetType,
                     widgetBuilderNewDesign: true,
-                    ...getColumnsAndAggregates(queries[0].fields),
+                    columns: queries[0].columns,
+                    aggregates: queries[0].aggregates,
                   })
                 : generateIssueWidgetOrderOptions(
                     organization.features.includes('issue-list-trend-sort')
@@ -82,7 +82,8 @@ export function SortByStep({
               dataSet === DataSet.EVENTS
                 ? generateOrderOptions({
                     widgetType,
-                    ...getColumnsAndAggregates(queries[0].fields),
+                    columns: queries[0].columns,
+                    aggregates: queries[0].aggregates,
                   })
                 : generateIssueWidgetOrderOptions(
                     organization.features.includes('issue-list-trend-sort')
