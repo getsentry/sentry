@@ -70,6 +70,11 @@ type Props = {
   detached?: boolean;
 
   /**
+   * Disables padding for the label.
+   */
+  disableLabelPadding?: boolean;
+
+  /**
    * passed down to the AutoComplete Component
    */
   disabled?: boolean;
@@ -162,7 +167,6 @@ type Props = {
     state?: AutoComplete<Item>['state'],
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
-
   /**
    * for passing simple styles to the root container
    */
@@ -189,6 +193,7 @@ const Menu = ({
   detached = false,
   alignMenu = 'left',
   hideInput = false,
+  disableLabelPadding = false,
   busy = false,
   busyItemsStillVisible = false,
   menuWithArrow = false,
@@ -322,7 +327,11 @@ const Menu = ({
                 </InputWrapper>
               )}
               <div>
-                {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
+                {menuHeader && (
+                  <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                    {menuHeader}
+                  </LabelWithPadding>
+                )}
                 <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
                   {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
                   {showNoResultsMessage && (
@@ -349,7 +358,11 @@ const Menu = ({
                     />
                   )}
                 </ItemList>
-                {renderedFooter && <LabelWithPadding>{renderedFooter}</LabelWithPadding>}
+                {renderedFooter && (
+                  <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                    {renderedFooter}
+                  </LabelWithPadding>
+                )}
               </div>
             </BubbleWithMinWidth>
           )}
@@ -415,7 +428,7 @@ const InputWrapper = styled('div')`
   align-items: center;
 `;
 
-const LabelWithPadding = styled('div')`
+const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
@@ -427,7 +440,7 @@ const LabelWithPadding = styled('div')`
   &:last-child {
     border-bottom: none;
   }
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => !p.disableLabelPadding && `${space(0.25)} ${space(1)}`};
 `;
 
 const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`

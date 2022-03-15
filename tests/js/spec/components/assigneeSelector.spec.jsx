@@ -262,7 +262,7 @@ describe('AssigneeSelector', function () {
 
     openMenu();
     assigneeSelector
-      .find('MenuItemWrapper[data-test-id="clear-assignee"]')
+      .find('MenuItemFooterWrapper[data-test-id="clear-assignee"]')
       .simulate('click');
 
     // api was called with empty string, clearing assignment
@@ -319,6 +319,7 @@ describe('AssigneeSelector', function () {
   });
 
   it('successfully shows suggested assignees', async function () {
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
     assigneeSelector = mountWithTheme(
