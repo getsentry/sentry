@@ -77,23 +77,23 @@ jobs:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
           key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
-      - name: Set up pyenv
-        run: |
-          make setup-pyenv
-          [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
-          source ~/.zprofile
-          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
-          python -m venv .venv
+      # - name: Set up pyenv
+      #   run: |
+      #     make setup-pyenv
+      #     [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
+      #     source ~/.zprofile
+      #     [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
+      #     [[ $(python -V) == "Python $(cat .python-version)" ]]
+      #     python -m venv .venv
 
-      - name: Test pre-commit
-        run: |
-          source .venv/bin/activate
-          pre-commit
+      # - name: Test pre-commit
+      #   run: |
+      #     source .venv/bin/activate
+      #     pre-commit
 
-      - name: make bootstrap step
-        run: |
-          make bootstrap
+      # - name: make bootstrap step
+      #   run: |
+      #     make bootstrap
 
 
   # We don't yet test the bootstrap step
