@@ -1345,7 +1345,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
+      expect(screen.getByText('Release Health')).toBeInTheDocument();
       wrapper.unmount();
     });
 
