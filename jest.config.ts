@@ -137,7 +137,7 @@ if (
 }
 
 const config: Config.InitialOptions = {
-  verbose: false,
+  verbose: true,
   collectCoverageFrom: [
     'tests/js/spec/**/*.{js,jsx,tsx}',
     'static/app/**/*.{js,jsx,ts,tsx}',
