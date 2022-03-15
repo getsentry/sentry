@@ -30,7 +30,7 @@ class WaterfallModel {
   operationNameFilters: ActiveOperationFilter = noFilter;
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
-  hiddenSpanGroups: Set<string>;
+  hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
 
   constructor(event: Readonly<EventTransaction>) {
@@ -53,7 +53,7 @@ class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanGroups = new Set();
+    this.hiddenSpanSubTrees = new Set();
 
     makeObservable(this, {
       parsedTrace: observable,
@@ -70,8 +70,8 @@ class WaterfallModel {
       searchQuery: observable,
       querySpanSearch: action,
 
-      // span group toggling
-      hiddenSpanGroups: observable,
+      // span sub-tree toggling
+      hiddenSpanSubTrees: observable,
       toggleSpanGroup: action,
 
       // trace bounds
@@ -204,12 +204,12 @@ class WaterfallModel {
   }
 
   toggleSpanGroup = (spanID: string) => {
-    if (this.hiddenSpanGroups.has(spanID)) {
-      this.hiddenSpanGroups.delete(spanID);
+    if (this.hiddenSpanSubTrees.has(spanID)) {
+      this.hiddenSpanSubTrees.delete(spanID);
       return;
     }
 
-    this.hiddenSpanGroups.add(spanID);
+    this.hiddenSpanSubTrees.add(spanID);
   };
 
   addTraceBounds = (traceBound: TraceBound) => {
@@ -292,7 +292,7 @@ class WaterfallModel {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
-      hiddenSpanGroups: this.hiddenSpanGroups,
+      hiddenSpanSubTrees: this.hiddenSpanSubTrees,
       spanGroups: new Set(),
       filterSpans: this.filterSpans,
       previousSiblingEndTimestamp: undefined,

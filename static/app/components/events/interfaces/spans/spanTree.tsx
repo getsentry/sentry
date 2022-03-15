@@ -244,7 +244,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
-            showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
+            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
             trace={waterfallModel.parsedTrace}
             generateBounds={generateBounds}

@@ -174,7 +174,7 @@ class SpanTreeModel {
     event: Readonly<EventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    hiddenSpanGroups: Set<String>;
+    hiddenSpanSubTrees: Set<String>;
     isLastSibling: boolean;
     isOnlySibling: boolean;
     operationNameFilters: ActiveOperationFilter;
@@ -190,7 +190,7 @@ class SpanTreeModel {
       operationNameFilters,
       generateBounds,
       isLastSibling,
-      hiddenSpanGroups,
+      hiddenSpanSubTrees,
       // The set of ancestor span IDs whose sub-tree that the span belongs to
       spanGroups,
       filterSpans,
@@ -218,7 +218,7 @@ class SpanTreeModel {
     const isNotLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length === 1;
     const shouldGroup = isNotLastSpanOfGroup;
-    const hideSpanTree = hiddenSpanGroups.has(parentSpanID);
+    const hideSpanTree = hiddenSpanSubTrees.has(parentSpanID);
     const isLastSpanOfGroup =
       isOnlySibling && !this.isRoot && (descendantsSource.length !== 1 || hideSpanTree);
     const isFirstSpanOfGroup =
@@ -296,8 +296,8 @@ class SpanTreeModel {
         ? continuingTreeDepths
         : [...continuingTreeDepths, treeDepthEntry];
 
-    for (const hiddenSpanGroup of hiddenSpanGroups) {
-      if (spanGroups.has(hiddenSpanGroup)) {
+    for (const hiddenSpanSubTree of hiddenSpanSubTrees) {
+      if (spanGroups.has(hiddenSpanSubTree)) {
         // If this span is hidden, then all the descendants are hidden as well
         return [];
       }
@@ -319,7 +319,7 @@ class SpanTreeModel {
             treeDepth: shouldHideSpanOfGroup ? treeDepth : treeDepth + 1,
             isLastSibling: index === lastIndex,
             continuingTreeDepths: descendantContinuingTreeDepths,
-            hiddenSpanGroups,
+            hiddenSpanSubTrees,
             spanGroups: new Set(childSpanGroup),
             filterSpans,
             previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
