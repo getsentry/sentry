@@ -485,7 +485,7 @@ function SpanRectangle({
         width: toPercent(bounds.width || 0),
       }}
     >
-      {!hideDuration ? (
+      {!hideDuration && (
         <DurationPill
           durationDisplay={durationDisplay}
           showDetail={false}
@@ -493,7 +493,7 @@ function SpanRectangle({
         >
           {durationString}
         </DurationPill>
-      ) : null}
+      )}
     </RowRectangle>
   );
 }
