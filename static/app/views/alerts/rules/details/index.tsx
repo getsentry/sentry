@@ -15,8 +15,8 @@ import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
-import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
+import withProjects from 'sentry/utils/withProjects';
 import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
@@ -31,6 +31,8 @@ type Props = {
   api: Client;
   location: Location;
   organization: Organization;
+  projects: Project[];
+  loadingProjects?: boolean;
 } & RouteComponentProps<{orgId: string; ruleId: string}, {}>;
 
 type State = {
@@ -175,52 +177,46 @@ class AlertRuleDetails extends Component<Props, State> {
 
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params, organization} = this.props;
+    const {params, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod();
 
     if (hasError) {
       return this.renderError();
     }
 
+    const project = projects.find(({slug}) => slug === rule?.projects[0]) as
+      | Project
+      | undefined;
+    const isGlobalSelectionReady = project !== undefined && !loadingProjects;
+
     return (
-      <Projects orgId={organization.slug} slugs={rule?.projects}>
-        {({projects, fetching}) => {
-          const project = projects.find(({slug}) => slug === rule?.projects[0]) as
-            | Project
-            | undefined;
-          const isGlobalSelectionReady = project !== undefined && !fetching;
+      <PageFiltersContainer
+        isGlobalSelectionReady={isGlobalSelectionReady}
+        shouldForceProject={isGlobalSelectionReady}
+        forceProject={project}
+        forceEnvironment={rule?.environment ?? ''}
+        lockedMessageSubject={t('alert rule')}
+        showDateSelector={false}
+        skipLoadLastUsed
+      >
+        <SentryDocumentTitle title={rule?.name ?? ''} />
 
-          return (
-            <PageFiltersContainer
-              isGlobalSelectionReady={isGlobalSelectionReady}
-              shouldForceProject={isGlobalSelectionReady}
-              forceProject={project}
-              forceEnvironment={rule?.environment ?? ''}
-              lockedMessageSubject={t('alert rule')}
-              showDateSelector={false}
-              skipLoadLastUsed
-            >
-              <SentryDocumentTitle title={rule?.name ?? ''} />
-
-              <DetailsHeader
-                hasIncidentRuleDetailsError={hasError}
-                params={params}
-                rule={rule}
-              />
-              <DetailsBody
-                {...this.props}
-                rule={rule}
-                project={project}
-                incidents={incidents}
-                timePeriod={timePeriod}
-                selectedIncident={selectedIncident}
-              />
-            </PageFiltersContainer>
-          );
-        }}
-      </Projects>
+        <DetailsHeader
+          hasIncidentRuleDetailsError={hasError}
+          params={params}
+          rule={rule}
+        />
+        <DetailsBody
+          {...this.props}
+          rule={rule}
+          project={project}
+          incidents={incidents}
+          timePeriod={timePeriod}
+          selectedIncident={selectedIncident}
+        />
+      </PageFiltersContainer>
     );
   }
 }
 
-export default withApi(AlertRuleDetails);
+export default withApi(withProjects(AlertRuleDetails));
