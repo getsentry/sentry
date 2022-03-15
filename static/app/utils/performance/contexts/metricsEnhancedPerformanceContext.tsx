@@ -38,9 +38,14 @@ export const MEPTag = () => {
     return null;
   }
 
-  if (isMetricsData || !isMEPEnabled) {
+  if (!isMEPEnabled) {
     return null;
   }
+
+  if (isMetricsData !== true) {
+    return <span data-test-id="no-metrics-data-tag" />;
+  }
+
   return (
     <Tag
       tooltipText={t(

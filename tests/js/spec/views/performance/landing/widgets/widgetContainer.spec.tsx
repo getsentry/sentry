@@ -311,7 +311,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Failure Rate Widget with MEP', async function () {
+  it('Widget with MEP enabled and metric meta set to true', async function () {
     const data = initializeData(
       {},
       {
@@ -324,9 +324,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       url: `/organizations/org-slug/events-stats/`,
       body: {
         data: [],
-        meta: {
-          isMetricsData: true,
-        },
+        isMetricsData: true,
       },
     });
 
@@ -338,26 +336,97 @@ describe('Performance > Widgets > WidgetContainer', function () {
       />
     );
 
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Failure RateSampled'
-    );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          interval: '1h',
-          partial: '1',
-          query: 'transaction.op:pageload',
-          statsPeriod: '14d',
-          yAxis: 'failure_rate()',
+          metricsEnhanced: '1',
         }),
       })
     );
-
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
       'Sampled'
+    );
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Failure RateSampled'
+    );
+  });
+
+  it('Widget with MEP enabled and metric meta set to undefined', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        isMetricsData: undefined,
+      },
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />
+    );
+
+    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+  });
+
+  it('Widget with MEP enabled and metric meta set to false', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        isMetricsData: false,
+      },
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />
+    );
+
+    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          metricsEnhanced: '1',
+        }),
+      })
     );
   });
 
