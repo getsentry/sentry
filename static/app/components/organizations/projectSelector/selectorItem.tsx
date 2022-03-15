@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
 import Highlight from 'sentry/components/highlight';
 import {Hovercard} from 'sentry/components/hovercard';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
@@ -71,98 +71,76 @@ function ProjectSelectorItem({
   };
 
   return (
-    <BadgeAndActionsWrapper>
-      <PageFilterRow
-        checked={isChecked}
-        onCheckClick={handleClick}
-        multi={multi}
-        renderCheckbox={({checkbox}) => (
-          <Feature
-            features={['organizations:global-views']}
-            hookName="feature-disabled:project-selector-checkbox"
-            renderDisabled={renderDisabledCheckbox}
-          >
-            {checkbox}
-          </Feature>
-        )}
-      >
-        <BadgeWrapper isMulti={multi}>
-          <IdBadge
-            project={project}
-            avatarSize={16}
-            displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-            avatarProps={{consistentWidth: true}}
-            disableLink
-          />
-        </BadgeWrapper>
-        <StyledBookmarkStar
+    <ProjectFilterRow
+      checked={isChecked}
+      onCheckClick={handleClick}
+      multi={multi}
+      renderCheckbox={({checkbox}) => (
+        <Feature
+          features={['organizations:global-views']}
+          hookName="feature-disabled:project-selector-checkbox"
+          renderDisabled={renderDisabledCheckbox}
+        >
+          {checkbox}
+        </Feature>
+      )}
+    >
+      <BadgeWrapper>
+        <IdBadge
           project={project}
-          organization={organization}
-          onToggle={handleBookmarkToggle}
+          avatarSize={16}
+          displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
+          avatarProps={{consistentWidth: true}}
+          disableLink
         />
-        <StyledLink
-          to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
-          onClick={e => e.stopPropagation()}
-        >
-          <IconOpen />
-        </StyledLink>
-
-        <StyledLink
-          to={`/settings/${organization.slug}/${project.slug}/`}
-          onClick={e => e.stopPropagation()}
-        >
-          <IconSettings />
-        </StyledLink>
-      </PageFilterRow>
-    </BadgeAndActionsWrapper>
+      </BadgeWrapper>
+      <ActionBookmark
+        project={project}
+        organization={organization}
+        onToggle={handleBookmarkToggle}
+      />
+      <ActionButton
+        to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+        size="zero"
+        priority="link"
+        aria-label="Project Details"
+        icon={<IconOpen />}
+      />
+      <ActionButton
+        to={`/settings/${organization.slug}/${project.slug}/`}
+        size="zero"
+        priority="link"
+        aria-label="Project Settings"
+        icon={<IconSettings />}
+      />
+    </ProjectFilterRow>
   );
 }
 
 export default ProjectSelectorItem;
 
-const StyledBookmarkStar = styled(BookmarkStar)`
-  padding: ${space(1)} ${space(0.5)};
-  box-sizing: content-box;
-  opacity: ${p => (p.project.isBookmarked ? 1 : 0.33)};
-  transition: 0.5s opacity ease-out;
-  display: block;
-  width: 14px;
-  height: 14px;
-  margin-top: -${space(0.25)}; /* trivial alignment bump */
-`;
-
-const BadgeWrapper = styled('div')<{isMulti: boolean}>`
+const BadgeWrapper = styled('div')`
   display: flex;
   flex: 1;
-  ${p => !p.isMulti && 'flex: 1'};
   white-space: nowrap;
   overflow: hidden;
 `;
 
-const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const ActionButton = styled(Button)`
+  color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(0.25)} ${space(1)} ${space(1)};
   opacity: 0.33;
-  transition: 0.5s opacity ease-out;
   :hover {
     color: ${p => p.theme.textColor};
   }
 `;
 
-const BadgeAndActionsWrapper = styled('div')`
-  position: relative;
-  border-style: solid;
-  border-width: 1px 0;
-  border-color: transparent;
-  :hover {
-    ${StyledBookmarkStar} {
-      opacity: 1;
-    }
-    ${StyledLink} {
-      opacity: 1;
-    }
+const ActionBookmark = styled(BookmarkStar)`
+  ${p => !p.project.isBookmarked && 'opacity: 0.33'};
+`;
+
+const ProjectFilterRow = styled(PageFilterRow)`
+  :hover ${ActionButton}, :hover ${ActionBookmark} {
+    opacity: 1;
   }
 `;
