@@ -77,8 +77,12 @@ def _get_project_key(project_id):
 
 
 def _get_public_dsn():
+
     if settings.SENTRY_FRONTEND_DSN:
         return settings.SENTRY_FRONTEND_DSN
+
+    if settings.IS_DEV and not settings.SENTRY_USE_RELAY:
+        return ""
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     cache_key = f"dsn:{project_id}"
