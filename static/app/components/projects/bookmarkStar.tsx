@@ -1,8 +1,8 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
+import Button from 'sentry/components/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -13,59 +13,65 @@ type Props = {
   organization: Organization;
   project: Project;
   className?: string;
-  /* used to override when under local state */
+  /**
+   * Allows the bookmarked state of the project to be overriden. Useful for
+   * optimistic updates.
+   */
   isBookmarked?: boolean;
   onToggle?: (isBookmarked: boolean) => void;
 };
 
-const BookmarkStar = ({
-  isBookmarked: isBookmarkedProp,
-  className,
-  organization,
-  project,
-  onToggle,
-}: Props) => {
-  const api = useApi();
+const BookmarkStar = styled(
+  ({
+    isBookmarked: isBookmarkedProp,
+    className,
+    organization,
+    project,
+    onToggle,
+  }: Props) => {
+    const api = useApi();
 
-  const isBookmarked = defined(isBookmarkedProp)
-    ? isBookmarkedProp
-    : project.isBookmarked;
+    const isBookmarked = defined(isBookmarkedProp)
+      ? isBookmarkedProp
+      : project.isBookmarked;
 
-  const toggleProjectBookmark = (event: React.MouseEvent) => {
-    update(api, {
-      orgId: organization.slug,
-      projectId: project.slug,
-      data: {isBookmarked: !isBookmarked},
-    }).catch(() => {
-      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-    });
+    const toggleProjectBookmark = (event: React.MouseEvent) => {
+      update(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        data: {isBookmarked: !isBookmarked},
+      }).catch(() =>
+        addErrorMessage(t('Unable to toggle bookmark for %s', project.slug))
+      );
 
-    // needed to dismiss tooltip
-    (document.activeElement as HTMLElement).blur();
+      // prevent dropdowns from closing
+      event.stopPropagation();
 
-    // prevent dropdowns from closing
-    event.stopPropagation();
+      onToggle?.(!isBookmarked);
+    };
 
-    if (onToggle) {
-      onToggle(!isBookmarked);
-    }
-  };
-
-  return (
-    <Star
-      isBookmarked={isBookmarked}
-      isSolid={isBookmarked}
-      onClick={toggleProjectBookmark}
-      className={className}
-    />
-  );
-};
-
-const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
-  isBookmarked: boolean;
-}>`
-  color: ${p => (p.isBookmarked ? p.theme.yellow300 : p.theme.gray200)};
-  cursor: pointer;
+    return (
+      <Button
+        aria-label="Bookmark Project"
+        aria-pressed={isBookmarked}
+        onClick={toggleProjectBookmark}
+        size="zero"
+        priority="link"
+        className={className}
+        icon={
+          <IconStar
+            color={isBookmarked ? 'yellow300' : 'subText'}
+            isSolid={isBookmarked}
+          />
+        }
+      />
+    );
+  }
+)`
+  &:hover svg {
+    fill: ${p =>
+      p.project.isBookmarked || p.isBookmarked ? p.theme.yellow400 : p.theme.textColor};
+  }
 `;
 
 export default BookmarkStar;
