@@ -40,7 +40,7 @@ class SpanTreeModel {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
-  showSpanGroup: boolean = false;
+  showNestedSpanGroup: boolean = false;
 
   constructor(
     parentSpan: SpanType,
@@ -73,7 +73,7 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: observable,
       toggleEmbeddedChildren: action,
       fetchEmbeddedTransactions: action,
-      showSpanGroup: observable,
+      showNestedSpanGroup: observable,
       toggleSpanGroup: action,
     });
   }
@@ -269,7 +269,7 @@ class SpanTreeModel {
       toggleSpanGroup:
         spanGroupingCriteria && toggleSpanGroup && !showSpanGroup
           ? toggleSpanGroup
-          : isFirstSpanOfGroup && this.showSpanGroup && !hideSpanTree
+          : isFirstSpanOfGroup && this.showNestedSpanGroup && !hideSpanTree
           ? this.toggleSpanGroup
           : undefined,
     };
@@ -286,7 +286,7 @@ class SpanTreeModel {
     const shouldHideSpanOfGroup =
       shouldGroup &&
       !isLastSpanOfGroup &&
-      ((toggleSpanGroup === undefined && !this.showSpanGroup) ||
+      ((toggleSpanGroup === undefined && !this.showNestedSpanGroup) ||
         (toggleSpanGroup !== undefined && !showSpanGroup));
 
     const descendantContinuingTreeDepths =
@@ -333,7 +333,7 @@ class SpanTreeModel {
               : undefined,
             showSpanGroup: isNotLastSpanOfGroup
               ? toggleSpanGroup === undefined
-                ? this.showSpanGroup
+                ? this.showNestedSpanGroup
                 : showSpanGroup
               : false,
             addTraceBounds,
@@ -407,7 +407,7 @@ class SpanTreeModel {
 
     if (
       isFirstSpanOfGroup &&
-      this.showSpanGroup &&
+      this.showNestedSpanGroup &&
       !hideSpanTree &&
       descendants.length <= 1 &&
       wrappedSpan.type === 'span'
@@ -527,7 +527,7 @@ class SpanTreeModel {
   }
 
   toggleSpanGroup = () => {
-    this.showSpanGroup = !this.showSpanGroup;
+    this.showNestedSpanGroup = !this.showNestedSpanGroup;
   };
 
   generateTraceBounds = (): TraceBound => {
