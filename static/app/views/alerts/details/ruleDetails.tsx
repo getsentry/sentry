@@ -7,7 +7,9 @@ import moment from 'moment';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,6 +17,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -77,7 +80,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, ruleId, projectId} = this.props.params;
-    return [['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]];
+    return [
+      [
+        'rule',
+        `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
+        {query: {expand: 'lastTriggered'}},
+      ],
+    ];
   }
 
   getDataDatetime(): DateTimeObject {
@@ -197,30 +206,49 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        skipLoadLastUsed
       >
+        <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
+
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
-                {label: t('Alert Rule'), to: null},
+                {
+                  label: (
+                    <div>
+                      {t('Alert Rule')}
+                      <FeatureBadge type="beta" />
+                    </div>
+                  ),
+                  to: null,
+                },
               ]}
             />
             <Layout.Title>{rule.name}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button
-              icon={<IconEdit />}
-              to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
-              onClick={() =>
-                trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
-                  organization,
-                  rule_id: parseInt(ruleId, 10),
-                })
-              }
-            >
-              {t('Edit Rule')}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button
+                title={t('Send us feedback via email')}
+                href="mailto:alerting-feedback@sentry.io?subject=Issue Alert Details Feedback"
+              >
+                {t('Give Feedback')}
+              </Button>
+              <Button
+                icon={<IconEdit />}
+                to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                    organization,
+                    rule_id: parseInt(ruleId, 10),
+                  })
+                }
+              >
+                {t('Edit Rule')}
+              </Button>
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <StyledLayoutBody>

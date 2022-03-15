@@ -8,17 +8,20 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, location}) {
+function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <PerformanceContent organization={organization} location={location} />
-    </OrganizationContext.Provider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <OrganizationContext.Provider value={organization}>
+        <PerformanceContent organization={organization} location={location} />
+      </OrganizationContext.Provider>
+    </MEPSettingProvider>
   );
 }
 
@@ -371,7 +374,7 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m',
+          query: 'sentry:yes',
         }),
       })
     );

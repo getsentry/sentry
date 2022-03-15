@@ -29,16 +29,17 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import metric_object_factory
+from sentry.snuba.metrics.fields import DERIVED_METRICS, DerivedMetric, metric_object_factory
 from sentry.snuba.metrics.utils import (
     _OPERATIONS_PERCENTILES,
     ALLOWED_GROUPBY_COLUMNS,
-    DEFAULT_AGGREGATES,
     FIELD_REGEX,
     MAX_POINTS,
     OPERATIONS,
     TS_COL_GROUP,
     TS_COL_QUERY,
+    DerivedMetricParseException,
+    MetricDoesNotExistException,
     TimeRange,
 )
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
@@ -58,11 +59,23 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
             raise TypeError
         operation = matches[1]
         metric_name = matches[2]
+        if metric_name in DERIVED_METRICS and isinstance(
+            DERIVED_METRICS[metric_name], DerivedMetric
+        ):
+            raise DerivedMetricParseException(
+                f"Failed to parse {field}. No operations can be applied on this field as it is "
+                f"already a derived metric with an aggregation applied to it."
+            )
     except (IndexError, TypeError):
-        raise InvalidField(f"Failed to parse '{field}'. Must be something like 'sum(my_metric)'.")
+        if field in DERIVED_METRICS and isinstance(DERIVED_METRICS[field], DerivedMetric):
+            # The isinstance check is there to foreshadow adding raw metric aliases
+            return None, field
+        raise InvalidField(
+            f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', or a supported "
+            f"aggregate derived metric like `session.crash_free_rate"
+        )
     else:
         if operation not in OPERATIONS:
-
             raise InvalidField(
                 f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
             )
@@ -108,6 +121,7 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
+    # Todo(ahmed): Check against `session.status` that was decided not to be supported
     try:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
@@ -296,15 +310,13 @@ class SnubaQueryBuilder:
             for field in query_definition.groupby
         ]
 
-    def _build_orderby(
-        self, query_definition: QueryDefinition, entity: str
-    ) -> Optional[List[OrderBy]]:
+    def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
             return None
         (op, metric_name), direction = query_definition.orderby
         metric_field_obj = metric_object_factory(op, metric_name)
         return metric_field_obj.generate_orderby_clause(
-            entity=entity, projects=self._projects, direction=direction
+            projects=self._projects, direction=direction
         )
 
     @staticmethod
@@ -340,7 +352,27 @@ class SnubaQueryBuilder:
         queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
             metric_field_obj = metric_object_factory(op, metric_name)
-            entity = metric_field_obj.get_entity(projects=self._projects)
+            # `get_entity` is called the first, to fetch the entities of constituent metrics,
+            # and validate especially in the case of SingularEntityDerivedMetric that it is
+            # actually composed of metrics that belong to the same entity
+            try:
+                entity = metric_field_obj.get_entity(projects=self._projects)
+            except MetricDoesNotExistException:
+                # If we get here, it means that one or more of the constituent metrics for a
+                # derived metric does not exist, and so no further attempts to query that derived
+                # metric will be made, and the field value will be set to the default value in
+                # the response
+                continue
+
+            if not entity:
+                # ToDo(ahmed): When we get to an instance of a MetricFieldBase where entity is
+                #  None, we know it is from a composite entity derived metric, and we need to
+                #  traverse down the constituent metrics dependency tree until we get to instances
+                #  of SingleEntityDerivedMetric, and add those to our queries so that we are able
+                #  to generate the original CompositeEntityDerivedMetric later on as a result of
+                #  a post query operation on the results of the constituent
+                #  SingleEntityDerivedMetric instances
+                continue
 
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
@@ -358,10 +390,8 @@ class SnubaQueryBuilder:
             metric_ids_set = set()
             for op, name in fields:
                 metric_field_obj = metric_name_to_obj_dict[(op, name)]
-                select += metric_field_obj.generate_select_statements(
-                    entity=entity, projects=self._projects
-                )
-                metric_ids_set |= metric_field_obj.generate_metric_ids(entity)
+                select += metric_field_obj.generate_select_statements(projects=self._projects)
+                metric_ids_set |= metric_field_obj.generate_metric_ids()
 
             where_for_entity = [
                 Condition(
@@ -370,7 +400,7 @@ class SnubaQueryBuilder:
                     list(metric_ids_set),
                 ),
             ]
-            orderby = self._build_orderby(query_definition, entity)
+            orderby = self._build_orderby(query_definition)
 
             queries_dict[entity] = self._build_totals_and_series_queries(
                 entity=entity,
@@ -428,33 +458,40 @@ class SnubaResultConverter:
             bucketed_time = parse_snuba_datetime(bucketed_time)
 
         for op, metric_name in self._query_definition.fields.values():
-            key = f"{op}({metric_name})"
+            key = f"{op}({metric_name})" if op else metric_name
+
+            default_null_value = metric_object_factory(
+                op, metric_name
+            ).generate_default_null_values()
+
             try:
                 value = data[key]
             except KeyError:
                 # This could occur when we have derived metrics that are generated from post
                 # query operations, and so don't have a direct mapping to the query results
-                continue
-
-            if op in _OPERATIONS_PERCENTILES:
-                value = value[0]
-            cleaned_value = finite_or_none(value)
+                # or also from raw_metrics that don't exist in clickhouse yet
+                cleaned_value = default_null_value
+            else:
+                if op in _OPERATIONS_PERCENTILES:
+                    value = value[0]
+                cleaned_value = finite_or_none(value)
 
             if bucketed_time is None:
-                tag_data["totals"][key] = cleaned_value
+                # Only update the value, when either key does not exist or its a default
+                if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
+                    tag_data["totals"][key] = cleaned_value
 
-            default_null_value = DEFAULT_AGGREGATES[op]
-            if bucketed_time is not None or cleaned_value == default_null_value:
+            if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
                 empty_values = len(self._intervals) * [default_null_value]
                 series = tag_data["series"].setdefault(key, empty_values)
 
                 if bucketed_time is not None:
                     series_index = self._timestamp_index[bucketed_time]
-                    series[series_index] = cleaned_value
+                    if series[series_index] == default_null_value:
+                        series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
-
         for entity, subresults in self._results.items():
             totals = subresults["totals"]["data"]
             for data in totals:
