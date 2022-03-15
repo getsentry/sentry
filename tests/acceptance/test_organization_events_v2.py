@@ -55,6 +55,20 @@ def transactions_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
+# Sorted by transactions to avoid sorting issues caused by storing events
+def transactions_sorted_query(**kwargs):
+    options = {
+        "sort": ["transaction"],
+        "name": ["Transactions"],
+        "field": ["transaction", "project", "count()"],
+        "statsPeriod": ["14d"],
+        "query": ["event.type:transaction"],
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
+
+
 def generate_transaction(trace=None, span=None):
     end_datetime = before_now(minutes=1)
     start_datetime = end_datetime - timedelta(milliseconds=500)
@@ -392,7 +406,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
 
             # Open the stack
