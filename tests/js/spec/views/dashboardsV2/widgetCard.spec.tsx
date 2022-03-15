@@ -30,12 +30,16 @@ describe('Dashboards > WidgetCard', function () {
       {
         conditions: 'event.type:error',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'errors',
         orderby: '',
       },
       {
         conditions: 'event.type:default',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'default',
         orderby: '',
       },
@@ -142,7 +146,14 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -179,6 +190,10 @@ describe('Dashboards > WidgetCard', function () {
               fields: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
+              columns: [],
+              aggregates: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
             },
           ],
         }}
@@ -213,7 +228,12 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
           queries: [
-            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['transaction', 'count()'],
+              columns: ['transaction'],
+              aggregates: ['count()'],
+            },
           ],
         }}
         selection={selection}
@@ -443,6 +463,8 @@ describe('Dashboards > WidgetCard', function () {
         {
           conditions: '',
           fields: ['transaction', 'count()'],
+          columns: ['transaction'],
+          aggregates: ['count()'],
           name: 'Table',
           orderby: '',
         },

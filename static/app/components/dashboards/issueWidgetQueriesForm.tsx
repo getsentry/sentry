@@ -77,7 +77,9 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
 
   render() {
     const {organization, error, query, tags, fieldOptions, onChange} = this.props;
-    const explodedFields = query.fields.map(field => explodeField({field}));
+    const explodedFields = (query.fields ?? [...query.columns, ...query.aggregates]).map(
+      field => explodeField({field})
+    );
     const {blurTimeout} = this.state;
 
     return (

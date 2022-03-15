@@ -98,6 +98,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           defaultWidgetQuery: {
             conditions: 'event.type:error',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             name: '',
             orderby: '-count',
           },
@@ -123,6 +125,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           defaultWidgetQuery: {
             conditions: 'event.type:error',
             fields: ['count()', 'failure_count()'],
+            aggregates: ['count()', 'failure_count()'],
+            columns: [],
             name: '',
             orderby: '-count',
           },
@@ -148,6 +152,12 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           defaultWidgetQuery: {
             conditions: 'event.type:error',
             fields: ['count()', 'failure_count()', 'equation|count() + failure_count()'],
+            aggregates: [
+              'count()',
+              'failure_count()',
+              'equation|count() + failure_count()',
+            ],
+            columns: [],
             name: '',
             orderby: '-count',
           },

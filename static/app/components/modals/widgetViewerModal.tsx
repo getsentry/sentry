@@ -20,7 +20,9 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -122,16 +124,20 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
-  const fields = tableWidget.queries[0].fields;
+  const {aggregates, columns} = tableWidget.queries[0];
+
+  const fields = defined(tableWidget.queries[0].fields)
+    ? tableWidget.queries[0].fields
+    : [...columns, ...aggregates];
 
   // World Map view should always have geo.country in the table chart
   if (
     widget.displayType === DisplayType.WORLD_MAP &&
-    !fields.includes(GEO_COUNTRY_CODE)
+    !columns.includes(GEO_COUNTRY_CODE)
   ) {
     fields.unshift(GEO_COUNTRY_CODE);
+    columns.unshift(GEO_COUNTRY_CODE);
   }
-
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns = [
     DisplayType.AREA,
@@ -143,6 +149,11 @@ function WidgetViewerModal(props: Props) {
   if (shouldReplaceTableColumns) {
     tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
     fields.splice(
+      0,
+      fields.length,
+      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
+    );
+    columns.splice(
       0,
       fields.length,
       ...['title', 'event.type', 'project', 'user.display', 'timestamp']
@@ -160,8 +171,15 @@ function WidgetViewerModal(props: Props) {
       if (Array.isArray(fields) && !fields.includes(term)) {
         fields.unshift(term);
       }
+      if (isAggregateField(term) && !aggregates.includes(term)) {
+        aggregates.unshift(term);
+      }
+      if (!isAggregateField(term) && !columns.includes(term)) {
+        columns.unshift(term);
+      }
     });
   }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
