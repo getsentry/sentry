@@ -1,30 +1,42 @@
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
-function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
-    features,
+const initializeData = (settings = {}) => {
+  const projects = [
+    TestStubs.Project({id: '1', slug: '1'}),
+    TestStubs.Project({id: '2', slug: '2'}),
+  ];
+  return _initializeData({
+    features: FEATURES,
     projects,
+    project: projects[0],
+    ...settings,
   });
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: query || {},
-      },
-    },
-  });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
-  return initialData;
-}
+};
+
+const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+  return (
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <Table
+        organization={data.organization}
+        location={data.router.location}
+        setError={jest.fn()}
+        summaryConditions=""
+        {...data}
+        {...rest}
+      />
+    </MEPSettingProvider>
+  );
+};
 
 function openContextMenu(wrapper, cellIndex) {
   const menu = wrapper.find('CellAction').at(cellIndex);
@@ -39,10 +51,7 @@ function openContextMenu(wrapper, cellIndex) {
   return wrapper.find('CellAction').at(cellIndex).find('Menu');
 }
 
-describe('Performance > Table', function () {
-  const project1 = TestStubs.Project();
-  const project2 = TestStubs.Project();
-  const projects = [project1, project2];
+function mockEventView(data) {
   const eventView = new EventView({
     id: '1',
     name: 'my query',
@@ -83,15 +92,31 @@ describe('Performance > Table', function () {
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
     query: 'event.type:transaction transaction:/api*',
-    project: [project1.id, project2.id],
+    project: [data.projects[0].id, data.projects[1].id],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: [],
+    additionalConditions: new MutableSearch(''),
+    createdBy: undefined,
+    interval: undefined,
+    display: '',
+    team: [],
+    topEvents: undefined,
+    yAxis: undefined,
   });
+  return eventView;
+}
+
+describe('Performance > Table', function () {
+  let eventsV2Mock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    eventsV2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -111,7 +136,7 @@ describe('Performance > Table', function () {
           {
             team_key_transaction: 1,
             transaction: '/apple/cart',
-            project: project1.slug,
+            project: '2',
             user: 'uhoh@example.com',
             tpm: 30,
             p50: 100,
@@ -126,7 +151,7 @@ describe('Performance > Table', function () {
           {
             team_key_transaction: 0,
             transaction: '/apple/checkout',
-            project: project2.slug,
+            project: '1',
             user: 'uhoh@example.com',
             tpm: 30,
             p50: 100,
@@ -153,18 +178,17 @@ describe('Performance > Table', function () {
   });
 
   it('renders correct cell actions without feature', async function () {
-    const data = initializeData(projects, {
+    const data = initializeData({
       query: 'event.type:transaction transaction:/api*',
     });
 
     const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        organization={data.organization}
-        location={data.router.location}
+      <WrappedComponent
+        data={data}
+        eventView={mockEventView(data)}
         setError={jest.fn()}
         summaryConditions=""
-        projects={projects}
+        projects={data.projects}
       />
     );
 
@@ -204,6 +228,57 @@ describe('Performance > Table', function () {
     expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
     expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
       'Edit threshold (300ms)'
+    );
+  });
+
+  it('sends MEP param when setting enabled', async function () {
+    const data = initializeData({
+      query: 'event.type:transaction transaction:/api*',
+    });
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent
+        data={data}
+        eventView={mockEventView(data)}
+        setError={jest.fn()}
+        summaryConditions=""
+        projects={data.projects}
+        isMEPEnabled
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
+          field: [
+            'team_key_transaction',
+            'transaction',
+            'project',
+            'tpm()',
+            'p50()',
+            'p95()',
+            'failure_rate()',
+            'apdex()',
+            'count_unique(user)',
+            'count_miserable(user)',
+            'user_misery()',
+          ],
+          metricsEnhanced: '1',
+          per_page: 50,
+          project: ['1', '2'],
+          query: 'event.type:transaction transaction:/api*',
+          referrer: 'api.performance.landing-table',
+          sort: '-team_key_transaction',
+          statsPeriod: '14d',
+        }),
+      })
     );
   });
 });

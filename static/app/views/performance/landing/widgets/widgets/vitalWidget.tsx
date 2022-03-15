@@ -11,6 +11,7 @@ import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
@@ -32,7 +33,7 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -85,6 +86,7 @@ export function transformFieldsWithStops(props: {
 }
 
 export function VitalWidget(props: PerformanceWidgetProps) {
+  const {isMEPEnabled} = useMEPSettingContext();
   const {ContainerActions, eventView, organization, location} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
@@ -125,6 +127,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               limit={3}
               cursor="0:0:1"
               noPagination
+              queryExtras={getMEPQueryParams(isMEPEnabled)}
             />
           );
         },
@@ -164,6 +167,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
+              queryExtras={getMEPQueryParams(isMEPEnabled)}
             />
           );
         },

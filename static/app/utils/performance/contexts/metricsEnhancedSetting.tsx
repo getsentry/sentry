@@ -11,10 +11,12 @@ interface MetricsEnhancedSettingContext {
   setMEPEnabled: (value: boolean) => void;
 }
 
-const [_MEPSettingProvider, _useMEPSettingContext] =
+const [_MEPSettingProvider, _useMEPSettingContext, MEPSettingContext] =
   createDefinedContext<MetricsEnhancedSettingContext>({
     name: 'MetricsEnhancedSettingContext',
   });
+
+export const MEPConsumer = MEPSettingContext.Consumer;
 
 export const MEPSettingProvider = ({
   children,
