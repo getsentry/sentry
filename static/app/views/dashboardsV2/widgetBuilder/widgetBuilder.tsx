@@ -269,7 +269,7 @@ function WidgetBuilder({
     };
   });
 
-  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+  const [blurTimeout] = useState<null | number>(null);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
@@ -956,11 +956,11 @@ function WidgetBuilder({
                                   // this, we set a timer in our onSearch handler to block our onBlur
                                   // handler from firing if it is within 200ms, ie from clicking an
                                   // autocomplete value.
-                                  setBlurTimeout(
-                                    window.setTimeout(() => {
-                                      setBlurTimeout(null);
-                                    }, 200)
-                                  );
+                                  // setBlurTimeout(
+                                  //   window.setTimeout(() => {
+                                  //     setBlurTimeout(null);
+                                  //   }, 200)
+                                  // );
 
                                   const newQuery: WidgetQuery = {
                                     ...state.queries[queryIndex],
