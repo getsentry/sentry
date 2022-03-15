@@ -113,6 +113,22 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "p100",
+                    optional_args=[
+                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "maxIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "count_unique",
                     required_args=[fields.FunctionArg("column")],
                     calculated_args=[resolve_metric_id],
