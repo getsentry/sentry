@@ -123,7 +123,8 @@ runs:
     - name: Install system dependencies
       shell: bash
       run: |
-        sudo apt-get update
+        sudo apt-get clean
+        sudo apt-get update --allow-releaseinfo-change
         sudo apt-get install -y --no-install-recommends \
           libxmlsec1-dev \
           libmaxminddb-dev
