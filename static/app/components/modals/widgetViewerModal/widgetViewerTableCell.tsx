@@ -73,6 +73,8 @@ export const renderIssueGridHeaderCell =
             organization,
             widget_type: widget.widgetType ?? WidgetType.DISCOVER,
             display_type: widget.displayType,
+            column: column.name,
+            order: 'desc',
           });
         }}
       />
@@ -128,6 +130,8 @@ export const renderDiscoverGridHeaderCell =
             organization,
             widget_type: widget.widgetType ?? WidgetType.DISCOVER,
             display_type: widget.displayType,
+            column: column.name,
+            order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
           });
         }}
       />

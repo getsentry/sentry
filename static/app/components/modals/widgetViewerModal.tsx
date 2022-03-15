@@ -395,6 +395,15 @@ function WidgetViewerModal(props: Props) {
                             [WidgetViewerQueryField.CURSOR]: newCursor,
                           },
                         });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
                       }}
                     />
                   </React.Fragment>

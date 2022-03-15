@@ -129,7 +129,9 @@ export type DashboardsEventParameters = {
     widget_type: string;
   };
   'dashboards_views.widget_viewer.sort': {
+    column: string;
     display_type: string;
+    order: string;
     widget_type: string;
   };
   'dashboards_views.widget_viewer.toggle_legend': {
