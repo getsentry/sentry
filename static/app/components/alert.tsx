@@ -13,7 +13,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
-  trailingItems?: React.ReactNode[];
+  trailingItems?: React.ReactNode;
   type?: keyof Theme['alert'];
 }
 
