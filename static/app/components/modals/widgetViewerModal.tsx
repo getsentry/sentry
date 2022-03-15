@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -206,6 +207,11 @@ function WidgetViewerModal(props: Props) {
                   ...modalSelection,
                   datetime: {...modalSelection.datetime, start, end, period: null},
                 });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
               onLegendSelectChanged={({selected}) => {
                 router.replace({
@@ -217,6 +223,14 @@ function WidgetViewerModal(props: Props) {
                     ),
                   },
                 });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.toggle_legend',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
               legendOptions={{selected: disabledLegends}}
             />
@@ -242,6 +256,15 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: undefined,
                   },
                 });
+
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.select_query',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             />
           </React.Fragment>
@@ -303,6 +326,15 @@ function WidgetViewerModal(props: Props) {
                             [WidgetViewerQueryField.PAGE]: nextPage,
                           },
                         });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
                       }}
                     />
                   </React.Fragment>
@@ -361,6 +393,15 @@ function WidgetViewerModal(props: Props) {
                             [WidgetViewerQueryField.CURSOR]: newCursor,
                           },
                         });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
                       }}
                     />
                   </React.Fragment>
@@ -414,12 +455,28 @@ function WidgetViewerModal(props: Props) {
               onClick={() => {
                 closeModal();
                 onEdit();
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
             >
               {t('Edit Widget')}
             </Button>
           )}
-          <Button to={path} priority="primary" type="button">
+          <Button
+            to={path}
+            priority="primary"
+            type="button"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          >
             {openLabel}
           </Button>
         </ButtonBar>
