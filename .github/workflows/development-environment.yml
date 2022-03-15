@@ -67,7 +67,6 @@ jobs:
         run: |
           export VOLTA_HOME="$HOME/.volta"
           export PATH="$HOME/.volta/bin:$PATH"
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
           make bootstrap
