@@ -23,41 +23,50 @@ type Props = WithRouterProps &
     api: Client;
     closeModal: () => void;
     /**
+     * User is a superuser without an active su session
+     */
+    isSuperuser?: boolean;
+    /**
      * expects a function that returns a Promise
      */
     retryRequest?: () => Promise<any>;
-    /**
-     * User is a superuser without an active su session
-     */
-    superuser?: boolean;
   };
 
 type State = {
   busy: boolean;
   error: boolean;
   errorType: string;
-  isFirstStep: boolean;
+  showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
+
+enum ErrorCodes {
+  invalidPassword = 'Incorrect password',
+  invalidSSOSession = 'Your SSO Session has expired, please reauthnticate',
+  invalidAccessCategory = 'Please fill out the access category and reason correctly',
+  unknownError = 'An error ocurred, please try again',
+}
 
 class SudoModal extends React.Component<Props, State> {
   state: State = {
     error: false,
     errorType: '',
     busy: false,
-    isFirstStep: true,
+    showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
   };
 
   handleSubmit = async data => {
-    const {api, superuser} = this.props;
+    const {api, isSuperuser} = this.props;
 
-    if (this.state.isFirstStep && superuser) {
-      this.setState({isFirstStep: false});
-      this.setState({superuserAccessCategory: data.superuserAccessCategory});
-      this.setState({superuserReason: data.superuserReason});
+    if (this.state.showAccessForms && isSuperuser) {
+      this.setState({
+        showAccessForms: false,
+        superuserAccessCategory: data.superuserAccessCategory,
+        superuserReason: data.superuserReason,
+      });
     } else {
       try {
         await api.requestPromise('/auth/', {method: 'PUT', data});
@@ -69,19 +78,19 @@ class SudoModal extends React.Component<Props, State> {
   };
 
   handleSuccess = () => {
-    const {closeModal, superuser, location, router, retryRequest} = this.props;
+    const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
 
     if (!retryRequest) {
       closeModal();
       return;
     }
 
-    if (superuser) {
+    if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
       return;
     }
 
-    this.setState({busy: true, isFirstStep: true}, () => {
+    this.setState({busy: true, showAccessForms: true}, () => {
       retryRequest().then(() => {
         this.setState({busy: false}, closeModal);
       });
@@ -89,27 +98,31 @@ class SudoModal extends React.Component<Props, State> {
   };
 
   handleError = err => {
-    let errType = '';
+    let errorType = '';
     if (err.status === 403) {
-      errType = 'invalidPassword';
+      errorType = ErrorCodes.invalidPassword;
     } else if (err.status === 401) {
-      errType = 'invalidSSOSession';
-    } else if (
-      err.responseText ===
-      '{"superuserReason":["Ensure this field has at least 4 characters."]}'
-    ) {
-      errType = 'invalidReason';
+      errorType = ErrorCodes.invalidSSOSession;
+    } else if (err.status === 400) {
+      errorType = ErrorCodes.invalidAccessCategory;
+    } else {
+      errorType = ErrorCodes.unknownError;
     }
-    this.setState({busy: false, error: true, isFirstStep: true, errorType: errType});
+    this.setState({
+      busy: false,
+      error: true,
+      showAccessForms: true,
+      errorType,
+    });
   };
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     this.setState({busy: true});
 
-    const {api, superuser} = this.props;
+    const {api, isSuperuser} = this.props;
 
     try {
-      data.isSuperuserModal = superuser;
+      data.isSuperuserModal = isSuperuser;
       data.superuserAccessCategory = this.state.superuserAccessCategory;
       data.superuserReason = this.state.superuserReason;
       await api.requestPromise('/auth/', {method: 'PUT', data});
@@ -122,15 +135,15 @@ class SudoModal extends React.Component<Props, State> {
   };
 
   renderBodyContent() {
-    const {superuser} = this.props;
-    const {error, isFirstStep, errorType} = this.state;
+    const {isSuperuser} = this.props;
+    const {error, showAccessForms, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>
           <StyledTextBlock>
-            {superuser
+            {isSuperuser
               ? t(
                   'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
                 )
@@ -138,15 +151,7 @@ class SudoModal extends React.Component<Props, State> {
           </StyledTextBlock>
           {error && (
             <StyledAlert type="error" icon={<IconFlag size="md" />}>
-              {errorType === 'invalidPassword'
-                ? t('Incorrect password')
-                : errorType === 'invalidReason'
-                ? t(
-                    'Please make sure your reason for access is between 4 to 128 characters'
-                  )
-                : errorType === 'invalidSSOSession'
-                ? t('Your SSO Session has expired, please reauthnticate')
-                : t('An error ocurred, please try again')}
+              {t(errorType)}
             </StyledAlert>
           )}
           <Form
@@ -155,10 +160,10 @@ class SudoModal extends React.Component<Props, State> {
             submitLabel={t('Re-authenticate')}
             onSubmitSuccess={this.handleSuccess}
             onSubmitError={this.handleError}
-            initialData={{isSuperuserModal: superuser}}
+            initialData={{isSuperuserModal: isSuperuser}}
             resetOnError
           >
-            {!isSelfHosted && isFirstStep && superuser && (
+            {!isSelfHosted && showAccessForms && isSuperuser && (
               <Hook name="component:superuser-access-category" />
             )}
           </Form>
@@ -169,7 +174,7 @@ class SudoModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <StyledTextBlock>
-          {superuser
+          {isSuperuser
             ? t(
                 'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
               )
@@ -178,33 +183,25 @@ class SudoModal extends React.Component<Props, State> {
 
         {error && (
           <StyledAlert type="error" icon={<IconFlag size="md" />}>
-            {errorType === 'invalidPassword'
-              ? t('Incorrect password')
-              : errorType === 'invalidReason'
-              ? t(
-                  'Please make sure your reason for access is between 4 to 128 characters'
-                )
-              : errorType === 'invalidSSOSession'
-              ? t('Your SSO Session has expired, please reauthnticate')
-              : t('An error ocurred, please try again')}
+            {t(errorType)}
           </StyledAlert>
         )}
 
         <Form
           apiMethod="PUT"
           apiEndpoint="/auth/"
-          submitLabel={isFirstStep ? t('Continue') : t('Confirm Password')}
+          submitLabel={showAccessForms ? t('Continue') : t('Confirm Password')}
           onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth}
-          initialData={{isSuperuserModal: superuser}}
+          initialData={{isSuperuserModal: isSuperuser}}
           resetOnError
         >
-          {!isSelfHosted && isFirstStep && superuser && (
+          {!isSelfHosted && showAccessForms && isSuperuser && (
             <Hook name="component:superuser-access-category" />
           )}
-          {((!isFirstStep && superuser) || !superuser || isSelfHosted) && (
+          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
             <StyledInputField
               type="password"
               inline={false}
@@ -214,7 +211,7 @@ class SudoModal extends React.Component<Props, State> {
               flexibleControlStateSize
             />
           )}
-          {((!isFirstStep && superuser) || !superuser || isSelfHosted) && (
+          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
             <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
           )}
         </Form>
