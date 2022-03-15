@@ -19,6 +19,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 
 
@@ -140,6 +141,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 target_object=updated_rule.id,
                 event=AuditLogEntryEvent.RULE_EDIT,
                 data=updated_rule.get_audit_log_data(),
+            )
+            alert_rule_edited.send_robust(
+                user=request.user,
+                project=project,
+                rule=rule,
+                rule_type="issue",
+                sender=self,
+                is_api_token=request.auth is not None,
             )
 
             return Response(serialize(updated_rule, request.user))

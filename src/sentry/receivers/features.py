@@ -12,6 +12,7 @@ from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
     alert_rule_created,
+    alert_rule_edited,
     data_scrubber_enabled,
     deploy_created,
     event_processed,
@@ -317,6 +318,33 @@ def record_alert_rule_created(
         session_id=session_id,
         is_api_token=is_api_token,
         alert_rule_ui_component=alert_rule_ui_component,
+    )
+
+
+@alert_rule_edited.connect(weak=False)
+def record_alert_rule_edited(
+    user,
+    project,
+    rule,
+    rule_type,
+    is_api_token,
+    **kwargs,
+):
+    if user and user.is_authenticated:
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "alert.edited",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        rule_id=rule.id,
+        rule_type=rule_type,
+        is_api_token=is_api_token,
     )
 
 

@@ -234,7 +234,8 @@ class ProjectRuleDetailsTest(APITestCase):
 
 
 class UpdateProjectRuleTest(APITestCase):
-    def test_simple(self):
+    @patch("sentry.signals.alert_rule_edited.send_robust")
+    def test_simple(self, send_robust):
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -286,6 +287,7 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.data["conditions"] == conditions
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        assert send_robust.called
 
     def test_no_owner(self):
         self.login_as(user=self.user)

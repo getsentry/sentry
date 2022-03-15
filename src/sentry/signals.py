@@ -87,6 +87,9 @@ data_scrubber_enabled = BetterSignal(providing_args=["organization"])
 alert_rule_created = BetterSignal(
     providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
 )
+alert_rule_edited = BetterSignal(
+    providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
+)
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
