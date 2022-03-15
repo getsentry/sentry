@@ -1,3 +1,35 @@
+22.3.0
+------
+
+### Various fixes & improvements
+
+- feat(perf): Add MEP param to other landing requests (#32575) by @k-fish
+- feat(devenv): set sentry SDK default off if dsn not provided and relay off (#32569) by @JoshFerge
+- ref(dam): Use cols and aggregates (#32441) by @shruthilayaj
+- feat(mep): Introduce p100 to the metric query builder (#32570) by @wmak
+- feat(mep): Introduce the count_web_vitals functions to metrics (#32507) by @wmak
+- ref(sdk): Move back to 5000ms idleTimeout (#32564) by @k-fish
+- feat(dashboards): Widget Viewer beta badge and style (#32588) by @edwardgou-sentry
+- chore: Add team-web-backend as CODEOWNERS of SDK (#32033) by @sl0thentr0py
+- ref(ui): Improve uage of BookmarkStar (#32553) by @evanpurkhiser
+- test(js): Convert organizationGroupDetails/action to RTL (#32598) by @evanpurkhiser
+- chore(deps): bump pillow from 8.3.2 to 9.0.1 (#32552) by @dependabot
+- chore(js): Upgrade babel from 7.15 -> 7.17 (#32016) by @evanpurkhiser
+- feat(onboarding): Add onboarding welcome page experiment (#31733) by @scefali
+- feat(codeowners): Decode base64 CODEOWNERS contents to utf-8 (#32582) by @NisanthanNanthakumar
+- fix(projects): Use subText for project issues table's heading (#32597) by @vuluongj20
+- fix(projects): Use subText for project card's score title (#32595) by @vuluongj20
+- fix(ui): fixed size of open in issues button (#32573) by @robinrendle
+- fix(ui): copy of alert details chart (#32587) by @robinrendle
+- ref(ui): Make small UI changes to Button component (#31903) by @vuluongj20
+- ref(page-filters): Add `alignDropdown` prop to environment selector (#32461) by @vuluongj20
+- fix(tests): Another attempt to reduce flakiness of event frequency tests (#32580) by @wedamija
+- fix(dashboards): Don't display edit button in Widget Viewer for prebuilt dashboards (#32567) by @edwardgou-sentry
+- fix(design): Fix code css definition (#32589) by @dashed
+- fix(discover): Add to Dashboard test from a Discover Query (#32577) by @edwardgou-sentry
+
+_Plus 605 more_
+
 22.2.0
 ------
 
