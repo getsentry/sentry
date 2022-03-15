@@ -347,7 +347,13 @@ class TestConcurrentRateLimiter(APITestCase):
             # dispatch more simultaneous requests to the endpoint than the concurrent limit
             for _ in range(CONCURRENT_RATE_LIMIT + 1):
                 # sleep a little in between each submission
-                # TODO: This should not be necesary if the lua scripts are atomic
+                # NOTE: This should not be necesary if the lua scripts are atomic
+                # There is a test that does this with just the concurrent rate limiter
+                # (test_redis_concurrent.py) and it doesn't need the sleep in between.
+                # something about the test infra makes it so that if that sleep
+                # is removed, the middleware is actually called double the amount of times
+                # if you want to try and figure it out, please do so but I won't
+                # - Volo
                 sleep(0.01)
                 futures.append(executor.submit(self.get_response))
             results = []
@@ -355,7 +361,11 @@ class TestConcurrentRateLimiter(APITestCase):
                 results.append(f.result())
 
             limits = sorted(int(r["X-Sentry-Rate-Limit-ConcurrentRemaining"]) for r in results)
+            # last two requests will have 0 concurrent slots remaining
             assert limits == [0, 0, *range(1, CONCURRENT_RATE_LIMIT)]
             sleep(CONCURRENT_ENDPOINT_DURATION + 0.1)
             response = self.get_success_response()
-            assert int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"]) == 2
+            assert (
+                int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
+                == CONCURRENT_RATE_LIMIT - 1
+            )

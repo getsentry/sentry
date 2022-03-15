@@ -142,7 +142,6 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
     def test_concurrent_request_finishes(self):
-        # TODO: This should be moved into test_access_log_middleware
         self._caplog.set_level(logging.INFO, logger="api.access")
         self.get_success_response()
         # these requests were done in succession, so we should not have any

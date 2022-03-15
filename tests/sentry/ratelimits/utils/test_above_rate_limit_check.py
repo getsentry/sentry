@@ -1,9 +1,11 @@
-from time import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep, time
 from unittest import TestCase
 
 from freezegun import freeze_time
 
-from sentry.ratelimits import above_rate_limit_check
+from sentry.ratelimits import above_rate_limit_check, finish_request
 from sentry.types.ratelimit import RateLimit, RateLimitMeta, RateLimitType
 
 
@@ -49,3 +51,20 @@ class RatelimitMiddlewareTest(TestCase):
                 concurrent_limit=9,
                 concurrent_requests=9,
             )
+
+    def test_concurrent(self):
+        def do_request():
+            uid = uuid.uuid4().hex
+            meta = above_rate_limit_check("foo", RateLimit(1, 1, 3), uid)
+            sleep(0.2)
+            finish_request("foo", uid)
+            return meta
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            for _ in range(4):
+                futures.append(executor.submit(do_request))
+            results = []
+            for f in futures:
+                results.append(f.result())
+            assert len([r for r in results if r.concurrent_remaining == 0]) == 2
