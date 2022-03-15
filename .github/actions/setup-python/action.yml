@@ -8,10 +8,6 @@ inputs:
     description: 'Directory where the sentry source is located'
     required: false
     default: '.'
-  cache-prefix:
-    description: 'Prefix for the cache key in order to allow different cache buckets.'
-    required: false
-    default: ''
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
@@ -74,6 +70,4 @@ runs:
       with:
         path: ${{ steps.pip-info.outputs.pip-cache-dir }}
         key: |
-          ${{ inputs.cache-prefix }}${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ inputs.cache-files-hash }}
-        restore-keys: |
-          ${{ inputs.cache-prefix }}${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-
+          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ inputs.cache-files-hash }}

@@ -37,11 +37,11 @@ jobs:
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
       # NOTE: This can sometimes take up to 10 minutes
-      # - name: Install Docker
-      #   run: |
-      #     HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
-      #     sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-      #     open -a /Applications/Docker.app --args --unattended --accept-license
+      - name: Install Docker
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
 
       - name: Install missing brew packages
         run: |
@@ -55,8 +55,6 @@ jobs:
       - name: Setup Python & cache
         uses: ./.github/actions/setup-python
         with:
-          # The dev env cache includes optional packages, thus, differentiate
-          cache-prefix: devenv-
           cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
 
       - name: Cache (yarn)
@@ -65,7 +63,8 @@ jobs:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
           key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
-      # Pre-warm bootstrap step
+      # This tests starting up the dev services, loading mocks and pre-commit installation
+      # This can take over 15 minutes
       - name: make bootstrap
         run: |
           export VOLTA_HOME="$HOME/.volta"
@@ -73,18 +72,7 @@ jobs:
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
-          make install-py-dev
-
-      # # This tests starting up the dev services, loading mocks and pre-commit installation
-      # # This can take over 15 minutes
-      # - name: make bootstrap
-      #   run: |
-      #     export VOLTA_HOME="$HOME/.volta"
-      #     export PATH="$HOME/.volta/bin:$PATH"
-      #     [[ $(python -V) == "Python $(cat .python-version)" ]]
-      #     python -m venv .venv
-      #     source .venv/bin/activate
-      #     make bootstrap
+          make bootstrap
 
   # The pyenv set up takes long, thus, separating it into its own
   pyenv-setup:
