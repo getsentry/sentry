@@ -54,8 +54,6 @@ jobs:
       # This handles Python's cache
       - name: Setup Python & cache
         uses: ./.github/actions/setup-python
-        with:
-          cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
