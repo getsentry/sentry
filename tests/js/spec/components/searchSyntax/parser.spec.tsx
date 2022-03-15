@@ -55,7 +55,7 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
   });
 
 describe('searchSyntax/parser', function () {
-  const testData: Record<string, TestCase[]> = loadFixtures('search-syntax');
+  const testData = loadFixtures('search-syntax') as unknown as Record<string, TestCase[]>;
 
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
