@@ -60,7 +60,7 @@ export type FetchEmbeddedChildrenState =
 export type SpanGroupProps = {
   showNestedSpanGroup: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
-  toggleSpanGroup: (() => void) | undefined;
+  toggleNestedSpanGroup: (() => void) | undefined;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -82,7 +82,7 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
-      toggleSpanGroup: (() => void) | undefined;
+      toggleNestedSpanGroup: (() => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 

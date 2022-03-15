@@ -218,7 +218,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -247,7 +247,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -276,7 +276,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -301,7 +301,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       },
     ];
 
@@ -327,7 +327,7 @@ describe('SpanTreeModel', () => {
       event,
       isOnlySibling: true,
       spanNestedGrouping: undefined,
-      toggleSpanGroup: undefined,
+      toggleNestedSpanGroup: undefined,
       showNestedSpanGroup: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
@@ -371,7 +371,7 @@ describe('SpanTreeModel', () => {
       event,
       isOnlySibling: true,
       spanNestedGrouping: undefined,
-      toggleSpanGroup: undefined,
+      toggleNestedSpanGroup: undefined,
       showNestedSpanGroup: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
@@ -403,7 +403,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       },
       {
         type: 'span',
@@ -425,7 +425,7 @@ describe('SpanTreeModel', () => {
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
         fetchEmbeddedChildrenState: 'idle',
-        toggleSpanGroup: undefined,
+        toggleNestedSpanGroup: undefined,
       }
     );
 
@@ -472,7 +472,7 @@ describe('SpanTreeModel', () => {
       event,
       isOnlySibling: true,
       spanNestedGrouping: undefined,
-      toggleSpanGroup: undefined,
+      toggleNestedSpanGroup: undefined,
       showNestedSpanGroup: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},

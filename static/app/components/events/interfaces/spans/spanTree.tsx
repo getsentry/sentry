@@ -215,7 +215,7 @@ class SpanTree extends React.Component<PropType> {
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -233,7 +233,7 @@ class SpanTree extends React.Component<PropType> {
 
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
-          toggleSpanGroup = payload.toggleSpanGroup;
+          toggleSpanGroup = payload.toggleNestedSpanGroup;
         }
 
         acc.spanTree.push(

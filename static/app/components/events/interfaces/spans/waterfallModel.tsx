@@ -299,7 +299,7 @@ class WaterfallModel {
       event: this.event,
       isOnlySibling: true,
       spanNestedGrouping: undefined,
-      toggleSpanGroup: undefined,
+      toggleNestedSpanGroup: undefined,
       showNestedSpanGroup: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
