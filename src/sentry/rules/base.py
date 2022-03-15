@@ -49,6 +49,11 @@ class RuleBase(abc.ABC):
         self.had_data = data is not None
         self.rule = rule
 
+    @property
+    @abc.abstractmethod
+    def id(self) -> str:
+        raise NotImplementedError
+
     def is_enabled(self):
         return True
 
