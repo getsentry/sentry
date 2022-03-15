@@ -76,10 +76,10 @@ function TargetedOnboardingWelcome({organization}: Props) {
       {({fallingError, fallCount, isFalling}) => (
         <Wrapper>
           <WelcomeBackground />
-          <motion.h1 {...fadeAway} style={{marginBottom: '0.25rem'}}>
+          <motion.h1 {...fadeAway} style={{marginBottom: space(0.5)}}>
             {t('Welcome to Sentry')}
           </motion.h1>
-          <SubHeaderText style={{marginBottom: '2rem'}} {...fadeAway}>
+          <SubHeaderText style={{marginBottom: space(4)}} {...fadeAway}>
             {t(
               'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
             )}
@@ -214,6 +214,11 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+    margin: ${space(1)} ${space(1)};
+    margin-top: ${space(3)};
+  }
 `;
 
 const Strike = styled('span')`
@@ -221,7 +226,7 @@ const Strike = styled('span')`
 `;
 
 const ActionTitle = styled('h5')`
-  font-weight: 500;
+  font-weight: 900;
   margin: 0 0 ${space(0.5)};
   color: ${p => p.theme.gray400};
 `;
