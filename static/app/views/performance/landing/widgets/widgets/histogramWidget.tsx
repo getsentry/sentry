@@ -2,18 +2,21 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
 import {PerformanceWidgetProps, WidgetDataResult} from '../types';
+import {getMEPQueryParams} from '../utils';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
 };
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
+  const {isMEPEnabled} = useMEPSettingContext();
   const {ContainerActions, location} = props;
   const globalSelection = props.eventView.getPageFilters();
 
@@ -28,6 +31,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
             location={props.location}
             numBuckets={20}
             dataFilter="exclude_outliers"
+            queryExtras={getMEPQueryParams(isMEPEnabled)}
           />
         ),
         transform: transformHistogramQuery,

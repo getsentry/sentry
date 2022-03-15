@@ -24,6 +24,7 @@ import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
@@ -239,13 +240,19 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableColumns = eventView.fields.map(({field}) => field);
+    const defaultTableFields = eventView.fields.map(({field}) => field);
+    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
 
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
+      aggregates: [
+        ...(displayType === DisplayType.TOP_N ? aggregates : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
+      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
         ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
       conditions: eventView.query,
@@ -267,7 +274,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           ...location.query,
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns,
+          defaultTableColumns: defaultTableFields,
           defaultTitle,
           displayType,
         },
@@ -279,7 +286,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns,
+      defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType,
     });
