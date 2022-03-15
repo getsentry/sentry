@@ -8,7 +8,7 @@
 --  concurrent_limit, request_uid, current_time, max_tll_seconds
 --
 -- Output:
--- current_executions (including the one that was just added), is_limit_exceeded?
+-- current_executions (including the one that was just added), request_allowed?
 local key = KEYS[1]
 
 local concurrent_limit = tonumber(ARGV[1])
