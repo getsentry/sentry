@@ -1,9 +1,13 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import ConfigStore from 'sentry/stores/configStore';
 import {Event} from 'sentry/types/event';
 import GroupActions from 'sentry/views/organizationGroupDetails/actions';
+
+jest.mock('sentry/actionCreators/modal', () => ({
+  openReprocessEventModal: jest.fn(),
+}));
 
 const group = TestStubs.Group({
   id: '1337',
@@ -110,8 +114,6 @@ describe('GroupActions', function () {
         platform: 'native',
       });
 
-      const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
-
       renderComponent(event);
       const btn = await screen.findByLabelText('Reprocess this issue');
       expect(btn).toBeInTheDocument();
@@ -120,7 +122,7 @@ describe('GroupActions', function () {
       // happen outside of the RTL work loop)
       userEvent.click(btn, undefined, {skipHover: true});
 
-      await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
+      await waitFor(() => expect(openReprocessEventModal).toHaveBeenCalled());
     });
   });
 });
