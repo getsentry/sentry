@@ -75,3 +75,5 @@ runs:
         path: ${{ steps.pip-info.outputs.pip-cache-dir }}
         key: |
           ${{ inputs.cache-prefix }}${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ inputs.cache-files-hash }}
+        restore-keys: |
+          ${{ inputs.cache-prefix }}${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-

@@ -35,7 +35,7 @@ jobs:
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
-      # NOTE: This can take up to 10 minutes
+      # NOTE: This can sometimes take up to 10 minutes
       - name: Install Docker
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
@@ -44,16 +44,14 @@ jobs:
 
       - name: Install missing brew packages
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
 
       - name: Install volta
         run: |
           curl https://get.volta.sh | bash
-          export VOLTA_HOME="$HOME/.volta"
-          export PATH="$HOME/.volta/bin:$PATH"
 
       # This handles Python's cache
-      - name: Setup Python
+      - name: Setup Python & cache
         uses: ./.github/actions/setup-python
         with:
           # The dev env cache includes optional packages
@@ -67,8 +65,10 @@ jobs:
           key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
-      - name: make bootstrap step
+      - name: make bootstrap
         run: |
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$HOME/.volta/bin:$PATH"
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
@@ -78,7 +78,7 @@ jobs:
   pyenv-setup:
     name: pyenv set up
     runs-on: macos-11
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
@@ -91,19 +91,19 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
 
-      # This handles Python's cache
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
-        with:
-          # The dev env cache includes optional packages
-          cache-prefix: devenv-
-          cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
+      # # This handles Python's cache
+      # - name: Setup Python
+      #   uses: ./.github/actions/setup-python
+      #   with:
+      #     # The dev env cache includes optional packages
+      #     cache-prefix: devenv-
+      #     cache-files-hash: ${{ hashFiles('**/requirements.txt') }}
 
-      - name: Cache (pyenv)
-        uses: actions/cache@v2
-        with:
-          path: ~/.pyenv
-          key: devenv-${{ runner.os }}-pyenv-${{ hashFiles('.python-version') }}
+      # - name: Cache (pyenv)
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.pyenv
+      #     key: devenv-${{ runner.os }}-pyenv-${{ hashFiles('.python-version') }}
 
       # Only after we source ~/.zprofile that the right Python will be selected
       - name: Set up pyenv
@@ -116,7 +116,6 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           [[ $(python -V) == "Python $(cat .python-version)" ]]
-          make install-py-dev
 
 
   # We don't yet test the bootstrap step
