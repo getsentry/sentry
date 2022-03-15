@@ -116,7 +116,7 @@ jobs:
         env:
           STRAP_DEBUG: 1
           # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.head_ref }}
+          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
         # XXX: temp url
         run: |
           bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/armenzg/ci/support-different-branch-testing/bootstrap.sh)
