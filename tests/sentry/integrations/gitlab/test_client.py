@@ -1,3 +1,6 @@
+import base64
+from unittest import mock
+
 import pytest
 import responses
 
@@ -7,6 +10,12 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
 from .testutils import GitLabTestCase
+
+GITLAB_CODEOWNERS = {
+    "filepath": "CODEOWNERS",
+    "html_url": "https://gitlab.com/org/reponame/CODEOWNERS",
+    "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
+}
 
 
 class GitlabRefreshAuthTest(GitLabTestCase):
@@ -168,3 +177,24 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             source_url
             == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
         )
+
+    @mock.patch(
+        "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",
+        return_value=GITLAB_CODEOWNERS["html_url"],
+    )
+    @responses.activate
+    def test_get_codeowner_file(self, mock_check_file):
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
+            json={"content": base64.b64encode(GITLAB_CODEOWNERS["raw"].encode()).decode("ascii")},
+        )
+        result = self.installation.get_codeowner_file(
+            self.config.repository, ref=self.config.default_branch
+        )
+
+        assert result == GITLAB_CODEOWNERS

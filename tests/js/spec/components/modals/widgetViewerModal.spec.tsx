@@ -74,6 +74,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -81,11 +83,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const additionalMockQuery = {
       conditions: '',
       fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '2',
       name: 'Another Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -240,6 +245,37 @@ describe('Modals -> WidgetViewerModal', function () {
         '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=&sort=-count&statsPeriod=14d&yAxis=count%28%29'
       );
     });
+
+    it('renders with first legend disabled by default', function () {
+      // Rerender with first legend disabled
+      initialData.router.location.query = {legend: ['Query Name']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            legend: expect.objectContaining({
+              selected: {'Query Name': false},
+            }),
+          }),
+        }),
+        {}
+      );
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {
@@ -247,6 +283,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
+      aggregates: ['count()'],
+      columns: ['error.type'],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -339,10 +377,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: ['-count']},
+        query: {sort: ['-count']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['-count']};
+      initialData.router.location.query = {sort: ['-count']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -381,6 +419,29 @@ describe('Modals -> WidgetViewerModal', function () {
     it('paginates to the next page', async function () {
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0'},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
@@ -390,6 +451,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
+      aggregates: ['p75(measurements.lcp)'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -457,11 +520,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
+      columns: ['events', 'status', 'title'],
+      aggregates: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Issue Widget',
       displayType: DisplayType.TABLE,
       interval: '5m',
@@ -563,10 +629,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('events'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: 'freq'},
+        query: {sort: 'freq'},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['freq']};
+      initialData.router.location.query = {sort: ['freq']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -610,6 +676,29 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0', page: 1},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
   });

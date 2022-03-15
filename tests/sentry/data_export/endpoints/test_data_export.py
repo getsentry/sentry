@@ -1,5 +1,3 @@
-from unittest import mock
-
 from freezegun import freeze_time
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
@@ -170,13 +168,13 @@ class DataExportTest(APITestCase):
 
     def test_export_invalid_fields(self):
         """
-        Ensures that if too many fields are requested, returns a 400 status code with the
-        corresponding error message.
+        Ensures that if a field is requested with the wrong parameters, the corresponding
+        error message is returned
         """
         payload = self.make_payload("discover", {"field": ["min()"]})
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["min(): expected 1 argument(s)"]}
+        assert response.data == {"non_field_errors": ["min: expected 1 argument(s)"]}
 
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self):
@@ -281,25 +279,24 @@ class DataExportTest(APITestCase):
             response = self.get_valid_response(self.org.slug, status_code=400, **payload)
         assert response.data == {"non_field_errors": ["Empty string after 'foo:'"]}
 
-    @mock.patch("sentry.data_export.endpoints.data_export.DiscoverProcessor")
-    def test_export_resolves_empty_project(self, mock_discover_processor):
+    @freeze_time("2020-05-19 14:00:00")
+    def test_export_resolves_empty_project(self):
         """
         Ensures that a request to this endpoint returns a 201 if projects
         is an empty list.
         """
-        payload = self.make_payload("discover", {"project": []})
+        payload = self.make_payload(
+            "discover",
+            {"project": [], "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"},
+        )
         with self.feature("organizations:discover-query"):
             self.get_valid_response(self.org.slug, status_code=201, **payload)
 
-        query_info = mock_discover_processor.call_args[1]
-        assert query_info["discover_query"]["project"] == [self.project.id]
-
-        payload = self.make_payload("issue", {"project": None})
+        payload = self.make_payload(
+            "issue", {"project": None, "start": "2020-05-18T14:00:00", "end": "2020-05-19T14:00:00"}
+        )
         with self.feature("organizations:discover-query"):
             self.get_valid_response(self.org.slug, status_code=201, **payload)
-
-        query_info = mock_discover_processor.call_args[1]
-        assert query_info["discover_query"]["project"] == [self.project.id]
 
     def test_equations(self):
         """
