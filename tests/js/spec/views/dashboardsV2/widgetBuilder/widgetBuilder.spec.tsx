@@ -1411,7 +1411,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      await screen.findByText('Group your results');
+      // await screen.findByText('Group your results');
       // userEvent.click(screen.getByText('Add Group'));
       // expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
