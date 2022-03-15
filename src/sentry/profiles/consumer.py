@@ -2,7 +2,6 @@ from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 import msgpack
 from confluent_kafka import Message
-from django.conf import settings
 
 from sentry.profiles.tasks import process_profile
 from sentry.utils import json
@@ -11,10 +10,11 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 
 
 def get_profiles_consumer(
-    topic: Optional[str] = None, **options: Dict[str, str]
+    topic: str,
+    **options: Dict[str, str],
 ) -> BatchingKafkaConsumer:
     return create_batching_kafka_consumer(
-        {settings.KAFKA_PROFILES},
+        {topic},
         worker=ProfilesWorker(),
         **options,
     )
