@@ -70,6 +70,15 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self.url, format="json")
         assert response.status_code == 404, response.content
 
+    def test_no_projects(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url, data={"projects": [-1], "span": f"django.middleware:{'cd'* 8}"}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == {}
+
     def test_endpoint(self):
         self.create_event()
 
