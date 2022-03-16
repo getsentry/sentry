@@ -309,7 +309,7 @@ const LinksContainer = styled('span')`
  * @returns {Function}
  */
 export function getIssueFieldRenderer(
-  field: keyof typeof SPECIAL_FIELDS
+  field: keyof typeof SPECIAL_FIELDS | string
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;

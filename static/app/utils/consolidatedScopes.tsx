@@ -97,7 +97,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':');
-      permissions[HUMAN_RESOURCE_NAMES[resource] as keyof Permissions] = permission;
+      permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
     }
   });
 
