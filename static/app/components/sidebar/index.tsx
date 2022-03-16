@@ -1,19 +1,14 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {
-  extractSelectionParameters,
-  getPathsWithNewFilters,
-} from 'sentry/components/organizations/pageFilters/utils';
+import {getPathsWithNewFilters} from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconChevron,
   IconDashboard,
@@ -108,10 +103,7 @@ function Sidebar({location, organization}: Props) {
   /**
    * Navigate to a path, but keep the page filter query strings.
    */
-  const navigateWithPageFilters = (
-    pathname: string,
-    evt: React.MouseEvent<HTMLAnchorElement>
-  ) => {
+  const navigateWithPageFilters = (pathname: string) => {
     // XXX(epurkhiser): No need to navigate w/ the page filters in the world
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
@@ -119,33 +111,6 @@ function Sidebar({location, organization}: Props) {
       if (getPathsWithNewFilters(organization).includes(pathname)) {
         return;
       }
-    }
-
-    const globalSelectionRoutes = [
-      'alerts',
-      'alerts/rules',
-      'dashboards',
-      'issues',
-      'releases',
-      'user-feedback',
-      'discover',
-      'discover/results', // Team plans do not have query landing page
-      'performance',
-    ].map(route => `/organizations/${organization?.slug}/${route}/`);
-
-    // Only keep the querystring if the current route matches one of the above
-    if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(location?.query ?? {});
-
-      // Handle cmd-click (mac) and meta-click (linux)
-      if (evt.metaKey) {
-        const q = qs.stringify(query);
-        evt.currentTarget.href = `${evt.currentTarget.href}?${q}`;
-        return;
-      }
-
-      evt.preventDefault();
-      browserHistory.push({pathname, query});
     }
   };
 
@@ -173,8 +138,8 @@ function Sidebar({location, organization}: Props) {
   const issues = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithPageFilters(`/organizations/${organization.slug}/issues/`, evt)
+      onClick={() =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/issues/`)
       }
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
@@ -191,9 +156,7 @@ function Sidebar({location, organization}: Props) {
     >
       <SidebarItem
         {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          navigateWithPageFilters(getDiscoverLandingUrl(organization), evt)
-        }
+        onClick={() => navigateWithPageFilters(getDiscoverLandingUrl(organization))}
         icon={<IconTelescope size="md" />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
@@ -212,11 +175,8 @@ function Sidebar({location, organization}: Props) {
         {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
           <SidebarItem
             {...sidebarItemProps}
-            onClick={(_id, evt) =>
-              navigateWithPageFilters(
-                `/organizations/${organization.slug}/performance/`,
-                evt
-              )
+            onClick={() =>
+              navigateWithPageFilters(`/organizations/${organization.slug}/performance/`)
             }
             icon={<IconLightning size="md" />}
             label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
@@ -232,8 +192,8 @@ function Sidebar({location, organization}: Props) {
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithPageFilters(`/organizations/${organization.slug}/releases/`, evt)
+      onClick={() =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/releases/`)
       }
       icon={<IconReleases size="md" />}
       label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
@@ -245,8 +205,8 @@ function Sidebar({location, organization}: Props) {
   const userFeedback = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithPageFilters(`/organizations/${organization.slug}/user-feedback/`, evt)
+      onClick={() =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/user-feedback/`)
       }
       icon={<IconSupport size="md" />}
       label={t('User Feedback')}
@@ -258,8 +218,8 @@ function Sidebar({location, organization}: Props) {
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) =>
-        navigateWithPageFilters(`/organizations/${organization.slug}/alerts/rules/`, evt)
+      onClick={() =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/alerts/rules/`)
       }
       icon={<IconSiren size="md" />}
       label={t('Alerts')}
@@ -272,8 +232,8 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['monitors']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          navigateWithPageFilters(`/organizations/${organization.slug}/monitors/`, evt)
+        onClick={() =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/monitors/`)
         }
         icon={<IconLab size="md" />}
         label={t('Monitors')}
@@ -287,8 +247,8 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['session-replay']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+        onClick={() =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`)
         }
         icon={<IconLab size="md" />}
         label={t('Replays')}
@@ -308,8 +268,8 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={(_id, evt) =>
-          navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt)
+        onClick={() =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`)
         }
         icon={<IconDashboard size="md" />}
         label={t('Dashboards')}
@@ -329,8 +289,8 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={(_id, evt) =>
-          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        onClick={() =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`)
         }
         icon={<IconSpan size="md" />}
         label={t('Profiling')}
