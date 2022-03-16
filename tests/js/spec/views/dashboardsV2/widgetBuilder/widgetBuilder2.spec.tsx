@@ -170,7 +170,7 @@ describe('WidgetBuilder', function () {
     jest.clearAllMocks();
   });
 
-  describe('group by field', function () {
+  describe('group by field wut', function () {
     it('allows adding up to GROUP_BY_LIMIT fields', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
