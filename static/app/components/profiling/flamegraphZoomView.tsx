@@ -27,6 +27,9 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
 }: FlamegraphZoomViewProps): React.ReactElement {
+  const [lastInteraction, setLastInteraction] = useState<'pan' | 'click' | 'zoom' | null>(
+    null
+  );
   const flamegraphPreferences = useFlamegraphPreferencesValue();
   const flamegraphTheme = useFlamegraphTheme();
 
@@ -39,6 +42,7 @@ function FlamegraphZoomView({
 
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
+  const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
@@ -121,6 +125,19 @@ function FlamegraphZoomView({
     }
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
+
+  /**
+   * Whenever the flamegraph changes, the reference to the selected node
+   * may no longer be valid/correct. So clear it when that happens.
+   *
+   * The flamegraph may for reasons like
+   * - inverted/leftHeavy changed
+   * - thread changed
+   * - import happened
+   */
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [flamegraph]);
 
   useEffect(() => {
     if (!flamegraphRenderer) {
@@ -223,6 +240,7 @@ function FlamegraphZoomView({
     };
   }, [
     scheduler,
+    flamegraph,
     flamegraphRenderer,
     textRenderer,
     gridRenderer,
@@ -330,25 +348,110 @@ function FlamegraphZoomView({
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [canvasPoolManager, scheduler]);
 
-  const onCanvasClick = useCallback(
+  const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
+    const logicalMousePos = vec2.fromValues(
+      evt.nativeEvent.offsetX,
+      evt.nativeEvent.offsetY
+    );
+
+    const physicalMousePos = vec2.scale(
+      vec2.create(),
+      logicalMousePos,
+      window.devicePixelRatio
+    );
+
+    setLastInteraction('click');
+    setStartPanVector(physicalMousePos);
+  }, []);
+
+  const onCanvasMouseUp = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
 
       if (!flamegraphRenderer || !configSpaceCursor) {
+        setLastInteraction(null);
+        setStartPanVector(null);
         return;
       }
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentialy tracks double click action on a rectangle
-      if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
-        canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+      if (lastInteraction === 'click') {
+        if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
+          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+        }
+        canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+        setSelectedNode(hoveredNode);
       }
 
-      setSelectedNode(hoveredNode);
-      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+      setLastInteraction(null);
+      setStartPanVector(null);
     },
-    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
+    [
+      flamegraphRenderer,
+      configSpaceCursor,
+      selectedNode,
+      hoveredNode,
+      canvasPoolManager,
+      startPanVector,
+      lastInteraction,
+    ]
+  );
+
+  const onMouseDrag = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!startPanVector || !flamegraphRenderer) {
+        return;
+      }
+
+      const logicalMousePos = vec2.fromValues(
+        evt.nativeEvent.offsetX,
+        evt.nativeEvent.offsetY
+      );
+
+      const physicalMousePos = vec2.scale(
+        vec2.create(),
+        logicalMousePos,
+        window.devicePixelRatio
+      );
+
+      const physicalDelta = vec2.subtract(
+        vec2.create(),
+        startPanVector,
+        physicalMousePos
+      );
+
+      if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+        return;
+      }
+
+      const physicalToConfig = mat3.invert(
+        mat3.create(),
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+        m00,
+        m01,
+        m02,
+        m10,
+        m11,
+        m12,
+        0,
+        0,
+        0,
+      ]);
+
+      canvasPoolManager.dispatch('transformConfigView', [
+        mat3.fromTranslation(mat3.create(), configDelta),
+      ]);
+
+      setLastInteraction('pan');
+      setStartPanVector(physicalMousePos);
+    },
+    [flamegraphRenderer, startPanVector]
   );
 
   const onCanvasMouseMove = useCallback(
@@ -362,12 +465,18 @@ function FlamegraphZoomView({
       );
 
       setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
+
+      if (lastInteraction) {
+        onMouseDrag(evt);
+      }
     },
-    [flamegraphRenderer, setConfigSpaceCursor]
+    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag, lastInteraction]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
+    setStartPanVector(null);
+    setLastInteraction(null);
   }, []);
 
   const zoom = useCallback(
@@ -399,6 +508,7 @@ function FlamegraphZoomView({
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      setLastInteraction('zoom');
     },
     [flamegraphRenderer, canvasPoolManager]
   );
@@ -465,9 +575,11 @@ function FlamegraphZoomView({
     <React.Fragment>
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
-        onClick={onCanvasClick}
+        onMouseDown={onCanvasMouseDown}
+        onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
+        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
       />
       <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}

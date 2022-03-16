@@ -86,6 +86,10 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
   otherColumns?: Column[];
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
@@ -318,14 +322,14 @@ class QueryField extends React.Component<Props> {
     const {fieldValue} = this.props;
     let {fieldOptions} = this.props;
 
-    if (fieldValue.kind === 'function') {
+    if (fieldValue?.kind === 'function') {
       const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
       }
     }
 
-    if (fieldValue.kind === 'field') {
+    if (fieldValue?.kind === 'field') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
@@ -336,7 +340,7 @@ class QueryField extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      fieldValue.kind === FieldValueKind.FUNCTION
+      fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
@@ -552,6 +556,7 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      noFieldsMessage,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -567,6 +572,7 @@ class QueryField extends React.Component<Props> {
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
+      noOptionsMessage: () => noFieldsMessage,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -574,7 +580,7 @@ class QueryField extends React.Component<Props> {
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
-    if (fieldValue.kind === FieldValueKind.EQUATION) {
+    if (fieldValue?.kind === FieldValueKind.EQUATION) {
       return (
         <Container
           className={className}

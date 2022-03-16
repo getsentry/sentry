@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
@@ -30,12 +30,16 @@ describe('Dashboards > WidgetCard', function () {
       {
         conditions: 'event.type:error',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'errors',
         orderby: '',
       },
       {
         conditions: 'event.type:default',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'default',
         orderby: '',
       },
@@ -79,7 +83,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -107,7 +111,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders with Open in Discover button and opens in Discover when clicked', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -135,14 +139,21 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with World Map', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -167,7 +178,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with prepended fields pulled from equations', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -177,6 +188,10 @@ describe('Dashboards > WidgetCard', function () {
             {
               ...multipleQueryWidget.queries[0],
               fields: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
+              columns: [],
+              aggregates: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
             },
@@ -205,7 +220,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with Top N', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -213,7 +228,12 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
           queries: [
-            {...multipleQueryWidget.queries[0], fields: ['transaction', 'count()']},
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['transaction', 'count()'],
+              columns: ['transaction'],
+              aggregates: ['count()'],
+            },
           ],
         }}
         selection={selection}
@@ -240,7 +260,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -270,7 +290,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('does not add duplicate widgets if max widget is reached', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -300,7 +320,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onEdit when Edit Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -330,7 +350,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders delete widget option', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -366,7 +386,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls eventsV2 with a limit of 20 items', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -401,7 +421,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls eventsV2 with a default limit of 5 items', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -443,12 +463,14 @@ describe('Dashboards > WidgetCard', function () {
         {
           conditions: '',
           fields: ['transaction', 'count()'],
+          columns: ['transaction'],
+          aggregates: ['count()'],
           name: 'Table',
           orderby: '',
         },
       ],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -481,7 +503,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.METRICS,
       queries: [],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -511,7 +533,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.DISCOVER,
       queries: [],
     };
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
         organization={organization}

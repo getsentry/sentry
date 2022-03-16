@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import trigger_alert_rule_action_creators
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import (
@@ -18,6 +19,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 
 
@@ -35,8 +37,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         # Serialize Rule object
         serialized_rule = serialize(
-            rule,
-            request.user,
+            rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
         )
 
         errors = []
@@ -85,7 +86,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(
+        serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
             partial=True,
@@ -140,6 +141,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 target_object=updated_rule.id,
                 event=AuditLogEntryEvent.RULE_EDIT,
                 data=updated_rule.get_audit_log_data(),
+            )
+            alert_rule_edited.send_robust(
+                user=request.user,
+                project=project,
+                rule=rule,
+                rule_type="issue",
+                sender=self,
+                is_api_token=request.auth is not None,
             )
 
             return Response(serialize(updated_rule, request.user))

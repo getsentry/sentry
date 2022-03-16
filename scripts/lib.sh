@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# thus, renaming this file or any functions can break CI!
+#
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
@@ -14,9 +17,6 @@ if [ -z "${CI+x}" ]; then
 fi
 
 venv_name=".venv"
-
-# NOTE: This file is sourced in CI across different repos (e.g. snuba),
-# so renaming this file or any functions can break CI!
 
 # Check if a command is available
 require() {
@@ -113,6 +113,10 @@ install-py-dev() {
         # This saves having to install postgresql on the Developer's machine + using flags
         # https://github.com/psycopg/psycopg2/issues/1286
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+        # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
+        export CPATH="$(brew --prefix librdkafka)/include"
+        # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
+        export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
 
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
@@ -130,30 +134,6 @@ patch-selenium() {
     if grep -q "or setting is" "${fx_profile}"; then
         echo "We are patching ${fx_profile}. You will see this message only once."
         patch -p0 <scripts/patches/firefox_profile.diff
-    fi
-}
-
-setup-apple-m1() {
-    ! query-apple-m1 && return
-
-    zshrc_path="${HOME}/.zshrc"
-    header="# Apple M1 environment variables"
-    # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
-    # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
-    body="
-$header
-export CPATH=/opt/homebrew/Cellar/librdkafka/1.8.2/include
-export LDFLAGS=-L/opt/homebrew/Cellar/gettext/0.21/lib"
-    if [ "$SHELL" == "/bin/zsh" ]; then
-        if ! grep -qF "${header}" "${zshrc_path}"; then
-            echo "Added the following to ${zshrc_path}"
-            cp "${zshrc_path}" "${zshrc_path}.bak"
-            echo -e "$body" >> "${zshrc_path}"
-            echo -e "$body"
-        fi
-    else
-        echo "You are not using a supported shell. Please add these variables where appropiate."
-        echo -e "$body"
     fi
 }
 
@@ -182,6 +162,8 @@ node-version-check() {
     node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
+            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
+            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
             exit 1
         )
 }
@@ -224,7 +206,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password
+        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
     else
         sentry createuser --superuser
     fi
@@ -236,13 +218,14 @@ build-platform-assets() {
 }
 
 bootstrap() {
-    setup-apple-m1
     develop
     init-config
     run-dependent-services
     create-db
     apply-migrations
     create-user
+    # Load mocks requires a super user to exist, thus, we execute after create-user
+    bin/load-mocks
     build-platform-assets
 }
 
@@ -267,6 +250,8 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+    # This ensures that your set up as some data inside of it
+    bin/load-mocks
 }
 
 prerequisites() {

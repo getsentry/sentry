@@ -9,7 +9,7 @@ import * as PopperJS from 'popper.js';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
-import {domId} from 'sentry/utils/domId';
+import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
 import {isOverflown} from 'sentry/utils/tooltip';
 

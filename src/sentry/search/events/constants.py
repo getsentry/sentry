@@ -1,4 +1,5 @@
 import re
+from typing import Dict, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -31,6 +32,35 @@ MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 
+
+class ThresholdDict(TypedDict):
+    poor: float
+    meh: float
+
+
+VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
+    "lcp": {
+        "poor": 4000,
+        "meh": 2500,
+    },
+    "fp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fcp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fid": {
+        "poor": 300,
+        "meh": 100,
+    },
+    "cls": {
+        "poor": 0.25,
+        "meh": 0.1,
+    },
+}
+
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
@@ -38,6 +68,9 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
 ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+
+MISERY_ALPHA = 5.8875
+MISERY_BETA = 111.8625
 
 ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
@@ -136,3 +169,8 @@ METRICS_MAP = {
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51
 METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+METRIC_TOLERATED_TAG_KEY = "is_tolerated"
+METRIC_SATISFIED_TAG_KEY = "is_satisfied"
+METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
+METRIC_TRUE_TAG_VALUE = "true"
+METRIC_FALSE_TAG_VALUE = "false"

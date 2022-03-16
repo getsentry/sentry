@@ -8,16 +8,23 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props {
   goBackLocation: React.ComponentProps<typeof Link>['to'];
+  invalidForm: boolean;
   onSave: (event: React.MouseEvent) => void;
   isEditing?: boolean;
   onDelete?: () => void;
-};
+}
 
-export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
+export function Footer({
+  goBackLocation,
+  onSave,
+  onDelete,
+  invalidForm,
+  isEditing,
+}: Props) {
   return (
-    <FooterWrapper>
+    <Wrapper>
       <Actions gap={1}>
         <Button to={goBackLocation}>{t('Cancel')}</Button>
         {isEditing && onDelete && (
@@ -29,22 +36,39 @@ export function Footer({goBackLocation, onSave, onDelete, isEditing}: Props) {
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
         )}
-        <Button priority="primary" onClick={onSave}>
+        <Button
+          priority="primary"
+          onClick={onSave}
+          disabled={invalidForm}
+          title={invalidForm ? t('Required fields must be filled out') : undefined}
+        >
           {isEditing ? t('Update Widget') : t('Add Widget')}
         </Button>
       </Actions>
-    </FooterWrapper>
+    </Wrapper>
   );
 }
 
 const Actions = styled(ButtonBar)`
   justify-content: flex-end;
+  max-width: 1000px;
+  padding: ${space(4)} ${space(2)};
+
+  /* to match Layout.Main padding + Field padding-right */
+  padding-right: calc(${space(2)} + ${space(2)});
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: ${space(4)};
+
+    /* to match Layout.Main padding + Field padding-right */
+    padding-right: calc(${space(4)} + ${space(2)});
+  }
 `;
 
-const FooterWrapper = styled('div')`
+const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.gray200};
   position: sticky;
   bottom: 0;
-  padding: ${space(4)};
+  z-index: ${p => p.theme.zIndex.initial};
 `;

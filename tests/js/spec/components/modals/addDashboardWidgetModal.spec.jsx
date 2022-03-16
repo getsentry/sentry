@@ -2,12 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -61,7 +56,7 @@ function mountModal({
 }
 
 function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
-  return reactMountWithTheme(
+  return render(
     <AddDashboardWidgetModal
       Header={stubEl}
       Body={stubEl}
@@ -110,7 +105,7 @@ async function setSearchConditions(el, query) {
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-query', 'issues-in-dashboards'],
+      features: ['performance-view', 'discover-query'],
       apdexThreshold: 400,
     },
   });
@@ -149,7 +144,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
-    MetricsTagStore.onLoadTagsSuccess(metricsTags);
+    act(() => {
+      MetricsTagStore.onLoadSuccess(metricsTags);
+    });
     MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -400,6 +397,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
             name: 'errors',
             conditions: 'event.type:error',
             fields: ['sdk.name', 'count()'],
+            columns: ['sdk.name'],
+            aggregates: ['count()'],
             orderby: '',
           },
         ],
@@ -604,12 +603,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
         {
           id: '9',
           name: 'csp',
           conditions: 'event.type:csp',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
       ],
     };
@@ -692,6 +695,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
+          aggregates: ['count()'],
+          columns: ['sdk.name'],
           orderby: 'count',
         },
       ],
@@ -1048,6 +1053,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+        columns: ['title'],
+        aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -1095,6 +1102,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        aggregates: ['count()', 'failure_count()', 'count_unique(user)'],
+        columns: [],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -1132,6 +1141,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {
         fields: ['title', 'count()', 'count_unique(user)'],
+        aggregates: ['count()', 'count_unique(user)'],
+        columns: ['title'],
         orderby: '-count_unique_user',
       },
       defaultTableColumns: ['title', 'count()'],
@@ -1196,7 +1207,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    reactMountWithTheme(
+    render(
       <AddDashboardWidgetModal
         Header={stubEl}
         Body={stubEl}
@@ -1226,11 +1237,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const onAdd = jest.fn(() => {});
       const wrapper = mountModalWithRtl({
         initialData,
@@ -1263,11 +1270,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('does not render the dataset selector', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1282,11 +1285,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     it('renders the dataset selector', function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1304,16 +1303,12 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
       // Hide without the dashboards-metrics feature flag
-      expect(screen.queryByText('Metrics (Release Health)')).not.toBeInTheDocument();
+      expect(screen.queryByText(/metrics/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
     it('disables moving and deleting issue column', async function () {
-      initialData.organization.features = [
-        'performance-view',
-        'discover-query',
-        'issues-in-dashboards',
-      ];
+      initialData.organization.features = ['performance-view', 'discover-query'];
       const wrapper = mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
@@ -1362,8 +1357,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
       expect(
-        screen.queryByText('Issues (States, Assignment, Time, etc.)')
-      ).not.toBeInTheDocument();
+        screen.getByText('Issues (States, Assignment, Time, etc.)')
+      ).toBeInTheDocument();
       expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1475,19 +1470,55 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(metricsDataMock).toHaveBeenCalledWith(
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
         `/organizations/org-slug/metrics/data/`,
         expect.objectContaining({
           query: {
             environment: [],
             field: ['sum(sentry.sessions.session)'],
+            groupBy: [],
             interval: '30m',
             project: [],
             statsPeriod: '14d',
+            per_page: 20,
+            orderBy: 'sum(sentry.sessions.session)',
           },
         })
       );
 
+      wrapper.unmount();
+    });
+
+    it('displays no metrics message', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+
+      // ensure that we have no metrics fields
+      MetricsMetaStore.reset();
+
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: () => undefined,
+        onUpdateWidget: () => undefined,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      // change data set to metrics
+      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+
+      // open visualization select
+      userEvent.click(screen.getByText('Table'));
+      // choose line chart
+      userEvent.click(screen.getByText('Line Chart'));
+
+      // open fields select
+      userEvent.click(screen.getByText(/required/i));
+
+      // there's correct empty message
+      expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
       wrapper.unmount();
     });
   });

@@ -5,7 +5,7 @@ on:
 jobs:
   check-diff:
     name: build api
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     timeout-minutes: 90
     strategy:
       matrix:
@@ -47,8 +47,11 @@ jobs:
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          make build-api-docs
+          yarn add ts-node && make build-api-docs
 
       - name: Compare OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'

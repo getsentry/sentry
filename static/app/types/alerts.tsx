@@ -27,6 +27,7 @@ export type IssueAlertRuleActionTemplate = {
   enabled: boolean;
   id: string;
   label: string;
+  name: string;
   prompt: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
@@ -84,6 +85,7 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   id: string;
   projects: string[];
   errors?: {detail: string}[];
+  lastTriggered?: string;
 };
 
 // Project's alert rule stats

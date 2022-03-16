@@ -29,14 +29,20 @@ from sentry.utils import metrics
 # listening to a list of specific events. This is a mapping of what those
 # specific events are for each resource.
 EVENT_EXPANSION = {
-    "issue": ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"],
+    "issue": [
+        "issue.created",
+        "issue.resolved",
+        "issue.ignored",
+        "issue.assigned",
+    ],
     "error": ["error.created"],
+    "comment": ["comment.created", "comment.updated", "comment.deleted"],
 }
 
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error")
+VALID_EVENT_RESOURCES = ("issue", "error", "comment")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
@@ -45,6 +51,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "member": "member:read",
     "organization": "org:read",
     "team": "team:read",
+    "comment": "event:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
