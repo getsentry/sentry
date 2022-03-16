@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
+from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -656,6 +656,109 @@ class DiscoverDatasetConfig(DatasetConfig):
                                                                 "multiply",
                                                                 [
                                                                     args["column"],
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "spans_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("spans_group"),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "arrayJoin",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                            "y",
+                                                                                            "z",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "and",
+                                                                                            [
+                                                                                                Function(
+                                                                                                    "equals",
+                                                                                                    [
+                                                                                                        Identifier(
+                                                                                                            "y"
+                                                                                                        ),
+                                                                                                        args[
+                                                                                                            "spans_op"
+                                                                                                        ],
+                                                                                                    ],
+                                                                                                ),
+                                                                                                Function(
+                                                                                                    "equals",
+                                                                                                    [
+                                                                                                        Identifier(
+                                                                                                            "z",
+                                                                                                        ),
+                                                                                                        args[
+                                                                                                            "spans_group"
+                                                                                                        ],
+                                                                                                    ],
+                                                                                                ),
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.exclusive_time"
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.group"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
                                                                     args["multiplier"],
                                                                 ],
                                                             ),

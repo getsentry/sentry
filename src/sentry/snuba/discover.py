@@ -1325,6 +1325,87 @@ def get_facets(
     return results
 
 
+def spans_histogram_query(
+    span,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+    group_by=None,
+    order_by=None,
+    limit_by=None,
+    extra_snql_condition=None,
+    normalize_results=True,
+):
+    """
+    API for generating histograms for span exclusive time.
+
+    :param [str] span: A span for which you want to generate histograms for. A span should passed in the following format - "{span_op}:{span_group}"
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param [Condition] extra_snql_condition: Adds any additional conditions to the histogram query
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
+    """
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        max_value -= 0.1 / multiplier
+
+    # TODO add min max calculation after
+    # min_value, max_value = find_histogram_min_max(
+    #     fields, min_value, max_value, user_query, params, data_filter, use_snql
+    # )
+
+    key_column = None
+    field_names = []
+    histogram_rows = None
+
+    # TODO calculate histogram_params
+    # histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    histogram_params = HistogramParams(num_buckets=100, bucket_size=1, start_offset=0, multiplier=1)
+    histogram_column = get_span_histogram_column(span, histogram_params)
+
+    builder = HistogramQueryBuilder(
+        num_buckets,
+        histogram_column,
+        histogram_rows,
+        histogram_params,
+        key_column,
+        field_names,
+        group_by,
+        # Arguments for QueryBuilder
+        Dataset.Discover,
+        params,
+        query=user_query,
+        selected_columns=[""],
+        orderby=order_by,
+        limitby=limit_by,
+    )
+    if extra_snql_condition is not None:
+        builder.add_conditions(extra_snql_condition)
+    results = builder.run_query(referrer)
+
+    if not normalize_results:
+        return results
+
+    # TODO refactor normalize_histogram_results so that it can operate with span data
+    # return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
+    return results
+
+
 def histogram_query(
     fields,
     user_query,
@@ -1490,6 +1571,18 @@ def histogram_query(
         return results
 
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
+
+
+def get_span_histogram_column(span, histogram_params):
+    """
+    Generate the histogram column string for spans.
+
+    :param [Span] span: The span for which you want to generate the histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    """
+    span_op = span.op
+    span_group = span.group
+    return f'spans_histogram("{span_op}", {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):

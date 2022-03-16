@@ -439,7 +439,9 @@ def parse_arguments(function: str, columns: str) -> List[str]:
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if") or len(columns) == 0:
+    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
+        columns
+    ) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []
