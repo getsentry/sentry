@@ -162,6 +162,6 @@ const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
-const GraphSpacing = styled('div')`
+const GraphContainer = styled('div')`
   margin-bottom: ${space(3)};
 `;
