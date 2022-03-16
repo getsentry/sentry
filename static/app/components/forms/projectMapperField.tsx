@@ -126,19 +126,6 @@ export class RenderField extends Component<RenderProps, State> {
       const mappedItem = mappedItemsByValue[mappedValue];
       return (
         <Item key={index}>
-          <MappedProjectWrapper>
-            {project ? (
-              <IdBadge
-                project={project}
-                avatarSize={20}
-                displayName={project.slug}
-                avatarProps={{consistentWidth: true}}
-              />
-            ) : (
-              t('Deleted')
-            )}
-            <IconArrow size="xs" direction="right" />
-          </MappedProjectWrapper>
           <MappedItemValue>
             {mappedItem ? (
               <Fragment>
@@ -151,7 +138,20 @@ export class RenderField extends Component<RenderProps, State> {
             ) : (
               t('Deleted')
             )}
+            <IconArrow size="xs" direction="right" />
           </MappedItemValue>
+          <MappedProjectWrapper>
+            {project ? (
+              <IdBadge
+                project={project}
+                avatarSize={20}
+                displayName={project.slug}
+                avatarProps={{consistentWidth: true}}
+              />
+            ) : (
+              t('Deleted')
+            )}
+          </MappedProjectWrapper>
           <DeleteButtonWrapper>
             <Button
               onClick={() => handleDelete(index)}
@@ -233,17 +233,6 @@ export class RenderField extends Component<RenderProps, State> {
         {existingValues.map(renderItem)}
         <Item>
           <SelectControl
-            placeholder={t('Sentry project\u2026')}
-            name="project"
-            options={projectOptions}
-            components={{
-              Option: customOptionProject,
-              ValueContainer: customValueContainer,
-            }}
-            onChange={handleSelectProject}
-            value={selectedSentryProjectId}
-          />
-          <SelectControl
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
             options={mappedItemsToShow}
@@ -253,6 +242,17 @@ export class RenderField extends Component<RenderProps, State> {
             }}
             onChange={handleSelectMappedValue}
             value={selectedMappedValue}
+          />
+          <SelectControl
+            placeholder={t('Sentry project\u2026')}
+            name="project"
+            options={projectOptions}
+            components={{
+              Option: customOptionProject,
+              ValueContainer: customValueContainer,
+            }}
+            onChange={handleSelectProject}
+            value={selectedSentryProjectId}
           />
           <AddProjectWrapper>
             <Button
@@ -329,7 +329,7 @@ const Item = styled('div')`
   grid-column-gap: ${space(1)};
   align-items: center;
   grid-template-columns: 2.5fr 2.5fr max-content 30px;
-  grid-template-areas: 'sentry-project mapped-value manage-project field-control';
+  grid-template-areas: 'mapped-value sentry-project manage-project field-control';
 `;
 
 const MappedItemValue = styled('div')`
