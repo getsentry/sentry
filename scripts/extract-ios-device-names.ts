@@ -5,10 +5,13 @@ import fs from 'fs';
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
 const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
 
-if (fs.existsSync(outputPath)) {
-  throw new Error(
-    `${outputPath} already exists, please delete it before regenerating the file.`
-  );
+try {
+  if (fs.statSync(outputPath)) {
+    console.log('Regenerating ios-device-list.tsx...');
+    fs.unlinkSync(outputPath);
+  }
+} catch (e) {
+  // File does not exists, carry along
 }
 
 async function getDefinitionFiles(): Promise<string[]> {

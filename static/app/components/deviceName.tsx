@@ -1,13 +1,8 @@
-import {useEffect, useMemo, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useMemo} from 'react';
 
-import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
-import {loadDeviceListModule} from 'sentry/utils/loadDeviceListModule';
+import {iOSDeviceMapping} from 'sentry/constants/ios-device-list';
 
-export function deviceNameMapper(
-  model: string | undefined,
-  module: IOSDeviceList | null
-): string | null {
+export function deviceNameMapper(model: string | undefined): string | null {
   // If we have no model, render nothing
   if (typeof model !== 'string') {
     return null;
@@ -20,7 +15,7 @@ export function deviceNameMapper(
 
   const [identifier, ...rest] = model.split(' ');
 
-  const modelName = module.generationByIdentifier(identifier);
+  const modelName = iOSDeviceMapping[identifier];
   return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }
 
@@ -29,42 +24,12 @@ interface DeviceNameProps {
   children?: (name: string) => React.ReactNode;
 }
 
-type a = React.LiHTMLAttributes;
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size
  */
 function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
-  const [deviceList, setDeviceList] = useState<IOSDeviceList | null>(null);
-
-  useEffect(() => {
-    let didUnmount = false;
-
-    loadDeviceListModule('iOS')
-      .then(module => {
-        // We need to track component unmount so we dont try and setState on an unmounted component
-        if (didUnmount) {
-          return;
-        }
-        setDeviceList(module);
-      })
-      .catch(() => {
-        // We need to track component unmount so we dont try and setState on an unmounted component
-        if (didUnmount) {
-          return;
-        }
-        Sentry.captureException('Failed to load ios-device-list module');
-      });
-
-    return () => {
-      didUnmount = true;
-    };
-  }, []);
-
-  const deviceName = useMemo(
-    () => deviceNameMapper(value, deviceList),
-    [value, deviceList]
-  );
+  const deviceName = useMemo(() => deviceNameMapper(value), [value]);
 
   return deviceName ? (
     <span data-test-id="loaded-device-name">
