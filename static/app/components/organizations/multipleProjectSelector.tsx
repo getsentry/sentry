@@ -22,11 +22,11 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
+  memberProjects: Project[];
   nonMemberProjects: Project[];
   onChange: (selected: number[]) => void;
   onUpdate: (newProjects?: number[]) => void;
   organization: Organization;
-  projects: Project[];
   value: number[];
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
@@ -197,7 +197,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   render() {
     const {
       value,
-      projects,
+      memberProjects,
       isGlobalSelectionReady,
       disableMultipleProjectSelection,
       nonMemberProjects,
@@ -212,7 +212,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
     const selectedProjectIds = new Set(value);
     const multi = this.multi;
 
-    const allProjects = [...projects, ...nonMemberProjects];
+    const allProjects = [...memberProjects, ...nonMemberProjects];
     const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
@@ -259,7 +259,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
             {...this.props}
             multi={!!multi}
             selectedProjects={selected}
-            multiProjects={projects}
+            multiProjects={memberProjects}
             onSelect={this.handleQuickSelect}
             onClose={this.handleClose}
             onMultiSelect={this.handleMultiSelect}
