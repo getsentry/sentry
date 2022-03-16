@@ -3,8 +3,6 @@ import {Component} from 'react';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
-import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
-import {loadDeviceListModule} from 'sentry/utils/loadDeviceListModule';
 
 type Props = {
   group: Group;
@@ -16,26 +14,9 @@ type Props = {
   totalValues: number;
 };
 
-type State = {
-  error: boolean;
-  loading: boolean;
-  iOSDeviceList?: IOSDeviceList;
-};
-
-class GroupTagDistributionMeter extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    error: false,
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
+class GroupTagDistributionMeter extends Component<Props> {
+  shouldComponentUpdate(nextProps: Props) {
     return (
-      this.state.loading !== nextState.loading ||
-      this.state.error !== nextState.error ||
       this.props.tag !== nextProps.tag ||
       this.props.name !== nextProps.name ||
       this.props.totalValues !== nextProps.totalValues ||
@@ -43,40 +24,14 @@ class GroupTagDistributionMeter extends Component<Props, State> {
     );
   }
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false,
-    });
-
-    loadDeviceListModule('iOS')
-      .then(iOSDeviceList => {
-        this.setState({
-          iOSDeviceList,
-          error: false,
-          loading: false,
-        });
-      })
-      .catch(() => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      });
-  }
-
   render() {
     const {organization, group, tag, totalValues, topValues} = this.props;
-    const {loading, error, iOSDeviceList} = this.state;
-
     const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
 
     const segments = topValues
       ? topValues.map(value => ({
           ...value,
-          name: iOSDeviceList
-            ? deviceNameMapper(value.name || '', iOSDeviceList) || ''
-            : value.name,
+          name: deviceNameMapper(value.name || '') || value.name,
           url,
         }))
       : [];
@@ -85,8 +40,8 @@ class GroupTagDistributionMeter extends Component<Props, State> {
       <TagDistributionMeter
         title={tag}
         totalValues={totalValues}
-        isLoading={loading}
-        hasError={error}
+        isLoading={false}
+        hasError={false}
         segments={segments}
       />
     );
