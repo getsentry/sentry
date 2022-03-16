@@ -42,7 +42,7 @@ function DeviceName({value, children}: DeviceNameProps): React.ReactElement | nu
     loadDeviceListModule('iOS')
       .then(module => {
         // We need to track component unmount so we dont try and setState on an unmounted component
-        if (!didUnmount) {
+        if (didUnmount) {
           return;
         }
         setDeviceList(module);

@@ -1,34 +1,48 @@
 import * as Sentry from '@sentry/react';
-import {generationByIdentifier} from 'ios-device-list';
+import * as deviceList from 'ios-device-list';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DeviceName} from 'sentry/components/deviceName';
-import * as Device from 'sentry/utils/loadDeviceListModule';
+import * as loadDeviceListModule from 'sentry/utils/loadDeviceListModule';
 
 jest.mock('ios-device-list');
 
 describe('DeviceName', () => {
   it('renders device name if module is loaded', async () => {
-    generationByIdentifier.mockImplementation(() => 'iPhone 6s Plus');
+    const generationMock = jest.fn().mockImplementation(() => 'iPhone 6s Plus');
+    jest.spyOn(loadDeviceListModule, 'loadDeviceListModule').mockImplementation(() => {
+      return Promise.resolve({
+        ...deviceList,
+        generationByIdentifier: generationMock,
+      });
+    });
 
     render(<DeviceName value="iPhone8,2" />);
 
+    await waitFor(() => expect(generationMock).toHaveBeenCalledWith('iPhone8,2'), {
+      timeout: 5000,
+    });
     expect(await screen.findByText('iPhone 6s Plus')).toBeInTheDocument();
-    expect(generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
   });
 
   it('renders device name if name helper returns undefined', async () => {
-    generationByIdentifier.mockImplementation(() => undefined);
+    const generationMock = jest.fn().mockImplementation(() => undefined);
+    jest.spyOn(loadDeviceListModule, 'loadDeviceListModule').mockImplementation(() => {
+      return Promise.resolve({
+        ...deviceList,
+        generationByIdentifier: generationMock,
+      });
+    });
 
     render(<DeviceName value="iPhone8,2" />);
 
     expect(await screen.findByText('iPhone8,2')).toBeInTheDocument();
-    expect(generationByIdentifier).toHaveBeenCalledWith('iPhone8,2');
+    expect(generationMock).toHaveBeenCalledWith('iPhone8,2');
   });
 
   it('renders device name if module fails to load', async () => {
-    jest.spyOn(Device, 'loadDeviceListModule').mockImplementation(() => {
+    jest.spyOn(loadDeviceListModule, 'loadDeviceListModule').mockImplementation(() => {
       return Promise.reject('Cannot load module');
     });
 
