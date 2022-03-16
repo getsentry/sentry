@@ -106,68 +106,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'inbox_guide',
-      requiredTargets: ['inbox_guide_tab'],
-      dateThreshold: new Date(2021, 1, 26),
-      steps: [
-        {
-          target: 'inbox_guide_tab',
-          description: t(`We’ve made some changes to help you focus on what’s new.`),
-          dismissText: t(`Later`),
-          nextText: t(`Take a Look`),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'for_review_guide',
-      requiredTargets: ['for_review_guide_tab', 'inbox_guide_reason', 'is_inbox_tab'],
-      steps: [
-        {
-          target: 'for_review_guide_tab',
-          description: t(
-            `This is a list of Unresolved issues that are new or reopened in the last 7 days.`
-          ),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_reason',
-          description: t(`These labels explain why an issue needs review.`),
-          nextText: t(`When does this end?`),
-          cantDismiss: true,
-        },
-        {
-          target: 'inbox_guide_review',
-          description: t(
-            `Marking an issue reviewed, resolving it, or ignoring it removes it from this list and removes the label.`
-          ),
-          nextText: t(`Make It Stop Already`),
-        },
-      ],
-    },
-    {
-      guide: 'assigned_or_suggested_guide',
-      dateThreshold: new Date(2021, 4, 1),
-      requiredTargets: ['assigned_or_suggested_query'],
-      steps: [
-        {
-          target: 'assigned_or_suggested_query',
-          description: tct(
-            "Tip: use [assignedOrSuggested] to include search results based on your [ownership:ownership rules] and [committed:code you've committed].",
-            {
-              assignedOrSuggested: <code>assigned_or_suggested</code>,
-              ownership: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-              committed: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-    {
       guide: 'alerts_write_owner',
       requiredTargets: ['alerts_write_owner'],
       steps: [

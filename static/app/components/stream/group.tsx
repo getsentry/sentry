@@ -402,11 +402,7 @@ class StreamGroup extends React.Component<Props, State> {
             size="normal"
             onClick={this.trackClick}
           />
-          <EventOrGroupExtraDetails
-            hasGuideAnchor={hasGuideAnchor}
-            data={data}
-            showInboxTime={showInboxTime}
-          />
+          <EventOrGroupExtraDetails data={data} showInboxTime={showInboxTime} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (

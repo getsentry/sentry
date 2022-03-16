@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
@@ -206,11 +205,9 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
-      <GuideAnchor target="inbox_guide_review" position="bottom">
-        {!nestMarkReviewedButton && (
-          <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
-        )}
-      </GuideAnchor>
+      {!nestMarkReviewedButton && (
+        <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
+      )}
       {!nestMergeButton && (
         <ActionLink
           type="button"

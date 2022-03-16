@@ -20,11 +20,8 @@ from django.conf import settings
 GUIDES = {
     "issue": {"id": 1, "required_targets": ["issue_title", "exception"]},
     "issue_stream": {"id": 3, "required_targets": ["issue_stream"]},
-    "inbox_guide": {"id": 8, "required_targets": ["inbox_guide"]},
-    "for_review_guide": {"id": 9, "required_targets": ["for_review_guide_tab"]},
     "alerts_write_member": {"id": 10, "required_targets": ["alerts_write_member"]},
     "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
-    "assigned_or_suggested_guide": {"id": 12, "required_targets": ["assigned_or_suggested_query"]},
     "stack_trace_preview": {"id": 15, "required_targets": ["issue_stream_title"]},
     "trace_view": {
         "id": 16,
