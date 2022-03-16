@@ -17,6 +17,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
+    "SessionMetricsTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -25,6 +26,8 @@ __all__ = (
     "SCIMTestCase",
     "SCIMAzureTestCase",
     "MetricsEnhancedPerformanceTestCase",
+    "MetricsAPIBaseTestCase",
+    "OrganizationMetricMetaIntegrationTestCase",
 )
 
 import hashlib
@@ -125,7 +128,14 @@ from sentry.utils.snuba import _snuba_pool
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import (
+    AuthProvider,
+    Feature,
+    TaskRunner,
+    apply_feature_flag_on_cls,
+    override_options,
+    parse_queries,
+)
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -1579,3 +1589,77 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+
+@apply_feature_flag_on_cls("organizations:metrics")
+@pytest.mark.usefixtures("reset_snuba")
+class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
+    ...
+
+
+class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        now = int(time.time())
+
+        # TODO: move _send to SnubaMetricsTestCase
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag1"): indexer.record("value1"),
+                        indexer.record("tag2"): indexer.record("value2"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag3"): indexer.record("value3"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric2"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record("tag4"): indexer.record("value3"),
+                        indexer.record("tag1"): indexer.record("value2"),
+                        indexer.record("tag2"): indexer.record("value1"),
+                    },
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record("metric3"),
+                    "timestamp": now,
+                    "tags": {},
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
