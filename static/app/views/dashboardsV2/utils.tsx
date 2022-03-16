@@ -13,6 +13,7 @@ import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -45,9 +46,9 @@ export function eventViewFromWidget(
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
   const fields =
     widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.fields.includes('geo.country_code')
-      ? ['geo.country_code', ...query.fields]
-      : query.fields;
+    !query.columns.includes('geo.country_code')
+      ? ['geo.country_code', ...query.columns, ...query.aggregates]
+      : [...query.columns, ...query.aggregates];
   const conditions =
     widgetDisplayType === DisplayType.WORLD_MAP &&
     !query.conditions.includes('has:geo.country_code')
@@ -189,7 +190,9 @@ export function getWidgetDiscoverUrl(
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
-    ...new Set(widget.queries[0].fields.filter(field => yAxisOptions.includes(field))),
+    ...new Set(
+      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+    ),
   ].slice(0, 3);
 
   // Visualization specific transforms
@@ -203,10 +206,10 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const fields = widget.queries[0].fields;
-      discoverLocation.query.yAxis = fields[fields.length - 1];
-      if (fields.slice(0, -1).includes(fields[fields.length - 1])) {
-        discoverLocation.query.field = fields.slice(0, -1);
+      const aggregates = widget.queries[0].aggregates;
+      discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+        discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
     default:
@@ -215,7 +218,11 @@ export function getWidgetDiscoverUrl(
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
   const fields = discoverLocation.query.field;
-  const equationFields = getFieldsFromEquations(widget.queries[0].fields);
+  const query = widget.queries[0];
+  const queryFields = defined(query.fields)
+    ? query.fields
+    : [...query.columns, ...query.aggregates];
+  const equationFields = getFieldsFromEquations(queryFields);
   // Updates fields by adding any individual terms from equation fields as a column
   equationFields.forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {

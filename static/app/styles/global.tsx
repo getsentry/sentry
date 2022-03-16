@@ -34,11 +34,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   pre,
   code {
-    background-color: ${theme.backgroundSecondary};
+    color: ${theme.textColor};
   }
 
   pre {
-    color: ${theme.textColor};
+    background-color: ${theme.backgroundSecondary};
   }
 
   code {
