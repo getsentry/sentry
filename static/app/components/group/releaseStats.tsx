@@ -53,29 +53,33 @@ const GroupReleaseStats = ({
         <Placeholder height="288px" />
       ) : (
         <Fragment>
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="24h"
-            title={t('Last 24 Hours')}
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="30d"
-            title={t('Last 30 Days')}
-            className="bar-chart-small"
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
+          <GraphSpacing>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="24h"
+              title={t('Last 24 Hours')}
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphSpacing>
+          <GraphSpacing>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="30d"
+              title={t('Last 30 Days')}
+              className="bar-chart-small"
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphSpacing>
 
           <SidebarSection
             secondary
@@ -156,4 +160,8 @@ export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
+`;
+
+const GraphSpacing = styled('div')`
+  margin-bottom: ${space(3)};
 `;
