@@ -1468,7 +1468,7 @@ class MetricsQueryBuilder(QueryBuilder):
         try:
             return super().column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
 
     def aliased_column(self, name: str) -> SelectType:
         try:

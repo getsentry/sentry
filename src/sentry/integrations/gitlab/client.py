@@ -294,7 +294,7 @@ class GitLabApiClient(ApiClient):
                 raise
             return None
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> bytes:
+    def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
@@ -309,4 +309,4 @@ class GitLabApiClient(ApiClient):
         contents = self.get(request_path, params={"ref": ref})
 
         encoded_content = contents["content"]
-        return b64decode(encoded_content)
+        return b64decode(encoded_content).decode("utf-8")
