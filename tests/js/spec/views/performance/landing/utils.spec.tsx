@@ -4,7 +4,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
-function initializeData(projects, query) {
+function initializeData(projects, query = {}) {
   const organization = TestStubs.Organization({
     features: [],
     projects,
@@ -16,6 +16,8 @@ function initializeData(projects, query) {
         query: query || {},
       },
     },
+    projects,
+    project: projects[0],
   });
   const eventView = EventView.fromLocation(initialData.router.location);
   ProjectsStore.loadInitialData(initialData.organization.projects);
