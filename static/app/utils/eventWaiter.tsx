@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
+import {GroupResolution} from 'sentry/types/group';
 import {analytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 
@@ -27,7 +28,7 @@ const recordAnalyticsFirstEvent = ({
  * will simply be boolean true. When no event has been received this will be
  * null. Otherwise it will be the group
  */
-type FirstIssue = null | true | Group;
+type FirstIssue = null | true | Group | string | false;
 
 export interface EventWaiterProps {
   api: Client;
@@ -72,8 +73,8 @@ class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
-    let firstEvent: FirstIssue | null = null;
-    let firstIssue: Group | boolean | null = null;
+    let firstEvent: string | boolean | GroupResolution | null = null;
+    let firstIssue: FirstIssue | null = null;
 
     try {
       const resp = await api.requestPromise(
