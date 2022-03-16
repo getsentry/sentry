@@ -14553,10 +14553,10 @@ storybook-addon-outline@^1.4.1:
     "@storybook/core-events" "^6.3.0"
     ts-dedent "^2.1.1"
 
-storybook-dark-mode@^1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/storybook-dark-mode/-/storybook-dark-mode-1.0.8.tgz#bbd64b382fd62d38685fdd769e2cac4e32ec293d"
-  integrity sha512-uY6yTSd1vYE0YwlON50u+iIoNF/fmMj59ww1cpd/naUcmOmCjwawViKFG5YjichwdR/yJ5ybWRUF0tnRQfaSiw==
+storybook-dark-mode@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/storybook-dark-mode/-/storybook-dark-mode-1.0.9.tgz#40c15aa340bc700df2fb4f1345250e6fdace0b3a"
+  integrity sha512-ITPXM2OSaga1zM5blpZy5HxMWAhrAqYi9aJtLgRtSdgoRrxVNAInDRD14TjmObdgLHNWxINoNbnEB+sKETa+iw==
   dependencies:
     fast-deep-equal "^3.0.0"
     memoizerific "^1.11.3"
@@ -15313,14 +15313,15 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
-typescript-styled-plugin@^0.18.1:
-  version "0.18.1"
-  resolved "https://registry.yarnpkg.com/typescript-styled-plugin/-/typescript-styled-plugin-0.18.1.tgz#f752fcc7652f6e3a19059c2d69250e608b35bbe2"
-  integrity sha512-HpFe36TjK997NGUeugJ7p39hoDnRTTu2IwFJkZEkMO+mokkVg3RNzBP8d8i6ofH3Vyx8byk0O6/2o4ISABg/Hw==
+typescript-styled-plugin@^0.18.2:
+  version "0.18.2"
+  resolved "https://registry.yarnpkg.com/typescript-styled-plugin/-/typescript-styled-plugin-0.18.2.tgz#88c11a81247434de5c038aa22dc0b2df412c85ef"
+  integrity sha512-eBs898Zz5C+k59ZydKVYBHjw4dC5WRxidOT7wfGkjLRZHKL6zIl6xkjIHMuctDE9hctxTq+GJcaXgk30lKEM9A==
   dependencies:
     typescript-template-language-service-decorator "^2.2.0"
     vscode-css-languageservice "^5.1.4"
     vscode-emmet-helper "^2.6.4"
+    vscode-languageserver-textdocument "^1.0.1"
     vscode-languageserver-types "^3.16.0"
 
 typescript-template-language-service-decorator@^2.2.0:
