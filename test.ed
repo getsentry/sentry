@@ -1,15 +1,19 @@
+1088c
+          }, ex);
+.
+1018i
+  const ex = new Error('act exception');
+.
 1008i
       } catch(ex2) {
-        process.stdout.write(ex2.stack);
-        process.stdout.write(require('os').EOL);
-        throw ex1;
+        throw ex || ex2;
       }
 .
 1003i
       try {
 .
-1000i
-  const ex1 = new Error('Test');
+999c
+function flushWorkAndMicroTasks(onDone, ex) {
 .
 w
 q
