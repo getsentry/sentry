@@ -2,11 +2,10 @@ import * as React from 'react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
-type Props = {
-  className?: string;
-} & React.HTMLProps<HTMLInputElement>;
-
-export default function Input({className, ...otherProps}: Props) {
+export default function Input({
+  className,
+  ...otherProps
+}: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       className={classNames('form-control', className)}

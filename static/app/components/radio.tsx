@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import {growIn} from 'sentry/styles/animations';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {radioSize?: 'small'};
-
-type CheckedProps = Props &
-  Omit<React.HTMLProps<HTMLInputElement>, 'as'> & {theme: Theme};
+interface CheckedProps extends React.LiHTMLAttributes<HTMLLIElement> {
+  theme: Theme;
+  disabled?: boolean;
+  radioSize?: 'small';
+}
 
 const checkedCss = (p: CheckedProps) => css`
   display: block;
@@ -20,7 +21,7 @@ const checkedCss = (p: CheckedProps) => css`
   opacity: ${p.disabled ? 0.4 : null};
 `;
 
-const Radio = styled('input')<Props>`
+const Radio = styled('input')<CheckedProps>`
   display: flex;
   padding: 0;
   width: ${p => (p.radioSize === 'small' ? '1rem' : '1.5rem')};

@@ -70,7 +70,9 @@ type MenuItemProps = {
   withBorder?: boolean;
 };
 
-type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
+interface Props
+  extends MenuItemProps,
+    Omit<React.LiHTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 const MenuItem = ({
   header,
@@ -168,14 +170,14 @@ const MenuItem = ({
   );
 };
 
-type MenuListItemProps = {
+interface MenuListItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
   disabled?: boolean;
   divider?: boolean;
   header?: boolean;
   isActive?: boolean;
   noAnchor?: boolean;
   withBorder?: boolean;
-} & React.HTMLProps<HTMLLIElement>;
+}
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = `
