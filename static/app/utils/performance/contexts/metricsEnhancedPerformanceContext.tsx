@@ -42,7 +42,7 @@ export const MEPTag = () => {
     return null;
   }
 
-  if (isMetricsData !== true) {
+  if (isMetricsData !== false) {
     return <span data-test-id="no-metrics-data-tag" />;
   }
 
