@@ -12,7 +12,6 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {
