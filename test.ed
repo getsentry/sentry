@@ -1,9 +1,11 @@
 1008i
       } catch(ex2) {
-        process.stdout.write(ex1.stack);
-        process.stdout.write(require('os').EOL);
-        process.stdout.write(ex2.stack);
-        process.stdout.write(require('os').EOL);
+        setTimeout(() => {
+          process.stdout.write(ex1.stack);
+          process.stdout.write(require('os').EOL);
+          process.stdout.write(ex2.stack);
+          process.stdout.write(require('os').EOL);
+        }, 0);
       }
 .
 1003i
