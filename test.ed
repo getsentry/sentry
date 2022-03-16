@@ -4,7 +4,6 @@
         process.stdout.write(require('os').EOL);
         process.stdout.write(ex2.stack);
         process.stdout.write(require('os').EOL);
-        throw ex2;
       }
 .
 1003i
