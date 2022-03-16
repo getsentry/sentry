@@ -78,15 +78,14 @@ const StyledButton = styled(Button)<
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
-  box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
+
+  ${p => (p.isOpen || p.disabled) && 'box-shadow: none'};
+
   &,
   &:active,
   &:focus,
   &:hover {
-    border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder
-        ? 'transparent'
-        : p.theme.button[p.priority].borderActive};
+    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
   }
 `;
 

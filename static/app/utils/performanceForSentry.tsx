@@ -43,31 +43,36 @@ export const VisuallyCompleteWithData = ({
   const longTaskCount = useRef(0);
 
   useEffect(() => {
-    if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
-      return () => {};
-    }
-    const timeOrigin = browserPerformanceTimeOrigin / 1000;
-
-    const observer = new PerformanceObserver(function (list) {
-      const perfEntries = list.getEntries();
-
-      const transaction = getCurrentSentryReactTransaction();
-      if (!transaction) {
-        return;
+    let observer;
+    try {
+      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
+        return () => {};
       }
-      perfEntries.forEach(entry => {
-        const startSeconds = timeOrigin + entry.startTime / 1000;
-        longTaskCount.current++;
-        transaction.startChild({
-          description: `Long Task - ${id}`,
-          op: `ui.long-task`,
-          startTimestamp: startSeconds,
-          endTimestamp: startSeconds + entry.duration / 1000,
+      const timeOrigin = browserPerformanceTimeOrigin / 1000;
+
+      observer = new PerformanceObserver(function (list) {
+        const perfEntries = list.getEntries();
+
+        const transaction = getCurrentSentryReactTransaction();
+        if (!transaction) {
+          return;
+        }
+        perfEntries.forEach(entry => {
+          const startSeconds = timeOrigin + entry.startTime / 1000;
+          longTaskCount.current++;
+          transaction.startChild({
+            description: `Long Task - ${id}`,
+            op: `ui.long-task`,
+            startTimestamp: startSeconds,
+            endTimestamp: startSeconds + entry.duration / 1000,
+          });
         });
       });
-    });
-    if (observer && observer.observe) {
-      observer.observe({entryTypes: ['longtask']});
+      if (observer && observer.observe) {
+        observer.observe({entryTypes: ['longtask']});
+      }
+    } catch (_) {
+      // Defensive since this is auxiliary code.
     }
     return () => {
       if (observer && observer.disconnect) {
