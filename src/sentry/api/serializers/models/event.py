@@ -259,6 +259,7 @@ class EventSerializer(Serializer):
             "platform": obj.platform,
             "dateReceived": received,
             "errors": errors,
+            "dateCreated": obj.datetime,
             "_meta": {
                 "entries": attrs["_meta"]["entries"],
                 "message": message_meta,
@@ -295,7 +296,6 @@ class EventSerializer(Serializer):
         return {
             "crashFile": attrs["crash_file"],
             "culprit": obj.culprit,
-            "dateCreated": obj.datetime,
             "fingerprints": obj.get_hashes().hashes,
             "groupingConfig": obj.get_grouping_config(),
         }
