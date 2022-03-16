@@ -43,10 +43,9 @@ class ConcurrentRateLimiter:
     def start_request(self, key: str, limit: int, request_uid: str) -> ConcurrentLimitInfo:
         redis_key = self.namespaced_key(key)
         try:
-            res = rate_limit_info(
+            current_executions, request_allowed = rate_limit_info(
                 self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
             )
-            current_executions, request_allowed = res
             return ConcurrentLimitInfo(limit, int(current_executions), not bool(request_allowed))
         except Exception:
             logger.exception(
