@@ -198,7 +198,15 @@ describe('Dashboards > Detail', function () {
       types.MAX_WIDGETS = 30;
       widgets = [
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Errors',
             interval: '1d',
@@ -206,7 +214,15 @@ describe('Dashboards > Detail', function () {
           }
         ),
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Transactions',
             interval: '1d',
@@ -219,6 +235,8 @@ describe('Dashboards > Detail', function () {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
+              aggregates: ['p50()'],
+              columns: [],
             },
           ],
           {
@@ -401,6 +419,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],
@@ -767,6 +787,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],

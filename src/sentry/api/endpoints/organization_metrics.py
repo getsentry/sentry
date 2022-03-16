@@ -69,7 +69,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
-        except InvalidParams as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
@@ -88,7 +88,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tag_values = get_tag_values(projects, tag_name, metric_names)
-        except InvalidParams as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:

@@ -1009,6 +1009,30 @@ export function getColumnsAndAggregates(fields: string[]): {
   return {columns, aggregates};
 }
 
+export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregateFields: string[] = [];
+  const nonAggregateFields: string[] = [];
+
+  for (const field of fields) {
+    const fieldString = generateFieldAsString(field);
+    if (field.kind === 'function') {
+      aggregateFields.push(fieldString);
+    } else if (field.kind === 'equation') {
+      if (isAggregateEquation(fieldString)) {
+        aggregateFields.push(fieldString);
+      } else {
+        nonAggregateFields.push(fieldString);
+      }
+    } else {
+      nonAggregateFields.push(fieldString);
+    }
+  }
+  return {aggregates: aggregateFields, columns: nonAggregateFields};
+}
+
 /**
  * Convert a function string into type it will output.
  * This is useful when you need to format values in tooltips,
