@@ -55,7 +55,7 @@ class RatelimitMiddlewareTest(TestCase):
     def test_concurrent(self):
         def do_request():
             uid = uuid.uuid4().hex
-            meta = above_rate_limit_check("foo", RateLimit(1, 1, 3), uid)
+            meta = above_rate_limit_check("foo", RateLimit(10, 1, 3), uid)
             sleep(0.2)
             finish_request("foo", uid)
             return meta
@@ -68,3 +68,10 @@ class RatelimitMiddlewareTest(TestCase):
             for f in futures:
                 results.append(f.result())
             assert len([r for r in results if r.concurrent_remaining == 0]) == 2
+
+    def test_window_and_concurrent_limit(self):
+        """Test that if there is a window limit and a concurrent limit, the
+        FIXED_WINDOW limit takes precedence"""
+        return_val = above_rate_limit_check("xar", RateLimit(0, 100, 0), "request_uid")
+        assert return_val.rate_limit_type == RateLimitType.FIXED_WINDOW
+        assert return_val.concurrent_remaining is None

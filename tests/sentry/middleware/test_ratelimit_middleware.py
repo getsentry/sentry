@@ -58,6 +58,15 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = User.objects.get(id=sentry_app.proxy_user_id)
         request.auth = token
 
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
+    def test_fails_open(self, default_rate_limit_mock):
+        """Test that if something goes wrong in the rate limit middleware,
+        the request still goes through"""
+        request = self.factory.get("/")
+        with freeze_time("2000-01-01"):
+            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")

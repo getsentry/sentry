@@ -140,16 +140,19 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
         key, limit=rate_limit.limit, window=rate_limit.window
     )
     remaining = rate_limit.limit - current if not window_limited else 0
+    concurrent_requests = None
     if window_limited:
         rate_limit_type = RateLimitType.FIXED_WINDOW
-    concurrent_requests = None
-    if rate_limit.concurrent_limit is not None:
-        concurrent_limit_info = concurrent_limiter().start_request(
-            key, rate_limit.concurrent_limit, request_uid
-        )
-        if concurrent_limit_info.limit_exceeded:
-            rate_limit_type = RateLimitType.CONCURRENT
-        concurrent_requests = concurrent_limit_info.current_executions
+    else:
+        # if we have hit the fixed window rate limit, there is no reason
+        # to do the work of the concurrent limit as well
+        if rate_limit.concurrent_limit is not None:
+            concurrent_limit_info = concurrent_limiter().start_request(
+                key, rate_limit.concurrent_limit, request_uid
+            )
+            if concurrent_limit_info.limit_exceeded:
+                rate_limit_type = RateLimitType.CONCURRENT
+            concurrent_requests = concurrent_limit_info.current_executions
 
     return RateLimitMeta(
         rate_limit_type=rate_limit_type,
