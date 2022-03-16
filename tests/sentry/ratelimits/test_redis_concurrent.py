@@ -14,20 +14,24 @@ class ConcurrentLimiterTest(TestCase):
         self.backend = ConcurrentRateLimiter()
 
     def test_add_and_remove(self):
+        """Test the basic adding and removal of requests to the concurrent
+        rate limiter, no concurrency testing done here"""
         limit = 8
         with freeze_time("2000-01-01"):
+            # step 1: start as many requests as the limit will allow
             for i in range(1, limit + 1):
                 assert (
                     self.backend.start_request("foo", limit, f"request_id{i}").current_executions
                     == i
                 )
-
-            info = self.backend.start_request("foo", limit, "request_id_12")
+            # step 2: add one more request over the limit
+            info = self.backend.start_request("foo", limit, "request_id_over_the_limit")
             assert info.current_executions == limit
             assert info.limit_exceeded
 
-            # limit exceeded
             assert self.backend.get_concurrent_requests("foo") == limit
+            # step 3: finish one request and see that there is room for one more
+            # concurrent execution
             self.backend.finish_request("foo", "request_id1")
             assert self.backend.get_concurrent_requests("foo") == limit - 1
 
@@ -37,19 +41,16 @@ class ConcurrentLimiterTest(TestCase):
                 self._client = real_client
 
             def __getattr__(self, name):
-                return getattr(self._client, name)
+                def fail(*args, **kwargs):
+                    raise Exception("OH NO")
 
-            def pipeline(self):
-                return self
-
-            def execute(self):
-                # TODO: When the script changes to lua,
-                # make this fail differently
-                raise Exception("OH NO")
+                return fail
 
         limiter = ConcurrentRateLimiter()
         limiter.client = FakeClient(limiter.client)
-        limiter.start_request("key", 100, "some_uid")
+        failed_request = limiter.start_request("key", 100, "some_uid")
+        assert failed_request.current_executions == -1
+        assert failed_request.limit_exceeded is False
         limiter.finish_request("key", "some_uid")
 
     def test_cleanup_stale(self):
