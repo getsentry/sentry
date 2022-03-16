@@ -1,8 +1,6 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
-import {defined} from 'sentry/utils';
 
 type Props = {
   className?: string;
@@ -11,11 +9,9 @@ type Props = {
 
 function NotAvailable({tooltip, className}: Props) {
   return (
-    <Wrapper className={className}>
-      <Tooltip title={tooltip} disabled={!defined(tooltip)}>
-        {'\u2014'}
-      </Tooltip>
-    </Wrapper>
+    <Tooltip title={tooltip} skipWrapper disabled={tooltip === undefined}>
+      <Wrapper className={className}>{'\u2014'}</Wrapper>
+    </Tooltip>
   );
 }
 

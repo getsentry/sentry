@@ -8,15 +8,13 @@ describe('NotAvailable', function () {
     expect(screen.getByText('\u2014')).toBeInTheDocument();
   });
 
-  it('renders with tooltip', function () {
-    jest.useFakeTimers();
+  it('renders with tooltip', async function () {
     render(<NotAvailable tooltip="Tooltip text" />);
     expect(screen.getByText('\u2014')).toBeInTheDocument();
     expect(screen.queryByText('Tooltip text')).not.toBeInTheDocument();
 
     userEvent.hover(screen.getByText('\u2014'));
-    jest.advanceTimersByTime(50);
 
-    expect(screen.getByText('Tooltip text')).toBeInTheDocument();
+    expect(await screen.findByText('Tooltip text')).toBeInTheDocument();
   });
 });
