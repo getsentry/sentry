@@ -19,13 +19,13 @@ export {ReactWrapper, ReactElement};
 
 export function mountWithTheme<C extends Component, P = C['props'], S = C['state']>(
   node: ReactElement<P>,
-  options: MountRendererProps
+  options?: MountRendererProps
 ): ReactWrapper<P, S, C>;
 export function mountWithTheme<P>(
   node: ReactElement<P>,
-  options: MountRendererProps
+  options?: MountRendererProps
 ): ReactWrapper<P, any>;
-export function mountWithTheme(tree: ReactElement, options: MountRendererProps) {
+export function mountWithTheme(tree: ReactElement, options: MountRendererProps = {}) {
   const WrappingThemeProvider = (props: {children: React.ReactNode}) => (
     <CacheProvider value={cache}>
       <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
