@@ -45,15 +45,23 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         else:
             raise ResourceDoesNotExist
 
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(
+        self,
+        request: Request,
+        organization: Organization,
+        member_id: int | str,
+        invite_status: InviteStatus | None = None,
+    ) -> OrganizationMember:
+        kwargs = dict(
+            organization=organization,
+        )
+
         if member_id == "me":
-            queryset = OrganizationMember.objects.filter(
-                organization=organization, user__id=request.user.id, user__is_active=True
-            )
+            kwargs.update(user__id=request.user.id, user__is_active=True)
         else:
-            queryset = OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                id=member_id,
-            )
-        return queryset.select_related("user").get()
+            kwargs.update(Q(user__is_active=True) | Q(user__isnull=True), id=member_id)
+
+        if invite_status:
+            kwargs.update(invite_status=invite_status.value)
+
+        return OrganizationMember.objects.filter(**kwargs).select_related("user").get()
