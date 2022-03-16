@@ -53,33 +53,41 @@ jobs:
         run: NODE_ENV=production yarn build-css
 
       - name: Hack
-        run: sed -i "s/function act(callback) {/function act(callback) {try{throw new Error('')}catch(ex){process.stdout.write(ex.stack);process.stdout.write('\\n')}/" node_modules/react-dom/cjs/react-dom-test-utils.development.js
+        run: sed -i "s/function act(callback) {/function act(callback) {try{throw new Error('')}catch(ex){process.stdout.write(ex.stack);process.stdout.write(require('os').EOL)}/" node_modules/react-dom/cjs/react-dom-test-utils.development.js
 
       - name: Check Hack
         run: grep 'function act(' node_modules/react-dom/cjs/react-dom-test-utils.development.js
 
-      # - name: jest env: GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }} GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }} # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.  Otherwise, if there are other things in the matrix, using strategy.job-total wouldn't be correct.  CI_NODE_TOTAL: 1 CI_NODE_INDEX: ${{ matrix.instance }}
-      #   run: |
-      #     JEST_TESTS=$(yarn -s jest tests/js/spec/views/dashboardsV2/widgetBuilder/widgetBuilder.spec.tsx --listTests --json) yarn test-ci --forceExit
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 1
+          CI_NODE_INDEX: ${{ matrix.instance }}
+        run: |
+          JEST_TESTS=$(yarn -s jest tests/js/spec/views/dashboardsV2/widgetBuilder/widgetBuilder.spec.tsx --listTests --json) yarn test-ci --forceExit
 
-      # - name: Save HTML artifacts
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     retention-days: 14
-      #     name: jest-html
-      #     path: .artifacts/visual-snapshots/jest
+      - name: Save HTML artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          retention-days: 14
+          name: jest-html
+          path: .artifacts/visual-snapshots/jest
 
-      # - name: Create Images from HTML
-      #   uses: getsentry/action-html-to-image@main
-      #   with:
-      #     base-path: .artifacts/visual-snapshots/jest
-      #     css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
-      # - name: Save snapshots
-      #   uses: getsentry/action-visual-snapshot@v2
-      #   with:
-      #     save-only: true
-      #     snapshot-path: .artifacts/visual-snapshots
+      - name: Save snapshots
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          save-only: true
+          snapshot-path: .artifacts/visual-snapshots
 
-      # - name: Handle artifacts
-      #   uses: ./.github/actions/artifacts
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
