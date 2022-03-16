@@ -52,6 +52,7 @@ import {
   DashboardWidgetSource,
   MAX_WIDGETS,
   Widget,
+  WidgetType,
 } from './types';
 import {cloneDashboard} from './utils';
 
@@ -148,6 +149,11 @@ class DashboardDetail extends Component<Props, State> {
               source: DashboardWidgetSource.DASHBOARDS,
             });
           },
+        });
+        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
+          organization,
+          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          display_type: widget.displayType,
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast
