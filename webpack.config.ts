@@ -477,17 +477,21 @@ if (
       'Access-Control-Allow-Credentials': 'true',
     },
     // Required for getsentry
-    disableHostCheck: true,
-    contentBase: './src/sentry/static/sentry',
+    allowedHosts: 'all',
+    static: {
+      directory: './src/sentry/static/sentry',
+      publicPath: '/_assets/',
+      watch: true,
+    },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: true,
-    // If below is false, will reload on errors
-    hotOnly: true,
+    // Don't reload on errors
+    hot: 'only',
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    stats: 'errors-only',
-    overlay: false,
-    watchOptions: {
-      ignored: ['node_modules'],
+    devMiddleware: {
+      stats: 'errors-only',
+    },
+    client: {
+      overlay: false,
     },
   };
 
@@ -498,7 +502,9 @@ if (
 
     appConfig.devServer = {
       ...appConfig.devServer,
-      publicPath: '/_static/dist/sentry',
+      static: {
+        publicPath: '/_static/dist/sentry',
+      },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
         '/api/store/**': relayAddress,
@@ -533,7 +539,9 @@ if (IS_UI_DEV_ONLY) {
     ...appConfig.devServer,
     compress: true,
     https,
-    publicPath: '/_assets/',
+    static: {
+      publicPath: '/_assets/',
+    },
     proxy: [
       {
         context: ['/api/', '/avatar/', '/organization-avatar/'],
@@ -552,8 +560,8 @@ if (IS_UI_DEV_ONLY) {
   appConfig.optimization = {
     runtimeChunk: 'single',
   };
-  // TODO: remove target "web" when upgrading to webpack-dev-server v4
-  appConfig.target = 'web';
+  // TODO: figure out why having chunks+hash in the path breaks hot reloading
+  appConfig.output = {};
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {

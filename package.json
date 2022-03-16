@@ -186,7 +186,7 @@
     "tocbot": "^4.13.4",
     "typescript-styled-plugin": "^0.18.2",
     "url-loader": "^4.1.0",
-    "webpack-dev-server": "^3.11.2"
+    "webpack-dev-server": "^4.7.4"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
