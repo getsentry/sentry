@@ -1,21 +1,26 @@
 import React from 'react';
-import {urlEncode} from '@sentry/utils';
 
+// import {urlEncode} from '@sentry/utils';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+// import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  screen,
+  userEvent,
+  //  waitFor
+} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import * as modals from 'sentry/actionCreators/modal';
+// import {textWithMarkupMatcher} from 'sentry-test/utils';
+// import * as indicators from 'sentry/actionCreators/indicator';
+// import * as modals from 'sentry/actionCreators/modal';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  MAX_WIDGETS,
-  Widget,
+  // MAX_WIDGETS,
+  // Widget,
 } from 'sentry/views/dashboardsV2/types';
-import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
+// import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 // Mock World Map because setState inside componentDidMount is
@@ -108,7 +113,7 @@ describe('WidgetBuilder', function () {
     widgets: [],
   };
 
-  let eventsStatsMock: jest.Mock | undefined;
+  // let eventsStatsMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -159,7 +164,8 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    eventsStatsMock = MockApiClient.addMockResponse({
+    // eventsStatsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
