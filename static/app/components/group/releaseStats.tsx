@@ -53,7 +53,7 @@ const GroupReleaseStats = ({
         <Placeholder height="288px" />
       ) : (
         <Fragment>
-          <GraphSpacing>
+          <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
               environment={environmentLabel}
@@ -65,8 +65,8 @@ const GroupReleaseStats = ({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-          </GraphSpacing>
-          <GraphSpacing>
+          </GraphContainer>
+          <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
               environment={environmentLabel}
@@ -79,7 +79,7 @@ const GroupReleaseStats = ({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-          </GraphSpacing>
+          </GraphContainer>
 
           <SidebarSection
             secondary
