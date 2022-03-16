@@ -57,7 +57,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
-  featureBadgeType?: React.ComponentProps<typeof FeatureBadge>['type'];
 };
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
