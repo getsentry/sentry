@@ -352,7 +352,7 @@ let appConfig: Configuration = {
                 compilerOptions: {incremental: true},
               },
             },
-            logger: {devServer: false},
+            devServer: false,
           }),
         ]
       : []),
