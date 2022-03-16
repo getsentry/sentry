@@ -33,7 +33,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
         size={size}
         pinned={pinned}
         borderless={size === 'zero'}
-        icon={<IconLock isSolid={pinned} />}
+        icon={<IconLock isSolid={pinned} size="xs" />}
       />
     </Tooltip>
   );
