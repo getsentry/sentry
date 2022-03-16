@@ -52,8 +52,8 @@ jobs:
       - name: Build CSS
         run: NODE_ENV=production yarn build-css
 
-      # - name: Hack
-      #   run: ed node_modules/react-dom/cjs/react-dom-test-utils.development.js < test.ed
+      - name: Hack
+        run: ed node_modules/react-dom/cjs/react-dom-test-utils.development.js < test.ed
 
       - name: jest
         env:
