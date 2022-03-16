@@ -125,7 +125,7 @@ const HovercardWrapper = styled('div')`
 `;
 
 const DateWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: 0;
   ${overflowEllipsis};
 `;
 
