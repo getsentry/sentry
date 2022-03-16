@@ -138,8 +138,8 @@ export class RenderField extends Component<RenderProps, State> {
             ) : (
               t('Deleted')
             )}
-            <IconArrow size="xs" direction="right" />
           </MappedItemValue>
+          <RightArrow size="xs" direction="right" />
           <MappedProjectWrapper>
             {project ? (
               <IdBadge
@@ -243,6 +243,7 @@ export class RenderField extends Component<RenderProps, State> {
             onChange={handleSelectMappedValue}
             value={selectedMappedValue}
           />
+          <RightArrow size="xs" direction="right" />
           <SelectControl
             placeholder={t('Sentry project\u2026')}
             name="project"
@@ -315,6 +316,7 @@ const MappedProjectWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-right: ${space(1)};
+  grid-area: sentry-project;
 `;
 
 const Item = styled('div')`
@@ -328,8 +330,8 @@ const Item = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2.5fr 2.5fr max-content 30px;
-  grid-template-areas: 'mapped-value sentry-project manage-project field-control';
+  grid-template-columns: 2.5fr min-content 2.5fr max-content 30px;
+  grid-template-areas: 'mapped-value arrow sentry-project manage-project field-control';
 `;
 
 const MappedItemValue = styled('div')`
@@ -339,6 +341,11 @@ const MappedItemValue = styled('div')`
   align-items: center;
   gap: ${space(1)};
   width: 100%;
+  grid-area: mapped-value;
+`;
+
+const RightArrow = styled(IconArrow)`
+  grid-area: arrow;
 `;
 
 const DeleteButtonWrapper = styled('div')`
