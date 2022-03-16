@@ -71,8 +71,8 @@ export {iOSDeviceMapping}
   `;
 };
 
-(async () => {
+export async function extractIOSDeviceNames() {
   const files = await getDefinitionFiles();
   const definitions = await collectDefinitions(files);
   fs.writeFileSync(outputPath, template(JSON.stringify(definitions, undefined, 2)));
-})();
+}
