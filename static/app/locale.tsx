@@ -84,7 +84,7 @@ function getClient(): Jed | null {
  * printf style string formatting which render as react nodes.
  */
 function formatForReact(formatString: string, args: FormatArg[]): React.ReactNode[] {
-  const nodes: React.ReactNodeArray = [];
+  const nodes: React.ReactNode[] = [];
   let cursor = 0;
 
   // always re-parse, do not cache, because we change the match

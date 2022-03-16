@@ -11,17 +11,15 @@ import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type Props = {
-  router: WithRouterProps['router'];
-
+type Props = WithRouterProps & {
   /**
    * Message to display at the bottom of project list
    */
@@ -94,9 +92,12 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
 
-  const [_, otherProjects] = partition(specifiedProjects, project => project.isMember);
+  const [memberProjects, otherProjects] = partition(
+    specifiedProjects,
+    project => project.isMember
+  );
 
-  const isSuperuser = isActiveSuperuser();
+  const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
@@ -142,7 +143,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   return (
     <MultipleProjectSelector
       organization={organization}
-      projects={projects}
+      memberProjects={memberProjects}
       isGlobalSelectionReady={projectsLoaded && isReady}
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
