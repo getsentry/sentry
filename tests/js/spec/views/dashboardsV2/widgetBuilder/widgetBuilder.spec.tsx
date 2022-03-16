@@ -183,23 +183,8 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add Group'));
       }
 
-      const x = await screen.findAllByText('Select group');
-      expect(x).toHaveLength(20);
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
-    });
-
-    it('allows deleting groups until there is one left', async function () {
-      renderTestComponent({
-        query: {displayType: 'line'},
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      await screen.findByText('Group your results');
-      userEvent.click(screen.getByText('Add Group'));
-      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
-
-      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
-      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
     });
 
     it('should randomly fail', async function () {
