@@ -12,16 +12,15 @@ on:
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
       - 'requirements-*.txt'
+      - 'bin/load-mocks'
 
 jobs:
-  dev-environment:
-    name: dev docs set up
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    strategy:
-      matrix:
-        os: [macos-11.0]
-      fail-fast: false
+  # This workflow is optimized to test the dev env with dev services as fast as possible
+  # The bootstrap workflow (see last workflow) tests the experience of first time engineers
+  docker-setup:
+    name: Docker set up
+    runs-on: macos-11
+    timeout-minutes: 30
     env:
       # Make the environment more similar to what Mac defaults to
       SHELL: /bin/zsh
@@ -37,33 +36,61 @@ jobs:
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
-      - name: Install prerequisites
+      # NOTE: This can sometimes take up to 10 minutes
+      - name: Install Docker
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
-          make prerequisites
 
-      - name: Setup Python
+      - name: Install missing brew packages
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
+
+      - name: Install volta
+        run: |
+          curl https://get.volta.sh | bash
+
+      # This handles Python's cache
+      - name: Setup Python & cache
         uses: ./.github/actions/setup-python
-
-      - name: Cache (pyenv)
-        uses: actions/cache@v2
-        with:
-          path: ~/.pyenv
-          key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
+          key: devenv-${{ runner.os }}-v1-yarn-${{ hashFiles('yarn.lock') }}
 
-      - name: Set up development environment (mostly as per docs)
+      # This tests starting up the dev services, loading mocks and pre-commit installation
+      # This can take over 15 minutes
+      - name: make bootstrap
         run: |
-          curl https://get.volta.sh | bash
           export VOLTA_HOME="$HOME/.volta"
           export PATH="$HOME/.volta/bin:$PATH"
+          python -m venv .venv
+          source .venv/bin/activate
+          make bootstrap
+
+  # The pyenv set up takes long, thus, separating it into its own
+  pyenv-setup:
+    name: pyenv set up
+    runs-on: macos-11
+    timeout-minutes: 15
+    env:
+      # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
+      SHELL: /bin/zsh
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Install pyenv
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
+
+      # Only after we source ~/.zprofile that the right Python will be selected
+      - name: Set up pyenv
+        run: |
           make setup-pyenv
           [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
           source ~/.zprofile
@@ -71,9 +98,11 @@ jobs:
           [[ $(python -V) == "Python $(cat .python-version)" ]]
           python -m venv .venv
           source .venv/bin/activate
-          make bootstrap
-          pre-commit
+          [[ $(python -V) == "Python $(cat .python-version)" ]]
 
+
+  # We don't yet test the bootstrap step
+  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
   bootstrap-script:
     runs-on: macos-11
     timeout-minutes: 40
@@ -85,5 +114,7 @@ jobs:
       - name: Run bootstrap code
         env:
           STRAP_DEBUG: 1
+          # This ensures that the bootstrap code will test against this branch
+          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
         run: |
           bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
