@@ -22,9 +22,12 @@ def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
             and column.alias
         ):
             tags.append(column.alias)
-    for row in results["data"]:
-        for tag in tags:
+
+    for tag in tags:
+        for row in results["data"]:
             row[tag] = indexer.reverse_resolve(row[tag])
+        if tag in results["meta"]:
+            results["meta"][tag] = "string"
 
     return results
 
