@@ -47,7 +47,8 @@
           <tr>
               <th colspan="2">Issue</th>
           </tr>
-          {% for group, records in groups.items|slice:":10" %}
+          {% for group, records in groups.items %}
+            {% if forloop.counter0 < 10 %}
               <tr>
                   <td class="error-level">
                       <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
@@ -57,12 +58,13 @@
                       <div><small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small></div>
                   </td>
               </tr>
+            {% endif %}
           {% endfor %}
-          {% with groups.items|slice:"10:" as remainder %}
-            {% if remainder %}
+          {% with groups.items|length|add:"-10" as remainder %}
+            {% if remainder >= 1 %}
                 <tr>
                     <td colspan="3" class="more-events">
-                        and {{ remainder|length }} more issue{{ remainder|pluralize }}
+                        and {{ remainder }} more issue{{ remainder|pluralize }}
                     </td>
                 </tr>
             {% endif %}
