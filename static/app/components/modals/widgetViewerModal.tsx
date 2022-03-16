@@ -11,7 +11,10 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -71,7 +74,9 @@ const MemoizedWidgetCardChartContainer = React.memo(
       props.location.query[WidgetViewerQueryField.QUERY] ===
         prevProps.location.query[WidgetViewerQueryField.QUERY] &&
       props.location.query[WidgetViewerQueryField.SORT] ===
-        prevProps.location.query[WidgetViewerQueryField.SORT]
+        prevProps.location.query[WidgetViewerQueryField.SORT] &&
+      props.location.query[WidgetViewerQueryField.WIDTH] ===
+        prevProps.location.query[WidgetViewerQueryField.WIDTH]
     );
   }
 );
@@ -93,23 +98,33 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+
+  // Get query selection settings from location
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+
+  // Get legends toggle settings from location
   const disabledLegends = decodeList(
     location.query[WidgetViewerQueryField.LEGEND]
   ).reduce((acc, legend) => {
     acc[legend] = false;
     return acc;
   }, {});
+
+  // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
 
-  // Use sort if provided by location query to sort table
+  // Get table column widths from location
+  const widths = decodeList(location.query[WidgetViewerQueryField.WIDTH]);
+
+  // Get table sort settings from location
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
   const sortedQueries = sort
     ? widget.queries.map(query => ({...query, orderby: sort}))
     : widget.queries;
-  // Top N widget charts rely on the table sorting
+
+  // Top N widget charts results rely on the sorting of the query
   const primaryWidget =
     widget.displayType === DisplayType.TOP_N
       ? {...widget, queries: sortedQueries}
@@ -174,6 +189,14 @@ function WidgetViewerModal(props: Props) {
     modalSelection,
     tableWidget.displayType
   );
+
+  // Update field widths
+  widths.forEach((width, index) => {
+    if (eventView.fields[index]) {
+      eventView.fields[index].width = parseInt(width, 10);
+    }
+  });
+
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
 
@@ -181,6 +204,22 @@ function WidgetViewerModal(props: Props) {
     label: truncate(name || conditions, 120),
     value: index,
   }));
+
+  const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
+    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
+    const newWidths: number[] = new Array(Math.max(columnIndex, widths.length)).fill(
+      COL_WIDTH_UNDEFINED
+    );
+    widths.forEach((width, index) => (newWidths[index] = parseInt(width, 10)));
+    newWidths[columnIndex] = newWidth;
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.WIDTH]: newWidths,
+      },
+    });
+  };
 
   function renderWidgetViewer() {
     return (
@@ -303,6 +342,7 @@ function WidgetViewerModal(props: Props) {
                           ...props,
                           widget: tableWidget,
                         }),
+                        onResizeColumn,
                       }}
                       location={location}
                     />
@@ -380,6 +420,7 @@ function WidgetViewerModal(props: Props) {
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
+                        onResizeColumn,
                       }}
                       location={location}
                     />
