@@ -34,25 +34,42 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
+      # These jobs are required checks to merge on GH, thus, they need to always execute but
+      # in order to optimize CI usage, we want the tests to only run when FE files are touched
+      # We cannot use GH workflow path filters because entire workflow would be skipped vs
+      # skipping individual jobs which would still allow this status check to pass.
+      - name: Check for FE file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
       - uses: volta-cli/action@v1
+        if: steps.changes.outputs.frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
+        if: steps.changes.outputs.frontend == 'true'
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        if: steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
+        if: steps.changes.outputs.frontend == 'true'
         run: yarn install --frozen-lockfile
 
       - name: Build CSS
+        if: steps.changes.outputs.frontend == 'true'
         run: NODE_ENV=production yarn build-css
 
       - name: jest
+        if: steps.changes.outputs.frontend == 'true'
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
@@ -65,6 +82,7 @@ jobs:
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
+        if: steps.changes.outputs.frontend == 'true'
         uses: actions/upload-artifact@v2
         with:
           retention-days: 14
@@ -72,18 +90,21 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
+        if: steps.changes.outputs.frontend == 'true'
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
+        if: steps.changes.outputs.frontend == 'true'
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
+        if: steps.changes.outputs.frontend == 'true'
         uses: ./.github/actions/artifacts
 
   webpack:
