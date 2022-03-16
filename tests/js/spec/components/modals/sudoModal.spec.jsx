@@ -102,9 +102,7 @@ describe('Sudo Modal', function () {
       '/auth/',
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          password: 'password',
-        },
+        data: {isSuperuserModal: false, password: 'password'},
       })
     );
 
@@ -149,6 +147,28 @@ describe('Sudo Modal', function () {
 
     // Should have Modal + input
     expect(wrapper.find('Modal input')).toHaveLength(0);
-    expect(wrapper.find('Button[href]').prop('href')).toMatch('/auth/login/?next=%2F');
+
+    Client.clearMockResponses();
+    const sudoMock = Client.addMockResponse({
+      url: '/auth/',
+      method: 'PUT',
+      statusCode: 200,
+    });
+
+    expect(sudoMock).not.toHaveBeenCalled();
+
+    wrapper.find('Modal form').simulate('submit');
+    wrapper.find('Modal Button[type="submit"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(sudoMock).toHaveBeenCalledWith(
+      '/auth/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: {isSuperuserModal: false},
+      })
+    );
   });
 });
