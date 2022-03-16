@@ -49,7 +49,7 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
 }
 
 const SectionContent = styled('div')<{secondary?: boolean}>`
-  margin-bottom: ${p => (p.secondary ? space(2) : space(4))};
+  margin-bottom: ${p => (p.secondary ? space(4) : space(4))};
 `;
 
 export default SidebarSection;
