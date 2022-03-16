@@ -91,7 +91,7 @@
     "jed": "^1.1.0",
     "js-cookie": "2.2.1",
     "less": "^3.12.2",
-    "less-loader": "^10.0.1",
+    "less-loader": "^10.2.0",
     "lodash": "^4.17.19",
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^2.0.0",
