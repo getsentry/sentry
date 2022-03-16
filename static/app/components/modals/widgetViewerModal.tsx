@@ -11,16 +11,16 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
-import GridEditable, {
-  COL_WIDTH_MINIMUM,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -41,7 +41,6 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
-  renderPrependColumns,
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export type WidgetViewerModalOptions = {
@@ -122,16 +121,20 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
-  const fields = tableWidget.queries[0].fields;
+  const {aggregates, columns} = tableWidget.queries[0];
+
+  const fields = defined(tableWidget.queries[0].fields)
+    ? tableWidget.queries[0].fields
+    : [...columns, ...aggregates];
 
   // World Map view should always have geo.country in the table chart
   if (
     widget.displayType === DisplayType.WORLD_MAP &&
-    !fields.includes(GEO_COUNTRY_CODE)
+    !columns.includes(GEO_COUNTRY_CODE)
   ) {
     fields.unshift(GEO_COUNTRY_CODE);
+    columns.unshift(GEO_COUNTRY_CODE);
   }
-
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns = [
     DisplayType.AREA,
@@ -141,17 +144,13 @@ function WidgetViewerModal(props: Props) {
   ].includes(widget.displayType);
 
   if (shouldReplaceTableColumns) {
-    tableWidget.queries[0].orderby = tableWidget.queries[0].orderby || '-timestamp';
-    fields.splice(
-      0,
-      fields.length,
-      ...['title', 'event.type', 'project', 'user.display', 'timestamp']
-    );
+    if (fields.length === 1) {
+      tableWidget.queries[0].orderby =
+        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    }
+    fields.unshift('title');
+    columns.unshift('title');
   }
-
-  const prependColumnWidths = shouldReplaceTableColumns
-    ? [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`]
-    : [];
 
   if (!isTableWidget) {
     // Updates fields by adding any individual terms from equation fields as a column
@@ -160,8 +159,15 @@ function WidgetViewerModal(props: Props) {
       if (Array.isArray(fields) && !fields.includes(term)) {
         fields.unshift(term);
       }
+      if (isAggregateField(term) && !aggregates.includes(term)) {
+        aggregates.unshift(term);
+      }
+      if (!isAggregateField(term) && !columns.includes(term)) {
+        columns.unshift(term);
+      }
     });
   }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
@@ -201,6 +207,11 @@ function WidgetViewerModal(props: Props) {
                   ...modalSelection,
                   datetime: {...modalSelection.datetime, start, end, period: null},
                 });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
               onLegendSelectChanged={({selected}) => {
                 router.replace({
@@ -212,6 +223,14 @@ function WidgetViewerModal(props: Props) {
                     ),
                   },
                 });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.toggle_legend',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
               legendOptions={{selected: disabledLegends}}
             />
@@ -237,6 +256,15 @@ function WidgetViewerModal(props: Props) {
                     [WidgetViewerQueryField.CURSOR]: undefined,
                   },
                 });
+
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.select_query',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             />
           </React.Fragment>
@@ -298,6 +326,15 @@ function WidgetViewerModal(props: Props) {
                             [WidgetViewerQueryField.PAGE]: nextPage,
                           },
                         });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
                       }}
                     />
                   </React.Fragment>
@@ -343,14 +380,6 @@ function WidgetViewerModal(props: Props) {
                           tableData: tableResults?.[0],
                           isFirstPage,
                         }),
-                        renderPrependColumns: shouldReplaceTableColumns
-                          ? renderPrependColumns({
-                              ...props,
-                              eventView,
-                              tableData: tableResults?.[0],
-                            })
-                          : undefined,
-                        prependColumnWidths,
                       }}
                       location={location}
                     />
@@ -364,6 +393,15 @@ function WidgetViewerModal(props: Props) {
                             [WidgetViewerQueryField.CURSOR]: newCursor,
                           },
                         });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
                       }}
                     />
                   </React.Fragment>
@@ -417,12 +455,28 @@ function WidgetViewerModal(props: Props) {
               onClick={() => {
                 closeModal();
                 onEdit();
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
             >
               {t('Edit Widget')}
             </Button>
           )}
-          <Button to={path} priority="primary" type="button">
+          <Button
+            to={path}
+            priority="primary"
+            type="button"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          >
             {openLabel}
           </Button>
         </ButtonBar>
