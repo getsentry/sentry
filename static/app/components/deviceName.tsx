@@ -29,6 +29,7 @@ interface DeviceNameProps {
   children?: (name: string) => React.ReactNode;
 }
 
+type a = React.LiHTMLAttributes;
 /**
  * This is used to map iOS Device Names to model name.
  * This asynchronously loads the ios-device-list library because of its size
