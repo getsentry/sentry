@@ -531,6 +531,30 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
+    def resolve_function_result_type(
+        self,
+        function: str,
+        match: Optional[Match[str]] = None,
+        resolve_only: bool = False,
+        overwrite_alias: Optional[str] = None,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        resolved_function = self.resolve_function(function, match, resolve_only, overwrite_alias)
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
+
     def resolve_snql_function(
         self,
         snql_function: SnQLFunction,

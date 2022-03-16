@@ -18,7 +18,7 @@ from sentry.search.events.constants import (
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -29,7 +29,12 @@ from sentry.search.utils import (
     parse_percentage,
 )
 from sentry.utils.compat import filter, map
-from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
+from sentry.utils.snuba import (
+    Dataset,
+    is_duration_measurement,
+    is_measurement,
+    is_span_op_breakdown,
+)
 from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.
@@ -465,6 +470,13 @@ class SearchVisitor(NodeVisitor):
             config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
+        # Avoid circular import
+        from sentry.search.events.builder import UnresolvedQuery
+
+        # TODO: read dataset from config
+        self.query = UnresolvedQuery(
+            dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
+        )
 
     @cached_property
     def key_mappings_lookup(self):
@@ -701,17 +713,9 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            result_type = self.query.resolve_function_result_type(search_key.name)
 
-            is_duration_key = False
-            if function.aggregate is not None:
-                args = function.aggregate[1]
-                if isinstance(args, list):
-                    is_duration_key = all(self.is_duration_key(arg) for arg in args)
-                else:
-                    is_duration_key = self.is_duration_key(args)
-
-            if is_duration_key:
+            if result_type == "duration":
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
@@ -737,8 +741,8 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
-            if function.aggregate is not None and self.is_percentage_key(function.aggregate[0]):
+            result_type = self.query.resolve_function_result_type(search_key.name)
+            if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
