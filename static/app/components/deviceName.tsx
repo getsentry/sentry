@@ -1,8 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-// Self reference to the module, so that we can mock a failed import in a test.
-// import * as selfModule from 'sentry/components/deviceName';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
 import {loadDeviceListModule} from 'sentry/utils/loadDeviceListModule';
 
