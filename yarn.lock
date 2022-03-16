@@ -15313,14 +15313,15 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
-typescript-styled-plugin@^0.18.1:
-  version "0.18.1"
-  resolved "https://registry.yarnpkg.com/typescript-styled-plugin/-/typescript-styled-plugin-0.18.1.tgz#f752fcc7652f6e3a19059c2d69250e608b35bbe2"
-  integrity sha512-HpFe36TjK997NGUeugJ7p39hoDnRTTu2IwFJkZEkMO+mokkVg3RNzBP8d8i6ofH3Vyx8byk0O6/2o4ISABg/Hw==
+typescript-styled-plugin@^0.18.2:
+  version "0.18.2"
+  resolved "https://registry.yarnpkg.com/typescript-styled-plugin/-/typescript-styled-plugin-0.18.2.tgz#88c11a81247434de5c038aa22dc0b2df412c85ef"
+  integrity sha512-eBs898Zz5C+k59ZydKVYBHjw4dC5WRxidOT7wfGkjLRZHKL6zIl6xkjIHMuctDE9hctxTq+GJcaXgk30lKEM9A==
   dependencies:
     typescript-template-language-service-decorator "^2.2.0"
     vscode-css-languageservice "^5.1.4"
     vscode-emmet-helper "^2.6.4"
+    vscode-languageserver-textdocument "^1.0.1"
     vscode-languageserver-types "^3.16.0"
 
 typescript-template-language-service-decorator@^2.2.0:
