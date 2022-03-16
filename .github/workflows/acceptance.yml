@@ -53,10 +53,7 @@ jobs:
         run: NODE_ENV=production yarn build-css
 
       - name: Hack
-        run: sed -i "s/function act(callback) {/function act(callback) {try{throw new Error('')}catch(ex){process.stdout.write(ex.stack);process.stdout.write(require('os').EOL)}/" node_modules/react-dom/cjs/react-dom-test-utils.development.js
-
-      - name: Check Hack
-        run: grep 'function act(' node_modules/react-dom/cjs/react-dom-test-utils.development.js
+        run: ed node_modules/react-dom/cjs/react-dom-test-utils.development.js < test.ed
 
       - name: jest
         env:

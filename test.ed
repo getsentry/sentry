@@ -1,0 +1,21 @@
+1008i
+      } catch(ex2) {
+        process.stdout.write(ex1.stack);
+        process.stdout.write(require('os').EOL);
+        process.stdout.write(ex2.stack);
+        process.stdout.write(require('os').EOL);
+      }
+.
+1003i
+      try {
+.
+1000i
+  let ex1;
+  try {
+    throw new Error('');
+  } catch (ex) {
+    ex1 = ex;
+  }
+.
+w
+q
