@@ -68,7 +68,6 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
-          featureBadgeType: 'new' as const,
         },
       ]
     : []),
