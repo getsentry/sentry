@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import IssueListHeader from 'sentry/views/issueList/header';
@@ -53,7 +53,7 @@ describe('IssueListHeader', () => {
   });
 
   it('renders active tab with count when query matches inbox', () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
@@ -63,12 +63,13 @@ describe('IssueListHeader', () => {
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('.active').text()).toBe('For Review 22');
+
+    expect(screen.getByText('For Review')).toHaveTextContent('For Review 22');
   });
 
   it('renders reprocessing tab', () => {
     organization.features = ['reprocessing-v2'];
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -85,11 +86,11 @@ describe('IssueListHeader', () => {
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('li').at(3).text()).toBe('Reprocessing 1');
+    expect(screen.getByText('Reprocessing')).toHaveTextContent('Reprocessing 1');
   });
 
   it("renders all tabs inactive when query doesn't match", () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -98,11 +99,11 @@ describe('IssueListHeader', () => {
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('.active').exists()).toBe(false);
+    expect(screen.getByText('Custom Search')).toBeInTheDocument();
   });
 
   it('renders all tabs with counts', () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -112,14 +113,14 @@ describe('IssueListHeader', () => {
         savedSearchList={[]}
       />
     );
-    const tabs = wrapper.find('li');
-    expect(tabs.at(0).text()).toBe('All Unresolved 1');
-    expect(tabs.at(1).text()).toBe('For Review 22');
-    expect(tabs.at(2).text()).toBe('Ignored ');
+    const tabs = screen.getAllByRole('listitem');
+    expect(tabs[0]).toHaveTextContent('All Unresolved 1');
+    expect(tabs[1]).toHaveTextContent('For Review 22');
+    expect(tabs[2]).toHaveTextContent('Ignored');
   });
 
   it('renders limited counts for tabs and exact for selected', () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query=""
@@ -129,27 +130,33 @@ describe('IssueListHeader', () => {
         savedSearchList={[]}
       />
     );
-    const tabs = wrapper.find('li');
-    expect(tabs.at(0).text()).toBe('All Unresolved 99+');
-    expect(tabs.at(1).text()).toBe('For Review 321');
-    expect(tabs.at(2).text()).toBe('Ignored 99+');
+    const tabs = screen.getAllByRole('listitem');
+    expect(tabs[0]).toHaveTextContent('All Unresolved 99+');
+    expect(tabs[1]).toHaveTextContent('For Review 321');
+    expect(tabs[2]).toHaveTextContent('Ignored 99+');
   });
 
   it('transitions to new query on tab click', () => {
-    const wrapper = mountWithTheme(
+    const routerContext = TestStubs.routerContext();
+
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
-      />
+      />,
+      {context: routerContext}
     );
     const pathname = '/organizations/org-slug/issues/';
-    expect(wrapper.find('Link').at(0).prop('to')).toEqual({
+    userEvent.click(screen.getByText('All Unresolved'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname,
       query: {query: 'is:unresolved'},
     });
-    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+
+    userEvent.click(screen.getByText('For Review'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname,
       query: {
         query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -159,7 +166,8 @@ describe('IssueListHeader', () => {
   });
 
   it('removes inbox sort for non-inbox tabs', () => {
-    const wrapper = mountWithTheme(
+    const routerContext = TestStubs.routerContext();
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -172,14 +180,17 @@ describe('IssueListHeader', () => {
           },
         })}
       />,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
     const pathname = '/organizations/org-slug/issues/';
-    expect(wrapper.find('Link').at(0).prop('to')).toEqual({
+    userEvent.click(screen.getByText('All Unresolved'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname,
       query: {query: 'is:unresolved'},
     });
-    expect(wrapper.find('Link').at(2).prop('to')).toEqual({
+
+    userEvent.click(screen.getByText('For Review'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname,
       query: {
         query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -189,7 +200,8 @@ describe('IssueListHeader', () => {
   });
 
   it('changes sort for inbox tab', () => {
-    const wrapper = mountWithTheme(
+    const routerContext = TestStubs.routerContext();
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -202,10 +214,11 @@ describe('IssueListHeader', () => {
           },
         })}
       />,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
 
-    expect(wrapper.find('Link').at(2).prop('to')).toEqual({
+    userEvent.click(screen.getByText('For Review'));
+    expect(routerContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
       query: {
         query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
@@ -215,7 +228,7 @@ describe('IssueListHeader', () => {
   });
 
   it('tracks clicks on inbox tab', () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query={Query.UNRESOLVED}
@@ -223,31 +236,29 @@ describe('IssueListHeader', () => {
         projectIds={[]}
         savedSearchList={[]}
       />,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    const inboxTab = wrapper.find('Link').at(2);
-    expect(inboxTab.text()).toContain('For Review');
-    inboxTab.simulate('click');
+    userEvent.click(screen.getByText('For Review'));
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1);
   });
 
   it('ignores clicks on inbox tab when already on inbox tab', () => {
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         query={Query.FOR_REVIEW}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    const inboxTab = wrapper.find('Link').at(2);
-    inboxTab.simulate('click');
+    userEvent.click(screen.getByText('For Review'));
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });
 
-  it('should indicate when query is a custom search and display count', async () => {
-    const wrapper = mountWithTheme(
+  it('should indicate when query is a custom search and display count', () => {
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -257,13 +268,12 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(wrapper.find('SavedSearchTab a').text()).toBe('Custom Search 13');
-    expect(wrapper.find('SavedSearchTab').prop('isActive')).toBeTruthy();
+    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Custom Search 13');
   });
 
-  it('should display saved search name and count', async () => {
+  it('should display saved search name and count', () => {
     const query = 'saved search query';
-    const wrapper = mountWithTheme(
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -281,12 +291,11 @@ describe('IssueListHeader', () => {
         queryCount={13}
       />
     );
-    expect(wrapper.find('SavedSearchTab a').text()).toBe('Saved Search 13');
-    expect(wrapper.find('SavedSearchTab').prop('isActive')).toBeTruthy();
+    expect(screen.getByTestId('saved-search-tab')).toHaveTextContent('Saved Search 13');
   });
 
-  it('lists saved searches in dropdown', async () => {
-    const wrapper = mountWithTheme(
+  it('lists saved searches in dropdown', () => {
+    render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
@@ -300,12 +309,11 @@ describe('IssueListHeader', () => {
             isGlobal: true,
           },
         ]}
+        query="is:unresolved"
       />
     );
-    wrapper.find('StyledDropdownLink').find('a').simulate('click');
-    await tick();
-
-    const item = wrapper.find('MenuItem a').first();
-    expect(item.text()).toContain('Unresolved TypeError');
+    expect(screen.queryByText('Unresolved TypeError')).not.toBeInTheDocument();
+    userEvent.click(screen.getByText('Saved Searches'));
+    expect(screen.getByText('Unresolved TypeError')).toBeInTheDocument();
   });
 });

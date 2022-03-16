@@ -58,7 +58,11 @@ function SavedSearchTab({
   );
 
   return (
-    <TabWrapper isActive={isActive} className="saved-search-tab">
+    <TabWrapper
+      isActive={isActive}
+      className="saved-search-tab"
+      data-test-id="saved-search-tab"
+    >
       <StyledDropdownLink
         alwaysRenderMenu={false}
         anchorMiddle
