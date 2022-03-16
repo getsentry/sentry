@@ -391,6 +391,56 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        # Create a child event that is linked to the parent so we have coverage
+        # of traversal buttons.
+        child_event = generate_transaction(
+            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
+        )
+        child_event["event_id"] = "b" * 32
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
+        child_event["transaction"] = "z-child-transaction"
+        child_event["spans"] = child_event["spans"][0:3]
+        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES):
+            # Get the list page
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
+            self.wait_until_loaded()
+
+            # Open the stack
+            self.browser.elements('[data-test-id="open-group"]')[0].click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
+
+            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
+
+            # Expand auto-grouped spans
+            self.browser.elements('[data-test-id="span-row"]')[4].click()
+
+            # Open a span detail so we can check the search by trace link.
+            # Click on the 6th one as a missing instrumentation span is inserted.
+            self.browser.elements('[data-test-id="span-row"]')[6].click()
+
+            # Wait until the child event loads.
+            child_button = '[data-test-id="view-child-transaction"]'
+            self.browser.wait_until(child_button)
+            self.browser.snapshot("events-v2 - transactions event detail view")
+
+            # Click on the child transaction.
+            self.browser.click(child_button)
+            self.wait_until_loaded()
+
+    @patch("django.utils.timezone.now")
+    def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
+        # TODO(Ash): Will replace above test after sibling EA.
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         clone = copy.deepcopy(event_data["spans"][-1])
         for _ in range(5):
             clone["span_id"] = "ac" * 8
@@ -409,7 +459,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURE_NAMES + ["organizations:performance-autogroup-sibling-spans"]):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
