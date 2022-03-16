@@ -6,12 +6,14 @@
 .
 1008i
       } catch(ex2) {
-        throw ex || ex2;
+        throw ex || ex1;
       }
 .
 1003i
       try {
 .
+1000i
+  const ex1 = new Error('dang');
 999c
 function flushWorkAndMicroTasks(onDone, ex) {
 .
