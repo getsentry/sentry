@@ -52,6 +52,9 @@ jobs:
       - name: Build CSS
         run: NODE_ENV=production yarn build-css
 
+      - name: Hack
+        run: sed -i "s/function act(callback) {/function act(callback) {try{throw new Error('')}catch(ex){console.log(ex, ex.stack.split('\\n'));}/" node_modules/react-dom/cjs/react-dom-test-utils.development.js
+
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
