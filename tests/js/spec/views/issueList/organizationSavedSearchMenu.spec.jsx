@@ -1,6 +1,6 @@
 import {
-  mountGlobalModal,
-  mountWithTheme,
+  render,
+  renderGlobalModal,
   screen,
   userEvent,
   within,
@@ -27,7 +27,7 @@ describe('IssueListSavedSearchMenu', () => {
       isGlobal: true,
     },
     {
-      id: '122',
+      id: '444',
       query: 'is:unresolved assigned:me',
       sort: 'date',
       name: 'Assigned to me',
@@ -39,7 +39,7 @@ describe('IssueListSavedSearchMenu', () => {
   const onDelete = jest.fn();
 
   function renderSavedSearch({organization} = {}) {
-    return mountWithTheme(
+    return render(
       <IssueListSavedSearchMenu
         organization={organization ?? TestStubs.Organization({access: ['org:write']})}
         savedSearchList={savedSearchList}
@@ -57,11 +57,9 @@ describe('IssueListSavedSearchMenu', () => {
 
   it('shows a delete button with access', () => {
     renderSavedSearch();
-    const assignedToMe = screen.getByText('Assigned to me');
+    const assignedToMe = screen.getByTestId('saved-search-444');
     expect(
-      within(assignedToMe.parentElement.parentElement).getByRole('button', {
-        name: 'delete',
-      })
+      within(assignedToMe).getByRole('button', {name: 'delete'})
     ).toBeInTheDocument();
   });
 
@@ -78,11 +76,9 @@ describe('IssueListSavedSearchMenu', () => {
   it('does not show a delete button for global search', () => {
     renderSavedSearch();
     // Should not have a delete button as it is a global search
-    const assignedToMe = screen.getByText('Global Search');
+    const globalSearch = screen.getByTestId('saved-search-122');
     expect(
-      within(assignedToMe.parentElement.parentElement).queryByRole('button', {
-        name: 'delete',
-      })
+      within(globalSearch).queryByRole('button', {name: 'delete'})
     ).not.toBeInTheDocument();
   });
 
@@ -91,7 +87,7 @@ describe('IssueListSavedSearchMenu', () => {
     // Second item should have a delete button as it is not a global search
     userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
-    mountGlobalModal();
+    renderGlobalModal();
     expect(
       await screen.findByText('Are you sure you want to delete this saved search?')
     ).toBeInTheDocument();
