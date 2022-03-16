@@ -77,6 +77,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 use_snql=features.has(
                     "organizations:discover-use-snql", organization, actor=request.user
                 ),
+                equation_config={"auto_add": True},
             )
 
         with self.handle_query_errors():

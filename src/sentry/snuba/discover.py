@@ -214,6 +214,7 @@ def query(
     extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
+    equation_config=None,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -263,6 +264,7 @@ def query(
             functions_acl=functions_acl,
             limit=limit,
             offset=offset,
+            equation_config=equation_config,
         )
         if extra_snql_condition is not None:
             builder.add_conditions(extra_snql_condition)
