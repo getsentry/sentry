@@ -1,9 +1,10 @@
 import {Component} from 'react';
 
-import {deviceNameMapper, loadDeviceListModule} from 'sentry/components/deviceName';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {IOSDeviceList} from 'sentry/types/iOSDeviceList';
+import {loadDeviceListModule} from 'sentry/utils/loadDeviceListModule';
 
 type Props = {
   group: Group;
