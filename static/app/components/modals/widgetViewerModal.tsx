@@ -557,6 +557,9 @@ const TextContainer = styled('div')`
 
 const StyledSelectControl = styled(SelectControl)`
   padding-top: 10px ${space(1.5)};
+  & > div {
+    max-height: 40px;
+  }
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width
