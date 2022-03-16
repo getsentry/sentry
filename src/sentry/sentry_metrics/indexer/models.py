@@ -43,8 +43,6 @@ class StringIndexer(Model):  # type: ignore
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
-    objects = BaseManager(cache_fields=("pk", "string", "organization_id"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
-
     class Meta:
         db_table = "sentry_stringindexer"
         app_label = "sentry"
