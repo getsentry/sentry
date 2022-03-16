@@ -457,6 +457,9 @@ class SpanTreeModel {
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
 
+          acc.previousSiblingEndTimestamp =
+            wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
+
           // Check if the group is currently expanded or not
           const key = `${group[0].span.op}.${group[0].span.description}`;
           if (this.ungroupedSiblings.has(key)) {
@@ -465,7 +468,6 @@ class SpanTreeModel {
           }
 
           acc.descendants.push(groupedSiblingsSpan);
-
           return acc;
         },
         {
