@@ -139,7 +139,6 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
     window_limited, current, reset_time = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
-    remaining = 0
     remaining = rate_limit.limit - current if not window_limited else 0
     if window_limited:
         rate_limit_type = RateLimitType.FIXED_WINDOW

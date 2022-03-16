@@ -14,6 +14,7 @@ from sentry.ratelimits import (
     get_rate_limit_key,
     get_rate_limit_value,
 )
+from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
@@ -49,9 +50,13 @@ class RatelimitMiddleware(MiddlewareMixin):
             request.rate_limit_metadata = above_rate_limit_check(
                 request.rate_limit_key, rate_limit, request.rate_limit_uid
             )
-
             # TODO: also limit by concurrent window once we have the data
-            if request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
+            rate_limit_cond = (
+                request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
+                if ENFORCE_CONCURRENT_RATE_LIMITS
+                else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
+            )
+            if rate_limit_cond:
                 request.will_be_rate_limited = True
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                 if enforce_rate_limit:
