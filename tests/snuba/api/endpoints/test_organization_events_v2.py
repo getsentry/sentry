@@ -5048,6 +5048,34 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["environment"] == "string"
         assert meta["epm"] == "number"
 
+    def test_title_alias(self):
+        """title is an alias to transaction name"""
+        self.store_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["title", "p50()"],
+                "query": "event.type:transaction",
+                "metricsEnhanced": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["title"] == "foo_transaction"
+        assert data[0]["p50"] == 1
+
+        assert meta["isMetricsData"]
+        assert meta["title"] == "string"
+        assert meta["p50"] == "duration"
+
     def test_having_condition(self):
         self.store_metric(
             1,
