@@ -6,8 +6,9 @@ from snuba_sdk import Column, Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import constants, field_aliases, fields, filter_aliases
+from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.sentry_metrics import indexer
@@ -272,6 +273,9 @@ class MetricsDatasetConfig(DatasetConfig):
             self.builder, resolve_metric_index=True
         )
 
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
     # Query Filters
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
@@ -280,6 +284,12 @@ class MetricsDatasetConfig(DatasetConfig):
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
+
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)
 
     # Query Functions
     def _resolve_count_if(

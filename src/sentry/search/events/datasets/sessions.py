@@ -3,6 +3,7 @@ from typing import Callable, Mapping, Optional
 from sentry.api.event_search import SearchFilter
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import RELEASE_ALIAS
+from sentry.search.events.datasets import filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
@@ -27,3 +28,6 @@ class SessionsDatasetConfig(DatasetConfig):
     @property
     def function_converter(self) -> Mapping[str, SnQLFunction]:
         return {}
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)

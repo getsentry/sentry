@@ -13,13 +13,11 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment, Release, SemverFilter
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events import field_aliases, filter_aliases
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
@@ -58,6 +56,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -688,29 +687,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     # Field Aliases
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
-        project_ids = {
-            project_id
-            for project_id in self.builder.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        # Do not optimize projects list if conditions contain OR operator
-        if not self.builder.has_or_condition and len(self.builder.projects_to_filter) > 0:
-            project_ids &= self.builder.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return Function(
-            "transform",
-            [
-                self.builder.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            alias,
-        )
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         """The state of having no issues is represented differently on transactions vs
@@ -1092,6 +1069,12 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)
+
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
