@@ -1,4 +1,6 @@
-function isReactEvent(maybe: any): maybe is React.SyntheticEvent {
+function isReactEvent(
+  maybe: MouseEvent | TouchEvent | React.SyntheticEvent
+): maybe is React.SyntheticEvent {
   return 'nativeEvent' in maybe;
 }
 
