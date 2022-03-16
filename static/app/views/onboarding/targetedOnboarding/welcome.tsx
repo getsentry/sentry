@@ -18,6 +18,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
+import {StepProps} from 'sentry/views/onboarding/types';
 
 import WelcomeBackground from './components/welcomeBackground';
 
@@ -50,7 +51,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-type Props = {
+type Props = StepProps & {
   organization: Organization;
 };
 

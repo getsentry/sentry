@@ -21,8 +21,11 @@ function OnboardingController({experimentAssignment, ...rest}: Props) {
     });
   }, []);
   */
-  if (rest.params.step === 'welcome' && experimentAssignment) {
-    return <TargetedOnboarding />;
+  if (
+    (rest.params.step === 'welcome' && experimentAssignment) ||
+    rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment
+  ) {
+    return <TargetedOnboarding {...rest} />;
   }
   return <Onboarding {...rest} />;
 }
