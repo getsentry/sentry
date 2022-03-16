@@ -145,7 +145,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     }
   };
 
-  onRequestSuccess = ({stateKey, data}) => {
+  onRequestSuccess = ({stateKey, data}: {data: Organization[]; stateKey: string}) => {
     // if only one org, we can immediately update our selected org
     if (stateKey === 'organizations' && data.length === 1) {
       this.onSelectOrg(data[0].slug);
@@ -241,7 +241,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
-              onChange={({value}) => this.onSelectOrg(value)}
+              onChange={({value}: {value: string}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
               options={this.getOptions()}

@@ -88,7 +88,7 @@ class SelectOwners extends React.Component<Props, State> {
     },
   });
 
-  createUnmentionableUser = ({user}): Owner => ({
+  createUnmentionableUser = ({user}: {user: User}): Owner => ({
     ...this.createMentionableUser(user),
     disabled: true,
     label: (
@@ -198,7 +198,7 @@ class SelectOwners extends React.Component<Props, State> {
     }
   }
 
-  async handleAddTeamToProject(team) {
+  async handleAddTeamToProject(team: Team) {
     const {api, organization, project, value} = this.props;
     // Copy old value
     const oldValue = [...value];
@@ -259,7 +259,7 @@ class SelectOwners extends React.Component<Props, State> {
 
     // Return a promise for `react-select`
     return new Promise((resolve, reject) => {
-      this.queryMembers(this.state.inputValue, (err, result) => {
+      this.queryMembers(this.state.inputValue, (err: string, result: Member[]) => {
         if (err) {
           reject(err);
         } else {

@@ -1,7 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {Organization} from 'static/app/types/organization';
+
+import {mountWithTheme, ReactWrapper} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import OptionCheckboxSelector from 'sentry/components/charts/optionCheckboxSelector';
+import OptionCheckboxSelector, {
+  OptionCheckboxSelectorProps,
+  OptionCheckboxSelectorState,
+} from 'sentry/components/charts/optionCheckboxSelector';
 import {t} from 'sentry/locale';
 
 describe('EventsV2 > OptionCheckboxSelector', function () {
@@ -13,7 +18,12 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     {label: 'count_unique(user)', value: 'count_unique(user)'},
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
-  let organization, initialData, selected, wrapper, onChangeStub, dropdownItem;
+  let organization: Organization;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let selected: string[];
+  let wrapper: ReactWrapper<OptionCheckboxSelectorProps, OptionCheckboxSelectorState>;
+  let onChangeStub: jest.Mock;
+  let dropdownItem: ReactWrapper<{isChecked: boolean}>;
 
   beforeEach(() => {
     organization = TestStubs.Organization({
@@ -39,11 +49,16 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
       />,
       initialData.routerContext
     );
+
     // Parent component usually handles the new selected state but we don't have one in this test so we update props ourselves
-    onChangeStub = jest.fn(newSelected => wrapper.setProps({selected: newSelected}));
+    onChangeStub = jest.fn((newSelected: string[]) =>
+      wrapper.setProps({selected: newSelected})
+    );
     wrapper.setProps({onChange: onChangeStub});
 
-    dropdownItem = wrapper.find('StyledDropdownItem');
+    dropdownItem = wrapper.find('StyledDropdownItem') as unknown as ReactWrapper<{
+      isChecked: boolean;
+    }>;
   });
 
   it('renders yAxisOptions with yAxisValue selected', function () {

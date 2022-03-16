@@ -19,31 +19,37 @@ const defaultProps = {
   menuWidth: 'auto',
 };
 
-type Props = {
+export type OptionCheckboxSelectorProps = {
   onChange: (value: string[]) => void;
   options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
   title: string;
 } & typeof defaultProps;
 
-type State = {
+export type OptionCheckboxSelectorState = {
   menuContainerWidth?: number;
 };
 
-class OptionCheckboxSelector extends Component<Props, State> {
+class OptionCheckboxSelector extends Component<
+  OptionCheckboxSelectorProps,
+  OptionCheckboxSelectorState
+> {
   static defaultProps = defaultProps;
 
-  state: State = {};
+  state: OptionCheckboxSelectorState = {};
 
   componentDidMount() {
     this.setMenuContainerWidth();
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
+  shouldComponentUpdate(
+    nextProps: OptionCheckboxSelectorProps,
+    nextState: OptionCheckboxSelectorState
+  ) {
     return !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: OptionCheckboxSelectorProps) {
     if (prevProps.selected !== this.props.selected) {
       this.setMenuContainerWidth();
     }

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import {components} from 'react-select';
+import {components, OptionProps, ValueContainerProps} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -207,7 +207,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     );
   }
 
-  customOption = orgProps => {
+  customOption = (orgProps: OptionProps<{}> & {value: string}) => {
     const organization = this.getOrgBySlug(orgProps.value);
     if (!organization) {
       return null;
@@ -224,7 +224,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     );
   };
 
-  customValueContainer = containerProps => {
+  customValueContainer = (containerProps: ValueContainerProps<any>) => {
     const valueList = containerProps.getValue();
     // if no value set, we want to return the default component that is rendered
     if (valueList.length === 0) {

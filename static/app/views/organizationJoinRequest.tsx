@@ -39,7 +39,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
     addErrorMessage(t('Request to join failed'));
   }
 
-  handleCancel = e => {
+  handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
 
     const {orgId} = this.props.params;

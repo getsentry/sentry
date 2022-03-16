@@ -20,7 +20,7 @@ class TeamCreate extends AsyncView<Props> {
     return [];
   }
 
-  handleSubmitSuccess = data => {
+  handleSubmitSuccess = (data: {slug: string}) => {
     const {orgId} = this.props.params;
     const redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
     this.props.router.push(redirectUrl);

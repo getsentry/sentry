@@ -38,7 +38,7 @@ class RouteError extends Component<Props> {
     }
 
     const route = getRouteStringFromRoutes(routes);
-    const enrichScopeContext = scope => {
+    const enrichScopeContext = (scope: Sentry.Scope) => {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', (organization && organization.features) || []);
       scope.setExtra('orgAccess', (organization && organization.access) || []);
