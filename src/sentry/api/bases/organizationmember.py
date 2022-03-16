@@ -1,10 +1,14 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
-from sentry.models import OrganizationMember
+from sentry.models import InviteStatus, Organization, OrganizationMember
 
 from .organization import OrganizationEndpoint
 
@@ -30,8 +34,15 @@ class MemberSerializer(serializers.Serializer):
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
-    def convert_args(self, request: Request, organization_slug, member_id="me", *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str,
+        member_id: str = "me",
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         serializer = MemberSerializer(data={"id": member_id})
         if serializer.is_valid():
@@ -41,7 +52,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
             except OrganizationMember.DoesNotExist:
                 raise ResourceDoesNotExist
 
-            return (args, kwargs)
+            return args, kwargs
         else:
             raise ResourceDoesNotExist
 
