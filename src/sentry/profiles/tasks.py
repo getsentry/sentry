@@ -80,7 +80,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
                 "physical_memory_bytes": int(profile["device_physical_memory_bytes"]),
             }
         )
-    elif profile["platform"] == "ios":
+    elif profile["platform"] == "cocoa":
         normalized_profile.update(
             {
                 "device_os_build_number": profile["device_os_build_number"],
