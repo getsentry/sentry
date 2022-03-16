@@ -138,7 +138,7 @@
     "u2f-api": "1.0.10",
     "webpack": "5.66.0",
     "webpack-cli": "4.9.2",
-    "webpack-remove-empty-scripts": "^0.7.1",
+    "webpack-remove-empty-scripts": "^0.7.3",
     "wink-jaro-distance": "^2.0.0",
     "zxcvbn": "^4.4.2"
   },
@@ -172,7 +172,7 @@
     "jest-sentry-environment": "1.4.0",
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
-    "prettier": "2.5.1",
+    "prettier": "2.6.0",
     "react-refresh": "0.11.0",
     "react-select-event": "5.3.0",
     "react-test-renderer": "17.0.2",
