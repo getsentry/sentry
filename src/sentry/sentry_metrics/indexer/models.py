@@ -40,15 +40,14 @@ class StringIndexer(Model):  # type: ignore
 
     string = models.CharField(max_length=200)
     organization_id = BoundedBigIntegerField()
-    project_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
-    last_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
-    objects = BaseManager(cache_fields=("pk", "string", "project_id"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
+    objects = BaseManager(cache_fields=("pk", "string", "organization_id"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_stringindexer"
         app_label = "sentry"
         constraints = [
-            models.UniqueConstraint(fields=["string", "project_id"], name="unique_project_string"),
+            models.UniqueConstraint(fields=["string", "organization_id"], name="unique_org_string"),
         ]
