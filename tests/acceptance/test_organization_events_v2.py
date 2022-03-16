@@ -391,6 +391,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
+        clone = copy.deepcopy(event_data["spans"][-1])
+        for _ in range(5):
+            clone["span_id"] = "ac" * 8
+            event_data["spans"].append(clone)
+
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         # Create a child event that is linked to the parent so we have coverage
