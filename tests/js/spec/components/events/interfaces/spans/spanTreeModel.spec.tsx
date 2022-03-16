@@ -328,7 +328,7 @@ describe('SpanTreeModel', () => {
       isOnlySibling: true,
       spanNestedGrouping: undefined,
       toggleNestedSpanGroup: undefined,
-      showNestedSpanGroup: false,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
     });
@@ -372,7 +372,7 @@ describe('SpanTreeModel', () => {
       isOnlySibling: true,
       spanNestedGrouping: undefined,
       toggleNestedSpanGroup: undefined,
-      showNestedSpanGroup: false,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
     });
@@ -473,7 +473,7 @@ describe('SpanTreeModel', () => {
       isOnlySibling: true,
       spanNestedGrouping: undefined,
       toggleNestedSpanGroup: undefined,
-      showNestedSpanGroup: false,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
     });

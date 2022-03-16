@@ -42,7 +42,7 @@ class SpanTreeModel {
   embeddedChildren: Array<SpanTreeModel> = [];
   // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
   // On initial render, they're visually grouped together.
-  showNestedSpanGroup: boolean = false;
+  isNestedSpanGroupExpanded: boolean = false;
 
   constructor(
     parentSpan: SpanType,
@@ -75,7 +75,7 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: observable,
       toggleEmbeddedChildren: action,
       fetchEmbeddedTransactions: action,
-      showNestedSpanGroup: observable,
+      isNestedSpanGroupExpanded: observable,
       toggleNestedSpanGroup: action,
     });
   }
@@ -176,11 +176,11 @@ class SpanTreeModel {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     hiddenSpanSubTrees: Set<String>;
     isLastSibling: boolean;
+    isNestedSpanGroupExpanded: boolean;
     isOnlySibling: boolean;
     operationNameFilters: ActiveOperationFilter;
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
-    showNestedSpanGroup: boolean;
     spanAncestors: Set<String>;
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleNestedSpanGroup: (() => void) | undefined;
@@ -199,7 +199,7 @@ class SpanTreeModel {
       isOnlySibling,
       spanNestedGrouping,
       toggleNestedSpanGroup,
-      showNestedSpanGroup,
+      isNestedSpanGroupExpanded,
       addTraceBounds,
       removeTraceBounds,
     } = props;
@@ -230,7 +230,7 @@ class SpanTreeModel {
       isLastSpanOfGroup &&
       Array.isArray(spanNestedGrouping) &&
       spanNestedGrouping.length >= 1 &&
-      !showNestedSpanGroup
+      !isNestedSpanGroupExpanded
     ) {
       // We always want to indent the last span of the span group chain
       treeDepth = treeDepth + 1;
@@ -271,9 +271,9 @@ class SpanTreeModel {
         removeTraceBounds,
       }),
       toggleNestedSpanGroup:
-        spanGroupingCriteria && toggleNestedSpanGroup && !showNestedSpanGroup
+        spanGroupingCriteria && toggleNestedSpanGroup && !isNestedSpanGroupExpanded
           ? toggleNestedSpanGroup
-          : isFirstSpanOfGroup && this.showNestedSpanGroup && !hideSpanTree
+          : isFirstSpanOfGroup && this.isNestedSpanGroupExpanded && !hideSpanTree
           ? this.toggleNestedSpanGroup
           : undefined,
     };
@@ -290,8 +290,8 @@ class SpanTreeModel {
     const shouldHideSpanOfGroup =
       shouldGroup &&
       !isLastSpanOfGroup &&
-      ((toggleNestedSpanGroup === undefined && !this.showNestedSpanGroup) ||
-        (toggleNestedSpanGroup !== undefined && !showNestedSpanGroup));
+      ((toggleNestedSpanGroup === undefined && !this.isNestedSpanGroupExpanded) ||
+        (toggleNestedSpanGroup !== undefined && !isNestedSpanGroupExpanded));
 
     const descendantContinuingTreeDepths =
       isLastSibling || shouldHideSpanOfGroup
@@ -335,10 +335,10 @@ class SpanTreeModel {
                 ? this.toggleNestedSpanGroup
                 : toggleNestedSpanGroup
               : undefined,
-            showNestedSpanGroup: isNotLastSpanOfGroup
+            isNestedSpanGroupExpanded: isNotLastSpanOfGroup
               ? toggleNestedSpanGroup === undefined
-                ? this.showNestedSpanGroup
-                : showNestedSpanGroup
+                ? this.isNestedSpanGroupExpanded
+                : isNestedSpanGroupExpanded
               : false,
             addTraceBounds,
             removeTraceBounds,
@@ -389,7 +389,7 @@ class SpanTreeModel {
       isLastSpanOfGroup &&
       Array.isArray(spanNestedGrouping) &&
       spanNestedGrouping.length > 1 &&
-      !showNestedSpanGroup &&
+      !isNestedSpanGroupExpanded &&
       wrappedSpan.type === 'span'
     ) {
       const spanGroupChain: EnhancedProcessedSpanType = {
@@ -398,7 +398,7 @@ class SpanTreeModel {
         treeDepth: treeDepth - 1,
         continuingTreeDepths,
         spanNestedGrouping,
-        showNestedSpanGroup,
+        isNestedSpanGroupExpanded,
         toggleNestedSpanGroup: wrappedSpan.toggleNestedSpanGroup,
       };
 
@@ -411,7 +411,7 @@ class SpanTreeModel {
 
     if (
       isFirstSpanOfGroup &&
-      this.showNestedSpanGroup &&
+      this.isNestedSpanGroupExpanded &&
       !hideSpanTree &&
       descendants.length <= 1 &&
       wrappedSpan.type === 'span'
@@ -427,7 +427,7 @@ class SpanTreeModel {
       Array.isArray(spanNestedGrouping) &&
       spanNestedGrouping.length === 1
     ) {
-      if (!showNestedSpanGroup) {
+      if (!isNestedSpanGroupExpanded) {
         const parentSpan = spanNestedGrouping[0].span;
         const parentSpanBounds = generateBounds({
           startTimestamp: parentSpan.start_timestamp,
@@ -535,7 +535,7 @@ class SpanTreeModel {
   }
 
   toggleNestedSpanGroup = () => {
-    this.showNestedSpanGroup = !this.showNestedSpanGroup;
+    this.isNestedSpanGroupExpanded = !this.isNestedSpanGroupExpanded;
   };
 
   generateTraceBounds = (): TraceBound => {

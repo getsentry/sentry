@@ -58,7 +58,7 @@ export type FetchEmbeddedChildrenState =
   | 'error_fetching_embedded_transactions';
 
 export type SpanGroupProps = {
-  showNestedSpanGroup: boolean;
+  isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
 };
