@@ -335,7 +335,13 @@ class SpanTreeModel {
             currentGroup.push(currSpanModel);
           } else {
             groupedDescendants.push(currentGroup);
-            currentGroup = [currSpanModel];
+            if (currSpanModel.children.length) {
+              currentGroup = [currSpanModel];
+              groupedDescendants.push(currentGroup);
+              currentGroup = [];
+            } else {
+              currentGroup = [currSpanModel];
+            }
           }
 
           prevSpanModel = currSpanModel;
