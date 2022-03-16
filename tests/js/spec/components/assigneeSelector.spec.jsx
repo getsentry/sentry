@@ -319,7 +319,6 @@ describe('AssigneeSelector', function () {
   });
 
   it('successfully shows suggested assignees', async function () {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     const onAssign = jest.fn();
     assigneeSelector = mountWithTheme(

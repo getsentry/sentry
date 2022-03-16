@@ -231,7 +231,9 @@ class AssigneeSelector extends React.Component<Props, State> {
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>
-              {sessionUser.id === member.id ? t('Me') : member.name || member.email}
+              {sessionUser.id === member.id
+                ? `${member.name || member.email} ${t('(You)')}`
+                : member.name || member.email}
             </Highlight>
             {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
@@ -307,6 +309,9 @@ class AssigneeSelector extends React.Component<Props, State> {
     const sessionUser = ConfigStore.get('user');
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
 
+    const filteredSessionUser: ItemsBeforeFilter = members.filter(
+      member => member.value.assignee.id === sessionUser.id
+    );
     // filter out session user from Suggested
     const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
       assignee => {
@@ -315,6 +320,7 @@ class AssigneeSelector extends React.Component<Props, State> {
           : assignee;
       }
     );
+
     const assigneeIds = new Set(
       filteredSuggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
@@ -331,10 +337,6 @@ class AssigneeSelector extends React.Component<Props, State> {
       );
     });
 
-    const filteredSessionUser: ItemsBeforeFilter = members.filter(
-      member => member.value.assignee.id === sessionUser.id
-    );
-
     const dropdownItems: ItemsBeforeFilter = [
       {
         label: this.renderDropdownGroupLabel(t('Teams')),
@@ -348,19 +350,21 @@ class AssigneeSelector extends React.Component<Props, State> {
       },
     ];
 
-    if (suggestedAssignees.length) {
-      dropdownItems.unshift({
-        label: this.renderDropdownGroupLabel(t('Suggested')),
-        id: 'suggested-header',
-        items: filteredSuggestedAssignees,
-      });
+    // session user is first on dropdown
+    if (suggestedAssignees.length || filteredSessionUser.length) {
+      dropdownItems.unshift(
+        {
+          label: this.renderDropdownGroupLabel(t('Suggested')),
+          id: 'suggested-header',
+          items: filteredSessionUser,
+        },
+        {
+          hideGroupLabel: true,
+          id: 'suggested-list',
+          items: filteredSuggestedAssignees,
+        }
+      );
     }
-
-    dropdownItems.unshift({
-      hideGroupLabel: true,
-      id: 'sessionUser-header',
-      items: filteredSessionUser,
-    });
 
     return dropdownItems;
   }
