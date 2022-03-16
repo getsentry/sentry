@@ -37,6 +37,13 @@ type Props = WithRouterProps &
      * Mainly used for pages which are using the new style page filters
      */
     hideGlobalHeader?: boolean;
+
+    /**
+     * Used in combination with shouldForceProject
+     * Will not persist the project to url query parameters.
+     */
+    skipInitializeUrlState?: boolean;
+
     /**
      * Skip loading from local storage
      * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
@@ -61,6 +68,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     hideGlobalHeader,
+    skipInitializeUrlState,
   } = props;
 
   const {isReady} = useLegacyStore(PageFiltersStore);
@@ -99,7 +107,10 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
-    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
+    if (
+      (!projectsLoaded && (shouldForceProject || enforceSingleProject)) ||
+      skipInitializeUrlState
+    ) {
       return;
     }
 

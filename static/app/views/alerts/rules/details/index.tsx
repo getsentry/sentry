@@ -191,13 +191,14 @@ class AlertRuleDetails extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
+        skipLoadLastUsed
+        skipInitializeUrlState
         isGlobalSelectionReady={isGlobalSelectionReady}
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
         forceEnvironment={rule?.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
-        skipLoadLastUsed
       >
         <SentryDocumentTitle title={rule?.name ?? ''} />
 

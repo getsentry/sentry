@@ -201,6 +201,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     return (
       <PageFiltersContainer
+        skipInitializeUrlState
         shouldForceProject
         forceProject={project}
         forceEnvironment={rule.environment ?? ''}
