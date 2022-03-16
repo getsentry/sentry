@@ -1,8 +1,6 @@
 import * as React from 'react';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -54,7 +52,6 @@ function IssueListFilters({
   tagValueLoader,
   tags,
 }: Props) {
-  const isAssignedQuery = /\bassigned:/.test(query);
   const hasIssuePercentDisplay = organization.features.includes('issue-percent-display');
   const hasMultipleProjectsSelected =
     !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
@@ -69,30 +66,18 @@ function IssueListFilters({
         hasPageFilters={hasPageFilters}
         hasIssuePercentDisplay={hasIssuePercentDisplay}
       >
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="assigned_or_suggested_query"
-              disabled={!isAssignedQuery}
-              containerClassName={css`
-                width: 100%;
-              `}
-            >
-              <IssueListSearchBar
-                organization={organization}
-                query={query || ''}
-                sort={sort}
-                onSearch={onSearch}
-                disabled={isSearchDisabled}
-                excludeEnvironment
-                supportedTags={tags}
-                tagValueLoader={tagValueLoader}
-                savedSearch={savedSearch}
-                onSidebarToggle={onSidebarToggle}
-              />
-            </GuideAnchor>
-          )}
-        </ClassNames>
+        <IssueListSearchBar
+          organization={organization}
+          query={query || ''}
+          sort={sort}
+          onSearch={onSearch}
+          disabled={isSearchDisabled}
+          excludeEnvironment
+          supportedTags={tags}
+          tagValueLoader={tagValueLoader}
+          savedSearch={savedSearch}
+          onSidebarToggle={onSidebarToggle}
+        />
 
         {hasPageFilters ? (
           <PageFilterBar>

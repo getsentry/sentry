@@ -79,7 +79,7 @@ class SpanGroupBar extends React.Component<Props> {
           newStartTimestamp = start_timestamp;
         }
 
-        if (newEndTimestamp > timestamp) {
+        if (newEndTimestamp < timestamp) {
           newEndTimestamp = timestamp;
         }
 
