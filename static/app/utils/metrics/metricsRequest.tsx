@@ -14,8 +14,8 @@ import {getPeriod} from 'sentry/utils/getPeriod';
 
 import {TableData} from '../discover/discoverQuery';
 
-import {deprecatedTransformMetricsResponseToTable} from './deprecatedTransformMetricsResponseToTable';
 import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
+import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
@@ -24,7 +24,6 @@ const omitIgnoredProps = (props: Props) =>
 export type MetricsRequestRenderProps = {
   error: string | null;
   errored: boolean;
-  isLoading: boolean;
   loading: boolean;
   pageLinks: string | null;
   reloading: boolean;
@@ -37,11 +36,6 @@ export type MetricsRequestRenderProps = {
 
 type DefaultProps = {
   /**
-   * @deprecated
-   * Transform the response data to be something ingestible by GridEditable tables and rename fields for performance
-   */
-  includeDeprecatedTabularData: boolean;
-  /**
    * Include data for previous period
    */
   includePrevious: boolean;
@@ -49,6 +43,10 @@ type DefaultProps = {
    * Transform the response data to be something ingestible by charts
    */
   includeSeriesData: boolean;
+  /**
+   * Transform the response data to be something ingestible by GridEditable table
+   */
+  includeTabularData: boolean;
   /**
    * If true, no request will be made
    */
@@ -77,7 +75,7 @@ class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
     includeSeriesData: false,
-    includeDeprecatedTabularData: false,
+    includeTabularData: false,
     isDisabled: false,
   };
 
@@ -213,27 +211,21 @@ class MetricsRequest extends React.Component<Props, State> {
 
   render() {
     const {reloading, errored, error, response, responsePrevious, pageLinks} = this.state;
-    const {
-      children,
-      isDisabled,
-      includeDeprecatedTabularData,
-      includeSeriesData,
-      includePrevious,
-    } = this.props;
+    const {children, isDisabled, includeTabularData, includeSeriesData, includePrevious} =
+      this.props;
 
     const loading = response === null && !isDisabled && !error;
 
     return children?.({
       loading,
       reloading,
-      isLoading: loading || reloading, // some components downstream are used to loading/reloading or isLoading that combines both (EventsRequest vs DiscoverQuery)
       errored,
       error,
       response,
       responsePrevious,
       pageLinks,
-      tableData: includeDeprecatedTabularData
-        ? deprecatedTransformMetricsResponseToTable({response})
+      tableData: includeTabularData
+        ? transformMetricsResponseToTable(response)
         : undefined,
       seriesData: includeSeriesData
         ? transformMetricsResponseToSeries(response)
