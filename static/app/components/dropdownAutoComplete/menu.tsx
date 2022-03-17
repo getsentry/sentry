@@ -424,6 +424,7 @@ const StyledDropdownBubble = styled(DropdownBubble)`
 
 const DropdownMainContent = styled('div')`
   width: 100%;
+  min-width: 250px;
 `;
 
 const InputWrapper = styled('div')`
