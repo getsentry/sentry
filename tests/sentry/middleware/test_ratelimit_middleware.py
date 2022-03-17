@@ -67,6 +67,11 @@ class RatelimitMiddlewareTest(TestCase):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
 
+    def test_process_response_fails_open(self):
+        request = self.factory.get("/")
+        bad_response = object()
+        assert self.middleware.process_response(request, bad_response) is bad_response
+
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
