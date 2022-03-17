@@ -11,7 +11,7 @@ interface Props {
   required?: boolean;
 }
 
-function BuildStep({title, description, required = false, children}: Props) {
+export function BuildStep({title, description, required = false, children}: Props) {
   return (
     <Wrapper>
       <Heading>
@@ -23,8 +23,6 @@ function BuildStep({title, description, required = false, children}: Props) {
     </Wrapper>
   );
 }
-
-export default BuildStep;
 
 const Wrapper = styled(ListItem)`
   display: grid;
