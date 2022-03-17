@@ -86,7 +86,8 @@ export function flattenMultiSeriesDataWithGrouping(
 function transformResult(
   query: WidgetQuery,
   result: RawResult,
-  displayType: DisplayType
+  displayType: DisplayType,
+  widgetBuilderNewDesign: boolean = false
 ): Series[] {
   let output: Series[] = [];
 
@@ -101,7 +102,11 @@ function transformResult(
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series result set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    if (displayType !== DisplayType.TOP_N && isMultiSeriesDataWithGrouping) {
+    if (
+      widgetBuilderNewDesign &&
+      displayType !== DisplayType.TOP_N &&
+      isMultiSeriesDataWithGrouping
+    ) {
       seriesWithOrdering = flattenMultiSeriesDataWithGrouping(result, queryAlias);
     } else {
       seriesWithOrdering = Object.keys(result).map((seriesName: string) => {
@@ -165,7 +170,10 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, widget, cursor} = this.props;
+    const {selection, widget, cursor, organization} = this.props;
+    const widgetBuilderNewDesign = organization.features.includes(
+      'new-widget-builder-experience-design'
+    );
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -223,7 +231,12 @@ class WidgetQueries extends React.Component<Props, State> {
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            transformResult(query, prevState.rawResults![index], widget.displayType)
+            transformResult(
+              query,
+              prevState.rawResults![index],
+              widget.displayType,
+              widgetBuilderNewDesign
+            )
           );
         }, []);
 
@@ -329,6 +342,9 @@ class WidgetQueries extends React.Component<Props, State> {
 
   fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
     const {selection, api, organization, widget} = this.props;
+    const widgetBuilderNewDesign = organization.features.includes(
+      'new-widget-builder-experience-design'
+    );
     this.setState({timeseriesResults: [], rawResults: []});
 
     const {environments, projects} = selection;
@@ -408,7 +424,8 @@ class WidgetQueries extends React.Component<Props, State> {
           const transformedResult = transformResult(
             widget.queries[requestIndex],
             rawResults,
-            widget.displayType
+            widget.displayType,
+            widgetBuilderNewDesign
           );
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at
