@@ -71,7 +71,7 @@ import {Footer} from './footer';
 import {Header} from './header';
 import {
   DataSet,
-  DisplayType,
+  DEFAULT_RESULTS_LIMIT,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
@@ -89,6 +89,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? 'count' : '',
+      limit: undefined,
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -97,6 +98,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+      limit: undefined,
     },
     [DataSet.METRICS]: {
       name: '',
@@ -105,6 +107,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
       orderby: '',
+      limit: undefined,
     },
   };
 }
@@ -200,7 +203,10 @@ function WidgetBuilder({
     if (!widgetToBeUpdated) {
       return {
         title: defaultTitle ?? t('Custom Widget'),
-        displayType: displayType ?? DisplayType.TABLE,
+        displayType:
+          widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+            ? DisplayType.TABLE
+            : displayType ?? DisplayType.TABLE,
         interval: '5m',
         queries: [
           defaultWidgetQuery
@@ -227,12 +233,17 @@ function WidgetBuilder({
       };
     }
 
+    const visualization =
+      widgetBuilderNewDesign && widgetToBeUpdated.displayType === DisplayType.TOP_N
+        ? DisplayType.TABLE
+        : widgetToBeUpdated.displayType;
+
     return {
       title: widgetToBeUpdated.title,
-      displayType: widgetToBeUpdated.displayType,
+      displayType: visualization,
       interval: widgetToBeUpdated.interval,
       queries: normalizeQueries({
-        displayType: widgetToBeUpdated.displayType,
+        displayType: visualization,
         queries: widgetToBeUpdated.queries,
         widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
         widgetBuilderNewDesign,
@@ -529,6 +540,23 @@ function WidgetBuilder({
     });
   }
 
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+
+      if (fieldStrings.length === 0) {
+        newQuery.limit = undefined;
+      } else {
+        newQuery.limit = newQuery.limit ?? DEFAULT_RESULTS_LIMIT;
+      }
+
+      handleQueryChange(index, newQuery);
+    });
+  }
+
   function handleDelete() {
     if (!isEditing) {
       return;
@@ -755,6 +783,12 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.AREA,
+    DisplayType.BAR,
+  ].includes(state.displayType);
+
   const {columns, aggregates, fields} = state.queries[0];
   const explodedColumns = columns.map(field => explodeField({field}));
   const explodedAggregates = aggregates.map(field => explodeField({field}));
@@ -830,8 +864,6 @@ function WidgetBuilder({
                     hideLegendAlias={hideLegendAlias}
                     canAddSearchConditions={canAddSearchConditions}
                     organization={organization}
-                    onSetBlurTimeout={setBlurTimeout}
-                    blurTimeout={blurTimeout}
                     queryErrors={state.errors?.queries}
                     onAddSearchConditions={handleAddSearchConditions}
                     onQueryChange={handleQueryChange}
@@ -846,8 +878,12 @@ function WidgetBuilder({
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+                  {((widgetBuilderNewDesign && isTimeseriesChart) ||
+                    [DisplayType.TABLE, DisplayType.TOP_N].includes(
+                      state.displayType
+                    )) && (
                     <SortByStep
+                      displayType={state.displayType}
                       queries={state.queries}
                       dataSet={state.dataSet}
                       widgetBuilderNewDesign={widgetBuilderNewDesign}
@@ -883,6 +919,8 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                widgetType={widgetType}
+                widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget =>
                   setState({
                     ...state,

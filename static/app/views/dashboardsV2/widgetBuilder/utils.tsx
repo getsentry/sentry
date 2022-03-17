@@ -6,16 +6,8 @@ import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/field
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export enum DisplayType {
-  AREA = 'area',
-  BAR = 'bar',
-  LINE = 'line',
-  TABLE = 'table',
-  WORLD_MAP = 'world_map',
-  BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
-  TOP_N = 'top_n',
-}
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
 
 export enum DataSet {
   EVENTS = 'events',
@@ -107,18 +99,24 @@ export function normalizeQueries({
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
-              widgetBuilderNewDesign,
-              columns: queries[0].columns,
-              aggregates: queries[0].aggregates,
-            })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
+    if (widgetBuilderNewDesign) {
+      if (!queries[0].orderby) {
+        const orderBy = (
+          widgetType === WidgetType.DISCOVER
+            ? generateOrderOptions({
+                widgetType,
+                widgetBuilderNewDesign,
+                columns: queries[0].columns,
+                aggregates: queries[0].aggregates,
+              })[0].value
+            : IssueSortOptions.DATE
+        ) as string;
+        queries[0].orderby = orderBy;
+      }
+
+      if (!!queries[0].limit) {
+        queries[0].limit = undefined;
+      }
     }
 
     return queries;
@@ -140,12 +138,18 @@ export function normalizeQueries({
       aggregates = aggregates.slice(0, 3);
     }
 
-    return {
+    const queryData = {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
       columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
+
+    if (widgetBuilderNewDesign) {
+      queryData.limit = queryData.limit ?? undefined;
+    }
+
+    return queryData;
   });
 
   if (isTimeseriesChart) {

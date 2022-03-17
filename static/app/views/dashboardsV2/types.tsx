@@ -37,6 +37,7 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  limit?: number;
 };
 
 export type Widget = {
