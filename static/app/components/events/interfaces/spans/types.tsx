@@ -60,9 +60,7 @@ export type FetchEmbeddedChildrenState =
 export type SpanGroupProps = {
   showSpanGroup: boolean;
   spanGrouping: EnhancedSpan[] | undefined;
-  toggleSiblingSpanGroup:
-    | ((operation: string | undefined, description: string | undefined) => void)
-    | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
   isLastSibling?: boolean;
 };
@@ -87,9 +85,7 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
-      toggleSiblingSpanGroup:
-        | ((operation: string | undefined, description: string | undefined) => void)
-        | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
       toggleSpanGroup: (() => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);

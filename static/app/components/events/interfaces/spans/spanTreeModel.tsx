@@ -19,6 +19,7 @@ import {
 } from './types';
 import {
   generateRootSpan,
+  getSiblingGroupKey,
   getSpanID,
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
@@ -708,16 +709,13 @@ class SpanTreeModel {
     this.showSpanGroup = !this.showSpanGroup;
   };
 
-  toggleSiblingSpanGroup = (
-    operation: string | undefined,
-    description: string | undefined
-  ) => {
-    const key = `${operation}.${description}`;
+  toggleSiblingSpanGroup = (span: SpanType) => {
+    const key = getSiblingGroupKey(span);
 
     if (this.ungroupedSiblings.has(key)) {
       this.ungroupedSiblings.delete(key);
     } else {
-      this.ungroupedSiblings.add(`${operation}.${description}`);
+      this.ungroupedSiblings.add(key);
     }
   };
 

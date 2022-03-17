@@ -16,6 +16,7 @@ import {
   EnhancedSpan,
   FilterSpans,
   ParsedTraceType,
+  SpanType,
 } from './types';
 import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
@@ -259,9 +260,7 @@ class SpanTree extends React.Component<PropType> {
           toggleSpanGroup = payload.toggleSpanGroup;
         }
 
-        let toggleSiblingSpanGroup:
-          | ((operation: string | undefined, description: string | undefined) => void)
-          | undefined = undefined;
+        let toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined = undefined;
         if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }

@@ -40,7 +40,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
+import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
@@ -71,10 +71,7 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
-  toggleSiblingSpanGroup?: (
-    operation: string | undefined,
-    description: string | undefined
-  ) => void;
+  toggleSiblingSpanGroup?: (span: SpanType) => void;
 };
 
 function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
@@ -169,10 +166,7 @@ class SpanGroupBar extends React.Component<Props> {
             event.stopPropagation();
             groupType === GroupType.DESCENDANTS
               ? toggleSpanGroup()
-              : toggleSiblingSpanGroup?.(
-                  spanGrouping[0].span.op,
-                  spanGrouping[0].span.description
-                );
+              : toggleSiblingSpanGroup?.(spanGrouping[0].span);
           }}
         >
           <Count value={spanGrouping.length} />
@@ -377,10 +371,7 @@ class SpanGroupBar extends React.Component<Props> {
                         if (groupType === GroupType.DESCENDANTS) {
                           toggleSpanGroup();
                         } else if (groupType === GroupType.SIBLINGS) {
-                          toggleSiblingSpanGroup?.(
-                            spanGrouping[0].span.op,
-                            spanGrouping[0].span.description
-                          );
+                          toggleSiblingSpanGroup?.(spanGrouping[0].span);
                         }
                       }}
                     >
