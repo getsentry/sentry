@@ -27,6 +27,8 @@ import {eventViewFromWidget, getWidgetInterval} from '../utils';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
+type SeriesWithOrdering = [order: number, series: Series];
+
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
@@ -38,6 +40,26 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
+function flattenGroupedMultiSeriesData(result, queryAlias): SeriesWithOrdering[] {
+  const seriesWithOrdering: SeriesWithOrdering[] = [];
+  Object.keys(result).forEach((groupName: string) => {
+    // Each aggregate series contains an order key which we should ignore
+    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+    aggregateNames.forEach((aggregate: string) => {
+      const seriesName = `${groupName} : ${aggregate}`;
+      const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
+      const seriesData: EventsStats = result[groupName][aggregate];
+
+      seriesWithOrdering.push([
+        result[groupName].order || 0,
+        transformSeries(seriesData, prefixedName),
+      ]);
+    });
+  });
+
+  return seriesWithOrdering;
+}
+
 function transformResult(
   query: WidgetQuery,
   result: RawResult,
@@ -45,51 +67,29 @@ function transformResult(
 ): Series[] {
   let output: Series[] = [];
 
-  const seriesNamePrefix = query.name;
+  const queryAlias = query.name;
 
   if (isMultiSeriesStats(result)) {
-    let seriesWithOrdering;
-    if (displayType !== DisplayType.TOP_N && query.aggregates.length > 1) {
-      seriesWithOrdering = Object.keys(result).reduce(
-        (acc: any, groupingName: string) => {
-          const transformed = Object.keys(omit(result[groupingName], 'order')).map(
-            yAxisName => {
-              const seriesName = `${groupingName} : ${yAxisName}`;
-              const prefixedName = seriesNamePrefix
-                ? `${seriesNamePrefix} > ${seriesName}`
-                : seriesName;
-              const seriesData: EventsStats = result[groupingName][yAxisName];
-              return [
-                result[groupingName].order || 0,
-                transformSeries(seriesData, prefixedName),
-              ];
-            }
-          );
+    let seriesWithOrdering: SeriesWithOrdering[] = [];
 
-          return [...acc, ...transformed];
-        },
-        []
-      );
+    // Convert multi-series results into chartable series. Multi series results
+    // are created when multiple yAxis are used. Convert the timeseries
+    // data into a multi-series result set.  As the server will have
+    // replied with a map like: {[titleString: string]: EventsStats}
+    if (displayType !== DisplayType.TOP_N && query.aggregates.length > 1) {
+      seriesWithOrdering = flattenGroupedMultiSeriesData(result, queryAlias);
     } else {
-      // Convert multi-series results into chartable series. Multi series results
-      // are created when multiple yAxis are used. Convert the timeseries
-      // data into a multi-series result set.  As the server will have
-      // replied with a map like: {[titleString: string]: EventsStats}
-      seriesWithOrdering = Object.keys(result).map(
-        (seriesName: string): [number, Series] => {
-          const prefixedName = seriesNamePrefix
-            ? `${seriesNamePrefix} : ${seriesName}`
-            : seriesName;
-          const seriesData: EventsStats = result[seriesName];
-          return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-        }
-      );
+      seriesWithOrdering = Object.keys(result).map((seriesName: string) => {
+        const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
+        const seriesData: EventsStats = result[seriesName];
+        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+      });
     }
 
     output = [...seriesWithOrdering.sort().map(item => item[1])];
   } else {
     const field = query.aggregates[0];
-    const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
+    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
     const transformed = transformSeries(result, prefixedName);
     output.push(transformed);
   }
