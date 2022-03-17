@@ -63,7 +63,10 @@ import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
+<<<<<<< HEAD
 import {GroupByStep} from './buildSteps/groupByStep';
+=======
+>>>>>>> master
 import {SortByStep} from './buildSteps/sortByStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
@@ -824,6 +827,7 @@ function WidgetBuilder({
                       aggregates={explodedAggregates}
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
+<<<<<<< HEAD
                   )}
                   <FilterResultsStep
                     queries={state.queries}
@@ -846,6 +850,21 @@ function WidgetBuilder({
                       onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
                     />
                   )}
+=======
+                  )}
+                  <FilterResultsStep
+                    queries={state.queries}
+                    hideLegendAlias={hideLegendAlias}
+                    canAddSearchConditions={canAddSearchConditions}
+                    organization={organization}
+                    onSetBlurTimeout={setBlurTimeout}
+                    blurTimeout={blurTimeout}
+                    queryErrors={state.errors?.queries}
+                    onAddSearchConditions={handleAddSearchConditions}
+                    onQueryChange={handleQueryChange}
+                    onQueryRemove={handleQueryRemove}
+                  />
+>>>>>>> master
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <SortByStep
                       queries={state.queries}

@@ -1109,7 +1109,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets member projects', function () {
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
     });
@@ -1129,7 +1129,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
 

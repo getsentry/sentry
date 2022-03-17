@@ -924,8 +924,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable obtaining and using API keys.
-    "organizations:alert-rule-ui-component": False,
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
     # Alert wizard redesign version 3
@@ -1892,7 +1890,7 @@ SENTRY_DEVSERVICES = {
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
-            "only_if": settings.SENTRY_USE_RELAY,
+            "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
             "with_devserver": True,
         }
     ),

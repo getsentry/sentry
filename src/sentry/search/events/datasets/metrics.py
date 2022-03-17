@@ -8,6 +8,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.sentry_metrics import indexer
@@ -25,6 +26,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
+            constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
         }
 
     @property
@@ -32,6 +34,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -57,6 +60,30 @@ class MetricsDatasetConfig(DatasetConfig):
         function_converter = {
             function.name: function
             for function in [
+                # Note while the discover version of apdex, count_miserable, user_misery
+                # accepts arguments, because this is precomputed with tags no parameters
+                # are available
+                # TODO: Should raise IncompatibleMetricsQuery when params are passed
+                fields.MetricsFunction(
+                    "apdex",
+                    optional_args=[],
+                    snql_distribution=self._resolve_apdex_function,
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "count_miserable",
+                    required_args=[fields.FunctionArg("column")],
+                    calculated_args=[resolve_metric_id],
+                    snql_set=self._resolve_count_miserable_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "user_misery",
+                    optional_args=[],
+                    calculated_args=[],
+                    snql_set=self._resolve_user_misery_function,
+                    default_result_type="number",
+                ),
                 fields.MetricsFunction(
                     "p50",
                     optional_args=[
@@ -240,6 +267,15 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return function_converter
 
+    # Field Aliases
+    def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        return field_aliases.resolve_team_key_transaction_alias(
+            self.builder, resolve_metric_index=True
+        )
+
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
     # Query Filters
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
@@ -249,15 +285,94 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)
+
     # Query Functions
-    def _resolve_failure_count(
+    def _resolve_count_if(
+        self,
+        metric_condition: Function,
+        condition: Function,
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        metric_condition,
+                        condition,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_apdex_function(
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+
+        # Nothing is satisfied or tolerated, the score must be 0
+        if metric_true is None:
+            return Function(
+                "toUInt64",
+                [0],
+                alias,
+            )
+
+        satisfied = Function(
+            "equals", [self.builder.column(constants.METRIC_SATISFIED_TAG_KEY), metric_true]
+        )
+        tolerable = Function(
+            "equals", [self.builder.column(constants.METRIC_TOLERATED_TAG_KEY), metric_true]
+        )
+        metric_condition = Function(
+            "equals", [Column("metric_id"), self.resolve_metric("transaction.duration")]
+        )
+
         return Function(
-            "countIf",
+            "divide",
+            [
+                Function(
+                    "plus",
+                    [
+                        self._resolve_count_if(metric_condition, satisfied),
+                        Function(
+                            "divide",
+                            [self._resolve_count_if(metric_condition, tolerable), 2],
+                        ),
+                    ],
+                ),
+                Function("countIf", [metric_condition]),
+            ],
+            alias,
+        )
+
+    def _resolve_count_miserable_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+
+        # Nobody is miserable, we can return 0
+        if metric_true is None:
+            return Function(
+                "toUInt64",
+                [0],
+                alias,
+            )
+
+        return Function(
+            "uniqIf",
             [
                 Column("value"),
                 Function(
@@ -267,19 +382,68 @@ class MetricsDatasetConfig(DatasetConfig):
                             "equals",
                             [
                                 Column("metric_id"),
-                                self.resolve_metric("transaction.duration"),
+                                args["metric_id"],
                             ],
                         ),
                         Function(
-                            "notIn",
-                            [
-                                self.builder.column("transaction.status"),
-                                list(status for status in statuses if status is not None),
-                            ],
+                            "equals",
+                            [self.builder.column(constants.METRIC_MISERABLE_TAG_KEY), metric_true],
                         ),
                     ],
                 ),
             ],
+            alias,
+        )
+
+    def _resolve_user_misery_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return Function(
+            "divide",
+            [
+                Function(
+                    "plus",
+                    [
+                        self.builder.resolve_function("count_miserable(user)"),
+                        constants.MISERY_ALPHA,
+                    ],
+                ),
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "nullIf", [self.builder.resolve_function("count_unique(user)"), 0]
+                        ),
+                        constants.MISERY_ALPHA + constants.MISERY_BETA,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_failure_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("transaction.duration"),
+                ],
+            ),
+            Function(
+                "notIn",
+                [
+                    self.builder.column("transaction.status"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
             alias,
         )
 
@@ -303,6 +467,9 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _resolve_web_vital_function(
         self,
