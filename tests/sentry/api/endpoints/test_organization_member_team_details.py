@@ -1,4 +1,5 @@
 from exam import fixture
+from rest_framework import status
 
 from sentry.models import (
     Organization,
@@ -67,7 +68,9 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
     def test_manager_can_join_team(self):
         self.login_as(self.manager.user)
-        self.get_success_response(self.org.slug, self.manager.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.manager.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.manager
@@ -76,7 +79,9 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_join_team(self):
         owner = self.create_member(organization=self.org, user=self.create_user(), role="owner")
         self.login_as(owner.user)
-        self.get_success_response(self.org.slug, owner.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, owner.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=owner
@@ -86,14 +91,18 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.team_admin.user)
 
         # member
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
         ).exists()
 
         # manager
-        self.get_success_response(self.org.slug, self.manager.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.manager.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.manager
@@ -103,14 +112,18 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.manager.user)
 
         # member
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
         ).exists()
 
         # owner
-        self.get_success_response(self.org.slug, self.owner.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.owner.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.owner.id
@@ -120,14 +133,18 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.owner.user)
 
         # member
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
         ).exists()
 
         # manager
-        self.get_success_response(self.org.slug, self.manager.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.manager.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.manager
@@ -137,7 +154,9 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         target_owner = self.create_member(
             organization=self.org, user=self.create_user(), role="owner"
         )
-        self.get_success_response(self.org.slug, target_owner.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, target_owner.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=target_owner
@@ -149,7 +168,9 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
 
     def test_member_can_join_team(self):
         self.login_as(self.member.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -157,7 +178,9 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
 
     def test_admin_can_join_team(self):
         self.login_as(self.admin.user)
-        self.get_success_response(self.org.slug, self.admin.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.admin.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.admin
@@ -169,7 +192,9 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         )
 
         self.login_as(self.member.user)
-        self.get_success_response(self.org.slug, target_member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, target_member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=target_member
@@ -177,7 +202,9 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
 
     def test_admin_can_add_member_to_team(self):
         self.login_as(self.admin.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -192,7 +219,9 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
     def test_member_must_request_access_to_join_team(self):
         self.login_as(self.member.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -204,7 +233,9 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
     def test_admin_must_request_access_to_join_team(self):
         self.login_as(self.admin.user)
-        self.get_success_response(self.org.slug, self.admin.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.admin.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.admin
@@ -216,7 +247,9 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
     def test_team_member_must_request_access_to_add_member_to_team(self):
         self.login_as(self.team_member.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -229,7 +262,9 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     def test_admin_must_request_access_to_add_member_to_team(self):
         # admin not in the team
         self.login_as(self.admin.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -241,10 +276,14 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
     def test_multiple_of_the_same_access_request(self):
         self.login_as(self.member.user)
-        self.get_success_response(self.org.slug, self.admin.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.admin.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         self.login_as(self.team_member.user)
-        self.get_success_response(self.org.slug, self.admin.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.admin.id, self.team.slug, status=status.HTTP_201_CREATED
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.admin
@@ -259,7 +298,9 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
     def test_member_can_leave(self):
         self.login_as(self.team_member.user)
-        self.get_success_response(self.org.slug, self.team_member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_member
@@ -267,7 +308,9 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
     def test_member_can_leave_without_membership(self):
         self.login_as(self.member.user)
-        self.get_success_response(self.org.slug, self.member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
@@ -278,7 +321,9 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         member = self.create_member(organization=self.org, user=superuser, role="member", teams=[])
 
         self.login_as(member.user)
-        self.get_success_response(self.org.slug, member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=member
@@ -319,14 +364,18 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.team_admin.user)
 
         # member
-        self.get_success_response(self.org.slug, self.team_member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_member
         ).exists()
 
         # manager
-        self.get_response(self.org.slug, self.team_manager.id, self.team.slug)
+        self.get_response(
+            self.org.slug, self.team_manager.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_manager
@@ -336,14 +385,18 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.team_manager.user)
 
         # member
-        self.get_success_response(self.org.slug, self.team_member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_member
         ).exists()
 
         # owner
-        self.get_success_response(self.org.slug, self.team_owner.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_owner.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_owner
@@ -353,21 +406,27 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         self.login_as(self.owner.user)
 
         # member
-        self.get_success_response(self.org.slug, self.team_member.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_member.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_member
         ).exists()
 
         # manager
-        self.get_success_response(self.org.slug, self.team_manager.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_manager.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_manager
         ).exists()
 
         # owner
-        self.get_success_response(self.org.slug, self.team_owner.id, self.team.slug)
+        self.get_success_response(
+            self.org.slug, self.team_owner.id, self.team.slug, status=status.HTTP_200_OK
+        )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.team_owner
