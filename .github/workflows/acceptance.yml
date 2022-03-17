@@ -18,7 +18,22 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    runs-on: ubuntu-18.04
+      # Set job outputs to values from filter step
+      outputs:
+        backend_or_frontend: ${{ steps.filter.outputs.backend_or_frontend }}
+    steps:
+      - name: Check for FE or BE file changes
+        uses: getsentry/paths-filter@v2
+        id: filter
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
     name: frontend tests
     runs-on: ubuntu-18.04
     timeout-minutes: 20
@@ -38,38 +53,27 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Check for FE or BE file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
+
 
       - uses: volta-cli/action@v1
-        if: steps.changes.outputs.backend_or_frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
       - name: Get yarn cache directory path
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: yarn install --frozen-lockfile
 
       - name: Build CSS
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: NODE_ENV=production yarn build-css
 
       - name: jest
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
@@ -82,7 +86,6 @@ jobs:
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: actions/upload-artifact@v2
         with:
           retention-days: 14
@@ -90,21 +93,18 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/artifacts
 
   webpack:
@@ -165,6 +165,8 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
     name: acceptance
     runs-on: ubuntu-18.04
     timeout-minutes: 20
@@ -183,15 +185,7 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Check for FE or BE file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -200,7 +194,6 @@ jobs:
           snuba: true
 
       - name: Wait for frontend build
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-wait-for-check@v1.0.0
         id: wait-for-frontend
         with:
@@ -209,18 +202,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Download frontend dist
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: actions/download-artifact@v2
         with:
           name: frontend-dist
 
       - name: Extract dist
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           tar xf dist.tar.gz
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
@@ -231,17 +221,17 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
-        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/artifacts
 
   chartcuterie:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
     name: chartcuterie integration
     runs-on: ubuntu-18.04
     timeout-minutes: 30
@@ -262,13 +252,6 @@ jobs:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
-
-      - name: Check for FE or BE file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         if: steps.changes.outputs.backend_or_frontend == 'true'

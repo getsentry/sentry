@@ -40,9 +40,15 @@ backend_lintable: &backend_lintable
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
+# Any workflow that checks for backend changes is
+# a candidate for inclusion in this list
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
+  - '.github/workflows/acceptance.yml
+  - '.github/workflows/(command-*)'
+  - '.github/workflows/(backend-*)'
+  - '.github/workflows/(*-integration-*)'
   - '.github/actions/setup-sentry/action.yml'
 
 backend: &backend
@@ -67,6 +73,7 @@ api_docs:
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+  - '.github/workflows/api-docs-test.yml'
 
 migrations_added:
   - added: 'src/sentry/migrations/*'
