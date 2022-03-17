@@ -1,6 +1,8 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 
@@ -13,6 +15,7 @@ describe('OrganizationDetails', function () {
   beforeEach(function () {
     OrganizationStore.reset();
     act(() => ProjectsStore.reset());
+    PageFiltersStore.reset();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -139,5 +142,42 @@ describe('OrganizationDetails', function () {
 
     expect(inProgress).toBeInTheDocument();
     expect(screen.queryByLabelText('Restore Organization')).not.toBeInTheDocument();
+  });
+
+  it('should switch organization', async function () {
+    const body = TestStubs.Organization({slug: 'org-slug'});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/', body});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/', body});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/teams/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/other-org/projects/', body: []});
+
+    const {rerender} = render(
+      <OrganizationDetails params={{orgId: undefined}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    pinFilter('projects', true);
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']))
+    );
+
+    rerender(
+      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
+
+    rerender(
+      <OrganizationDetails params={{orgId: 'other-org'}} location={{}} routes={[]}>
+        <div />
+      </OrganizationDetails>
+    );
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set())
+    );
   });
 });

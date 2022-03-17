@@ -215,11 +215,6 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
             tag_ids_per_metric_id[row["metric_id"]].extend(row["tags.key"])
             supported_metric_ids_in_entities[metric_type].append(row["metric_id"])
 
-        # If we are trying to find the tags for only one metric name, then no need to query other
-        # entities once we find data for that metric_name in one of the entity
-        if metric_names and len(metric_names) == 1 and rows:
-            break
-
     # If we get not results back from snuba, then just return an empty set
     if not tag_ids_per_metric_id:
         return []
@@ -258,7 +253,7 @@ def get_tag_values(
 
     tag_id = indexer.resolve(tag_name)
     if tag_id is None:
-        raise InvalidParams
+        raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
     try:
         metric_ids = _get_metrics_filter_ids(metric_names)
@@ -293,11 +288,6 @@ def get_tag_values(
             if value_id > 0:
                 metric_id = row["metric_id"]
                 tag_values[metric_id].append(value_id)
-
-        # If we are trying to find the tag values for only one metric name, then no need to query
-        # other entities once we find data for that metric_name in one of the entities
-        if metric_names and len(metric_names) == 1 and rows:
-            break
 
     value_id_lists = tag_values.values()
     if metric_names is not None:
@@ -370,6 +360,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             initial_query_results = raw_snql_query(
                 initial_snuba_query, use_cache=False, referrer="api.metrics.totals.initial_query"
             )["data"]
+
         except StopIteration:
             # This can occur when requesting a list of derived metrics that are not have no data
             # for the passed projects
