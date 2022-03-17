@@ -738,7 +738,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onDisplayChange = (display: string) => {
     this.transitionTo({display});
-    trackAdvancedAnalyticsEvent('search.display_change', {
+    trackAdvancedAnalyticsEvent('search.display_changed', {
       organization: this.props.organization,
     });
   };
