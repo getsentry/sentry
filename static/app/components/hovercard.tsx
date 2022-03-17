@@ -127,12 +127,10 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   // If show is not set, then visibility state is uncontrolled
   const isVisible = props.show === undefined ? visible : props.show;
 
-  const hoverProps = useMemo(():
-    | {
-        onMouseEnter: React.MouseEventHandler<HTMLDivElement>;
-        onMouseLeave: React.MouseEventHandler<HTMLDivElement>;
-      }
-    | {} => {
+  const hoverProps = useMemo((): {
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  } => {
     // If show is not set, then visibility state is controlled by mouse events
     if (props.show === undefined) {
       return {
