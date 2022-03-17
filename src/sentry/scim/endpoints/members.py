@@ -17,7 +17,6 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
 from sentry.api.exceptions import ConflictError
 from sentry.api.paginator import GenericOffsetPaginator
@@ -116,7 +115,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
     def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
-        if OrganizationMemberDetailsEndpoint.is_only_owner(member):
+        if member.is_only_owner():
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
