@@ -1,12 +1,10 @@
 import {t} from 'sentry/locale';
+import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import Measurements, {
-  MeasurementCollection,
-} from 'sentry/utils/measurements/measurements';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Measurements from 'sentry/utils/measurements/measurements';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
-import {DisplayType} from '../../utils';
+import {getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {YAxisSelector} from './yAxisSelector';
@@ -14,10 +12,9 @@ import {YAxisSelector} from './yAxisSelector';
 interface Props {
   aggregates: QueryFieldValue[];
   displayType: DisplayType;
-  onGetAmendedFieldOptions: (
-    measurements: MeasurementCollection
-  ) => ReturnType<typeof generateFieldOptions>;
   onYAxisChange: (newFields: QueryFieldValue[]) => void;
+  organization: Organization;
+  tags: TagCollection;
   widgetType: WidgetType;
   queryErrors?: Record<string, any>[];
 }
@@ -27,7 +24,8 @@ export function YAxisStep({
   queryErrors,
   aggregates,
   onYAxisChange,
-  onGetAmendedFieldOptions,
+  organization,
+  tags,
   widgetType,
 }: Props) {
   return (
@@ -51,7 +49,7 @@ export function YAxisStep({
             widgetType={widgetType}
             displayType={displayType}
             aggregates={aggregates}
-            fieldOptions={onGetAmendedFieldOptions(measurements)}
+            fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
             onChange={onYAxisChange}
             errors={queryErrors}
           />

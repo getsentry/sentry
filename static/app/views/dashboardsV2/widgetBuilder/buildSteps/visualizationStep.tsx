@@ -6,10 +6,10 @@ import {PanelAlert} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
 import WidgetCard from '../../widgetCard';
-import {DisplayType, displayTypes} from '../utils';
+import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
 

@@ -15,9 +15,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {DisplayModes} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {Widget} from 'sentry/views/dashboardsV2/types';
+import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {DisplayType} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;

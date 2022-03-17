@@ -17,7 +17,6 @@ export enum DisplayType {
   TABLE = 'table',
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
   TOP_N = 'top_n',
 }
 
