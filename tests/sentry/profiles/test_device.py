@@ -1,31 +1,31 @@
-from unittest import TestCase
+import pytest
 
 from sentry.profiles.device import GIB, DeviceClass, classify_device
 
 
-class ProfilesDeviceTest(TestCase):
-    def test_known_ios_device(self):
-        self.assertEqual(classify_device("iPhone14,3", "iOS", False), DeviceClass.HIGH_END)
-
-    def test_emulated_ios_device(self):
-        self.assertEqual(classify_device("iPhone14,3", "iOS", True), DeviceClass.UNCLASSIFIED)
-
-    def test_android_device_without_optional_params(self):
-        self.assertEqual(classify_device("Pixel 6 Pro", "android", False), DeviceClass.UNCLASSIFIED)
-
-    def test_known_android_device(self):
-        self.assertEqual(
-            classify_device("Pixel 6 Pro", "android", False, [8000] * 8, 8 * GIB),
-            DeviceClass.HIGH_END,
+@pytest.mark.parametrize(
+    "device_model,device_os_name,device_is_emulator,device_cpu_frequencies,device_memory,expected",
+    [
+        ("iPhone14,3", "iOS", False, None, None, DeviceClass.HIGH_END),
+        ("iPhone14,3", "iOS", True, None, None, DeviceClass.UNCLASSIFIED),
+        ("Pixel 6 Pro", "android", False, None, None, DeviceClass.UNCLASSIFIED),
+        ("Pixel 6 Pro", "android", False, [8000] * 8, 8 * GIB, DeviceClass.HIGH_END),
+        ("Pixel 6 Pro", "android", True, None, None, DeviceClass.UNCLASSIFIED),
+        ("SentryPhone", "SentryOS", False, None, None, DeviceClass.UNCLASSIFIED),
+        ("SentryPhone", "SentryOS", True, None, None, DeviceClass.UNCLASSIFIED),
+    ],
+)
+def test_classify_device(
+    device_model,
+    device_os_name,
+    device_is_emulator,
+    device_cpu_frequencies,
+    device_memory,
+    expected,
+):
+    assert (
+        classify_device(
+            device_model, device_os_name, device_is_emulator, device_cpu_frequencies, device_memory
         )
-
-    def test_simulated_android_device(self):
-        self.assertEqual(classify_device("Pixel 6 Pro", "android", True), DeviceClass.UNCLASSIFIED)
-
-    def test_unknown_platform(self):
-        self.assertEqual(
-            classify_device("SentryPhone", "SentryOS", False), DeviceClass.UNCLASSIFIED
-        )
-
-    def test_unknown_device(self):
-        self.assertEqual(classify_device("SentryPhone", "SentryOS", True), DeviceClass.UNCLASSIFIED)
+        == expected
+    )
