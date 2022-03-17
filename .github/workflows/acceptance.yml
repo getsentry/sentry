@@ -24,6 +24,9 @@ jobs:
     outputs:
       backend_or_frontend: ${{ steps.filter.outputs.backend_or_frontend }}
     steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry
+
       - name: Check for FE or BE file changes
         uses: getsentry/paths-filter@v2
         id: filter
