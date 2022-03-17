@@ -3,7 +3,7 @@ from snuba_sdk import Column, Function
 from sentry.sentry_metrics.utils import resolve_weak
 
 
-def __counter_sum_aggregation_on_session_status_factory(session_status, metric_ids, alias=None):
+def _counter_sum_aggregation_on_session_status_factory(session_status, metric_ids, alias=None):
     return Function(
         "sumIf",
         [
@@ -27,19 +27,19 @@ def __counter_sum_aggregation_on_session_status_factory(session_status, metric_i
 
 
 def init_sessions(metric_ids, alias=None):
-    return __counter_sum_aggregation_on_session_status_factory(
+    return _counter_sum_aggregation_on_session_status_factory(
         session_status="init", metric_ids=metric_ids, alias=alias
     )
 
 
 def crashed_sessions(metric_ids, alias=None):
-    return __counter_sum_aggregation_on_session_status_factory(
+    return _counter_sum_aggregation_on_session_status_factory(
         session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
 def errored_preaggr_sessions(metric_ids, alias=None):
-    return __counter_sum_aggregation_on_session_status_factory(
+    return _counter_sum_aggregation_on_session_status_factory(
         session_status="errored_preaggr", metric_ids=metric_ids, alias=alias
     )
 
@@ -61,12 +61,5 @@ def sessions_errored_set(metric_ids, alias=None):
     )
 
 
-def percentage(arg1_snql, arg2_snql, metric_ids, alias=None):
-    return Function(
-        "multiply",
-        [
-            100,
-            Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])]),
-        ],
-        alias,
-    )
+def percentage(arg1_snql, arg2_snql, alias=None):
+    return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
