@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import abc
 import logging
 
 from django import forms
@@ -24,9 +27,10 @@ class IntegrationNotifyServiceForm(forms.Form):
         self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
-class EventAction(RuleBase):
+class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
+    @abc.abstractmethod
     def after(self, event, state):
         """
         Executed after a Rule matches.
@@ -47,13 +51,26 @@ class EventAction(RuleBase):
         >>>     for future in futures:
         >>>         print(future)
         """
-        raise NotImplementedError
+        pass
 
 
-class IntegrationEventAction(EventAction):
-    """
-    Intermediate abstract class to help DRY some event actions code.
-    """
+class IntegrationEventAction(EventAction, abc.ABC):
+    """Intermediate abstract class to help DRY some event actions code."""
+
+    @property
+    @abc.abstractmethod
+    def prompt(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def provider(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def integration_key(self) -> str:
+        pass
 
     def is_enabled(self):
         return self.get_integrations().exists()
@@ -179,7 +196,7 @@ def create_issue(event, futures):
         create_link(integration, installation, event, response)
 
 
-class TicketEventAction(IntegrationEventAction):
+class TicketEventAction(IntegrationEventAction, abc.ABC):
     """Shared ticket actions"""
 
     form_cls = IntegrationNotifyServiceForm
@@ -210,6 +227,15 @@ class TicketEventAction(IntegrationEventAction):
     def render_label(self):
         return self.label.format(integration=self.get_integration_name())
 
+    @property
+    @abc.abstractmethod
+    def ticket_type(self) -> str:
+        pass
+
+    @property
+    def prompt(self) -> str:
+        return f"Create {self.ticket_type}"
+
     def get_dynamic_form_fields(self):
         """
         Either get the dynamic form fields cached on the DB return `None`.
@@ -232,12 +258,9 @@ class TicketEventAction(IntegrationEventAction):
     def translate_integration(self, integration):
         return integration.name
 
-    @property
-    def prompt(self):
-        return f"Create {self.ticket_type}"
-
+    @abc.abstractmethod
     def generate_footer(self, rule_url):
-        raise NotImplementedError
+        pass
 
     def after(self, event, state):
         integration_id = self.get_integration_id()

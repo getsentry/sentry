@@ -100,7 +100,7 @@ function Onboarding(props: Props) {
             )}
           </OnboardingStep>
         </AnimatePresence>
-        <PageCorners animateVariant={cornerVariantControl} />
+        <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
     </OnboardingWrapper>
   );
@@ -119,7 +119,6 @@ const Container = styled('div')`
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
-  padding-top: 12vh;
   width: 100%;
   margin: 0 auto;
   flex-grow: 1;
@@ -161,5 +160,12 @@ OnboardingStep.defaultProps = {
     staggerChildren: 0.2,
   }),
 };
+
+const AdaptivePageCorners = styled(PageCorners)`
+  --corner-scale: 1;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    --corner-scale: 0.5;
+  }
+`;
 
 export default withOrganization(withProjects(Onboarding));
