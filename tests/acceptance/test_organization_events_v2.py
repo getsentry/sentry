@@ -446,7 +446,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             clone = copy.deepcopy(event_data["spans"][-1])
             # If range > 9 this might no longer work because of constraints on span_id (hex 16)
             clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
-            # clone["description"] = "hello world?"
             event_data["spans"].append(clone)
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -475,23 +474,19 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - transactions event with auto-grouped spans")
+            self.browser.snapshot(
+                "events-v2 - transactions event with descendant and sibling auto-grouped spans"
+            )
 
-            # Expand auto-grouped spans
+            # Expand auto-grouped descendant spans
             self.browser.elements('[data-test-id="span-row"]')[4].click()
 
-            # Open a span detail so we can check the search by trace link.
-            # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.elements('[data-test-id="span-row"]')[6].click()
+            # Expand auto-grouped sibling spans
+            self.browser.elements('[data-test-id="span-row"]')[8].click()
 
-            # Wait until the child event loads.
-            child_button = '[data-test-id="view-child-transaction"]'
-            self.browser.wait_until(child_button)
-            self.browser.snapshot("events-v2 - transactions event detail view")
-
-            # Click on the child transaction.
-            self.browser.click(child_button)
-            self.wait_until_loaded()
+            self.browser.snapshot(
+                "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
+            )
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):

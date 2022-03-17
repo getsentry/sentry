@@ -399,7 +399,11 @@ class SpanGroupBar extends React.Component<Props> {
                         width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
                       }}
                       onClick={() => {
-                        toggleSpanGroup();
+                        if (groupType === GroupType.DESCENDANTS) {
+                          toggleSpanGroup();
+                        } else if (groupType === GroupType.SIBLINGS) {
+                          toggleSiblingSpanGroup?.(spanGrouping[0].span);
+                        }
                       }}
                     >
                       {groupType === GroupType.DESCENDANTS ? (
