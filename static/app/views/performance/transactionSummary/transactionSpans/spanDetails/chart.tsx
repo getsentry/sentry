@@ -1,6 +1,7 @@
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
@@ -59,25 +60,40 @@ function Chart(props: Props) {
   return (
     <Panel>
       <ChartContainer>
-        {display === DisplayModes.TIMESERIES && (
-          <ExclusiveTimeTimeSeries {...props} withoutZerofill={false} />
-        )}
-        {display === DisplayModes.HISTOGRAM && <ExclusiveTimeHistogram {...props} />}
+        <Feature
+          organization={props.organization}
+          features={['performance-span-histogram-view']}
+        >
+          {({hasFeature}) => {
+            if (hasFeature) {
+              if (display === DisplayModes.TIMESERIES) {
+                return <ExclusiveTimeTimeSeries {...props} withoutZerofill={false} />;
+              }
+              return <ExclusiveTimeHistogram {...props} />;
+            }
+            return <ExclusiveTimeTimeSeries {...props} withoutZerofill={false} />;
+          }}
+        </Feature>
       </ChartContainer>
-      <ChartControls>
-        <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-          <SectionValue key="total-value">{props.totalCount}</SectionValue>
-        </InlineContainer>
-        <InlineContainer>
-          <OptionSelector
-            title={t('Display')}
-            selected={display}
-            options={generateDisplayOptions()}
-            onChange={handleDisplayChange}
-          />
-        </InlineContainer>
-      </ChartControls>
+      <Feature
+        organization={props.organization}
+        features={['performance-span-histogram-view']}
+      >
+        <ChartControls>
+          <InlineContainer>
+            <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
+            <SectionValue key="total-value">{props.totalCount}</SectionValue>
+          </InlineContainer>
+          <InlineContainer>
+            <OptionSelector
+              title={t('Display')}
+              selected={display}
+              options={generateDisplayOptions()}
+              onChange={handleDisplayChange}
+            />
+          </InlineContainer>
+        </ChartControls>
+      </Feature>
     </Panel>
   );
 }
