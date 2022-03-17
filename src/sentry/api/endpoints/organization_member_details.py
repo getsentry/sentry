@@ -135,7 +135,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Retrive an organization member's details.
+        Retrieve an organization member's details.
 
         Will return a pending invite as long as it's already approved.
         """
