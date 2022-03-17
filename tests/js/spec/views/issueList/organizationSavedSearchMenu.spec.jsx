@@ -65,11 +65,9 @@ describe('IssueListSavedSearchMenu', () => {
 
   it('does not show a delete button without access', () => {
     renderSavedSearch({organization: TestStubs.Organization({access: []})});
-    const assignedToMe = screen.getByText('Assigned to me');
+    const assignedToMe = screen.getByTestId('saved-search-444');
     expect(
-      within(assignedToMe.parentElement.parentElement).queryByRole('button', {
-        name: 'delete',
-      })
+      within(assignedToMe).queryByRole('button', {name: 'delete'})
     ).not.toBeInTheDocument();
   });
 
