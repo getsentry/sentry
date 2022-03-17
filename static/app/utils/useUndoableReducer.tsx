@@ -14,7 +14,12 @@ type RedoAction = {
   type: 'redo';
 };
 
-type UndoableReducerAction<A> = UndoAction | RedoAction | A;
+export type UndoableReducerAction<A> = UndoAction | RedoAction | A;
+
+export type UndoableReducer<R extends React.Reducer<any, any>> = React.Reducer<
+  UndoableNode<ReducerState<R>>,
+  UndoableReducerAction<ReducerAction<R>>
+>;
 
 function isUndoOrRedoAction(
   action: UndoableReducerAction<any>
@@ -25,14 +30,10 @@ function isUndoOrRedoAction(
   return false;
 }
 
-function undoableReducer<S, A>(
+function undoableReducer<S>(
   state: UndoableNode<S>,
-  action: UndoableReducerAction<A>
+  action: UndoAction | RedoAction
 ): UndoableNode<S> {
-  if (!isUndoOrRedoAction(action)) {
-    return state;
-  }
-
   if (action.type === 'undo') {
     return state.previous ? state.previous : state;
   }
@@ -44,31 +45,25 @@ function undoableReducer<S, A>(
   throw new Error('Unreachable case');
 }
 
-type CombinedReducer<R extends React.Reducer<any, any>> = React.Reducer<
-  UndoableNode<ReducerState<R>>,
-  UndoableReducerAction<ReducerAction<R>>
->;
-
 export function makeUndoableReducer<R extends React.Reducer<any, any>>(
   reducer: R
-): CombinedReducer<R> {
+): UndoableReducer<R> {
   return (
     state: UndoableNode<ReducerState<R>>,
     action: UndoableReducerAction<ReducerAction<R>>
   ) => {
-    const maybeUndoOrRedo = undoableReducer(state, action);
-
-    if (maybeUndoOrRedo !== state) {
-      return maybeUndoOrRedo;
+    if (isUndoOrRedoAction(action)) {
+      return undoableReducer(state, action);
     }
 
-    const newState = reducer(state.current, action);
-
-    return {
+    const newState: UndoableNode<ReducerState<R>> = {
       next: undefined,
-      current: newState,
       previous: state,
+      current: reducer(state.current, action),
     };
+
+    state.next = newState;
+    return newState;
   };
 }
 
