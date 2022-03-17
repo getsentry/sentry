@@ -20,19 +20,21 @@ processed_profiles_publisher = None
     acks_late=True,
 )
 def process_profile(profile: MutableMapping[str, Any]) -> None:
-    global processed_profiles_publisher
-
-    config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-    processed_profiles_publisher = KafkaPublisher(
-        kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-    )
-
     if profile["platform"] == "cocoa":
         if not _validate_ios_profile(profile=profile):
             return None
         profile = _symbolicate(profile=profile)
 
     profile = _normalize(profile=profile)
+
+    global processed_profiles_publisher
+
+    if processed_profiles_publisher is None:
+        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
+        processed_profiles_publisher = KafkaPublisher(
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+        )
+
     processed_profiles_publisher.publish(
         "processed-profiles",
         json.dumps(profile),
