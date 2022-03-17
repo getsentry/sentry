@@ -48,6 +48,7 @@ def query(
     extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
+    equation_config=None,
 ):
     """ """
     metrics_compatible = not equations
@@ -101,6 +102,7 @@ def query(
             extra_snql_condition=extra_snql_condition,
             functions_acl=functions_acl,
             use_snql=use_snql,
+            equation_config=equation_config,
         )
         results["meta"]["isMetricsData"] = False
 
