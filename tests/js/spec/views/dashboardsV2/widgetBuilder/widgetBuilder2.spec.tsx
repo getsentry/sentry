@@ -183,13 +183,8 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add Group'));
       }
 
-      try {
-        const x = await screen.findAllByText('Select group');
-        expect(x).toHaveLength(20);
-        expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
-      } catch (err) {
-        throw new Error('This is insanity');
-      }
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it('should randomly fail', async function () {
