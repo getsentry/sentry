@@ -30,12 +30,15 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            limit=5,
             detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
             name=self.anon_users_query["name"],
             fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -43,6 +46,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_1,
             name=self.known_users_query["name"],
             fields=self.known_users_query["fields"],
+            columns=self.known_users_query["columns"],
+            aggregates=self.known_users_query["aggregates"],
             conditions=self.known_users_query["conditions"],
             order=1,
         )
@@ -50,6 +55,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_2,
             name=self.geo_errors_query["name"],
             fields=self.geo_errors_query["fields"],
+            columns=self.geo_errors_query["columns"],
+            aggregates=self.geo_errors_query["aggregates"],
             conditions=self.geo_errors_query["conditions"],
             order=0,
         )
@@ -110,6 +117,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         with self.feature({"organizations:dashboards-basic": False}):
             response = self.do_request("get", self.url("default-overview"))
             assert response.status_code == 404
+
+    def test_dashboard_widget_returns_limit(self):
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["limit"] is None
+        assert response.data["widgets"][1]["limit"] == 5
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -340,6 +353,102 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
+
+    def test_add_widget_with_limit(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Custom Widget",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": None,
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                },
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 10,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        self.assert_serialized_widget(data["widgets"][1], widgets[1])
+
+    def test_add_widget_with_invalid_limit_above_maximum(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 11,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Ensure this value is less than or equal to 10" in response.content
+
+    def test_add_widget_with_invalid_limit_below_minimum(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 0,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Ensure this value is greater than or equal to 1" in response.content
 
     def test_add_widget_display_type(self):
         data = {

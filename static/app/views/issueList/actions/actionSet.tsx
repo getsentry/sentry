@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
@@ -60,6 +59,14 @@ function ActionSet({
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
+  // determine which ... dropdown options to show based on issue(s) selected
+  const canAddBookmark =
+    allInQuerySelected || selectedIssues.some(issue => !issue?.isBookmarked);
+  const canRemoveBookmark =
+    allInQuerySelected || selectedIssues.some(issue => issue?.isBookmarked);
+  const canSetUnresolved =
+    allInQuerySelected || selectedIssues.some(issue => issue?.status === 'resolved');
+
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
@@ -89,6 +96,7 @@ function ActionSet({
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
+      hidden: !canAddBookmark,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
@@ -101,6 +109,7 @@ function ActionSet({
     {
       key: 'remove-bookmark',
       label: t('Remove from Bookmarks'),
+      hidden: !canRemoveBookmark,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
@@ -113,6 +122,7 @@ function ActionSet({
     {
       key: 'unresolve',
       label: t('Set status to: Unresolved'),
+      hidden: !canSetUnresolved,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
@@ -195,11 +205,9 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
-      <GuideAnchor target="inbox_guide_review" position="bottom">
-        {!nestMarkReviewedButton && (
-          <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
-        )}
-      </GuideAnchor>
+      {!nestMarkReviewedButton && (
+        <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
+      )}
       {!nestMergeButton && (
         <ActionLink
           type="button"

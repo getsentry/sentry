@@ -1,7 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -12,9 +12,10 @@ import WidgetContainer from 'sentry/views/performance/landing/widgets/components
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
 
-const initializeData = (query = {}) => {
+const initializeData = (query = {}, rest = {}) => {
   const data = _initializeData({
     query: {statsPeriod: '7d', environment: ['prod'], project: [-42], ...query},
+    ...rest,
   });
 
   data.eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
@@ -22,24 +23,26 @@ const initializeData = (query = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
-      <OrganizationContext.Provider value={data.organization}>
-        <WidgetContainer
-          allowedCharts={[
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-            PerformanceWidgetSetting.DURATION_HISTOGRAM,
-          ]}
-          rowChartSettings={[]}
-          forceDefaultChartSetting
-          {...data}
-          {...rest}
-        />
-      </OrganizationContext.Provider>
-    </PerformanceDisplayProvider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+        <OrganizationContext.Provider value={data.organization}>
+          <WidgetContainer
+            allowedCharts={[
+              PerformanceWidgetSetting.TPM_AREA,
+              PerformanceWidgetSetting.FAILURE_RATE_AREA,
+              PerformanceWidgetSetting.USER_MISERY_AREA,
+              PerformanceWidgetSetting.DURATION_HISTOGRAM,
+            ]}
+            rowChartSettings={[]}
+            forceDefaultChartSetting
+            {...data}
+            {...rest}
+          />
+        </OrganizationContext.Provider>
+      </PerformanceDisplayProvider>
+    </MEPSettingProvider>
   );
 };
 
@@ -102,39 +105,38 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Check requests when changing widget props', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
 
     // Change eventView reference
-    wrapper.setProps({
-      eventView: data.eventView.clone(),
-    });
+    data.eventView = data.eventView.clone();
 
-    await tick();
-    wrapper.update();
+    wrapper.rerender(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+      />
+    );
 
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
 
+    // Change eventView statsperiod
     const modifiedData = initializeData({
       statsPeriod: '14d',
     });
 
-    // Change eventView statsperiod
-    wrapper.setProps({
-      eventView: modifiedData.eventView,
-    });
-
-    await tick();
-    wrapper.update();
+    wrapper.rerender(
+      <WrappedComponent
+        data={modifiedData}
+        defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
+      />
+    );
 
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
 
@@ -156,39 +158,38 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
 
     // Change eventView reference
-    wrapper.setProps({
-      eventView: data.eventView.clone(),
-    });
+    data.eventView = data.eventView.clone();
 
-    await tick();
-    wrapper.update();
+    wrapper.rerender(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+      />
+    );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
 
+    // Change eventView statsperiod
     const modifiedData = initializeData({
       statsPeriod: '14d',
     });
 
-    // Change eventView statsperiod
-    wrapper.setProps({
-      eventView: modifiedData.eventView,
-    });
-
-    await tick();
-    wrapper.update();
+    wrapper.rerender(
+      <WrappedComponent
+        data={modifiedData}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
+      />
+    );
 
     expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
 
@@ -228,28 +229,26 @@ describe('Performance > Widgets > WidgetContainer', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <PageErrorProvider>
         <PageErrorAlert />
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
         />
-      </PageErrorProvider>,
-      data.routerContext
+      </PageErrorProvider>
     );
 
     // Provider update is after request promise.
-    await act(async () => {
-      await tick();
-      wrapper.update();
-    });
+    await act(async () => {});
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Transactions Per Minute'
     );
+
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('div[data-test-id="page-error-alert"]').text()).toEqual(
+
+    expect(await screen.findByTestId('page-error-alert')).toHaveTextContent(
       'Request did not work :('
     );
   });
@@ -257,17 +256,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('TPM Widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Transactions Per Minute'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
@@ -289,17 +285,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Failure Rate Widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
@@ -318,20 +311,136 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Widget with MEP enabled and metric meta set to true', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        isMetricsData: true,
+      },
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />
+    );
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
+      'Sampled'
+    );
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Failure RateSampled'
+    );
+  });
+
+  it('Widget with MEP enabled and metric meta set to undefined', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        isMetricsData: undefined,
+      },
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />
+    );
+
+    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+  });
+
+  it('Widget with MEP enabled and metric meta set to false', async function () {
+    const data = initializeData(
+      {},
+      {
+        features: ['performance-use-metrics'],
+      }
+    );
+
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [],
+        isMetricsData: false,
+      },
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        isMEPEnabled
+        defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
+      />
+    );
+
+    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
+    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventStatsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+  });
+
   it('User misery Widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
@@ -353,21 +462,18 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst LCP widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Worst LCP Web Vitals'
     );
+    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
 
-    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
     expect(eventsV2Mock).toHaveBeenNthCalledWith(
       1,
@@ -393,23 +499,63 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Worst LCP widget - MEP', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.WORST_LCP_VITALS}
+        isMEPEnabled
+      />
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Worst LCP Web Vitals'
+    );
+    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['prod'],
+          field: [
+            'transaction',
+            'title',
+            'project.id',
+            'count_web_vitals(measurements.lcp, poor)',
+            'count_web_vitals(measurements.lcp, meh)',
+            'count_web_vitals(measurements.lcp, good)',
+          ],
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload',
+          sort: '-count_web_vitals(measurements.lcp, poor)',
+          statsPeriod: '7d',
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+  });
+
   it('Worst FCP widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FCP_VITALS}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Worst FCP Web Vitals'
     );
-    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
+
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
     expect(eventsV2Mock).toHaveBeenNthCalledWith(
       1,
@@ -438,20 +584,17 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Worst FID widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.WORST_FID_VITALS}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Worst FID Web Vitals'
     );
-    expect(wrapper.find('a[data-test-id="view-all-button"]').text()).toEqual('View All');
+    expect(await screen.findByTestId('view-all-button')).toHaveTextContent('View All');
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
     expect(eventsV2Mock).toHaveBeenNthCalledWith(
       1,
@@ -480,17 +623,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('LCP Histogram Widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'LCP Distribution'
     );
 
@@ -500,17 +640,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('FCP Histogram Widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'FCP Distribution'
     );
 
@@ -520,17 +657,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most errors widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Errors'
     );
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
@@ -554,17 +688,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most related issues widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Issues'
     );
     expect(issuesListMock).toHaveBeenCalledTimes(1);
@@ -588,29 +719,26 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Switching from issues to errors widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Issues'
     );
     expect(issuesListMock).toHaveBeenCalledTimes(1);
 
-    wrapper.setProps({
-      defaultChartSetting: PerformanceWidgetSetting.MOST_RELATED_ERRORS,
-    });
+    wrapper.rerender(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
+      />
+    );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Errors'
     );
     expect(eventsV2Mock).toHaveBeenCalledTimes(1);
@@ -620,17 +748,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most improved trends widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Improved'
     );
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -659,17 +784,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most regressed trends widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_REGRESSED}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Regressed'
     );
     expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
@@ -698,17 +820,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
   it('Most slow frames widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Slow Frames'
     );
 
@@ -731,23 +850,58 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
+  });
+
+  it('Most slow frames widget - MEP', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_SLOW_FRAMES}
+        isMEPEnabled
+      />
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Slow Frames'
+    );
+
+    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+    expect(eventsV2Mock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'epm()', 'avg(measurements.frames_slow)'],
+          noPagination: true,
+          per_page: 3,
+          project: ['-42'],
+          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          sort: '-avg(measurements.frames_slow)',
+          statsPeriod: '7d',
+          metricsEnhanced: '1',
+        }),
+      })
+    );
+
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('Most frozen frames widget', async function () {
     const data = initializeData();
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.MOST_FROZEN_FRAMES}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Frozen Frames'
     );
 
@@ -775,7 +929,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       })
     );
 
-    expect(wrapper.find('div[data-test-id="empty-message"]').exists()).toBe(true);
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('Able to change widget type from menu', async function () {
@@ -783,36 +937,30 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     const setRowChartSettings = jest.fn(() => {});
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
         setRowChartSettings={setRowChartSettings}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );
+
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
+    userEvent.click(await screen.findByTestId('context-menu'));
 
-    await tick();
-    wrapper.update();
+    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
 
-    expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
+    expect(menuItems[2]).toHaveTextContent('User Misery');
 
-    wrapper.find('MenuItem').at(2).simulate('click');
+    userEvent.click(menuItems[2]);
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
@@ -824,7 +972,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     const setRowChartSettings = jest.fn(() => {});
 
-    wrapper = mountWithTheme(
+    wrapper = render(
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FAILURE_RATE_AREA}
@@ -833,26 +981,21 @@ describe('Performance > Widgets > WidgetContainer', function () {
           PerformanceWidgetSetting.FAILURE_RATE_AREA,
           PerformanceWidgetSetting.USER_MISERY_AREA,
         ]}
-      />,
-      data.routerContext
+      />
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );
 
-    wrapper.find('IconEllipsis[data-test-id="context-menu"]').simulate('click');
+    userEvent.click(await screen.findByTestId('context-menu'));
 
-    await tick();
-    wrapper.update();
+    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
 
-    expect(wrapper.find('MenuItem').at(1).text()).toEqual('Failure Rate');
-    expect(wrapper.find('MenuItem').at(1).props().isActive).toBe(true);
-    expect(wrapper.find('MenuItem').at(1).props().disabled).toBe(false);
+    expect(menuItems[1]).toHaveTextContent('Failure Rate');
+    expect(menuItems[1]).toBeEnabled();
 
-    expect(wrapper.find('MenuItem').at(2).text()).toEqual('User Misery');
-    expect(wrapper.find('MenuItem').at(2).props().disabled).toBe(true);
+    expect(menuItems[2]).toHaveTextContent('User Misery');
+    expect(menuItems[2]).toHaveAttribute('disabled');
   });
 });

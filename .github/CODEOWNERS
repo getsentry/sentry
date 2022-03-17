@@ -131,6 +131,7 @@ build-utils/        @getsentry/owners-js-build
 ### Performance ###
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/performance
+/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trace.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py         @getsentry/performance
@@ -320,3 +321,10 @@ build-utils/        @getsentry/owners-js-build
 /tests/apidocs/                     @getsentry/owners-api
 /.github/workflows/openapi.yml      @getsentry/owners-api
 /.github/workflows/openapi-diff.yml @getsentry/owners-api
+
+
+### SDK ###
+
+/src/sentry/utils/sdk.py            @getsentry/team-web-backend
+
+## End of SDK ##

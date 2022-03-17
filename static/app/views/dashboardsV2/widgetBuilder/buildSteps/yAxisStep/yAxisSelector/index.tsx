@@ -20,13 +20,13 @@ import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
 
 interface Props {
+  aggregates: QueryFieldValue[];
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
-  fields: QueryFieldValue[];
   /**
-   * Fired when fields are added/removed/modified/reordered.
+   * Fired when aggregates are added/removed/modified/reordered.
    */
-  onChange: (fields: QueryFieldValue[]) => void;
+  onChange: (aggregates: QueryFieldValue[]) => void;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
 }
@@ -34,7 +34,7 @@ interface Props {
 export function YAxisSelector({
   displayType,
   widgetType,
-  fields,
+  aggregates,
   fieldOptions,
   onChange,
   errors,
@@ -45,41 +45,41 @@ export function YAxisSelector({
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
 
-    const newFields = [
-      ...fields,
+    const newAggregates = [
+      ...aggregates,
       {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
     ];
-    onChange(newFields);
+    onChange(newAggregates);
   }
 
   function handleAddEquation(event: React.MouseEvent) {
     event.preventDefault();
 
-    const newFields = [
-      ...fields,
+    const newAggregates = [
+      ...aggregates,
       {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
     ];
-    onChange(newFields);
+    onChange(newAggregates);
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
     event.preventDefault();
 
-    const newFields = [...fields];
-    newFields.splice(fieldIndex, 1);
-    onChange(newFields);
+    const newAggregates = [...aggregates];
+    newAggregates.splice(fieldIndex, 1);
+    onChange(newAggregates);
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
-    const newFields = [...fields];
-    newFields[fieldIndex] = value;
-    onChange(newFields);
+    const newAggregates = [...aggregates];
+    newAggregates[fieldIndex] = value;
+    onChange(newAggregates);
   }
 
   function handleTopNChangeField(value: QueryFieldValue) {
-    const newFields = [...fields];
-    newFields[fields.length - 1] = value;
-    onChange(newFields);
+    const newAggregates = [...aggregates];
+    newAggregates[aggregates.length - 1] = value;
+    onChange(newAggregates);
   }
 
   // Any function/field choice for Big Number widgets is legal since the
@@ -149,10 +149,10 @@ export function YAxisSelector({
     };
   }
 
-  const fieldError = errors?.find(error => error?.fields)?.fields;
+  const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
 
   if (displayType === DisplayType.TOP_N) {
-    const fieldValue = fields[fields.length - 1];
+    const fieldValue = aggregates[aggregates.length - 1];
     return (
       <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
         <QueryFieldWrapper>
@@ -168,22 +168,17 @@ export function YAxisSelector({
     );
   }
 
-  const canDelete = fields.length > 1;
+  const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
     ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
-      fields.length === 1) ||
-    ([
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(displayType) &&
-      fields.length === 3);
+      aggregates.length === 1) ||
+    ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
+      aggregates.length === 3);
 
   return (
     <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
-      {fields.map((fieldValue, i) => (
+      {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
             fieldValue={fieldValue}
@@ -191,9 +186,9 @@ export function YAxisSelector({
             onChange={value => handleChangeQueryField(value, i)}
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
-            otherColumns={fields}
+            otherColumns={aggregates}
           />
-          {fields.length > 1 &&
+          {aggregates.length > 1 &&
             (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (
               <DeleteButton onDelete={event => handleRemoveQueryField(event, i)} />
             )}

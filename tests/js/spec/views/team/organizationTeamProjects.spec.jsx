@@ -108,7 +108,7 @@ describe('OrganizationTeamProjects', function () {
     const stars = wrapper.find('BookmarkStar');
     expect(stars).toHaveLength(2);
     stars.first().simulate('click');
-    expect(wrapper.find('Star').first().prop('isBookmarked')).toBeTruthy();
+    expect(wrapper.find('BookmarkStar').first().prop('isBookmarked')).toBeTruthy();
 
     expect(putMock).toHaveBeenCalledTimes(1);
   });
@@ -141,7 +141,7 @@ describe('OrganizationTeamProjects', function () {
     wrapper.update();
 
     // find second project's remove button
-    const remove = wrapper.find('PanelBody Button').at(1);
+    const remove = wrapper.find('PanelBody Button[aria-label="Remove"]').at(1);
     remove.simulate('click');
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
