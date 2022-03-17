@@ -2,6 +2,9 @@
 import path from 'path';
 import fs from 'fs';
 
+import process from 'process';
+console.log('Current working directory: ', process.cwd());
+
 //joining path of directory
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
 const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
