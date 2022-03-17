@@ -479,10 +479,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             )
 
             # Expand auto-grouped descendant spans
-            self.browser.elements('[data-test-id="span-row"]')[4].click()
+            self.browser.element('[data-test-id="span-row-5"]').click()
 
             # Expand auto-grouped sibling spans
-            self.browser.elements('[data-test-id="span-row"]')[8].click()
+            self.browser.element('[data-test-id="span-row-9"]').click()
 
             self.browser.snapshot(
                 "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
