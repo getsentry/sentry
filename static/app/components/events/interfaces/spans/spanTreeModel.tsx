@@ -378,24 +378,24 @@ class SpanTreeModel {
                     groupIndex === groupedDescendants.length - 1 &&
                     index === group.length - 1,
                   continuingTreeDepths: descendantContinuingTreeDepths,
-                  hiddenSpanGroups,
-                  spanGroups: new Set(childSpanGroup),
+                  hiddenSpanSubTrees,
+                  spanAncestors: new Set(nextSpanAncestors),
                   filterSpans,
                   previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
                   event,
                   isOnlySibling: descendantsSource.length === 1,
-                  spanGrouping: shouldGroup
-                    ? [...(spanGrouping ?? []), wrappedSpan]
+                  spanNestedGrouping: shouldGroup
+                    ? [...(spanNestedGrouping ?? []), wrappedSpan]
                     : undefined,
-                  toggleSpanGroup: isNotLastSpanOfGroup
-                    ? toggleSpanGroup === undefined
-                      ? this.toggleSpanGroup
-                      : toggleSpanGroup
+                  toggleNestedSpanGroup: isNotLastSpanOfGroup
+                    ? toggleNestedSpanGroup === undefined
+                      ? this.toggleNestedSpanGroup
+                      : toggleNestedSpanGroup
                     : undefined,
-                  showSpanGroup: isNotLastSpanOfGroup
-                    ? toggleSpanGroup === undefined
-                      ? this.showSpanGroup
-                      : showSpanGroup
+                  isNestedSpanGroupExpanded: isNotLastSpanOfGroup
+                    ? toggleNestedSpanGroup === undefined
+                      ? this.isNestedSpanGroupExpanded
+                      : isNestedSpanGroupExpanded
                     : false,
                   addTraceBounds,
                   removeTraceBounds,
@@ -432,7 +432,7 @@ class SpanTreeModel {
                 addTraceBounds,
                 removeTraceBounds,
               }),
-              toggleSpanGroup: undefined,
+              toggleNestedSpanGroup: undefined,
               toggleSiblingSpanGroup:
                 index === 0 ? this.toggleSiblingSpanGroup : undefined,
             };
@@ -455,9 +455,9 @@ class SpanTreeModel {
             span: this.span,
             treeDepth: treeDepth + 1,
             continuingTreeDepths,
-            spanGrouping: wrappedSiblings,
-            toggleSpanGroup: undefined,
-            showSpanGroup,
+            spanNestedGrouping: wrappedSiblings,
+            toggleNestedSpanGroup: undefined,
+            isNestedSpanGroupExpanded,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
@@ -497,24 +497,24 @@ class SpanTreeModel {
               treeDepth: shouldHideSpanOfGroup ? treeDepth : treeDepth + 1,
               isLastSibling: index === lastIndex,
               continuingTreeDepths: descendantContinuingTreeDepths,
-              hiddenSpanGroups,
-              spanGroups: new Set(childSpanGroup),
+              hiddenSpanSubTrees,
+              spanAncestors: new Set(nextSpanAncestors),
               filterSpans,
               previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
               event,
               isOnlySibling: descendantsSource.length === 1,
-              spanGrouping: shouldGroup
-                ? [...(spanGrouping ?? []), wrappedSpan]
+              spanNestedGrouping: shouldGroup
+                ? [...(spanNestedGrouping ?? []), wrappedSpan]
                 : undefined,
-              toggleSpanGroup: isNotLastSpanOfGroup
-                ? toggleSpanGroup === undefined
-                  ? this.toggleSpanGroup
-                  : toggleSpanGroup
+              toggleNestedSpanGroup: isNotLastSpanOfGroup
+                ? toggleNestedSpanGroup === undefined
+                  ? this.toggleNestedSpanGroup
+                  : toggleNestedSpanGroup
                 : undefined,
-              showSpanGroup: isNotLastSpanOfGroup
-                ? toggleSpanGroup === undefined
-                  ? this.showSpanGroup
-                  : showSpanGroup
+              isNestedSpanGroupExpanded: isNotLastSpanOfGroup
+                ? toggleNestedSpanGroup === undefined
+                  ? this.isNestedSpanGroupExpanded
+                  : isNestedSpanGroupExpanded
                 : false,
               addTraceBounds,
               removeTraceBounds,
