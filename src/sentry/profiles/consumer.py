@@ -3,7 +3,7 @@ from typing import Any, Dict, MutableMapping, Optional, Sequence
 import msgpack
 from confluent_kafka import Message
 
-from sentry.profiles.tasks import process_profile
+from sentry.profiles.task import process_profile
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer

@@ -5,13 +5,13 @@ from unittest import TestCase
 from exam import fixture
 
 from sentry.constants import MODULE_ROOT
-from sentry.profiles.tasks import _normalize, _validate_ios_profile
+from sentry.profiles.task import _normalize, _validate_ios_profile
 from sentry.utils import json
 
 PROFILES_FIXTURES_PATH = join(MODULE_ROOT, pardir, pardir, "tests", "fixtures", "profiles")
 
 
-class ProfilesTasksTest(TestCase):
+class ProfilesProcessTaskTest(TestCase):
     @fixture
     def ios_profile(self):
         path = join(PROFILES_FIXTURES_PATH, "valid_ios_profile.json")
