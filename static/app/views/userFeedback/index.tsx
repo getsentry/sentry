@@ -157,7 +157,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   <PageFilterBar>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
-                    <DatePageFilter hidePin alignDropdown="right" />
+                    <DatePageFilter alignDropdown="right" />
                   </PageFilterBar>
                 </Filters>
               </Feature>

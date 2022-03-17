@@ -83,7 +83,7 @@ function IssueListFilters({
           <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter alignDropdown="right" />
-            <DatePageFilter hidePin alignDropdown="right" />
+            <DatePageFilter alignDropdown="right" />
           </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
@@ -187,6 +187,12 @@ const QueryCount = styled('p')`
 
 const DisplayOptionsBar = styled(PageFilterBar)`
   height: auto;
+
+  /* make sure the border is on top of the trigger buttons */
+  &::after {
+    z-index: ${p => p.theme.zIndex.issuesList.displayOptions + 1};
+  }
+
   button[aria-haspopup='listbox'] {
     font-weight: 600;
   }
