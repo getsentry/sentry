@@ -1,3 +1,4 @@
+import abc
 import logging
 
 from django import forms
@@ -24,7 +25,7 @@ class IntegrationNotifyServiceForm(forms.Form):
         self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
-class EventAction(RuleBase):
+class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
     def after(self, event, state):
@@ -50,7 +51,7 @@ class EventAction(RuleBase):
         raise NotImplementedError
 
 
-class IntegrationEventAction(EventAction):
+class IntegrationEventAction(EventAction, abc.ABC):
     """
     Intermediate abstract class to help DRY some event actions code.
     """
@@ -179,7 +180,7 @@ def create_issue(event, futures):
         create_link(integration, installation, event, response)
 
 
-class TicketEventAction(IntegrationEventAction):
+class TicketEventAction(IntegrationEventAction, abc.ABC):
     """Shared ticket actions"""
 
     form_cls = IntegrationNotifyServiceForm
