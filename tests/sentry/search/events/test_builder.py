@@ -717,6 +717,46 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_p100(self):
+        """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p100(transaction.duration)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    [
+                        "transaction.duration",
+                    ]
+                ),
+            ],
+        )
+        self.assertCountEqual(
+            query.distributions,
+            [
+                Function(
+                    "maxIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(constants.METRICS_MAP["transaction.duration"]),
+                            ],
+                        ),
+                    ],
+                    "p100_transaction_duration",
+                )
+            ],
+        )
+
     def test_grouping(self):
         query = MetricsQueryBuilder(
             self.params,
@@ -873,12 +913,25 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
+        self.store_metric(
+            100,
+            metric="measurements.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1000,
+            metric="measurements.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
             selected_columns=[
                 "transaction",
                 "p95(transaction.duration)",
+                "p100(measurements.lcp)",
             ],
         )
         result = query.run_query("test_query")
@@ -886,12 +939,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][0] == {
             "transaction": indexer.resolve("foo_transaction"),
             "p95_transaction_duration": 100,
+            "p100_measurements_lcp": 1000,
         }
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "transaction", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "p100_measurements_lcp", "type": "Float64"},
             ],
         )
 

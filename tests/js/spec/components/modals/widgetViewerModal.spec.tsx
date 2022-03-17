@@ -73,7 +73,9 @@ describe('Modals -> WidgetViewerModal', function () {
     let container, rerender, eventsStatsMock, eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
-      fields: ['count()', 'failure_count()'],
+      fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -81,11 +83,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const additionalMockQuery = {
       conditions: '',
       fields: ['count()'],
+      aggregates: ['count()'],
+      columns: [],
       id: '2',
       name: 'Another Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
       interval: '5m',
@@ -104,22 +109,14 @@ describe('Modals -> WidgetViewerModal', function () {
           data: [
             {
               title: '/organizations/:orgId/dashboards/',
-              project: 'test-project',
-              'user.display': 'test@sentry.io',
-              'event.type': 'transaction',
-              timestamp: '2022-03-09T00:00:00+00:00',
               id: '1',
-              'project.name': 'test-project',
+              count: 1,
             },
           ],
           meta: {
             title: 'string',
-            project: 'string',
-            'user.display': 'string',
-            'event.type': 'string',
-            timestamp: 'date',
             id: 'string',
-            'project.name': 'string',
+            count: 1,
             isMetricsData: false,
           },
         },
@@ -136,21 +133,13 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     });
 
-    it('renders default table columns with default orderby', async function () {
+    it('renders updated table columns and orderby', async function () {
       expect(await screen.findByText('title')).toBeInTheDocument();
-      expect(screen.getByText('event.type')).toBeInTheDocument();
-      expect(screen.getByText('project')).toBeInTheDocument();
-      expect(screen.getByText('user.display')).toBeInTheDocument();
-      expect(screen.getByText('timestamp')).toBeInTheDocument();
       expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
-      expect(screen.getByText('transaction')).toBeInTheDocument();
-      expect(screen.getByText('test-project')).toBeInTheDocument();
-      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
-      expect(screen.getByText('Mar 9, 2022 12:00:00 AM UTC')).toBeInTheDocument();
       expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-timestamp']}),
+          query: expect.objectContaining({sort: ['-count']}),
         })
       );
     });
@@ -168,7 +157,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await screen.findByRole('button', {name: 'Open in Discover'})
       ).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-count&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -253,7 +242,38 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=Test%20Widget&query=&sort=-timestamp&statsPeriod=14d'
+        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=&sort=-count&statsPeriod=14d&yAxis=count%28%29'
+      );
+    });
+
+    it('renders with first legend disabled by default', function () {
+      // Rerender with first legend disabled
+      initialData.router.location.query = {legend: ['Query Name']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            legend: expect.objectContaining({
+              selected: {'Query Name': false},
+            }),
+          }),
+        }),
+        {}
       );
     });
   });
@@ -263,6 +283,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
+      aggregates: ['count()'],
+      columns: ['error.type'],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -355,10 +377,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: ['-count']},
+        query: {sort: ['-count']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['-count']};
+      initialData.router.location.query = {sort: ['-count']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -397,6 +419,29 @@ describe('Modals -> WidgetViewerModal', function () {
     it('paginates to the next page', async function () {
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0'},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
@@ -406,6 +451,8 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
+      aggregates: ['p75(measurements.lcp)'],
+      columns: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
@@ -473,11 +520,14 @@ describe('Modals -> WidgetViewerModal', function () {
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
+      columns: ['events', 'status', 'title'],
+      aggregates: [],
       id: '1',
       name: 'Query Name',
       orderby: '',
     };
     const mockWidget = {
+      id: '1',
       title: 'Issue Widget',
       displayType: DisplayType.TABLE,
       interval: '5m',
@@ -579,10 +629,10 @@ describe('Modals -> WidgetViewerModal', function () {
     it('sorts table when a sortable column header is clicked', function () {
       userEvent.click(screen.getByText('events'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {modalSort: 'freq'},
+        query: {sort: 'freq'},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {modalSort: ['freq']};
+      initialData.router.location.query = {sort: ['freq']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -626,7 +676,54 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(await screen.findByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {cursor: '0:10:0', page: 1},
+        })
+      );
+      // Need to manually set the new router location and rerender to simulate the next page click
+      initialData.router.location.query = {cursor: ['0:10:0']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
+    });
+
+    it('displays with correct table column widths', function () {
+      initialData.router.location.query = {width: ['-1', '-1', '575']};
+      rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />,
+        {
+          context: initialData.routerContext,
+          organization: initialData.organization,
+        }
+      );
+      expect(screen.getByTestId('grid-editable')).toHaveStyle({
+        'grid-template-columns':
+          ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
+      });
     });
   });
 });
