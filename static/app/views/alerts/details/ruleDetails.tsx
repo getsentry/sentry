@@ -201,12 +201,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     return (
       <PageFiltersContainer
+        skipInitializeUrlParams
+        skipLoadLastUsed
         shouldForceProject
         forceProject={project}
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
-        skipLoadLastUsed
       >
         <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
 

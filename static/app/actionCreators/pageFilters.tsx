@@ -129,6 +129,10 @@ type InitializeUrlStateParams = {
   shouldForceProject?: boolean;
   showAbsolute?: boolean;
   /**
+   * Skip setting the query parameters
+   */
+  skipInitializeUrlParams?: boolean;
+  /**
    * If true, do not load from local storage
    */
   skipLoadLastUsed?: boolean;
@@ -146,6 +150,7 @@ export function initializeUrlState({
   defaultSelection,
   forceProject,
   showAbsolute = true,
+  skipInitializeUrlParams = false,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
 
@@ -261,10 +266,12 @@ export function initializeUrlState({
     utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
   };
 
-  updateParams({project, environment, ...newDatetime}, router, {
-    replace: true,
-    keepCursor: true,
-  });
+  if (!skipInitializeUrlParams) {
+    updateParams({project, environment, ...newDatetime}, router, {
+      replace: true,
+      keepCursor: true,
+    });
+  }
 }
 
 function isProjectsValid(projects: ProjectId[]) {
