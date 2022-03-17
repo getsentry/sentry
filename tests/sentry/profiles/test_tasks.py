@@ -1,22 +1,26 @@
-from os.path import dirname, join
+from os import pardir
+from os.path import join
 from unittest import TestCase
 
 from exam import fixture
 
+from sentry.constants import MODULE_ROOT
 from sentry.profiles.tasks import _normalize, _validate_ios_profile
 from sentry.utils import json
+
+PROFILES_FIXTURES_PATH = join(MODULE_ROOT, pardir, pardir, "tests", "fixtures", "profiles")
 
 
 class ProfilesTasksTest(TestCase):
     @fixture
     def ios_profile(self):
-        path = join(dirname(__file__), "data/valid_ios_profile.json")
+        path = join(PROFILES_FIXTURES_PATH, "valid_ios_profile.json")
         with open(path) as f:
             return json.loads(f.read())
 
     @fixture
     def android_profile(self):
-        path = join(dirname(__file__), "data/valid_android_profile.json")
+        path = join(PROFILES_FIXTURES_PATH, "valid_android_profile.json")
         with open(path) as f:
             return json.loads(f.read())
 
