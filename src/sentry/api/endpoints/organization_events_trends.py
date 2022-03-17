@@ -16,14 +16,20 @@ from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import DateArg, parse_function
+from sentry.search.events.fields import (
+    DateArg,
+    FunctionDetails,
+    SnQLFunction,
+    is_function,
+    parse_function,
+)
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 # converter is to convert the aggregate filter to snuba query
-Alias = namedtuple("Alias", "converter aggregate resolved_function")
+Alias = namedtuple("Alias", "converter aggregate resolved_function result_type")
 
 
 class TrendColumns(TypedDict):
@@ -52,6 +58,7 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
+# TODO move this to the builder file and introduce a top-events version instead
 class TrendQueryBuilder(QueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
@@ -71,7 +78,23 @@ class TrendQueryBuilder(QueryBuilder):
         overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         if function in self.params.get("aliases", {}):
-            return self.params["aliases"][function].resolved_function
+            alias = self.params["aliases"][function]
+            if match is None:
+                match = is_function(function)
+
+            if not match:
+                raise InvalidSearchQuery(f"Invalid characters in field {function}")
+
+            raw_function = match.group("function")
+
+            self.function_alias_map[raw_function] = FunctionDetails(
+                raw_function,
+                SnQLFunction(
+                    raw_function, snql_aggregate=lambda: None, default_result_type=alias.result_type
+                ),
+                {},
+            )
+            return alias.resolved_function
         else:
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
 
@@ -244,6 +267,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ),
                 ["percentage", "transaction.duration"],
                 trend_columns["trend_percentage"],
+                "percentage",
             ),
             "trend_difference()": Alias(
                 lambda aggregate_filter: Condition(
@@ -259,6 +283,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ),
                 ["minus", "transaction.duration"],
                 trend_columns["trend_difference"],
+                "number",
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: Condition(
@@ -274,6 +299,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ),
                 None,
                 trend_columns["t_test"],
+                "number",
             ),
             "count_percentage()": Alias(
                 lambda aggregate_filter: Condition(
@@ -283,6 +309,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ),
                 ["percentage", "count"],
                 trend_columns["count_percentage"],
+                "integer",
             ),
         }
 
@@ -303,6 +330,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ],
                 ["percentage", "transaction.duration"],
                 None,
+                "percentage",
             ),
             "trend_difference()": Alias(
                 lambda aggregate_filter: [
@@ -316,6 +344,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ],
                 ["minus", "transaction.duration"],
                 None,
+                "number",
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: [
@@ -329,6 +358,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ],
                 None,
                 None,
+                "number",
             ),
             "count_percentage()": Alias(
                 lambda aggregate_filter: [
@@ -338,6 +368,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ],
                 ["percentage", "count"],
                 None,
+                "count",
             ),
         }
 
@@ -550,9 +581,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         use_snql,
     ):
         def on_results(events_results):
-            def get_event_stats(
-                query_columns, query, params, rollup, zerofill_results, comparison_delta=None
-            ):
+            def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,

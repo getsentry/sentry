@@ -463,20 +463,23 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, config=None, params=None):
+    def __init__(self, config=None, params=None, builder=None):
         super().__init__()
 
         if config is None:
             config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
-        # Avoid circular import
-        from sentry.search.events.builder import UnresolvedQuery
+        if builder is None:
+            # Avoid circular import
+            from sentry.search.events.builder import UnresolvedQuery
 
-        # TODO: read dataset from config
-        self.query = UnresolvedQuery(
-            dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
-        )
+            # TODO: read dataset from config
+            self.builder = UnresolvedQuery(
+                dataset=Dataset.Discover, params=self.params, functions_acl=FUNCTIONS.keys()
+            )
+        else:
+            self.builder = builder
 
     @cached_property
     def key_mappings_lookup(self):
@@ -713,7 +716,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.query.resolve_function_result_type(search_key.name)
+            result_type = self.builder.resolve_function_result_type(search_key.name)
 
             if result_type == "duration":
                 aggregate_value = parse_duration(*search_value)
@@ -741,7 +744,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            result_type = self.query.resolve_function_result_type(search_key.name)
+            result_type = self.builder.resolve_function_result_type(search_key.name)
             if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
@@ -1071,7 +1074,7 @@ default_config = SearchConfig(
 )
 
 
-def parse_search_query(query, config=None, params=None) -> Sequence[SearchFilter]:
+def parse_search_query(query, config=None, params=None, builder=None) -> Sequence[SearchFilter]:
     if config is None:
         config = default_config
 
@@ -1087,4 +1090,4 @@ def parse_search_query(query, config=None, params=None) -> Sequence[SearchFilter
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor(config, params=params).visit(tree)
+    return SearchVisitor(config, params=params, builder=builder).visit(tree)

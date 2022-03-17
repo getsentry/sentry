@@ -542,7 +542,16 @@ class QueryBuilder:
 
         params to this function should match that of resolve_function
         """
-        resolved_function = self.resolve_function(function, match, resolve_only, overwrite_alias)
+        # HACK: Don't invalid query here if we don't recognize the function
+        # this is cause we want to use trend function aliases in top events, see TODO about introducing dataset on the
+        # endpoint file
+        try:
+            resolved_function = self.resolve_function(
+                function, match, resolve_only, overwrite_alias
+            )
+        except InvalidSearchQuery:
+            return None
+
         if not isinstance(resolved_function, Function) or resolved_function.alias is None:
             return None
 
@@ -823,7 +832,7 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params, builder=self)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1053,10 +1062,6 @@ class QueryBuilder:
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-        # TODO: This is no longer true, can order by fields that aren't selected, keeping
-        # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
