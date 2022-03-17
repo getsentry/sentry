@@ -410,7 +410,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.elements('[data-test-id="span-row-7"]')[0].click()
+            self.browser.element('[data-test-id="span-row-7"]').click()
 
             # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
