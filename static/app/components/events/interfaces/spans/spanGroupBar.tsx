@@ -282,7 +282,7 @@ class SpanGroupBar extends React.Component<Props> {
           style={{
             left,
           }}
-          key="test"
+          key={`${span.description}-${depth}`}
           orphanBranch={false}
         />
       );
