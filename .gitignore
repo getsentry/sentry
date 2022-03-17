@@ -31,7 +31,6 @@ node_modules
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
-/static/app/constants/ios-device-list.tsx
 /config/chartcuterie/config.js*
 /config/*.pem
 /tests/apidocs/openapi-derefed.json
