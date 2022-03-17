@@ -143,7 +143,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   return (
     <MultipleProjectSelector
       organization={organization}
-      projects={memberProjects}
+      memberProjects={memberProjects}
       isGlobalSelectionReady={projectsLoaded && isReady}
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
