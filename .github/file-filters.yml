@@ -56,6 +56,10 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
+backend_or_frontend: &backend_or_frontend
+  - *backend
+  - *frontend
+
 plugins:
   - *backend
   - 'src/sentry_plugins/**/*.html'
