@@ -133,7 +133,7 @@ export function FilterResultsStep({
             icon={<IconAdd isCircled />}
             onClick={onAddSearchConditions}
           >
-            {t('Add query')}
+            {t('Add Query')}
           </Button>
         )}
       </div>
