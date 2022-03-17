@@ -1357,7 +1357,7 @@ describe('WidgetBuilder', function () {
       );
       expect(await screen.findByText('No items found')).toBeInTheDocument();
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.type(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'is:'
