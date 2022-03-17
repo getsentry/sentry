@@ -1349,15 +1349,20 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
     });
 
-    it.only('renders with an issues search bar', async function () {
+    it('renders with an issues search bar', async function () {
       renderTestComponent();
+      userEvent.type(
+        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
+        'is:'
+      );
+      expect(await screen.findByText('No items found')).toBeInTheDocument();
 
       userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
       userEvent.type(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'assign'
+        'is:'
       );
-      expect(screen.getByText('assigned')).toBeInTheDocument();
+      expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
   });
 
