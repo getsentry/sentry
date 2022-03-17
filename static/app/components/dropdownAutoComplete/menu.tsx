@@ -416,13 +416,13 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
 
 const StyledDropdownBubble = styled(DropdownBubble)`
   display: flex;
+  min-width: 250px;
 
   ${p => p.detached && p.alignMenu === 'left' && 'right: auto;'}
   ${p => p.detached && p.alignMenu === 'right' && 'left: auto;'}
 `;
 
 const DropdownMainContent = styled('div')`
-  min-width: 250px;
   width: 100%;
 `;
 
