@@ -1,5 +1,4 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   render,
   screen,
@@ -8,6 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import {
@@ -42,6 +42,7 @@ function TestComponent({
           : undefined
       }
     >
+      <GlobalModal />
       <CustomRepositories
         {...props}
         organization={organization}
@@ -87,12 +88,8 @@ describe('Custom Repositories', function () {
     type: CustomRepoType.APP_STORE_CONNECT,
   };
 
-  beforeEach(async function () {
-    await mountGlobalModal(routerContext);
-  });
-
   it('renders', async function () {
-    const {rerender} = render(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />, {context: routerContext});
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -184,7 +181,8 @@ describe('Custom Repositories', function () {
     const newOrganization = {...organization, features: ['custom-symbol-sources']};
 
     const {rerender} = render(
-      <TestComponent {...props} organization={newOrganization} />
+      <TestComponent {...props} organization={newOrganization} />,
+      {context: routerContext}
     );
 
     // Section title
@@ -241,7 +239,8 @@ describe('Custom Repositories', function () {
         {...props}
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
-      />
+      />,
+      {context: routerContext}
     );
 
     // Section title
@@ -284,7 +283,8 @@ describe('Custom Repositories', function () {
         {...props}
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
-      />
+      />,
+      {context: routerContext}
     );
 
     // Content
