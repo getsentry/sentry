@@ -48,9 +48,10 @@ function transformResult(
   const seriesNamePrefix = query.name;
 
   if (isMultiSeriesStats(result)) {
+    let seriesWithOrdering;
     if (displayType !== DisplayType.TOP_N && query.aggregates.length > 1) {
-      const outer = Object.keys(result)
-        .reduce((acc: any, groupingName: string) => {
+      seriesWithOrdering = Object.keys(result).reduce(
+        (acc: any, groupingName: string) => {
           const transformed = Object.keys(omit(result[groupingName], 'order')).map(
             yAxisName => {
               const seriesName = `${groupingName} : ${yAxisName}`;
@@ -66,29 +67,26 @@ function transformResult(
           );
 
           return [...acc, ...transformed];
-        }, [])
-        .sort((a, b) => a[0] - b[0])
-        .map(item => item[1]);
-
-      output = output.concat(outer);
+        },
+        []
+      );
     } else {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used. Convert the timeseries
       // data into a multi-series result set.  As the server will have
       // replied with a map like: {[titleString: string]: EventsStats}
-      const transformed: Series[] = Object.keys(result)
-        .map((seriesName: string): [number, Series] => {
+      seriesWithOrdering = Object.keys(result).map(
+        (seriesName: string): [number, Series] => {
           const prefixedName = seriesNamePrefix
             ? `${seriesNamePrefix} : ${seriesName}`
             : seriesName;
           const seriesData: EventsStats = result[seriesName];
           return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-        })
-        .sort((a, b) => a[0] - b[0])
-        .map(item => item[1]);
-
-      output = output.concat(transformed);
+        }
+      );
     }
+
+    output = [...seriesWithOrdering.sort().map(item => item[1])];
   } else {
     const field = query.aggregates[0];
     const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
