@@ -1,23 +1,21 @@
 import {t} from 'sentry/locale';
+import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import Measurements, {
-  MeasurementCollection,
-} from 'sentry/utils/measurements/measurements';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+import Measurements from 'sentry/utils/measurements/measurements';
 
+import {getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {GroupBySelector} from './groupBySelector';
 
 interface Props {
   columns: QueryFieldValue[];
-  onGetAmendedFieldOptions: (
-    measurements: MeasurementCollection
-  ) => ReturnType<typeof generateFieldOptions>;
   onGroupByChange: (newFields: QueryFieldValue[]) => void;
+  organization: Organization;
+  tags: TagCollection;
 }
 
-export function GroupByStep({columns, onGroupByChange, onGetAmendedFieldOptions}: Props) {
+export function GroupByStep({columns, onGroupByChange, organization, tags}: Props) {
   return (
     <BuildStep
       title={t('Group your results')}
@@ -29,7 +27,7 @@ export function GroupByStep({columns, onGroupByChange, onGetAmendedFieldOptions}
         {({measurements}) => (
           <GroupBySelector
             columns={columns}
-            fieldOptions={onGetAmendedFieldOptions(measurements)}
+            fieldOptions={getAmendedFieldOptions({measurements, tags, organization})}
             onChange={onGroupByChange}
           />
         )}

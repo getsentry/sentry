@@ -819,7 +819,8 @@ function WidgetBuilder({
                         .filter(field => !(field === 'equation|'))
                         .map(field => explodeField({field}))}
                       onGroupByChange={handleGroupByChange}
-                      onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
+                      organization={organization}
+                      tags={tags}
                     />
                   )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
