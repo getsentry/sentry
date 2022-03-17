@@ -111,7 +111,6 @@ jobs:
         uses: ./.github/actions/artifacts
 
   webpack:
-    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
     name: create frontend bundle
     runs-on: ubuntu-18.04
     timeout-minutes: 10
@@ -119,6 +118,11 @@ jobs:
       dist-path: ${{ steps.config.outputs.dist-path }}
 
     steps:
+      - name: Skip to the end
+        if: ${{ needs.changes.outputs.backend_or_frontend != 'true' }}
+        run: |
+          exit 1
+
       - uses: actions/checkout@v2
         name: Checkout sentry
 
@@ -167,6 +171,11 @@ jobs:
           retention-days: 3
           name: frontend-dist
           path: dist.tar.gz
+
+      - name: Turn it green
+        if: always()
+        run: |
+          echo "All other steps were skipped but this will turn the job green!"
 
   acceptance:
     needs: changes
