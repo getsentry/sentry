@@ -470,7 +470,7 @@ if (
     const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
     appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
 
-    // TODO: figure out why having "chunks" in the path breaks hot reloading
+    // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
