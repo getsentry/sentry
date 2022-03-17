@@ -84,10 +84,10 @@ function Flamegraph(props: FlamegraphProps): React.ReactElement {
           view={view}
           sorting={sorting}
           onSortingChange={s => {
-            dispatch({type: 'set sorting', value: s});
+            dispatch({type: 'set sorting', payload: s});
           }}
           onViewChange={v => {
-            dispatch({type: 'set view', value: v});
+            dispatch({type: 'set view', payload: v});
           }}
         />
         <ThreadMenuSelector
