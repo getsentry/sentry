@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -14,13 +15,11 @@ import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {BuildStep} from './buildStep';
 
 interface Props {
-  blurTimeout: number | null;
   canAddSearchConditions: boolean;
   hideLegendAlias: boolean;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onQueryRemove: (queryIndex: number) => void;
-  onSetBlurTimeout: (blurTimeout: number | null) => void;
   organization: Organization;
   queries: WidgetQuery[];
   projectIds?: number[] | readonly number[];
@@ -31,8 +30,6 @@ export function FilterResultsStep({
   canAddSearchConditions,
   organization,
   queries,
-  blurTimeout,
-  onSetBlurTimeout,
   onQueryRemove,
   onAddSearchConditions,
   onQueryChange,
@@ -40,6 +37,8 @@ export function FilterResultsStep({
   projectIds,
   queryErrors,
 }: Props) {
+  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+
   return (
     <BuildStep
       title={t('Filter your results')}
@@ -75,9 +74,9 @@ export function FilterResultsStep({
                     // this, we set a timer in our onSearch handler to block our onBlur
                     // handler from firing if it is within 200ms, ie from clicking an
                     // autocomplete value.
-                    onSetBlurTimeout(
+                    setBlurTimeout(
                       window.setTimeout(() => {
-                        onSetBlurTimeout(null);
+                        setBlurTimeout(null);
                       }, 200)
                     );
 

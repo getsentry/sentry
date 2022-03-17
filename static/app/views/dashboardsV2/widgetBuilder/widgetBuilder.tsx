@@ -238,8 +238,6 @@ function WidgetBuilder({
     };
   });
 
-  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
-
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
@@ -790,8 +788,6 @@ function WidgetBuilder({
                     hideLegendAlias={hideLegendAlias}
                     canAddSearchConditions={canAddSearchConditions}
                     organization={organization}
-                    onSetBlurTimeout={setBlurTimeout}
-                    blurTimeout={blurTimeout}
                     queryErrors={state.errors?.queries}
                     onAddSearchConditions={handleAddSearchConditions}
                     onQueryChange={handleQueryChange}
