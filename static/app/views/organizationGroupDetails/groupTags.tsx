@@ -10,6 +10,7 @@ import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
@@ -66,20 +67,18 @@ class GroupTags extends AsyncComponent<Props, State> {
       <Container>
         {alphabeticalTags.map((tag, tagIdx) => (
           <TagItem key={tagIdx}>
-            <Panel>
-              <StyledPanelHeader hasButtons>
-                <TagHeading>{tag.key}</TagHeading>
-                <Button
-                  size="small"
-                  to={{
-                    pathname: `${baseUrl}tags/${tag.key}/`,
-                    query: extractSelectionParameters(location.query),
-                  }}
-                >
-                  {t('More Details')}
-                </Button>
-              </StyledPanelHeader>
+            <StyledPanel>
               <PanelBody withPadding>
+                <TagHeading>
+                  <Link
+                    to={{
+                      pathname: `${baseUrl}tags/${tag.key}/`,
+                      query: extractSelectionParameters(location.query),
+                    }}
+                  >
+                    {tag.key}
+                  </Link>
+                </TagHeading>
                 <UnstyledUnorderedList>
                   {tag.topValues.map((tagValue, tagValueIdx) => (
                     <li key={tagValueIdx} data-test-id={tag.key}>
@@ -109,7 +108,7 @@ class GroupTags extends AsyncComponent<Props, State> {
                   ))}
                 </UnstyledUnorderedList>
               </PanelBody>
-            </Panel>
+            </StyledPanel>
           </TagItem>
         ))}
       </Container>
@@ -136,17 +135,20 @@ class GroupTags extends AsyncComponent<Props, State> {
 }
 
 const Container = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
-const StyledPanelHeader = styled(PanelHeader)`
-  text-transform: none;
+const StyledPanel = styled(Panel)`
+  height: 100%;
 `;
 
 const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: 0;
+  color: ${p => p.theme.blue300};
 `;
 
 const UnstyledUnorderedList = styled('ul')`
@@ -156,8 +158,7 @@ const UnstyledUnorderedList = styled('ul')`
 `;
 
 const TagItem = styled('div')`
-  padding: 0 ${space(1)};
-  width: 50%;
+  padding: 0;
 `;
 
 const TagBarBackground = styled('div')<{widthPercent: string}>`
@@ -191,14 +192,19 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
 `;
 
 const TagBarLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   flex-grow: 1;
   ${overflowEllipsis}
 `;
 
 const TagBarCount = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   padding-left: ${space(2)};
+  padding-right: ${space(1)};
   font-variant-numeric: tabular-nums;
 `;
 
