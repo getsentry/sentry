@@ -1348,6 +1348,17 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
     });
+
+    it.only('renders with an issues search bar', async function () {
+      renderTestComponent();
+
+      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.type(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'assign'
+      );
+      expect(screen.getByText('assigned')).toBeInTheDocument();
+    });
   });
 
   describe('Widget Library', function () {
