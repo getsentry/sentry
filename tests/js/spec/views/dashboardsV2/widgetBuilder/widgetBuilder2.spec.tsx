@@ -184,8 +184,6 @@ describe('WidgetBuilder', function () {
       }
 
       const x = await screen.findAllByText('Select group');
-      // eslint-disable-next-line
-      console.log(x.length);
       expect(x).toHaveLength(20);
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
