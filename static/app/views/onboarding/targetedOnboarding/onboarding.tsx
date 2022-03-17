@@ -33,7 +33,7 @@ export default function Onboarding() {
         <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
           <TargetedOnboardingWelcome />
         </AnimatePresence>
-        <PageCorners animateVariant={cornerVariantControl} />
+        <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
     </OnboardingWrapper>
   );
@@ -73,4 +73,11 @@ const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
+`;
+
+const AdaptivePageCorners = styled(PageCorners)`
+  --corner-scale: 1;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    --corner-scale: 0.5;
+  }
 `;
