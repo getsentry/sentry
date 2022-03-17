@@ -362,7 +362,7 @@ DERIVED_METRICS = {
             metrics=["session.crashed", "session.init"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, metric_ids, alias="session.crash_free_rate"
+                *args, alias="session.crash_free_rate"
             ),
         ),
         SingularEntityDerivedMetric(
