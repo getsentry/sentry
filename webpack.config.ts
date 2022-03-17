@@ -469,6 +469,9 @@ if (
     // since we do not install devDeps there.
     const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
     appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
+
+    // TODO: figure out why having "chunks" in the path breaks hot reloading
+    appConfig.output = {};
   }
 
   appConfig.devServer = {
@@ -539,9 +542,6 @@ if (IS_UI_DEV_ONLY) {
     ...appConfig.devServer,
     compress: true,
     https,
-    static: {
-      publicPath: '/_assets/',
-    },
     proxy: [
       {
         context: ['/api/', '/avatar/', '/organization-avatar/'],
@@ -560,8 +560,6 @@ if (IS_UI_DEV_ONLY) {
   appConfig.optimization = {
     runtimeChunk: 'single',
   };
-  // TODO: figure out why having chunks+hash in the path breaks hot reloading
-  appConfig.output = {};
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
