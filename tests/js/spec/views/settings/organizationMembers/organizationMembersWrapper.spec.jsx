@@ -13,6 +13,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('OrganizationMembersWrapper', function () {
   const member = TestStubs.Member();
   const organization = TestStubs.Organization({
+    features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
@@ -65,8 +66,24 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
+  it('can not invite members without the invite-members feature', function () {
+    const org = TestStubs.Organization({
+      features: [],
+      access: ['member:admin', 'org:admin', 'member:write'],
+      status: {
+        id: 'active',
+      },
+    });
+    const wrapper = mountWithTheme(
+      <OrganizationMembersWrapper organization={org} {...defaultProps} />
+    );
+
+    expect(wrapper.find('StyledButton').exists()).toBeFalsy();
+  });
+
   it('can invite without permissions', function () {
     const org = TestStubs.Organization({
+      features: ['invite-members'],
       access: [],
       status: {
         id: 'active',
