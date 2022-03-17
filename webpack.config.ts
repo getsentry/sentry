@@ -471,7 +471,9 @@ if (
     appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
 
     // TODO: figure out why having "chunks" in the path breaks hot reloading
-    appConfig.output = {};
+    if (IS_UI_DEV_ONLY) {
+      appConfig.output = {};
+    }
   }
 
   appConfig.devServer = {
