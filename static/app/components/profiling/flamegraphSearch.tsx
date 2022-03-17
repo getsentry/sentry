@@ -134,7 +134,7 @@ function FlamegraphSearch({
     [canvasPoolManager]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof search.index !== 'number') {
       return;
     }
@@ -145,7 +145,7 @@ function FlamegraphSearch({
     }
   }, [search.results, search.index]);
 
-  const handleSearchInput = React.useCallback(
+  const handleSearchInput = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       if (!evt.currentTarget.value) {
         dispatchSearch({type: 'clear search', payload: {open: true}});
@@ -163,7 +163,7 @@ function FlamegraphSearch({
     [searchIndex, frames, canvasPoolManager, allFrames]
   );
 
-  const onNextSearchClick = React.useCallback(() => {
+  const onNextSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
     if (!frames.length) {
       return;
@@ -180,7 +180,7 @@ function FlamegraphSearch({
     });
   }, [search.results, search.index]);
 
-  const onPreviousSearchClick = React.useCallback(() => {
+  const onPreviousSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
     if (!frames.length) {
       return;
