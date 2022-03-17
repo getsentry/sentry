@@ -59,7 +59,7 @@ function SpanHistogramQuery(props: Props) {
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {
-        return props.children({histogram: tableData?.data, ...rest});
+        return props.children({histogram: tableData, ...rest});
       }}
     </GenericDiscoverQuery>
   );
