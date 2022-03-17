@@ -20,7 +20,6 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -1074,6 +1073,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListFilters
                 organization={organization}
                 query={query}
+                queryCount={queryCount}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
                 display={this.getDisplay()}
@@ -1139,8 +1139,6 @@ class IssueListOverview extends React.Component<Props, State> {
             )}
           </Layout.Body>
         </StyledPageContent>
-
-        {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
       </React.Fragment>
     );
   }

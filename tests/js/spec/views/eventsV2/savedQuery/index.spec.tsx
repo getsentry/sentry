@@ -1,5 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import DiscoverBanner from 'sentry/views/eventsV2/banner';
@@ -13,9 +17,36 @@ const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-updat
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 const SELECTOR_BUTTON_CREATE_ALERT = '[data-test-id="discover2-create-from-discover"]';
 
+jest.mock('sentry/actionCreators/modal');
+
+function mount(
+  location,
+  organization,
+  router,
+  eventView,
+  savedQuery,
+  yAxis,
+  disabled = false
+) {
+  return render(
+    <SavedQueryButtonGroup
+      location={location}
+      organization={organization}
+      eventView={eventView}
+      savedQuery={savedQuery}
+      disabled={disabled}
+      updateCallback={() => {}}
+      yAxis={yAxis}
+      onIncompatibleAlertQuery={() => undefined}
+      router={router}
+      savedQueryLoading={false}
+    />
+  );
+}
 function generateWrappedComponent(
   location,
   organization,
+  router,
   eventView,
   savedQuery,
   yAxis,
@@ -30,12 +61,14 @@ function generateWrappedComponent(
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
+      onIncompatibleAlertQuery={() => undefined}
+      router={router}
+      savedQueryLoading={false}
     />
   );
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
-  // Organization + Location does not affect state in this component
   const organization = TestStubs.Organization({
     features: ['discover-query', 'dashboards-edit'],
   });
@@ -43,11 +76,14 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     pathname: '/organization/eventsv2/',
     query: {},
   };
+  const router = {
+    location: {query: {}},
+  };
   const yAxis = ['count()', 'failure_count()'];
 
   const errorsQuery = {
-    ...ALL_VIEWS.find(view => view.name === 'Errors by Title'),
-    yAxis: 'count()',
+    ...(ALL_VIEWS.find(view => view.name === 'Errors by Title') as NewQuery),
+    yAxis: ['count()'],
     display: DisplayModes.DEFAULT,
   };
   const errorsView = EventView.fromSavedQuery(errorsQuery);
@@ -59,7 +95,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
   errorsViewModified.id = '1';
   errorsViewModified.name = 'Modified Name';
 
-  const savedQuery = {...errorsViewSaved.toNewQuery(), yAxis};
+  const savedQuery = {
+    ...errorsViewSaved.toNewQuery(),
+    yAxis,
+    dateCreated: '',
+    dateUpdated: '',
+    id: '1',
+  };
 
   describe('building on a new query', () => {
     const mockUtils = jest
@@ -74,6 +116,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsView,
         undefined,
         yAxis,
@@ -88,6 +131,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsView,
         undefined,
         yAxis
@@ -108,6 +152,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsView,
         undefined,
         yAxis
@@ -127,7 +172,9 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       await buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
       // The banner should not render
-      const banner = mountWithTheme(<DiscoverBanner />);
+      const banner = mountWithTheme(
+        <DiscoverBanner organization={organization} resultsUrl="" />
+      );
       expect(banner.find('BannerTitle').exists()).toBe(false);
     });
 
@@ -135,6 +182,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsView,
         undefined,
         yAxis
@@ -169,6 +217,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsView,
         undefined,
         yAxis
@@ -197,7 +246,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     beforeEach(() => {
       mockUtils = jest
         .spyOn(utils, 'handleDeleteQuery')
-        .mockImplementation(() => Promise.resolve(savedQuery));
+        .mockImplementation(() => Promise.resolve());
     });
 
     afterEach(() => {
@@ -208,6 +257,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewSaved,
         savedQuery,
         yAxis
@@ -228,6 +278,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewSaved,
         {...savedQuery, yAxis: undefined},
         ['count()']
@@ -248,6 +299,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewSaved,
         {...savedQuery, yAxis: 'count()'},
         ['count()']
@@ -268,6 +320,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewSaved,
         savedQuery,
         yAxis
@@ -291,6 +344,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewModified,
         errorsViewSaved.toNewQuery(),
         yAxis
@@ -322,6 +376,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         const wrapper = generateWrappedComponent(
           location,
           organization,
+          router,
           errorsViewModified,
           savedQuery,
           yAxis
@@ -357,6 +412,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         const wrapper = generateWrappedComponent(
           location,
           organization,
+          router,
           errorsViewModified,
           savedQuery,
           yAxis
@@ -397,6 +453,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         metricAlertOrg,
+        router,
         errorsViewModified,
         savedQuery,
         yAxis
@@ -409,6 +466,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const wrapper = generateWrappedComponent(
         location,
         organization,
+        router,
         errorsViewModified,
         savedQuery,
         yAxis
@@ -416,6 +474,120 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(false);
+    });
+  });
+
+  describe('add dashboard widget', () => {
+    let initialData;
+    beforeEach(() => {
+      initialData = initializeOrg({
+        organization: {
+          features: ['discover-query', 'widget-viewer-modal', 'dashboards-edit'],
+          apdexThreshold: 400,
+        },
+        router: {
+          location: {query: {}},
+        },
+        project: 1,
+        projects: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+    });
+
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('opens widget modal when add to dashboard is clicked', async () => {
+      mount(
+        initialData.router.location,
+        initialData.organization,
+        initialData.router,
+        errorsViewModified,
+        savedQuery,
+        ['count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+          defaultTitle: 'Errors by Title',
+          defaultWidgetQuery: {
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+            name: '',
+            orderby: '-count',
+          },
+          displayType: 'line',
+        })
+      );
+    });
+
+    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+      mount(
+        initialData.router.location,
+        initialData.organization,
+        initialData.router,
+        errorsViewModified,
+        savedQuery,
+        yAxis
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+          defaultTitle: 'Errors by Title',
+          defaultWidgetQuery: {
+            conditions: 'event.type:error',
+            fields: ['count()', 'failure_count()'],
+            aggregates: ['count()', 'failure_count()'],
+            columns: [],
+            name: '',
+            orderby: '-count',
+          },
+          displayType: 'line',
+        })
+      );
+    });
+
+    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+      mount(
+        initialData.router.location,
+        initialData.organization,
+        initialData.router,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + failure_count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+          defaultTitle: 'Errors by Title',
+          defaultWidgetQuery: {
+            conditions: 'event.type:error',
+            fields: ['count()', 'failure_count()', 'equation|count() + failure_count()'],
+            aggregates: [
+              'count()',
+              'failure_count()',
+              'equation|count() + failure_count()',
+            ],
+            columns: [],
+            name: '',
+            orderby: '-count',
+          },
+          displayType: 'line',
+        })
+      );
     });
   });
 });

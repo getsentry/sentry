@@ -1,7 +1,6 @@
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
@@ -19,18 +18,11 @@ import {Event} from 'sentry/types/event';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
-  hasGuideAnchor?: boolean;
   showAssignee?: boolean;
   showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({
-  data,
-  showAssignee,
-  params,
-  hasGuideAnchor,
-  showInboxTime,
-}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: Props) {
   const {
     id,
     lastSeen,
@@ -48,17 +40,10 @@ function EventOrGroupExtraDetails({
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
-  const inboxReason = inbox && (
-    <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
-  );
 
   return (
     <GroupExtra>
-      {inbox && (
-        <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
-          {inboxReason}
-        </GuideAnchor>
-      )}
+      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
       {shortId && (
         <InboxShortId
           shortId={shortId}
