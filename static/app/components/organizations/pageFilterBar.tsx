@@ -4,8 +4,7 @@ const PageFilterBar = styled('div')`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.default.height - 2}px;
-  margin-top: 1px;
+  height: ${p => p.theme.form.default.height}px;
 
   &::after {
     content: '';
@@ -15,9 +14,12 @@ const PageFilterBar = styled('div')`
     left: 0;
     right: 0;
     pointer-events: none;
-    box-shadow: 0 0 0 1px ${p => p.theme.border};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
     border-radius: ${p => p.theme.borderRadius};
-    z-index: 1;
+  }
+
+  & [role='button'] {
+    z-index: 0;
   }
 
   & button[aria-haspopup='listbox'] {

@@ -434,6 +434,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                 rootClassName={css`
                   position: relative;
                   display: flex;
+                  height: 100%;
                 `}
                 inputActions={
                   hasNewPageFilters ? (
