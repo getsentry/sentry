@@ -24,6 +24,7 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
+  totalCount: number;
 };
 
 enum DisplayModes {
@@ -66,7 +67,7 @@ function Chart(props: Props) {
       <ChartControls>
         <InlineContainer>
           <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-          <SectionValue key="total-value">{100}</SectionValue>
+          <SectionValue key="total-value">{props.totalCount}</SectionValue>
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
