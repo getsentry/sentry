@@ -46,8 +46,7 @@ export function getFormattedDate(
  * Returns user timezone from their account preferences
  */
 export function getUserTimezone(): string {
-  const user = ConfigStore.get('user');
-  return user && user.options && user.options.timezone;
+  return ConfigStore.get('user')?.options?.timezone;
 }
 
 /**
@@ -225,7 +224,9 @@ export function statsPeriodToDays(
   return 0;
 }
 
-export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
+export function use24Hours() {
+  return ConfigStore.get('user')?.options?.clock24Hours;
+}
 
 export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolean} = {}) {
   if (use24Hours()) {

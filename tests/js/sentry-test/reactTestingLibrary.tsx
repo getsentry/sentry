@@ -4,7 +4,7 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import {
   fireEvent as reactRtlFireEvent,
-  render,
+  render as reactTestingLibraryRender,
   RenderOptions,
 } from '@testing-library/react';
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
@@ -56,17 +56,17 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
 /**
  * Migrating from enzyme?
  * Try avoiding unnecessary context and just mount your component. If it works, then you dont need anything else.
- * mountWithTheme(<TestedComponent />);
+ * render(<TestedComponent />);
  *
  * If your component requires routerContext or organization to render, pass it via context options argument.
- * mountWithTheme(<TestedComponent />, {context: routerContext, organization});
+ * render(<TestedComponent />, {context: routerContext, organization});
  */
-function mountWithTheme(ui: React.ReactElement, options?: Options) {
+function render(ui: React.ReactElement, options?: Options) {
   const {context, organization, ...otherOptions} = options ?? {};
 
   const AllTheProviders = makeAllTheProviders({context, organization});
 
-  return render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return reactTestingLibraryRender(ui, {wrapper: AllTheProviders, ...otherOptions});
 }
 
 /**
@@ -76,9 +76,9 @@ function mountWithTheme(ui: React.ReactElement, options?: Options) {
  */
 const fireEvent = reactRtlFireEvent;
 
-function mountGlobalModal(options?: Options) {
-  return mountWithTheme(<GlobalModal />, options);
+function renderGlobalModal(options?: Options) {
+  return render(<GlobalModal />, options);
 }
 
 export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-export {mountWithTheme, mountGlobalModal, userEvent, reactHooks, fireEvent};
+export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};

@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 
 describe('DetailedError', function () {
   it('renders', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
@@ -12,7 +12,7 @@ describe('DetailedError', function () {
   });
 
   it('renders with "Retry" button', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <DetailedError
         onRetry={() => {}}
         heading="Error heading"
@@ -24,7 +24,7 @@ describe('DetailedError', function () {
   });
 
   it('can hide support links', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <DetailedError
         hideSupportLinks
         onRetry={() => {}}
@@ -37,7 +37,7 @@ describe('DetailedError', function () {
   });
 
   it('hides footer when no "Retry" and no support links', function () {
-    const {container} = mountWithTheme(
+    const {container} = render(
       <DetailedError
         hideSupportLinks
         heading="Error heading"

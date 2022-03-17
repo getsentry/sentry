@@ -19,7 +19,10 @@ import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {WidgetViewerQueryField} from 'sentry/components/modals/widgetViewerModal/utils';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -49,6 +52,7 @@ import {
   DashboardWidgetSource,
   MAX_WIDGETS,
   Widget,
+  WidgetType,
 } from './types';
 import {cloneDashboard} from './utils';
 
@@ -115,9 +119,11 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    if (location.pathname.match(/\/widget\/[0-9]+\/$/)) {
+    if (isWidgetViewerPath(location.pathname)) {
       const widget =
-        defined(widgetId) && dashboard.widgets.find(({id}) => id === String(widgetId));
+        defined(widgetId) &&
+        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+          dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
           organization,
@@ -143,6 +149,11 @@ class DashboardDetail extends Component<Props, State> {
               source: DashboardWidgetSource.DASHBOARDS,
             });
           },
+        });
+        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
+          organization,
+          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          display_type: widget.displayType,
         });
       } else {
         // Replace the URL if the widget isn't found and raise an error in toast

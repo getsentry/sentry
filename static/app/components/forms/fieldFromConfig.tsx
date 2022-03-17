@@ -8,6 +8,7 @@ import ChoiceMapperField, {ChoiceMapperFieldProps} from './choiceMapperField';
 import EmailField, {EmailFieldProps} from './emailField';
 import {FieldProps} from './field';
 import FieldSeparator from './fieldSeparator';
+import FileField, {FileFieldProps} from './fileField';
 import HiddenField, {HiddenFieldProps} from './hiddenField';
 import InputField, {InputFieldProps} from './inputField';
 import NumberField from './numberField';
@@ -90,6 +91,8 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       return <SentryProjectSelectorField {...(componentProps as RenderFieldProps)} />;
     case 'select_async':
       return <SelectAsyncField {...(componentProps as SelectAsyncFieldProps)} />;
+    case 'file':
+      return <FileField {...(componentProps as FileFieldProps)} />;
     case 'custom':
       return field.Component(field);
     default:

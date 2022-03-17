@@ -57,6 +57,7 @@ def _get_daemon(name, *args, **kwargs):
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
+@click.option("--ingest/--no-ingest", default=None, help="Run ingest services (including Relay).")
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -89,6 +90,7 @@ def devserver(
     reload,
     watchers,
     workers,
+    ingest,
     experimental_spa,
     styleguide,
     prefix,
@@ -207,6 +209,11 @@ def devserver(
                 "uwsgi-socket": None,
             }
         )
+
+    if ingest in (True, False):
+        settings.SENTRY_USE_RELAY = ingest
+
+    os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
     if workers:
         if settings.CELERY_ALWAYS_EAGER:

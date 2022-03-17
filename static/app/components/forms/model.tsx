@@ -104,6 +104,7 @@ class FormModel {
     this.resetForm();
   }
 
+  @action
   resetForm() {
     this.fields.clear();
     this.errors.clear();

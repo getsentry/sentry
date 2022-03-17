@@ -11,10 +11,19 @@ export const eventsRequestQueryProps = [
   'end',
   'environment',
   'project',
+  'referrer',
 ] as const;
 
 function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+}
+
+export function getMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        metricsEnhanced: '1',
+      }
+    : undefined;
 }
 
 const getContainerLocalStorageObjectKey = 'landing-chart-container';

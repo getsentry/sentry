@@ -1,13 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
@@ -149,7 +143,7 @@ describe('Performance > Transaction Tags', function () {
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TransactionTags location={router.location} />, {
+    render(<TransactionTags location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -181,7 +175,7 @@ describe('Performance > Transaction Tags', function () {
   it('Default tagKey is set when loading the page without one', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(<TransactionTags location={router.location} />, {
+    render(<TransactionTags location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -218,7 +212,7 @@ describe('Performance > Transaction Tags', function () {
       query: {tagKey: 'effectiveConnectionType'},
     });
 
-    mountWithTheme(<TransactionTags location={router.location} />, {
+    render(<TransactionTags location={router.location} />, {
       context: routerContext,
       organization,
     });
@@ -253,7 +247,7 @@ describe('Performance > Transaction Tags', function () {
   it('creates links to releases if the release tag is selected', async () => {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
-    mountWithTheme(<TransactionTags location={initialData.router.location} />, {
+    render(<TransactionTags location={initialData.router.location} />, {
       context: initialData.routerContext,
       organization: initialData.organization,
     });
@@ -281,7 +275,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    mountWithTheme(<TransactionTags location={router.location} />, {
+    render(<TransactionTags location={router.location} />, {
       context: routerContext,
       organization,
     });

@@ -1,13 +1,10 @@
 import isEqual from 'lodash/isEqual';
 
+import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {
-  aggregateOutputType,
-  getColumnsAndAggregates,
-  isAggregateFieldOrEquation,
-  isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export enum DisplayType {
   AREA = 'area',
@@ -25,6 +22,16 @@ export enum DataSet {
   ISSUES = 'issues',
   METRICS = 'metrics',
 }
+
+export enum SortDirection {
+  HIGH_TO_LOW = 'high_to_low',
+  LOW_TO_HIGH = 'low_to_high',
+}
+
+export const sortDirections = {
+  [SortDirection.HIGH_TO_LOW]: t('High to low'),
+  [SortDirection.LOW_TO_HIGH]: t('Low to high'),
+};
 
 export const displayTypes = {
   [DisplayType.AREA]: t('Area Chart'),
@@ -69,10 +76,17 @@ export function mapErrors(
   return update;
 }
 
-export function normalizeQueries(
-  displayType: DisplayType,
-  queries: Widget['queries']
-): Widget['queries'] {
+export function normalizeQueries({
+  displayType,
+  queries,
+  widgetType,
+  widgetBuilderNewDesign = false,
+}: {
+  displayType: DisplayType;
+  queries: Widget['queries'];
+  widgetBuilderNewDesign?: boolean;
+  widgetType?: Widget['widgetType'];
+}): Widget['queries'] {
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
@@ -93,64 +107,77 @@ export function normalizeQueries(
   }
 
   if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
+    if (!queries[0].orderby && widgetBuilderNewDesign) {
+      const orderBy = (
+        widgetType === WidgetType.DISCOVER
+          ? generateOrderOptions({
+              widgetType,
+              widgetBuilderNewDesign,
+              columns: queries[0].columns,
+              aggregates: queries[0].aggregates,
+            })[0].value
+          : IssueSortOptions.DATE
+      ) as string;
+      queries[0].orderby = orderBy;
+    }
+
     return queries;
   }
 
   // Filter out non-aggregate fields
   queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateFieldOrEquation);
+    let aggregates = query.aggregates;
 
     if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
       // Filter out fields that will not generate numeric output types
-      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+      aggregates = aggregates.filter(aggregate =>
+        isLegalYAxisType(aggregateOutputType(aggregate))
+      );
     }
 
-    if (isTimeseriesChart && fields.length && fields.length > 3) {
+    if (isTimeseriesChart && aggregates.length && aggregates.length > 3) {
       // Timeseries charts supports at most 3 fields.
-      fields = fields.slice(0, 3);
+      aggregates = aggregates.slice(0, 3);
     }
 
     return {
       ...query,
-      fields: fields.length ? fields : ['count()'],
+      fields: aggregates.length ? aggregates : ['count()'],
       columns: [],
-      aggregates: fields.length ? fields : ['count()'],
+      aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
 
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
-    const referenceFields = [...queries[0].fields];
+    const referenceAggregates = [...queries[0].aggregates];
 
     queryLoop: for (const query of queries) {
-      if (referenceFields.length >= 3) {
+      if (referenceAggregates.length >= 3) {
         break;
       }
 
-      if (isEqual(referenceFields, query.fields)) {
+      if (isEqual(referenceAggregates, query.aggregates)) {
         continue;
       }
 
-      for (const field of query.fields) {
-        if (referenceFields.length >= 3) {
+      for (const aggregate of query.aggregates) {
+        if (referenceAggregates.length >= 3) {
           break queryLoop;
         }
 
-        if (!referenceFields.includes(field)) {
-          referenceFields.push(field);
+        if (!referenceAggregates.includes(aggregate)) {
+          referenceAggregates.push(aggregate);
         }
       }
     }
 
-    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
-
     queries = queries.map(query => {
       return {
         ...query,
-        columns,
-        aggregates,
-        fields: referenceFields,
+        aggregates: referenceAggregates,
+        fields: referenceAggregates,
       };
     });
   }
@@ -160,8 +187,8 @@ export function normalizeQueries(
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.fields.slice(0, 1),
-        aggregates: query.aggregates?.slice(0, 1),
+        fields: query.aggregates.slice(0, 1),
+        aggregates: query.aggregates.slice(0, 1),
       };
     });
   }
@@ -177,8 +204,10 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
   if (!Object.keys(parsedQuery).length) {
     return undefined;
   }
-  const fields = parsedQuery.fields?.split(',') ?? [];
-  const {columns, aggregates} = getColumnsAndAggregates(fields);
+
+  const columns = parsedQuery.columns ? getFields(parsedQuery.columns) : [];
+  const aggregates = parsedQuery.aggregates ? getFields(parsedQuery.aggregates) : [];
+  const fields = [...columns, ...aggregates];
 
   return {
     ...parsedQuery,
@@ -186,4 +215,9 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     columns,
     aggregates,
   } as WidgetQuery;
+}
+
+export function getFields(fieldsString: string): string[] {
+  // Use a negative lookahead to avoid splitting on commas inside equation fields
+  return fieldsString.split(/,(?![^(]*\))/g);
 }

@@ -256,7 +256,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
 
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
       query: location.query,
     });
   }

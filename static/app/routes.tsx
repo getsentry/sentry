@@ -215,7 +215,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          componentPromise={() => import('sentry/views/onboarding/onboarding')}
+          componentPromise={() => import('sentry/views/onboarding/onboardingController')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -984,7 +984,13 @@ function buildRoutes() {
         path="/organizations/:orgId/dashboards/new/:templateId"
         componentPromise={() => import('sentry/views/dashboardsV2/create')}
         component={SafeLazyLoad}
-      />
+      >
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/create')}
+          component={SafeLazyLoad}
+        />
+      </Route>
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -1124,6 +1130,24 @@ function buildRoutes() {
       <Route
         path="/organizations/:orgId/monitors/:monitorId/edit/"
         componentPromise={() => import('sentry/views/monitors/edit')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
+  const replayRoutes = (
+    <Route
+      path="/organizations/:orgId/replays/"
+      componentPromise={() => import('sentry/views/replays')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/replays/replays')}
+        component={SafeLazyLoad}
+      />
+      <Route
+        path=":eventSlug/"
+        componentPromise={() => import('sentry/views/replays/details')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1859,6 +1883,7 @@ function buildRoutes() {
       {groupDetailsRoutes}
       {alertRoutes}
       {monitorsRoutes}
+      {replayRoutes}
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}

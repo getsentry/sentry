@@ -64,8 +64,9 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
         )
         assert len(resp.data) == 144
         now = timezone.now().replace(minute=0, second=0, microsecond=0)
-        assert [r for r in resp.data[-3:]] == [
+        assert [r for r in resp.data[-4:]] == [
             {"date": now - timedelta(hours=3), "count": 3},
             {"date": now - timedelta(hours=2), "count": 2},
             {"date": now - timedelta(hours=1), "count": 1},
+            {"date": now, "count": 0},
         ]

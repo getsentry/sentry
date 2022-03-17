@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueryFields from 'sentry/components/dashboards/widgetQueryFields';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -101,7 +97,7 @@ describe('WidgetQueryFields', function () {
     let fields: QueryFieldValue[];
 
     const mountComponent = () =>
-      reactMountWithTheme(
+      render(
         <WidgetQueryFields
           widgetType={WidgetType.ISSUE}
           displayType={DisplayType.TABLE}
@@ -146,18 +142,23 @@ describe('WidgetQueryFields', function () {
           field: 'assignee',
         },
       ];
-      mountComponent();
     });
     it('renders issue and assignee columns', function () {
+      mountComponent();
+
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
     });
     it('renders only issue column', function () {
+      mountComponent();
+
       expect(screen.getByText('issue')).toBeInTheDocument();
       userEvent.click(screen.getByTestId('remove-column-1'));
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
     });
     it('renders issue column and then assignee column after adding', function () {
+      mountComponent();
+
       userEvent.click(screen.getByTestId('remove-column-1'));
       expect(screen.queryByText('assignee')).not.toBeInTheDocument();
       expect(screen.getByText('Add a Column')).toBeInTheDocument();
@@ -168,6 +169,117 @@ describe('WidgetQueryFields', function () {
       userEvent.click(screen.getByText('assignee'));
       mountComponent();
       expect(screen.getByText('assignee')).toBeInTheDocument();
+    });
+  });
+
+  describe('Metrics Fields', function () {
+    const organization = TestStubs.Organization();
+
+    it('top N shows the right options for y-axis and columns', function () {
+      render(
+        <WidgetQueryFields
+          widgetType={WidgetType.METRICS}
+          displayType={DisplayType.TOP_N}
+          fieldOptions={{
+            'field:sentry.sessions.session': {
+              label: 'sentry.sessions.session',
+              value: {
+                kind: FieldValueKind.METRICS,
+                meta: {name: 'sentry.sessions.session', dataType: 'counter'},
+              },
+            },
+            'field:sentry.sessions.session.error': {
+              label: 'sentry.sessions.session.error',
+              value: {
+                kind: FieldValueKind.METRICS,
+                meta: {name: 'sentry.sessions.session.error', dataType: 'set'},
+              },
+            },
+            'field:sentry.sessions.user': {
+              label: 'sentry.sessions.user',
+              value: {
+                kind: FieldValueKind.METRICS,
+                meta: {name: 'sentry.sessions.user', dataType: 'set'},
+              },
+            },
+            'function:count_unique': {
+              label: 'count_unique(…)',
+              value: {
+                kind: FieldValueKind.FUNCTION,
+                meta: {
+                  name: 'count_unique',
+                  parameters: [
+                    {
+                      kind: 'column',
+                      columnTypes: ['set'],
+                      required: true,
+                      defaultValue: 'sentry.sessions.user',
+                    },
+                  ],
+                },
+              },
+            },
+            'function:sum': {
+              label: 'sum(…)',
+              value: {
+                kind: FieldValueKind.FUNCTION,
+                meta: {
+                  name: 'sum',
+                  parameters: [
+                    {
+                      kind: 'column',
+                      columnTypes: ['counter'],
+                      required: true,
+                      defaultValue: 'sentry.sessions.session',
+                    },
+                  ],
+                },
+              },
+            },
+            'tag:environment': {
+              label: 'environment',
+              value: {
+                kind: FieldValueKind.TAG,
+                meta: {name: 'environment', dataType: 'string'},
+              },
+            },
+            'tag:release': {
+              label: 'release',
+              value: {
+                kind: FieldValueKind.TAG,
+                meta: {name: 'release', dataType: 'string'},
+              },
+            },
+            'tag:session.status': {
+              label: 'session.status',
+              value: {
+                kind: FieldValueKind.TAG,
+                meta: {name: 'session.status', dataType: 'string'},
+              },
+            },
+          }}
+          fields={[
+            {kind: 'field', field: 'release'},
+            {
+              kind: 'function',
+              function: ['sum', 'sentry.sessions.session', undefined, undefined],
+            },
+          ]}
+          organization={organization}
+          onChange={() => undefined}
+        />
+      );
+
+      // ensure that columns section shows only tags
+      userEvent.click(screen.getByText('release'));
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('session.status')).toBeInTheDocument();
+      expect(screen.queryByText('count_unique(…)')).not.toBeInTheDocument();
+
+      // ensure that y-axis section shows only functions/fields
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(screen.queryByText('environment')).not.toBeInTheDocument();
     });
   });
 });

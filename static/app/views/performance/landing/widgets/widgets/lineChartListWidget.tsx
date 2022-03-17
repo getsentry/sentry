@@ -11,6 +11,8 @@ import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
@@ -29,7 +31,7 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -51,8 +53,10 @@ const framesList = [
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
+  const {isMEPEnabled} = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions} = props;
+  const pageError = usePageError();
 
   const field = props.fields[0];
 
@@ -109,6 +113,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             limit={3}
             cursor="0:0:1"
             noPagination
+            queryExtras={getMEPQueryParams(isMEPEnabled)}
           />
         );
       },
@@ -171,6 +176,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               },
               'medium'
             )}
+            hideError
+            onError={pageError.setPageError}
+            queryExtras={getMEPQueryParams(isMEPEnabled)}
           />
         );
       },

@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 import pytz
 from django.utils import timezone
@@ -1165,7 +1166,10 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self.another_project = self.create_project()
         self.third_project = self.create_project()
 
-        self.now_dt = datetime(2000, 3, 20, 17, 40, 0)
+        # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
+        # must be less than 90 days for the metrics DB TTL
+        ONE_DAY_AGO = datetime.now(tz=dt_timezone.utc) - timedelta(days=1)
+        self.now_dt = ONE_DAY_AGO.replace(hour=17, minute=40, second=0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
         self._1_h_ago_dt = self.now_dt - timedelta(hours=1)
