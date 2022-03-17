@@ -41,10 +41,18 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
 
   get hasWriteAccess() {
     const {organization} = this.props;
-    if (!organization || !organization.access) {
+    if (!organization) {
       return false;
     }
     return organization.access.includes('member:write');
+  }
+
+  get hasInviteFeature() {
+    const {organization} = this.props;
+    if (!organization) {
+      return false;
+    }
+    return organization.features.includes('invite-members');
   }
 
   get showInviteRequests() {
@@ -95,7 +103,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     const {children} = this.props;
     const {requestList, inviteRequests} = this.state;
 
-    const action = (
+    const action = this.hasInviteFeature ? (
       <Button
         priority="primary"
         size="small"
@@ -112,7 +120,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       >
         {t('Invite Members')}
       </Button>
-    );
+    ) : null;
 
     return (
       <Fragment>
