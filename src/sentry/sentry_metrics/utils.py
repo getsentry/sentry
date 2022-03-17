@@ -53,10 +53,10 @@ def resolve_tag_key(string: str) -> str:
 
 def resolve_weak(string: str) -> int:
     """
-    A version of `resolve` that returns 0 for missing values.
+    A version of `resolve` that returns -1 for missing values.
 
     When using `resolve_weak` to produce a WHERE-clause, it is quite
-    useful to make the WHERE-clause "impossible" with `WHERE x = 0` instead of
+    useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
     resolved = indexer.resolve(string)
