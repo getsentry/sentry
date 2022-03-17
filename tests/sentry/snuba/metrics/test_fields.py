@@ -98,7 +98,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             percentage(
                 crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
                 init_sessions(metric_ids=session_ids, alias="session.init"),
-                metric_ids=session_ids,
                 alias="session.crash_free_rate",
             )
         ]
