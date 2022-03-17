@@ -248,8 +248,7 @@
           "example": {
             "name": "Plane Proxy",
             "platform": "javascript",
-            "slug": "plane-proxy",
-            "team": "the-inflated-philosophers"
+            "slug": "plane-proxy"
           }
         }
       },
