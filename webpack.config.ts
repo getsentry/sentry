@@ -493,6 +493,8 @@ if (
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
       stats: 'errors-only',
+      // Otherwise output is not saved to disk
+      writeToDisk: true,
     },
     client: {
       overlay: false,
