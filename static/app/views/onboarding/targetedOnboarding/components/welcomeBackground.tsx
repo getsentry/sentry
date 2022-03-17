@@ -247,8 +247,8 @@ const Illustration = styled(motion.svg)`
 `;
 
 const Compass = styled(Illustration)`
-  left: -15px;
-  top: 107px;
+  left: 24px;
+  top: 32px;
 `;
 
 Compass.defaultProps = {
@@ -297,7 +297,7 @@ const Container = styled(motion.div)`
   width: 100vw;
   height: 80vh;
   min-width: 200px;
-  max-width: 1000px;
+  max-width: 1200px;
   min-height: 800px;
   max-height: 900px;
 
