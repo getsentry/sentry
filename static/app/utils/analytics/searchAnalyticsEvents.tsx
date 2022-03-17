@@ -29,6 +29,7 @@ export type SearchEventParameters = {
     count: number;
     multi: boolean;
   };
+  'search.display_change': {};
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.searched': SearchEventBase & {search_source?: string};
   'settings_search.open': OpenEvent;
@@ -42,6 +43,7 @@ export type SearchEventParameters = {
 export type SearchEventKey = keyof SearchEventParameters;
 
 export const searchEventMap: Record<SearchEventKey, string | null> = {
+  'search.display_change': 'Search: Changed Display',
   'search.searched': 'Search: Performed search',
   'search.operator_autocompleted': 'Search: Operator Autocompleted',
   'organization_saved_search.selected':
