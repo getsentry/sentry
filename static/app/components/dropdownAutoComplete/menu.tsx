@@ -135,6 +135,11 @@ type Props = {
   menuWithArrow?: boolean;
 
   /**
+   * Minimum menu width, defaults to 250
+   */
+  minWidth?: number;
+
+  /**
    * Message to display when there are no items that match the search
    */
   noResultsMessage?: React.ReactNode;
@@ -192,6 +197,7 @@ const Menu = ({
   blendCorner = true,
   detached = false,
   alignMenu = 'left',
+  minWidth = 250,
   hideInput = false,
   busy = false,
   busyItemsStillVisible = false,
@@ -309,8 +315,9 @@ const Menu = ({
               detached={detached}
               alignMenu={alignMenu}
               menuWithArrow={menuWithArrow}
+              minWidth={minWidth}
             >
-              <DropdownMainContent>
+              <DropdownMainContent minWidth={minWidth}>
                 {itemsLoading && <LoadingIndicator mini />}
                 {showInput && (
                   <InputWrapper>
@@ -414,17 +421,17 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
   ${p => p.disabled && 'pointer-events: none;'}
 `;
 
-const StyledDropdownBubble = styled(DropdownBubble)`
+const StyledDropdownBubble = styled(DropdownBubble)<{minWidth: number}>`
   display: flex;
-  min-width: 250px;
+  min-width: ${p => p.minWidth}px;
 
   ${p => p.detached && p.alignMenu === 'left' && 'right: auto;'}
   ${p => p.detached && p.alignMenu === 'right' && 'left: auto;'}
 `;
 
-const DropdownMainContent = styled('div')`
+const DropdownMainContent = styled('div')<{minWidth: number}>`
   width: 100%;
-  min-width: 250px;
+  min-width: ${p => p.minWidth}px;
 `;
 
 const InputWrapper = styled('div')`
