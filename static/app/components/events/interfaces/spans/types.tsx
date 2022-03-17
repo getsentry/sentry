@@ -58,10 +58,10 @@ export type FetchEmbeddedChildrenState =
   | 'error_fetching_embedded_transactions';
 
 export type SpanGroupProps = {
-  showSpanGroup: boolean;
-  spanGrouping: EnhancedSpan[] | undefined;
+  isNestedSpanGroupExpanded: boolean;
+  spanNestedGrouping: EnhancedSpan[] | undefined;
+  toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
-  toggleSpanGroup: (() => void) | undefined;
   isLastSibling?: boolean;
 };
 
@@ -85,8 +85,8 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
+      toggleNestedSpanGroup: (() => void) | undefined;
       toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
-      toggleSpanGroup: (() => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 

@@ -86,7 +86,7 @@ function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
         newStartTimestamp = start_timestamp;
       }
 
-      if (timestamp > newEndTimestamp) {
+      if (newEndTimestamp < timestamp) {
         newEndTimestamp = timestamp;
       }
 
@@ -359,7 +359,11 @@ class SpanGroupBar extends React.Component<Props> {
               const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
               return (
-                <Row visible={isSpanVisible} showBorder={false} data-test-id="span-row">
+                <Row
+                  visible={isSpanVisible}
+                  showBorder={false}
+                  data-test-id={`span-row-${spanNumber}`}
+                >
                   <RowCellContainer>
                     <RowCell
                       data-type="span-row-cell"

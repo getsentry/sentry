@@ -137,7 +137,7 @@ class SpanTree extends React.Component<PropType> {
   }
 
   toggleSpanTree = (spanID: string) => () => {
-    this.props.waterfallModel.toggleSpanGroup(spanID);
+    this.props.waterfallModel.toggleSpanSubTree(spanID);
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
@@ -215,8 +215,8 @@ class SpanTree extends React.Component<PropType> {
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
-              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
               groupType={GroupType.DESCENDANTS}
               isLastSibling={payload.isLastSibling ?? false}
             />
@@ -235,7 +235,7 @@ class SpanTree extends React.Component<PropType> {
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
-              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
+              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleSiblingSpanGroup as () => void}
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               groupType={GroupType.SIBLINGS}
@@ -257,7 +257,7 @@ class SpanTree extends React.Component<PropType> {
 
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
-          toggleSpanGroup = payload.toggleSpanGroup;
+          toggleSpanGroup = payload.toggleNestedSpanGroup;
         }
 
         let toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined = undefined;
@@ -280,7 +280,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
-            showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
+            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
             trace={waterfallModel.parsedTrace}
             generateBounds={generateBounds}

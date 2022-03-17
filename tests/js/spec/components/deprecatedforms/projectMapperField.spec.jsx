@@ -1,5 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {findOption, openMenu, selectByValue} from 'sentry-test/select-new';
 
 import {RenderField} from 'sentry/components/forms/projectMapperField';
 
@@ -72,5 +72,22 @@ describe('ProjectMapperField', () => {
     expect(onChange).toHaveBeenCalledWith([['24', '1']], []);
   });
 
-  it('handles deleted items without error', () => {});
+  it('allows a single Sentry project to map to multiple items but not the value', () => {
+    existingValues = [['24', '1']];
+    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
+    // can find the same project again
+    openMenu(wrapper, {control: true, name: 'project'});
+    expect(
+      findOption(wrapper, {value: '24'}, {control: true, name: 'project'})
+    ).toHaveLength(1);
+    // but not the value
+    openMenu(wrapper, {control: true, name: 'mappedDropdown'});
+    expect(
+      findOption(wrapper, {value: '1'}, {control: true, name: 'mappedDropdown'})
+    ).toHaveLength(0);
+    // validate we can still find 2
+    expect(
+      findOption(wrapper, {value: '2'}, {control: true, name: 'mappedDropdown'})
+    ).toHaveLength(1);
+  });
 });

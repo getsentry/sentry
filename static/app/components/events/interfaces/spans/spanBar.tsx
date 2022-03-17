@@ -935,6 +935,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
+    const {spanNumber} = this.props;
     const bounds = this.getBounds();
     const {isSpanVisibleInView} = bounds;
 
@@ -944,7 +945,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           ref={this.spanRowDOMRef}
           visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
-          data-test-id="span-row"
+          data-test-id={`span-row-${spanNumber}`}
         >
           <QuickTraceContext.Consumer>
             {quickTrace => {

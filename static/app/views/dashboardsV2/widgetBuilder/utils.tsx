@@ -2,20 +2,18 @@ import isEqual from 'lodash/isEqual';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
+import {Organization, TagCollection} from 'sentry/types';
 import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-export enum DisplayType {
-  AREA = 'area',
-  BAR = 'bar',
-  LINE = 'line',
-  TABLE = 'table',
-  WORLD_MAP = 'world_map',
-  BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
-  TOP_N = 'top_n',
-}
 
 export enum DataSet {
   EVENTS = 'events',
@@ -90,7 +88,6 @@ export function normalizeQueries({
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
-    DisplayType.STACKED_AREA,
     DisplayType.BAR,
   ].includes(displayType);
 
@@ -143,7 +140,7 @@ export function normalizeQueries({
     return {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
-      columns: [],
+      columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
@@ -176,6 +173,7 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
+        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
         fields: referenceAggregates,
       };
@@ -220,4 +218,21 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
 export function getFields(fieldsString: string): string[] {
   // Use a negative lookahead to avoid splitting on commas inside equation fields
   return fieldsString.split(/,(?![^(]*\))/g);
+}
+
+export function getAmendedFieldOptions({
+  measurements,
+  organization,
+  tags,
+}: {
+  measurements: MeasurementCollection;
+  organization: Organization;
+  tags: TagCollection;
+}) {
+  return generateFieldOptions({
+    organization,
+    tagKeys: Object.values(tags).map(({key}) => key),
+    measurementKeys: Object.values(measurements).map(({key}) => key),
+    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+  });
 }
