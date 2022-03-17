@@ -158,10 +158,6 @@ function useTooltipInAcceptanceTests({
   setUseGlobalPortal,
   ignore,
 }: UseTooltipInAcceptanceTestsOptions) {
-  if (!IS_ACCEPTANCE_TEST) {
-    return;
-  }
-
   async function registerTooltip() {
     const tooltipStore = await getAcceptanceTestTooltipStore();
     tooltipStore?.addTooltip(tooltipId, {setOpen, setUseGlobalPortal});
@@ -174,6 +170,10 @@ function useTooltipInAcceptanceTests({
 
   // Register and unregister tooltips from the store
   useEffect(() => {
+    if (!IS_ACCEPTANCE_TEST) {
+      return;
+    }
+
     if (!ignore) {
       registerTooltip();
     }
