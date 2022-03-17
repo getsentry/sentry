@@ -1289,7 +1289,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
       // Hide without the dashboards-metrics feature flag
-      expect(screen.queryByText(/metrics/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/release/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
@@ -1364,9 +1364,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
 
-      const metricsDataset = screen.getByLabelText(/metrics/i);
+      const metricsDataset = screen.getByLabelText(/release/i);
       expect(metricsDataset).not.toBeChecked();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
       expect(metricsDataset).toBeChecked();
 
       userEvent.click(screen.getByText('Table'));
@@ -1390,7 +1390,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
@@ -1422,7 +1422,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1451,7 +1451,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1492,7 +1492,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       // change data set to metrics
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       // open visualization select
       userEvent.click(screen.getByText('Table'));
