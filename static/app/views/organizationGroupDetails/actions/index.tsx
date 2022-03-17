@@ -17,8 +17,9 @@ import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
-import {IconStar} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -308,16 +309,6 @@ class Actions extends React.Component<Props, State> {
           </ActionButton>
         </Feature>
 
-        <BookmarkButton
-          disabled={disabled}
-          isActive={group.isBookmarked}
-          title={bookmarkTitle}
-          tooltipProps={{delay: 300}}
-          aria-label={bookmarkTitle}
-          onClick={this.handleClick(disabled, this.onToggleBookmark)}
-          icon={<IconStar isSolid size="xs" />}
-        />
-
         <SubscribeAction
           disabled={disabled}
           group={group}
@@ -333,25 +324,30 @@ class Actions extends React.Component<Props, State> {
             onClick={this.handleClick(disabled, this.onReprocessEvent)}
           />
         )}
+
+        <DropdownMenuControlV2
+          triggerProps={{
+            'aria-label': t('More actions'),
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+            size: 'xsmall',
+          }}
+          items={[
+            {
+              key: 'bookmark',
+              label: bookmarkTitle,
+              hidden: false,
+              // @ts-ignore the handled function needs no args
+              onAction: this.handleClick(disabled, this.onToggleBookmark),
+            },
+          ]}
+        />
       </Wrapper>
     );
   }
 }
 
 const ReprocessAction = styled(ActionButton)``;
-
-const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
-  ${p =>
-    p.isActive &&
-    `
-   && {
- background: ${p.theme.yellow100};
- color: ${p.theme.yellow300};
- border-color: ${p.theme.yellow300};
- text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-}
-  `}
-`;
 
 const Wrapper = styled('div')`
   display: grid;
