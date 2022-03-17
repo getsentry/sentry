@@ -1,5 +1,6 @@
 import {createContext, useReducer} from 'react';
 
+const exhaustiveCheck = (x: never) => void x;
 export interface FlamegraphPreferences {
   colorCoding:
     | 'by symbol name'
@@ -39,8 +40,8 @@ export function flamegraphPreferencesReducer(
       };
     }
     default: {
-      const exhaustiveCheck: never = action;
-      throw new Error(`Unhandled case: ${JSON.stringify(exhaustiveCheck)}`);
+      exhaustiveCheck(action);
+      return state;
     }
   }
 }

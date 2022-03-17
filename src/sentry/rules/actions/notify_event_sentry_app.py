@@ -29,6 +29,7 @@ def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str
 
 
 class NotifyEventSentryAppAction(EventAction):  # type: ignore
+    id = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored
     label = ""

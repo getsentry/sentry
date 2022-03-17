@@ -88,7 +88,6 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         raise InvalidParams
 
     for metric_type in ("counter", "set", "distribution"):
-        # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         data = run_metrics_query(
             entity_key=entity_key,
@@ -363,7 +362,7 @@ DERIVED_METRICS = {
             metrics=["session.crashed", "session.init"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, metric_ids, alias="session.crash_free_rate"
+                *args, alias="session.crash_free_rate"
             ),
         ),
         SingularEntityDerivedMetric(
