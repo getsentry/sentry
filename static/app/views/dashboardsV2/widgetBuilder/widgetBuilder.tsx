@@ -34,9 +34,7 @@ import {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -50,11 +48,11 @@ import {
   DashboardDetails,
   DashboardListItem,
   DashboardWidgetSource,
+  DisplayType,
   Widget,
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
@@ -68,13 +66,7 @@ import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
 import {Header} from './header';
-import {
-  DataSet,
-  DisplayType,
-  getParsedDefaultWidgetQuery,
-  mapErrors,
-  normalizeQueries,
-} from './utils';
+import {DataSet, getParsedDefaultWidgetQuery, mapErrors, normalizeQueries} from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
 const NEW_DASHBOARD_ID = 'new';
@@ -163,9 +155,9 @@ function WidgetBuilder({
   start,
   end,
   statsPeriod,
-  tags,
   onSave,
   router,
+  tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
@@ -245,8 +237,6 @@ function WidgetBuilder({
         : DataSet.EVENTS,
     };
   });
-
-  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
@@ -579,15 +569,6 @@ function WidgetBuilder({
     });
   }
 
-  function handleGetAmendedFieldOptions(measurements: MeasurementCollection) {
-    return generateFieldOptions({
-      organization,
-      tagKeys: Object.values(tags).map(({key}) => key),
-      measurementKeys: Object.values(measurements).map(({key}) => key),
-      spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-    });
-  }
-
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
@@ -722,12 +703,8 @@ function WidgetBuilder({
   }
 
   const canAddSearchConditions =
-    [
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(state.displayType) && state.queries.length < 3;
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.queries.length < 3;
 
   const hideLegendAlias = [
     DisplayType.TABLE,
@@ -784,7 +761,6 @@ function WidgetBuilder({
                       dataSet={state.dataSet}
                       queries={state.queries}
                       displayType={state.displayType}
-                      organization={organization}
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
                       onQueryChange={handleQueryChange}
@@ -792,7 +768,8 @@ function WidgetBuilder({
                       explodedFields={explodedFields}
                       explodedColumns={explodedColumns}
                       explodedAggregates={explodedAggregates}
-                      onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
+                      tags={tags}
+                      organization={organization}
                     />
                   )}
                   {![DisplayType.TABLE].includes(state.displayType) && (
@@ -802,7 +779,8 @@ function WidgetBuilder({
                       queryErrors={state.errors?.queries}
                       onYAxisChange={handleYAxisChange}
                       aggregates={explodedAggregates}
-                      onGetAmendedFieldOptions={handleGetAmendedFieldOptions}
+                      tags={tags}
+                      organization={organization}
                     />
                   )}
                   <FilterResultsStep
@@ -810,8 +788,6 @@ function WidgetBuilder({
                     hideLegendAlias={hideLegendAlias}
                     canAddSearchConditions={canAddSearchConditions}
                     organization={organization}
-                    onSetBlurTimeout={setBlurTimeout}
-                    blurTimeout={blurTimeout}
                     queryErrors={state.errors?.queries}
                     onAddSearchConditions={handleAddSearchConditions}
                     onQueryChange={handleQueryChange}
