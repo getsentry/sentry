@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {
   generateFieldAsString,
-  getColumnsAndAggregates,
+  getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
@@ -100,11 +100,11 @@ export function ColumnsStep({
           fieldOptions={generateIssueWidgetFieldOptions()}
           onChange={newFields => {
             const fieldStrings = newFields.map(generateFieldAsString);
+            const splitFields = getColumnsAndAggregatesAsStrings(newFields);
             const newQuery = cloneDeep(queries[0]);
             newQuery.fields = fieldStrings;
-            const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
-            newQuery.aggregates = aggregates;
-            newQuery.columns = columns;
+            newQuery.aggregates = splitFields.aggregates;
+            newQuery.columns = splitFields.columns;
             onQueryChange(0, newQuery);
           }}
         />
