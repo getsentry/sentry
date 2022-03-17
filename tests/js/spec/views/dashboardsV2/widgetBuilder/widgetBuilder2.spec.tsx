@@ -183,7 +183,16 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Add Group'));
       }
 
-      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      let x;
+      try {
+        x = await screen.findAllByText('Select group');
+      } catch (error) {
+        // eslint-disable-next-line
+        console.log(error);
+        x = [];
+      }
+
+      expect(x).toHaveLength(20);
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
