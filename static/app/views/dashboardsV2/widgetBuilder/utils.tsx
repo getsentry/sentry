@@ -140,7 +140,7 @@ export function normalizeQueries({
     return {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
-      columns: [],
+      columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
@@ -173,6 +173,7 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
+        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
         fields: referenceAggregates,
       };
