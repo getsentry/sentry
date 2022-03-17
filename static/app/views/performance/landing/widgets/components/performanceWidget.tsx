@@ -139,7 +139,7 @@ function _DataDisplay<T extends WidgetDataConstraint>(
                   height={chartHeight}
                 />
               ),
-              fixed: <Placeholder height={`${chartHeight}`} />,
+              fixed: <Placeholder height={`${chartHeight}px`} />,
             })}
           </ContentContainer>
         ))}
