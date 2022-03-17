@@ -184,16 +184,19 @@ describe('WidgetBuilder', function () {
       }
 
       let x;
+      let error;
       try {
         x = await screen.findAllByText('Select group');
-      } catch (error) {
-        // eslint-disable-next-line
-        console.log(error);
+      } catch (err) {
         x = [];
+        error = err;
       }
 
       expect(x).toHaveLength(20);
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
+      if (error) {
+        throw error;
+      }
     });
 
     it('should randomly fail', async function () {
