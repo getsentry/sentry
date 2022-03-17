@@ -23,7 +23,7 @@ def get_path(view_func: ViewFunc) -> str | None:
 
 
 def is_frontend_request(request: Request) -> bool:
-    return bool(getattr(request, "COOKIES", {}))
+    return bool(getattr(request, "COOKIES", {})) and getattr(request, "auth", None) is None
 
 
 __all__ = ("get_path", "is_frontend_request", "ViewFunc")
