@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
 import WidgetQueries, {
-  flattenGroupedMultiSeriesData,
+  flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
@@ -738,7 +738,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     it('combines group name and aggregate names in grouped multi series data', () => {
-      const actual = flattenGroupedMultiSeriesData(mockRawResultData, '');
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, '');
       expect(actual).toEqual([
         [
           0,
@@ -772,7 +772,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     it('prefixes with a query alias when provided', () => {
-      const actual = flattenGroupedMultiSeriesData(mockRawResultData, 'Query 1');
+      const actual = flattenMultiSeriesDataWithGrouping(mockRawResultData, 'Query 1');
       expect(actual).toEqual([
         [
           0,
