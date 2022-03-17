@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button, {ButtonProps} from 'sentry/components/button';
-import Tooltip from 'sentry/components/tooltip';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -24,18 +23,16 @@ function PageFilterPinButton({filter, size, className}: Props) {
   };
 
   return (
-    <Tooltip title="Apply filter across all pages">
-      <PinButton
-        className={className}
-        aria-pressed={pinned}
-        aria-label={t('Lock filter')}
-        onClick={onPin}
-        size={size}
-        pinned={pinned}
-        borderless={size === 'zero'}
-        icon={<IconLock isSolid={pinned} size="xs" />}
-      />
-    </Tooltip>
+    <PinButton
+      className={className}
+      aria-pressed={pinned}
+      aria-label={t('Lock filter')}
+      onClick={onPin}
+      size={size}
+      pinned={pinned}
+      borderless={size === 'zero'}
+      icon={<IconLock isSolid={pinned} size="xs" />}
+    />
   );
 }
 
