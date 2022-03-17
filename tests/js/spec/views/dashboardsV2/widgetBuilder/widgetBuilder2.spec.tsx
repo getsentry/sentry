@@ -184,13 +184,12 @@ describe('WidgetBuilder', function () {
       }
 
       try {
-        await screen.findAllByText('Select group');
+        const x = await screen.findAllByText('Select group');
+        expect(x).toHaveLength(20);
+        expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
       } catch (err) {
         throw new Error('This is insanity');
       }
-
-      // expect(x).toHaveLength(20);
-      // expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it('should randomly fail', async function () {
