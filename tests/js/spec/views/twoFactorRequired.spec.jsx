@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import * as qs from 'query-string';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -77,7 +78,7 @@ describe('TwoFactorRequired', function () {
       token: 'abcde',
       url: '/accept/5/abcde/',
     };
-    Cookies.set(INVITE_COOKIE, cookieData);
+    Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
@@ -99,7 +100,12 @@ describe('TwoFactorRequired', function () {
   });
 
   it('renders when 2FA is disabled and has pendingInvite cookie', function () {
-    Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
+    const cookieData = {
+      memberId: 5,
+      token: 'abcde',
+      url: '/accept/5/abcde/',
+    };
+    Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),

@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
-type PendingInvite = {
+export type PendingInvite = {
   memberId: number;
   token: string;
   url: string;
