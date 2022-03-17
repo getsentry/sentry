@@ -12,8 +12,10 @@ import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -157,6 +159,10 @@ type ContainerProps = {
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
+  componentDidMount() {
+    this.trackQueryConditions();
+  }
+
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -169,6 +175,26 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
 
     return !isEqual(restProps, restNextProps);
+  }
+
+  componentDidUpdate(prevProps: ContainerProps) {
+    if (this.props.eventView.query !== prevProps.eventView.query) {
+      this.trackQueryConditions();
+    }
+  }
+
+  trackQueryConditions() {
+    const {organization, eventView} = this.props;
+    const parsedSearch = parseSearch(eventView.query);
+    if (parsedSearch) {
+      const conditions = parsedSearch
+        .filter(({text}) => text.trim() !== '')
+        .map(({text}) => text);
+      trackAdvancedAnalyticsEvent('discover_views.query', {
+        organization,
+        conditions,
+      });
+    }
   }
 
   render() {
