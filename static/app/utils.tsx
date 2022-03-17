@@ -305,11 +305,11 @@ export function deepFreeze<T extends Record<any, any>>(object: T): Readonly<T> {
   // Retrieve the property names defined on object
   const propNames = Object.getOwnPropertyNames(object);
   // Freeze properties before freezing self
-  for (let i = 0; i < propNames.length; i++) {
-    const value = object[propNames[i]];
+  for (const name of propNames) {
+    const value = object[name];
 
     // @ts-ignore we would need to check that propNames[i] can implement signature of T
-    object[propNames[i]] = value && typeof value === 'object' ? deepFreeze(value) : value;
+    object[name] = value && typeof value === 'object' ? deepFreeze(value) : value;
   }
 
   return Object.freeze(object);
