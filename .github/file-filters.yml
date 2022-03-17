@@ -45,7 +45,8 @@ backend_dependencies: &backend_dependencies
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
-  - '.github/workflows/acceptance.yml'
+  # Skip for now
+  # - '.github/workflows/acceptance.yml'
   - '.github/workflows/(command-*)'
   - '.github/workflows/(backend-*)'
   - '.github/workflows/(*-integration-*)'
