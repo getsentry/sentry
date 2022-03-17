@@ -5,6 +5,12 @@ on:
       - acceptance
     types:
       - completed
+  # Temporary
+  pull_request:
+    workflows:
+      - acceptance
+    types:
+      - completed
 
 jobs:
   changes:
