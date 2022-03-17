@@ -587,7 +587,7 @@ describe('SpanTreeModel', () => {
 
     // If statement here is required to avoid TS linting issues
     if (spans[1].type === 'span_group_sibling') {
-      expect(spans[1].spanNestedGrouping!.length).toEqual(5);
+      expect(spans[1].spanSiblingGrouping!.length).toEqual(5);
     }
   });
 

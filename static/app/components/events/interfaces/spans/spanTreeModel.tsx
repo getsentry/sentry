@@ -455,9 +455,7 @@ class SpanTreeModel {
             span: this.span,
             treeDepth: treeDepth + 1,
             continuingTreeDepths,
-            spanNestedGrouping: wrappedSiblings,
-            toggleNestedSpanGroup: undefined,
-            isNestedSpanGroupExpanded,
+            spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
