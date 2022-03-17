@@ -23,6 +23,14 @@ def get_path(view_func: ViewFunc) -> str | None:
 
 
 def is_frontend_request(request: Request) -> bool:
+    """
+    Used to determine if a request came from the UI or not. UI requests will have cookies and no
+    authentication tokens, while requests coming from user scripts will tend to be the opposite.
+
+    Users could make backend requests directly with cookies which would be counted here. The
+    belief is that that's a fraction of the total requests. Either way, this function should not be
+    used expecting it to be 100% accurate. We are using it only for statistics.
+    """
     return bool(getattr(request, "COOKIES", {})) and getattr(request, "auth", None) is None
 
 
