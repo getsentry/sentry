@@ -1,6 +1,7 @@
 import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -43,22 +44,47 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
   const seriesNamePrefix = query.name;
 
   if (isMultiSeriesStats(result)) {
-    // Convert multi-series results into chartable series. Multi series results
-    // are created when multiple yAxis are used. Convert the timeseries
-    // data into a multi-series result set.  As the server will have
-    // replied with a map like: {[titleString: string]: EventsStats}
-    const transformed: Series[] = Object.keys(result)
-      .map((seriesName: string): [number, Series] => {
-        const prefixedName = seriesNamePrefix
-          ? `${seriesNamePrefix} : ${seriesName}`
-          : seriesName;
-        const seriesData: EventsStats = result[seriesName];
-        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-      })
-      .sort((a, b) => a[0] - b[0])
-      .map(item => item[1]);
+    if (Object.keys(result).some(key => key === 'count()')) {
+      // Convert multi-series results into chartable series. Multi series results
+      // are created when multiple yAxis are used. Convert the timeseries
+      // data into a multi-series result set.  As the server will have
+      // replied with a map like: {[titleString: string]: EventsStats}
+      const transformed: Series[] = Object.keys(result)
+        .map((seriesName: string): [number, Series] => {
+          const prefixedName = seriesNamePrefix
+            ? `${seriesNamePrefix} : ${seriesName}`
+            : seriesName;
+          const seriesData: EventsStats = result[seriesName];
+          return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+        })
+        .sort((a, b) => a[0] - b[0])
+        .map(item => item[1]);
 
-    output = output.concat(transformed);
+      output = output.concat(transformed);
+    } else {
+      const outer = Object.keys(result)
+        .reduce((acc: any, groupingName: string) => {
+          const transformed = Object.keys(omit(result[groupingName], 'order')).map(
+            yAxisName => {
+              const seriesName = `${groupingName} : ${yAxisName}`;
+              const prefixedName = seriesNamePrefix
+                ? `${seriesNamePrefix} > ${seriesName}`
+                : seriesName;
+              const seriesData: EventsStats = result[groupingName][yAxisName];
+              return [
+                result[groupingName].order || 0,
+                transformSeries(seriesData, prefixedName),
+              ];
+            }
+          );
+
+          return [...acc, ...transformed];
+        }, [])
+        .sort((a, b) => a[0] - b[0])
+        .map(item => item[1]);
+
+      output = output.concat(outer);
+    }
   } else {
     const field = query.aggregates[0];
     const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
