@@ -40,6 +40,23 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
+/**
+ * Multiseries data with a grouping needs to be "flattened" because the aggregate data
+ * are stored under the group names. These names need to be combined with the aggregate
+ * names to show a series.
+ *
+ * e.g. count() and count_unique() grouped by environment
+ * {
+ *    "local": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    },
+ *    "prod": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    }
+ * }
+ */
 function flattenGroupedMultiSeriesData(result, queryAlias): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
   const groupNames = Object.keys(result);
