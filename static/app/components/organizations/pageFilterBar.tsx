@@ -2,9 +2,23 @@ import styled from '@emotion/styled';
 
 const PageFilterBar = styled('div')`
   display: flex;
-  border: solid 1px ${p => p.theme.border};
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.default.height}px;
+  height: ${p => p.theme.form.default.height - 2}px;
+  margin-top: 1px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
+    z-index: 1;
+  }
 
   & button[aria-haspopup='listbox'] {
     height: 100%;

@@ -26,7 +26,7 @@ const SelectorItems = ({
       ? relativeArr.map(([value, itemLabel], index) => ({
           index,
           value,
-          searchKey: itemLabel as string,
+          searchKey: typeof itemLabel === 'string' ? itemLabel : value,
           label: <Label>{itemLabel}</Label>,
           'data-test-id': value,
         }))
