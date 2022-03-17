@@ -67,7 +67,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton').simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -135,7 +135,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton').simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -199,7 +199,7 @@ describe('IssueListActions', function () {
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
 
-        wrapper.find('ResolveActions ResolveButton').first().simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').first().simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({

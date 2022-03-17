@@ -22,7 +22,7 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
         />
       );
-      button = component.find('ResolveButton').first();
+      button = component.find('ResolveButton button').first();
     });
 
     it('has disabled prop', function () {
@@ -52,12 +52,12 @@ describe('ResolveActions', function () {
     });
 
     it('main button is enabled', function () {
-      button = component.find('ResolveButton');
+      button = component.find('ResolveButton button');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
     it('main button calls onUpdate when clicked', function () {
-      button = component.find('ResolveButton');
+      button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
@@ -135,7 +135,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('ResolveButton');
+      const button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -167,7 +167,7 @@ describe('ResolveActions', function () {
     });
 
     it('displays confirmation modal with message provided', async function () {
-      button = component.find('ResolveButton').first();
+      button = component.find('ResolveButton button').first();
       button.simulate('click');
 
       await tick();

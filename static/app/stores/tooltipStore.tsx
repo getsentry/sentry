@@ -1,75 +1,79 @@
-type TooltipStoreInterface = {
-  addTooltip(tooltip: React.Component): void;
-  closeAllTooltips(): void;
-  getOpenableSingleTooltips(): React.Component[];
-  init(): TooltipStoreInterface;
-  openAllTooltips(): boolean;
-  removeTooltip(tooltip: React.Component): void;
-  tooltips: React.Component[];
+type TooltipActions = {
+  setOpen: (isOpen: boolean) => void;
+  setUseGlobalPortal: (useGlobalPortal: boolean) => void;
+};
+
+type Tooltip = {
+  actions: TooltipActions;
+  id: string;
 };
 
 const MAX_TOOLTIPS_TO_OPEN = 100;
 
-const TooltipStore: TooltipStoreInterface = {
-  tooltips: [],
+/**
+ * XXX: This is NOT a reflux store.
+ *
+ * This is purely used for acceptance tests where we want to open all tooltips
+ * in the DOM at once for capturing visual snapshots of tooltips being open.
+ */
+class TooltipStore {
+  tooltips = new Map<string, Tooltip>();
+
+  constructor() {
+    window.__openAllTooltips = this.openAllTooltips;
+    window.__closeAllTooltips = this.closeAllTooltips;
+  }
 
   getOpenableSingleTooltips() {
-    return this.tooltips.filter(tooltip => {
-      // Filtering out disabled tooltips and lists of tooltips (which cause rendering issues for snapshots) using the internal 'key'
-      const _internals =
-        (tooltip as any)._reactInternalFiber || (tooltip as any)._reactInternals;
-      return (
-        !(tooltip.props as any).disabled &&
-        !_internals.key &&
-        !(tooltip.props as any).disableForVisualTest
-      );
-    });
-  },
+    // TODO: We need to figure out how to find "list" tooltips by looking for
+    // the `key` like we did before. This was previously done with
+    //
+    //  const _internals =
+    //    (tooltip as any)._reactInternalFiber || (tooltip as any)._reactInternals;
+    //
+    return [...this.tooltips.values()];
+  }
 
   /**
    * Called via window.__openAllTooltips in selenium tests to check tooltip snapshots
    */
-  openAllTooltips() {
+  openAllTooltips = () => {
     const tooltips = this.getOpenableSingleTooltips();
+
+    // Pages with too many tooltip components will take too long to render
+    // and it isn't likely helpful anyway.
     if (!tooltips.length || tooltips.length > MAX_TOOLTIPS_TO_OPEN) {
-      // Pages with too many tooltip components will take too long to render and it isn't likely helpful anyway.
       return false;
     }
+
     tooltips.forEach(tooltip => {
-      tooltip.setState({
-        isOpen: true,
-        usesGlobalPortal: false,
-      });
+      tooltip.actions.setUseGlobalPortal(false);
+      tooltip.actions.setOpen(true);
     });
+
     return true;
-  },
+  };
 
   /**
-   * Called via window.__closeAllTooltips in selenium tests to cleanup tooltips after taking a snapshot
+   * Called via window.__closeAllTooltips in selenium tests to cleanup tooltips
+   * after taking a snapshot
    */
-  closeAllTooltips() {
+  closeAllTooltips = () => {
     const tooltips = this.getOpenableSingleTooltips();
+
     tooltips.forEach(tooltip => {
-      tooltip.setState({
-        isOpen: false,
-        usesGlobalPortal: true,
-      });
+      tooltip.actions.setOpen(false);
+      tooltip.actions.setUseGlobalPortal(true);
     });
-  },
+  };
 
-  init(): TooltipStoreInterface {
-    window.__openAllTooltips = this.openAllTooltips.bind(this);
-    window.__closeAllTooltips = this.closeAllTooltips.bind(this);
-    return this;
-  },
+  addTooltip(id: string, actions: TooltipActions) {
+    this.tooltips.set(id, {id, actions});
+  }
 
-  addTooltip(tooltip: React.Component) {
-    this.tooltips.push(tooltip);
-  },
+  removeTooltip(id: string) {
+    this.tooltips.delete(id);
+  }
+}
 
-  removeTooltip(tooltip: React.Component) {
-    this.tooltips = this.tooltips.filter(t => t !== tooltip);
-  },
-};
-
-export default TooltipStore.init();
+export const tooltipStore = new TooltipStore();

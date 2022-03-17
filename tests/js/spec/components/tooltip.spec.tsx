@@ -6,9 +6,26 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Tooltip from 'sentry/components/tooltip';
-import * as utils from 'sentry/utils/tooltip';
 
 describe('Tooltip', function () {
+  function mockOverflow(width: number, containerWidth: number) {
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      value: width,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      value: containerWidth,
+    });
+  }
+
+  afterEach(() => {
+    // @ts-expect-error
+    delete HTMLElement.prototype.scrollWidth;
+    // @ts-expect-error
+    delete HTMLElement.prototype.clientWidth;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -72,7 +89,8 @@ describe('Tooltip', function () {
 
   it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
     // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
-    jest.spyOn(utils, 'isOverflown').mockReturnValue(true);
+    mockOverflow(100, 50);
+
     render(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
@@ -87,7 +105,8 @@ describe('Tooltip', function () {
   });
 
   it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', function () {
-    jest.spyOn(utils, 'isOverflown').mockReturnValue(false);
+    mockOverflow(50, 100);
+
     render(
       <Tooltip delay={0} title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
