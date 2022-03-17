@@ -38,7 +38,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Check for FE file changes
+      - name: Check for FE or BE file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
@@ -183,7 +183,7 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Check for FE file changes
+      - name: Check for FE or BE file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
@@ -191,7 +191,7 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -200,7 +200,7 @@ jobs:
           snuba: true
 
       - name: Wait for frontend build
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-wait-for-check@v1.0.0
         id: wait-for-frontend
         with:
@@ -209,18 +209,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Download frontend dist
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: actions/download-artifact@v2
         with:
           name: frontend-dist
 
       - name: Extract dist
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           tar xf dist.tar.gz
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
@@ -231,14 +231,14 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/artifacts
 
   chartcuterie:
@@ -263,7 +263,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Check for FE file changes
+      - name: Check for FE or BE file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
@@ -271,7 +271,7 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -280,24 +280,24 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install Javascript Dependencies
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           yarn install --frozen-lockfile
 
       - name: Build chartcuterie configuration module
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           make build-chartcuterie-config
 
       - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           make test-chartcuterie
@@ -305,12 +305,12 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: getsentry/action-visual-snapshot@v2
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
-        if: steps.changes.outputs.backend_or_backend_or_frontend == 'true'
+        if: steps.changes.outputs.backend_or_frontend == 'true'
         uses: ./.github/actions/artifacts
