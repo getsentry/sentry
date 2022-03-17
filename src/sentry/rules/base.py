@@ -11,7 +11,6 @@ from sentry.eventstore.models import Event
 from sentry.models import Project, Rule
 from sentry.rules import RuleFuture
 
-
 """
 Rules apply either before an event gets stored, or immediately after.
 
@@ -69,8 +68,10 @@ class RuleBase(abc.ABC):
     def id(self) -> str:
         pass
 
+    @property
+    @abc.abstractmethod
     def label(self) -> str:
-        raise NotImplementedError
+        pass
 
     def is_enabled(self) -> bool:
         return True
