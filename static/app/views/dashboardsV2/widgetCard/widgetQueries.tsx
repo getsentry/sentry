@@ -38,30 +38,17 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
-function transformResult(query: WidgetQuery, result: RawResult): Series[] {
+function transformResult(
+  query: WidgetQuery,
+  result: RawResult,
+  displayType: DisplayType
+): Series[] {
   let output: Series[] = [];
 
   const seriesNamePrefix = query.name;
 
   if (isMultiSeriesStats(result)) {
-    if (Object.keys(result).some(key => key === 'count()')) {
-      // Convert multi-series results into chartable series. Multi series results
-      // are created when multiple yAxis are used. Convert the timeseries
-      // data into a multi-series result set.  As the server will have
-      // replied with a map like: {[titleString: string]: EventsStats}
-      const transformed: Series[] = Object.keys(result)
-        .map((seriesName: string): [number, Series] => {
-          const prefixedName = seriesNamePrefix
-            ? `${seriesNamePrefix} : ${seriesName}`
-            : seriesName;
-          const seriesData: EventsStats = result[seriesName];
-          return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-        })
-        .sort((a, b) => a[0] - b[0])
-        .map(item => item[1]);
-
-      output = output.concat(transformed);
-    } else {
+    if (displayType !== DisplayType.TOP_N && query.aggregates.length > 1) {
       const outer = Object.keys(result)
         .reduce((acc: any, groupingName: string) => {
           const transformed = Object.keys(omit(result[groupingName], 'order')).map(
@@ -84,6 +71,23 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
         .map(item => item[1]);
 
       output = output.concat(outer);
+    } else {
+      // Convert multi-series results into chartable series. Multi series results
+      // are created when multiple yAxis are used. Convert the timeseries
+      // data into a multi-series result set.  As the server will have
+      // replied with a map like: {[titleString: string]: EventsStats}
+      const transformed: Series[] = Object.keys(result)
+        .map((seriesName: string): [number, Series] => {
+          const prefixedName = seriesNamePrefix
+            ? `${seriesNamePrefix} : ${seriesName}`
+            : seriesName;
+          const seriesData: EventsStats = result[seriesName];
+          return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+        })
+        .sort((a, b) => a[0] - b[0])
+        .map(item => item[1]);
+
+      output = output.concat(transformed);
     }
   } else {
     const field = query.aggregates[0];
@@ -195,7 +199,9 @@ class WidgetQueries extends React.Component<Props, State> {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
-          return acc.concat(transformResult(query, prevState.rawResults![index]));
+          return acc.concat(
+            transformResult(query, prevState.rawResults![index], widget.displayType)
+          );
         }, []);
 
         return {...prevState, timeseriesResults};
@@ -378,7 +384,8 @@ class WidgetQueries extends React.Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformResult(
             widget.queries[requestIndex],
-            rawResults
+            rawResults,
+            widget.displayType
           );
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at
