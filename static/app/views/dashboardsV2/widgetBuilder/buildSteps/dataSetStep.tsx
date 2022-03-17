@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 
-import {DataSet, DisplayType} from '../utils';
+import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
 
