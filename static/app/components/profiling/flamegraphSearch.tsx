@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
@@ -104,11 +104,11 @@ function FlamegraphSearch({
   flamegraphs,
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
-  const ref = React.useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
 
   const [search, dispatchSearch] = useFlamegraphSearch();
 
-  const allFrames = React.useMemo(() => {
+  const allFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
       return flamegraphs.reduce(
         (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
@@ -119,7 +119,7 @@ function FlamegraphSearch({
     return flamegraphs.frames;
   }, [flamegraphs]);
 
-  const searchIndex = React.useMemo(() => {
+  const searchIndex = useMemo(() => {
     return new Fuse(allFrames, {
       keys: ['frame.name'],
       threshold: 0.3,
@@ -127,7 +127,7 @@ function FlamegraphSearch({
     });
   }, [allFrames]);
 
-  const onZoomIntoFrame = React.useCallback(
+  const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoomIntoFrame', [frame]);
     },
@@ -200,7 +200,7 @@ function FlamegraphSearch({
     });
   }, [search.results, search.index]);
 
-  const onCmdF = React.useCallback(
+  const onCmdF = useCallback(
     (evt: KeyboardEvent) => {
       if (evt.key === 'f' && evt.metaKey) {
         evt.preventDefault();
@@ -218,7 +218,7 @@ function FlamegraphSearch({
     [search.open]
   );
 
-  const onKeyDown = React.useCallback(
+  const onKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
       if (evt.key === 'Escape') {
         dispatchSearch({type: 'clear search'});
@@ -235,7 +235,7 @@ function FlamegraphSearch({
     [onNextSearchClick, onPreviousSearchClick]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener('keydown', onCmdF);
 
     return () => {

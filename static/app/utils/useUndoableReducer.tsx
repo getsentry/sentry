@@ -35,11 +35,11 @@ function undoableReducer<S>(
   action: UndoAction | RedoAction
 ): UndoableNode<S> {
   if (action.type === 'undo') {
-    return state.previous ? state.previous : state;
+    return state.previous === undefined ? state : state.previous;
   }
 
   if (action.type === 'redo') {
-    return state.next ? state.next : state;
+    return state.next === undefined ? state : state.next;
   }
 
   throw new Error('Unreachable case');
