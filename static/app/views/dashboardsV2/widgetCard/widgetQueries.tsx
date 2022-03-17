@@ -42,9 +42,12 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
 
 function flattenGroupedMultiSeriesData(result, queryAlias): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
-  Object.keys(result).forEach((groupName: string) => {
+  const groupNames = Object.keys(result);
+
+  groupNames.forEach((groupName: string) => {
     // Each aggregate series contains an order key which we should ignore
     const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+
     aggregateNames.forEach((aggregate: string) => {
       const seriesName = `${groupName} : ${aggregate}`;
       const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
