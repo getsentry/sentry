@@ -789,7 +789,7 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
-  describe('skipInitializeUrlState', function () {
+  describe('skipInitializeUrlParams', function () {
     const initialData = initializeOrg({
       organization,
       projects: [{id: 1, slug: 'staging-project', environments: ['staging']}],
@@ -809,7 +809,7 @@ describe('GlobalSelectionHeader', function () {
     it('does not add forced project to URL', async function () {
       wrapper = mountWithTheme(
         <PageFiltersContainer
-          skipInitializeUrlState
+          skipInitializeUrlParams
           shouldForceProject
           organization={initialData.organization}
           forceProject={initialData.projects[0]}

@@ -39,10 +39,11 @@ type Props = WithRouterProps &
     hideGlobalHeader?: boolean;
 
     /**
-     * Used in combination with shouldForceProject
-     * Will not persist the project to url query parameters.
+     * When used with shouldForceProject it will not persist the project id
+     * to url query parameters on load. This is useful when global selection header
+     * is used for display purposes rather than selection.
      */
-    skipInitializeUrlState?: boolean;
+    skipInitializeUrlParams?: boolean;
 
     /**
      * Skip loading from local storage
@@ -68,7 +69,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     hideGlobalHeader,
-    skipInitializeUrlState,
+    skipInitializeUrlParams,
   } = props;
 
   const {isReady} = useLegacyStore(PageFiltersStore);
@@ -107,10 +108,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
-    if (
-      (!projectsLoaded && (shouldForceProject || enforceSingleProject)) ||
-      skipInitializeUrlState
-    ) {
+    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
       return;
     }
 
@@ -126,6 +124,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       shouldForceProject,
       shouldEnforceSingleProject: enforceSingleProject,
       showAbsolute,
+      skipInitializeUrlParams,
     });
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 

@@ -192,7 +192,7 @@ class AlertRuleDetails extends Component<Props, State> {
     return (
       <PageFiltersContainer
         skipLoadLastUsed
-        skipInitializeUrlState
+        skipInitializeUrlParams
         isGlobalSelectionReady={isGlobalSelectionReady}
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
