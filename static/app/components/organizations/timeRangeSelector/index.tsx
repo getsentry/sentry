@@ -419,6 +419,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
           <ClassNames>
             {({css}) => (
               <StyledDropdownAutoComplete
+                allowActorToggle
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 onOpen={this.handleOpen}
