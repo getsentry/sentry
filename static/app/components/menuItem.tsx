@@ -72,7 +72,7 @@ type MenuItemProps = {
 
 interface Props
   extends MenuItemProps,
-    Omit<React.LiHTMLAttributes<HTMLLIElement>, 'onSelect'> {}
+    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 const MenuItem = ({
   header,
@@ -170,7 +170,7 @@ const MenuItem = ({
   );
 };
 
-interface MenuListItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
+interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disabled?: boolean;
   divider?: boolean;
   header?: boolean;
