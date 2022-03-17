@@ -485,7 +485,6 @@ if (
     allowedHosts: 'all',
     static: {
       directory: './src/sentry/static/sentry',
-      publicPath: '/_assets/',
       watch: true,
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
@@ -508,6 +507,7 @@ if (
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
+        ...(appConfig.devServer.static as object),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
@@ -544,6 +544,9 @@ if (IS_UI_DEV_ONLY) {
     ...appConfig.devServer,
     compress: true,
     https,
+    static: {
+      publicPath: '/_assets/',
+    },
     proxy: [
       {
         context: ['/api/', '/avatar/', '/organization-avatar/'],
