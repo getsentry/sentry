@@ -127,17 +127,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-        except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, team):
-                omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-            else:
-                self._create_access_request(request, team, member)
-                return Response(status=202)
-
-        else:
+        if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if not self._can_create_team_member(request, team):
+            self._create_access_request(request, team, member)
+            return Response(status=202)
+
+        omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
 
         self.create_audit_entry(
             request=request,
