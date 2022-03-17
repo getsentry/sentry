@@ -52,7 +52,6 @@ const Container = styled('div')`
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
-  padding-top: 12vh;
   width: 100%;
   margin: 0 auto;
   flex-grow: 1;
