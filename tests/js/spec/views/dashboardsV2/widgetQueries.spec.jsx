@@ -740,20 +740,68 @@ describe('Dashboards > WidgetQueries', function () {
     it('combines group name and aggregate names in grouped multi series data', () => {
       const actual = flattenGroupedMultiSeriesData(mockRawResultData, '');
       expect(actual).toEqual([
-        [0, expect.objectContaining({seriesName: 'local : count()'})],
-        [0, expect.objectContaining({seriesName: 'local : count_unique()'})],
-        [1, expect.objectContaining({seriesName: 'prod : count()'})],
-        [1, expect.objectContaining({seriesName: 'prod : count_unique()'})],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
       ]);
     });
 
     it('prefixes with a query alias when provided', () => {
       const actual = flattenGroupedMultiSeriesData(mockRawResultData, 'Query 1');
       expect(actual).toEqual([
-        [0, expect.objectContaining({seriesName: 'Query 1 > local : count()'})],
-        [0, expect.objectContaining({seriesName: 'Query 1 > local : count_unique()'})],
-        [1, expect.objectContaining({seriesName: 'Query 1 > prod : count()'})],
-        [1, expect.objectContaining({seriesName: 'Query 1 > prod : count_unique()'})],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          0,
+          expect.objectContaining({
+            seriesName: 'Query 1 > local : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count()',
+            data: expect.anything(),
+          }),
+        ],
+        [
+          1,
+          expect.objectContaining({
+            seriesName: 'Query 1 > prod : count_unique()',
+            data: expect.anything(),
+          }),
+        ],
       ]);
     });
   });
