@@ -781,7 +781,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
+      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
     });
@@ -1109,7 +1109,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets member projects', function () {
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
     });
@@ -1129,7 +1129,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
 

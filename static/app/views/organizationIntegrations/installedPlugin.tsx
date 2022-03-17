@@ -197,7 +197,7 @@ const IntegrationFlex = styled('div')`
 `;
 
 const IntegrationItemBox = styled('div')`
-  flex: 1;
+  flex: 1 0 fit-content;
   box-sizing: border-box;
   display: flex;
   flex-direction: row;

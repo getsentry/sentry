@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {ErrorRobot} from 'sentry/components/errorRobot';
@@ -23,7 +23,7 @@ describe('ErrorRobot', function () {
 
   describe('with a project', function () {
     function createWrapper() {
-      return mountWithTheme(
+      return render(
         <ErrorRobot
           api={new MockApiClient()}
           org={TestStubs.Organization()}
@@ -51,7 +51,7 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return mountWithTheme(
+      return render(
         <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />,
         {context: routerContext}
       );

@@ -2,12 +2,7 @@ import isEqual from 'lodash/isEqual';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {
-  aggregateOutputType,
-  getColumnsAndAggregates,
-  isAggregateFieldOrEquation,
-  isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -118,7 +113,8 @@ export function normalizeQueries({
           ? generateOrderOptions({
               widgetType,
               widgetBuilderNewDesign,
-              ...getColumnsAndAggregates(queries[0].fields),
+              columns: queries[0].columns,
+              aggregates: queries[0].aggregates,
             })[0].value
           : IssueSortOptions.DATE
       ) as string;
@@ -130,59 +126,58 @@ export function normalizeQueries({
 
   // Filter out non-aggregate fields
   queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateFieldOrEquation);
+    let aggregates = query.aggregates;
 
     if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
       // Filter out fields that will not generate numeric output types
-      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+      aggregates = aggregates.filter(aggregate =>
+        isLegalYAxisType(aggregateOutputType(aggregate))
+      );
     }
 
-    if (isTimeseriesChart && fields.length && fields.length > 3) {
+    if (isTimeseriesChart && aggregates.length && aggregates.length > 3) {
       // Timeseries charts supports at most 3 fields.
-      fields = fields.slice(0, 3);
+      aggregates = aggregates.slice(0, 3);
     }
 
     return {
       ...query,
-      fields: fields.length ? fields : ['count()'],
+      fields: aggregates.length ? aggregates : ['count()'],
       columns: [],
-      aggregates: fields.length ? fields : ['count()'],
+      aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
 
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
-    const referenceFields = [...queries[0].fields];
+    const referenceAggregates = [...queries[0].aggregates];
 
     queryLoop: for (const query of queries) {
-      if (referenceFields.length >= 3) {
+      if (referenceAggregates.length >= 3) {
         break;
       }
 
-      if (isEqual(referenceFields, query.fields)) {
+      if (isEqual(referenceAggregates, query.aggregates)) {
         continue;
       }
 
-      for (const field of query.fields) {
-        if (referenceFields.length >= 3) {
+      for (const aggregate of query.aggregates) {
+        if (referenceAggregates.length >= 3) {
           break queryLoop;
         }
 
-        if (!referenceFields.includes(field)) {
-          referenceFields.push(field);
+        if (!referenceAggregates.includes(aggregate)) {
+          referenceAggregates.push(aggregate);
         }
       }
     }
 
-    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
-
     queries = queries.map(query => {
       return {
         ...query,
-        columns,
-        aggregates,
-        fields: referenceFields,
+        aggregates: referenceAggregates,
+        fields: referenceAggregates,
       };
     });
   }
@@ -192,8 +187,8 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.fields.slice(0, 1),
-        aggregates: query.aggregates?.slice(0, 1),
+        fields: query.aggregates.slice(0, 1),
+        aggregates: query.aggregates.slice(0, 1),
       };
     });
   }
@@ -210,8 +205,9 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     return undefined;
   }
 
-  const fields = parsedQuery.fields ? getFields(parsedQuery.fields) : [];
-  const {columns, aggregates} = getColumnsAndAggregates(fields);
+  const columns = parsedQuery.columns ? getFields(parsedQuery.columns) : [];
+  const aggregates = parsedQuery.aggregates ? getFields(parsedQuery.aggregates) : [];
+  const fields = [...columns, ...aggregates];
 
   return {
     ...parsedQuery,

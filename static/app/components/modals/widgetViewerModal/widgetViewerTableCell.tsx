@@ -4,15 +4,18 @@ import {Location, LocationDescriptorObject} from 'history';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   getIssueFieldRenderer,
   getSortField,
 } from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -20,6 +23,10 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  eventDetailsRouteWithEventView,
+  generateEventSlug,
+} from 'sentry/utils/discover/urls';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
@@ -40,7 +47,7 @@ type Props = {
 };
 
 export const renderIssueGridHeaderCell =
-  ({location, widget, tableData}: Props) =>
+  ({location, widget, tableData, organization}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -54,14 +61,28 @@ export const renderIssueGridHeaderCell =
         canSort={!!sortField}
         generateSortLink={() => ({
           ...location,
-          query: {...location.query, [WidgetViewerQueryField.SORT]: sortField},
+          query: {
+            ...location.query,
+            [WidgetViewerQueryField.SORT]: sortField,
+            [WidgetViewerQueryField.PAGE]: undefined,
+            [WidgetViewerQueryField.CURSOR]: undefined,
+          },
         })}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+            column: column.name,
+            order: 'desc',
+          });
+        }}
       />
     );
   };
 
 export const renderDiscoverGridHeaderCell =
-  ({location, selection, widget, tableData}: Props) =>
+  ({location, selection, widget, tableData, organization}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
       widget.title,
@@ -82,7 +103,12 @@ export const renderDiscoverGridHeaderCell =
 
       return {
         ...location,
-        query: {...location.query, [WidgetViewerQueryField.SORT]: queryStringObject.sort},
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.SORT]: queryStringObject.sort,
+          [WidgetViewerQueryField.PAGE]: undefined,
+          [WidgetViewerQueryField.CURSOR]: undefined,
+        },
       };
     }
 
@@ -99,6 +125,15 @@ export const renderDiscoverGridHeaderCell =
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+            column: column.name,
+            order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
+          });
+        }}
       />
     );
   };
@@ -159,6 +194,50 @@ export const renderGridBodyCell =
     );
   };
 
+export const renderPrependColumns =
+  ({location, organization, tableData, eventView}: Props & {eventView: EventView}) =>
+  (isHeader: boolean, dataRow?: any, rowIndex?: number): React.ReactNode[] => {
+    if (isHeader) {
+      return [
+        <PrependHeader key="header-event-id">
+          <SortLink
+            align="left"
+            title={t('event id')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={() => undefined}
+          />
+        </PrependHeader>,
+      ];
+    }
+    let value = dataRow.id;
+
+    if (tableData?.meta) {
+      const fieldRenderer = getFieldRenderer('id', tableData?.meta);
+      value = fieldRenderer(dataRow, {organization, location});
+    }
+
+    const eventSlug = generateEventSlug(dataRow);
+
+    const target = eventDetailsRouteWithEventView({
+      orgSlug: organization.slug,
+      eventSlug,
+      eventView,
+    });
+
+    return [
+      <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+        <Link data-test-id="view-event" to={target}>
+          {value}
+        </Link>
+      </Tooltip>,
+    ];
+  };
+
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+`;
+
+const PrependHeader = styled('span')`
+  color: ${p => p.theme.subText};
 `;

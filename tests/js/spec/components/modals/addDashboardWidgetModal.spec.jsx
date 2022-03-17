@@ -2,12 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme as reactMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -61,7 +56,7 @@ function mountModal({
 }
 
 function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, source}) {
-  return reactMountWithTheme(
+  return render(
     <AddDashboardWidgetModal
       Header={stubEl}
       Body={stubEl}
@@ -402,6 +397,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
             name: 'errors',
             conditions: 'event.type:error',
             fields: ['sdk.name', 'count()'],
+            columns: ['sdk.name'],
+            aggregates: ['count()'],
             orderby: '',
           },
         ],
@@ -606,12 +603,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
         {
           id: '9',
           name: 'csp',
           conditions: 'event.type:csp',
           fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
         },
       ],
     };
@@ -694,6 +695,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
+          aggregates: ['count()'],
+          columns: ['sdk.name'],
           orderby: 'count',
         },
       ],
@@ -1050,6 +1053,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+        columns: ['title'],
+        aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -1097,6 +1102,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       defaultWidgetQuery: {
         name: '',
         fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        aggregates: ['count()', 'failure_count()', 'count_unique(user)'],
+        columns: [],
         conditions: 'tag:value',
         orderby: '',
       },
@@ -1134,6 +1141,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       displayType: types.DisplayType.TOP_N,
       defaultWidgetQuery: {
         fields: ['title', 'count()', 'count_unique(user)'],
+        aggregates: ['count()', 'count_unique(user)'],
+        columns: ['title'],
         orderby: '-count_unique_user',
       },
       defaultTableColumns: ['title', 'count()'],
@@ -1198,7 +1207,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   });
 
   it('limits TopN display to one query when switching from another visualization', async () => {
-    reactMountWithTheme(
+    render(
       <AddDashboardWidgetModal
         Header={stubEl}
         Body={stubEl}
@@ -1461,15 +1470,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(metricsDataMock).toHaveBeenCalledWith(
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
         `/organizations/org-slug/metrics/data/`,
         expect.objectContaining({
           query: {
             environment: [],
             field: ['sum(sentry.sessions.session)'],
+            groupBy: [],
             interval: '30m',
             project: [],
             statsPeriod: '14d',
+            per_page: 20,
+            orderBy: 'sum(sentry.sessions.session)',
           },
         })
       );

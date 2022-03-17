@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -15,25 +14,22 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   router: WithRouterProps['router'];
+  alignDropdown?: React.ComponentProps<
+    typeof MultipleEnvironmentSelector
+  >['alignDropdown'];
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
 };
 
-function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
+function EnvironmentPageFilter({router, resetParamsOnChange = [], alignDropdown}: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
-  const [selectedEnvironments, setSelectedEnvironments] = useState<string[] | null>(null);
-
-  const handleChangeEnvironments = (environments: string[] | null) => {
-    setSelectedEnvironments(environments);
-  };
-
-  const handleUpdateEnvironments = (quickSelectedEnvs?: string[]) => {
-    updateEnvironments(quickSelectedEnvs ?? selectedEnvironments, router, {
+  const handleUpdateEnvironments = (environments: string[]) => {
+    updateEnvironments(environments, router, {
       save: true,
       resetParams: resetParamsOnChange,
     });
@@ -70,10 +66,10 @@ function EnvironmentPageFilter({router, resetParamsOnChange = []}: Props) {
       loadingProjects={!projectsLoaded || !isReady}
       selectedProjects={selection.projects}
       value={selection.environments}
-      onChange={handleChangeEnvironments}
       onUpdate={handleUpdateEnvironments}
       customDropdownButton={customDropdownButton}
       customLoadingIndicator={customLoadingIndicator}
+      alignDropdown={alignDropdown}
       detached
     />
   );
@@ -94,4 +90,4 @@ const DropdownTitle = styled('div')`
   flex: 1;
 `;
 
-export default withRouter(EnvironmentPageFilter);
+export default withRouter<Props>(EnvironmentPageFilter);

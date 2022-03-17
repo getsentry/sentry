@@ -13,7 +13,6 @@ import {
   generateFieldAsString,
   Sort,
 } from 'sentry/utils/discover/fields';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -30,14 +29,6 @@ import {
   TrendsTransaction,
   TrendView,
 } from './types';
-
-export const trendParameterToMetricsField: Record<string, TransactionMetric> = {
-  [TrendColumnField.DURATION]: TransactionMetric.TRANSACTION_DURATION,
-  [TrendColumnField.LCP]: TransactionMetric.MEASUREMENTS_LCP,
-  [TrendColumnField.FCP]: TransactionMetric.MEASUREMENTS_FCP,
-  [TrendColumnField.FID]: TransactionMetric.MEASUREMENTS_FID,
-  [TrendColumnField.CLS]: TransactionMetric.MEASUREMENTS_CLS,
-};
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';

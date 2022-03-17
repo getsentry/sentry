@@ -1,13 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import {
@@ -42,6 +42,7 @@ function TestComponent({
           : undefined
       }
     >
+      <GlobalModal />
       <CustomRepositories
         {...props}
         organization={organization}
@@ -87,12 +88,8 @@ describe('Custom Repositories', function () {
     type: CustomRepoType.APP_STORE_CONNECT,
   };
 
-  beforeEach(async function () {
-    await mountGlobalModal(routerContext);
-  });
-
   it('renders', async function () {
-    const {rerender} = mountWithTheme(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />, {context: routerContext});
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -183,8 +180,9 @@ describe('Custom Repositories', function () {
   it('renders with custom-symbol-sources feature enabled', async function () {
     const newOrganization = {...organization, features: ['custom-symbol-sources']};
 
-    const {rerender} = mountWithTheme(
-      <TestComponent {...props} organization={newOrganization} />
+    const {rerender} = render(
+      <TestComponent {...props} organization={newOrganization} />,
+      {context: routerContext}
     );
 
     // Section title
@@ -236,12 +234,13 @@ describe('Custom Repositories', function () {
   it('renders with app-store-connect-multiple feature enabled', async function () {
     const newOrganization = {...organization, features: ['app-store-connect-multiple']};
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
-      />
+      />,
+      {context: routerContext}
     );
 
     // Section title
@@ -273,18 +272,19 @@ describe('Custom Repositories', function () {
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
   });
 
-  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', async function () {
+  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
     const newOrganization = {
       ...organization,
       features: ['custom-symbol-sources', 'app-store-connect-multiple'],
     };
 
-    mountWithTheme(
+    render(
       <TestComponent
         {...props}
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
-      />
+      />,
+      {context: routerContext}
     );
 
     // Content

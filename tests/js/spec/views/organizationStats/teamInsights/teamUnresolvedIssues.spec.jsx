@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamUnresolvedIssues from 'sentry/views/organizationStats/teamInsights/teamUnresolvedIssues';
 
@@ -28,7 +28,7 @@ describe('TeamUnresolvedIssues', () => {
         },
       },
     });
-    mountWithTheme(
+    render(
       <TeamUnresolvedIssues
         organization={organization}
         projects={organization.projects}
