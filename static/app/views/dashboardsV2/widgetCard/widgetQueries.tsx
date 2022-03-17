@@ -57,7 +57,7 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
  *    }
  * }
  */
-export function flattenGroupedMultiSeriesData(
+export function flattenMultiSeriesDataWithGrouping(
   result: RawResult,
   queryAlias: string
 ): SeriesWithOrdering[] {
@@ -94,13 +94,15 @@ function transformResult(
 
   if (isMultiSeriesStats(result)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
+    const isMultiSeriesDataWithGrouping =
+      query.aggregates.length > 1 && query.columns.length;
 
     // Convert multi-series results into chartable series. Multi series results
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series result set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    if (displayType !== DisplayType.TOP_N && query.aggregates.length > 1) {
-      seriesWithOrdering = flattenGroupedMultiSeriesData(result, queryAlias);
+    if (displayType !== DisplayType.TOP_N && isMultiSeriesDataWithGrouping) {
+      seriesWithOrdering = flattenMultiSeriesDataWithGrouping(result, queryAlias);
     } else {
       seriesWithOrdering = Object.keys(result).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
