@@ -11,6 +11,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {
   DESCRIPTIONS,
   EVENT_CHOICES,
+  PERMISSIONS_MAP,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 type Resource = typeof EVENT_CHOICES[number];
@@ -44,7 +45,7 @@ export class SubscriptionBox extends React.Component<Props> {
     const features = new Set(organization.features);
 
     let disabled = this.props.disabledFromPermissions || webhookDisabled;
-    let message = `Must have at least 'Read' permissions enabled for ${resource}`;
+    let message = `Must have at least 'Read' permissions enabled for ${PERMISSIONS_MAP[resource]}`;
     if (resource === 'error' && !features.has('integrations-event-hooks')) {
       disabled = true;
       message =
