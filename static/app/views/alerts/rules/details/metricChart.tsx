@@ -597,6 +597,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
+                onFinished={() => {
+                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                  this.updateDimensions();
+                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -734,11 +739,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           .filter(e => e)
                           .join('');
                       },
-                    }}
-                    onFinished={() => {
-                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                      this.updateDimensions();
                     }}
                   />
                 )}
