@@ -23,7 +23,9 @@ DEFAULT_ERROR_MESSAGE = (
 
 
 class RatelimitMiddleware:
-    """Middleware that applies a rate limit to every endpoint. See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware"""
+    """Middleware that applies a rate limit to every endpoint.
+    See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
+    """
 
     def __init__(self, get_response):
         self.get_response = get_response
