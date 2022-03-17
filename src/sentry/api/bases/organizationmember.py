@@ -63,16 +63,16 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         member_id: int | str,
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
-        kwargs = dict(
-            organization=organization,
-        )
+        args = []
+        kwargs = dict(organization=organization)
 
         if member_id == "me":
             kwargs.update(user__id=request.user.id, user__is_active=True)
         else:
-            kwargs.update(Q(user__is_active=True) | Q(user__isnull=True), id=member_id)
+            args.append(Q(user__is_active=True) | Q(user__isnull=True))
+            kwargs.update(id=member_id)
 
         if invite_status:
             kwargs.update(invite_status=invite_status.value)
 
-        return OrganizationMember.objects.filter(**kwargs).select_related("user").get()
+        return OrganizationMember.objects.filter(*args, **kwargs).select_related("user").get()
