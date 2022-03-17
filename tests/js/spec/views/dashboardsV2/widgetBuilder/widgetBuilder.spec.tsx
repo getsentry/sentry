@@ -1,22 +1,13 @@
 import React from 'react';
-import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import * as modals from 'sentry/actionCreators/modal';
-import {TOP_N} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  MAX_WIDGETS,
-  Widget,
 } from 'sentry/views/dashboardsV2/types';
-import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 // Mock World Map because setState inside componentDidMount is
@@ -109,8 +100,6 @@ describe('WidgetBuilder', function () {
     widgets: [],
   };
 
-  let eventsStatsMock: jest.Mock | undefined;
-
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -160,7 +149,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    eventsStatsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
@@ -181,6 +170,7 @@ describe('WidgetBuilder', function () {
     jest.clearAllMocks();
   });
 
+  /*
   it('no feature access', function () {
     renderTestComponent({orgFeatures: []});
 
@@ -1377,10 +1367,12 @@ describe('WidgetBuilder', function () {
       expect(mockModal).toHaveBeenCalled();
     });
   });
+  */
 
   // Disabling for CI, but should run locally when making changes
   // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('group by field', function () {
+  describe('group by field', function () {
+    /*
     it('does not contain functions as options', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -1407,6 +1399,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
     });
+     */
 
     it('allows adding up to GROUP_BY_LIMIT fields', async function () {
       renderTestComponent({
@@ -1438,6 +1431,14 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
     });
 
+    it('please fail', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+    });
+
+    /*
     it("doesn't reset group by when changing y-axis", async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -1491,5 +1492,6 @@ describe('WidgetBuilder', function () {
         })
       );
     });
+    */
   });
 });
