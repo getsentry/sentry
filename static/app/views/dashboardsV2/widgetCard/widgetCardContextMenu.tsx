@@ -1,10 +1,14 @@
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
-import {IconEllipsis} from 'sentry/icons';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -14,15 +18,19 @@ import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2
 import {Widget, WidgetType} from '../types';
 
 type Props = {
+  location: Location;
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
   showContextMenu?: boolean;
+  showWidgetViewerButton?: boolean;
 };
 
 function WidgetCardContextMenu({
@@ -35,6 +43,10 @@ function WidgetCardContextMenu({
   onEdit,
   showContextMenu,
   isPreview,
+  showWidgetViewerButton,
+  router,
+  location,
+  index,
 }: Props) {
   if (!showContextMenu) {
     return null;
@@ -63,6 +75,24 @@ function WidgetCardContextMenu({
           placement="bottom right"
           disabledKeys={['preview']}
         />
+        {showWidgetViewerButton && (
+          <OpenWidgetViewerButton
+            aria-label={t('Open Widget Viewer')}
+            priority="link"
+            size="zero"
+            icon={<IconExpand size="xs" />}
+            onClick={() => {
+              if (!isWidgetViewerPath(location.pathname)) {
+                router.push({
+                  pathname: `${location.pathname}${
+                    location.pathname.endsWith('/') ? '' : '/'
+                  }widget/${index}/`,
+                  query: location.query,
+                });
+              }
+            }}
+          />
+        )}
       </ContextWrapper>
     );
   }
@@ -153,6 +183,24 @@ function WidgetCardContextMenu({
         placement="bottom right"
         disabledKeys={disabledKeys}
       />
+      {showWidgetViewerButton && (
+        <OpenWidgetViewerButton
+          aria-label={t('Open Widget Viewer')}
+          priority="link"
+          size="zero"
+          icon={<IconExpand size="xs" />}
+          onClick={() => {
+            if (!isWidgetViewerPath(location.pathname)) {
+              router.push({
+                pathname: `${location.pathname}${
+                  location.pathname.endsWith('/') ? '' : '/'
+                }widget/${widget.id}/`,
+                query: location.query,
+              });
+            }
+          }}
+        />
+      )}
     </ContextWrapper>
   );
 }
@@ -170,4 +218,10 @@ const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
   & > button {
     z-index: auto;
   }
+`;
+
+const OpenWidgetViewerButton = styled(Button)`
+  margin-left: ${space(0.5)};
+  margin-right: auto;
+  color: ${p => p.theme.textColor};
 `;
