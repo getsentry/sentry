@@ -15,6 +15,8 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
+import {useFlamegraphStateValue} from '../../utils/profiling/flamegraph/useFlamegraphState';
+
 import {BoundTooltip} from './boundTooltip';
 
 interface FlamegraphZoomViewProps {
@@ -41,7 +43,7 @@ function FlamegraphZoomView({
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-  const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
+  const flamegraphState = useFlamegraphStateValue();
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
@@ -140,12 +142,16 @@ function FlamegraphZoomView({
   }, [flamegraph]);
 
   useEffect(() => {
+    scheduler.draw();
+  }, [flamegraphState.search.results]);
+
+  useEffect(() => {
     if (!flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
-      flamegraphRenderer.draw(searchResults);
+      flamegraphRenderer.draw(flamegraphState.search.results);
     };
 
     scheduler.registerBeforeFrameCallback(drawRectangles);
@@ -153,7 +159,7 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [scheduler, flamegraphRenderer, searchResults]);
+  }, [scheduler, flamegraphRenderer, flamegraphState.search.results]);
 
   useEffect(() => {
     if (!flamegraphRenderer || !textRenderer || !gridRenderer || !selectedFrameRenderer) {
@@ -304,23 +310,16 @@ function FlamegraphZoomView({
       scheduler.draw();
     };
 
-    const onSearchResultsChange = (results: Record<string, FlamegraphFrame>) => {
-      setSearchResults(results);
-      scheduler.draw();
-    };
-
     scheduler.on('setConfigView', onConfigViewChange);
     scheduler.on('transformConfigView', onTransformConfigView);
     scheduler.on('resetZoom', onResetZoom);
     scheduler.on('zoomIntoFrame', onZoomIntoFrame);
-    scheduler.on('searchResults', onSearchResultsChange);
 
     return () => {
       scheduler.off('setConfigView', onConfigViewChange);
       scheduler.off('transformConfigView', onTransformConfigView);
       scheduler.off('resetZoom', onResetZoom);
       scheduler.off('zoomIntoFrame', onZoomIntoFrame);
-      scheduler.off('searchResults', onSearchResultsChange);
     };
   }, [scheduler, flamegraphRenderer]);
 
