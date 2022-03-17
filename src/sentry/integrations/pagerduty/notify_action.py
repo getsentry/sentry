@@ -86,6 +86,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
 
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
+    id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
     prompt = "Send a PagerDuty notification"

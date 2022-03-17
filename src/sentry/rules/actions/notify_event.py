@@ -10,6 +10,7 @@ from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
+    id = "sentry.rules.actions.notify_event.NotifyEventAction"
     label = "Send a notification (for all legacy integrations)"
     prompt = "Send a notification to all legacy integrations"
 

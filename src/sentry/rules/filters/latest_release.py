@@ -42,6 +42,7 @@ def clear_release_project_cache(instance: ReleaseProject, **kwargs: Any) -> None
 
 
 class LatestReleaseFilter(EventFilter):
+    id = "sentry.rules.filters.latest_release.LatestReleaseFilter"
     label = "The event is from the latest release"
 
     def get_latest_release(self, event: Event) -> Release | None:

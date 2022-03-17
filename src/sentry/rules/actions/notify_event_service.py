@@ -134,6 +134,7 @@ class NotifyEventServiceForm(forms.Form):
 
 
 class NotifyEventServiceAction(EventAction):
+    id = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
     form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
     prompt = "Send a notification via an integration"
