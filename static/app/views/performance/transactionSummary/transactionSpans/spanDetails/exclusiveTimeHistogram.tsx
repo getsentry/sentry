@@ -16,10 +16,9 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -37,24 +36,13 @@ const PRECISION = 0;
 type Props = WithRouterProps & {
   eventView: EventView;
   location: Location;
-  onFilterChange: (minValue: number, maxValue: number) => void;
   organization: Organization;
   spanSlug: SpanSlug;
-  withoutZerofill: boolean;
 };
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
-  const {
-    location,
-    router,
-    organization,
-    eventView,
-    spanSlug,
-    // withoutZerofill,
-    onFilterChange,
-  } = props;
+  const {location, router, organization, eventView, spanSlug} = props;
 
-  // const api = useApi();
   const theme = useTheme();
 
   const period = eventView.statsPeriod;
@@ -62,31 +50,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : null;
   const {utc} = normalizeDateTimeParams(location.query);
 
-  // const datetimeSelection = {
-  //   start,
-  //   end,
-  //   period,
-  // };
-
-  const yAxis = [
-    'percentileArray(spans_exclusive_time, 0.75)',
-    'percentileArray(spans_exclusive_time, 0.95)',
-    'percentileArray(spans_exclusive_time, 0.99)',
-  ];
-
-  // const handleLegendSelectChanged = legendChange => {
-  //   const {selected} = legendChange;
-  //   const unselected = Object.keys(selected).filter(key => !selected[key]);
-
-  //   const to = {
-  //     ...location,
-  //     query: {
-  //       ...location.query,
-  //       unselectedSeries: unselected,
-  //     },
-  //   };
-  //   browserHistory.push(to);
-  // };
+  const yAxis = ['spans_exclusive_time'];
 
   return (
     <Fragment>
@@ -112,8 +76,8 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
             location={location}
             orgSlug={organization.slug}
             eventView={eventView}
-            numBuckets={100}
-            precision={1}
+            numBuckets={NUM_BUCKETS}
+            precision={PRECISION}
             span={spanSlug}
             dataFilter="exclude_outliers"
           >
@@ -140,16 +104,9 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                 tooltip: {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
-                  // valueFormatter: (value, _seriesName) =>
-                  //   tooltipFormatter(value, 'p50()'),
+                  valueFormatter: (value, _seriesName) =>
+                    tooltipFormatter(value, 'p50()'),
                 },
-                // xAxis: timeframe
-                //   ? {
-                //       min: timeframe.start,
-                //       max: timeframe.end,
-                //     }
-                //   : undefined,
-                xAxis: undefined,
                 yAxis: {
                   axisLabel: {
                     color: theme.chartLabel,
@@ -162,20 +119,14 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
               return (
                 <TransitionChart loading={isLoading} reloading={isLoading}>
                   <TransparentLoadingMask visible={isLoading} />
-                  {getDynamicText({
-                    value: (
-                      <Chart
-                        {...zoomRenderProps}
-                        {...chartOptions}
-                        isLoading={isLoading}
-                        isErrored={!!error}
-                        chartData={histogram}
-                        location={location}
-                        onFilterChange={onFilterChange}
-                      />
-                    ),
-                    fixed: <Placeholder height="200px" />,
-                  })}
+                  <Chart
+                    {...zoomRenderProps}
+                    {...chartOptions}
+                    isLoading={isLoading}
+                    isErrored={!!error}
+                    chartData={histogram}
+                    location={location}
+                  />
                 </TransitionChart>
               );
             }}
@@ -191,7 +142,6 @@ type ChartProps = {
   isErrored: boolean;
   isLoading: boolean;
   location: Location;
-  onFilterChange: Props['onFilterChange'];
   colors?: string[];
   disableChartPadding?: boolean;
   disableXAxis?: boolean;
@@ -205,12 +155,10 @@ export function Chart(props: ChartProps) {
     isLoading,
     chartData,
     location,
-    onFilterChange,
     height,
     grid,
     disableXAxis,
     disableZoom,
-    disableChartPadding,
     colors,
   } = props;
 
@@ -246,38 +194,32 @@ export function Chart(props: ChartProps) {
       <BarChartZoom
         minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
         location={location}
-        paramStart={`selfTime:>=`}
-        paramEnd={`selfTime:<=`}
+        // TODO (udameli): use real values here
+        paramStart="SpansExclusiveTimeStart"
+        paramEnd="SpansExclusiveTimeEnd"
         xAxisIndex={[0]}
         buckets={computeBuckets(chartData)}
-        onHistoryPush={onFilterChange}
       >
+        {/* TODO (udameli): enable zooming */}
         {zoomRenderProps => {
           return (
-            <BarChartContainer hasPadding={!disableChartPadding}>
+            <BarChartContainer>
               <MaskContainer>
                 <TransparentLoadingMask visible={isLoading} />
                 {getDynamicText({
                   value: (
                     <BarChart
-                      height={height ?? 250}
+                      height={height ?? 200}
                       series={[series]}
                       xAxis={disableXAxis ? {show: false} : xAxis}
                       yAxis={yAxis}
                       colors={colors}
-                      grid={
-                        grid ?? {
-                          left: space(3),
-                          right: space(3),
-                          top: space(3),
-                          bottom: isLoading ? space(4) : space(1.5),
-                        }
-                      }
+                      grid={grid}
                       stacked
                       {...(disableZoom ? {} : zoomRenderProps)}
                     />
                   ),
-                  fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                  fixed: <Placeholder height="200px" />,
                 })}
               </MaskContainer>
             </BarChartContainer>
@@ -288,8 +230,8 @@ export function Chart(props: ChartProps) {
   );
 }
 
-const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
-  padding-top: ${p => (p.hasPadding ? space(1) : 0)};
+const BarChartContainer = styled('div')`
+  padding-top: 0;
   position: relative;
 `;
 

@@ -13,7 +13,6 @@ import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-// import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -49,7 +48,8 @@ function Chart(props: Props) {
       pathname: location.pathname,
       query: {
         ...location.query,
-        // ...removeHistogramQueryStrings(location, [Z])
+        // TODO (udameli) implement removeHistogramQueryStrings here
+        // once histogram is displaying correctly
         display: value,
       },
     });
@@ -61,9 +61,7 @@ function Chart(props: Props) {
         {display === DisplayModes.TIMESERIES && (
           <ExclusiveTimeTimeSeries {...props} withoutZerofill={false} />
         )}
-        {display === DisplayModes.HISTOGRAM && (
-          <ExclusiveTimeHistogram {...props} withoutZerofill={false} />
-        )}
+        {display === DisplayModes.HISTOGRAM && <ExclusiveTimeHistogram {...props} />}
       </ChartContainer>
       <ChartControls>
         <InlineContainer>
