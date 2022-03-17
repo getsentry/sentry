@@ -174,3 +174,13 @@ METRIC_SATISFIED_TAG_KEY = "is_satisfied"
 METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
 METRIC_TRUE_TAG_VALUE = "true"
 METRIC_FALSE_TAG_VALUE = "false"
+METRIC_DURATION_COLUMNS = [
+    "measurements.fp",
+    "measurements.fcp",
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "measurements.ttfb",
+    "measurements.ttfb.requesttime",
+    "transaction.duration",
+]
