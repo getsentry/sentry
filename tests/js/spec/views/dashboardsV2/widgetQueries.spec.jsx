@@ -2,7 +2,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'sentry/api';
-import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+import WidgetQueries, {
+  flattenGroupedMultiSeriesData,
+} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
@@ -698,5 +700,61 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
     );
+  });
+
+  describe('multi-series grouped data', () => {
+    const [START, END] = [1647399900, 1647399901];
+    let mockCountData, mockCountUniqueData, mockRawResultData;
+
+    beforeEach(() => {
+      mockCountData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count()': 0}]],
+          [END, [{'count()': 0}]],
+        ],
+      };
+      mockCountUniqueData = {
+        start: START,
+        end: END,
+        data: [
+          [START, [{'count_unique()': 0}]],
+          [END, [{'count_unique()': 0}]],
+        ],
+      };
+      mockRawResultData = {
+        local: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 0,
+        },
+        prod: {
+          'count()': mockCountData,
+          'count_unique()': mockCountUniqueData,
+          order: 1,
+        },
+      };
+    });
+
+    it('combines group name and aggregate names in grouped multi series data', () => {
+      const actual = flattenGroupedMultiSeriesData(mockRawResultData, '');
+      expect(actual).toEqual([
+        [0, expect.objectContaining({seriesName: 'local : count()'})],
+        [0, expect.objectContaining({seriesName: 'local : count_unique()'})],
+        [1, expect.objectContaining({seriesName: 'prod : count()'})],
+        [1, expect.objectContaining({seriesName: 'prod : count_unique()'})],
+      ]);
+    });
+
+    it('prefixes with a query alias when provided', () => {
+      const actual = flattenGroupedMultiSeriesData(mockRawResultData, 'Query 1');
+      expect(actual).toEqual([
+        [0, expect.objectContaining({seriesName: 'Query 1 > local : count()'})],
+        [0, expect.objectContaining({seriesName: 'Query 1 > local : count_unique()'})],
+        [1, expect.objectContaining({seriesName: 'Query 1 > prod : count()'})],
+        [1, expect.objectContaining({seriesName: 'Query 1 > prod : count_unique()'})],
+      ]);
+    });
   });
 });

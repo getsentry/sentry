@@ -57,12 +57,15 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
  *    }
  * }
  */
-function flattenGroupedMultiSeriesData(result, queryAlias): SeriesWithOrdering[] {
+export function flattenGroupedMultiSeriesData(
+  result: RawResult,
+  queryAlias: string
+): SeriesWithOrdering[] {
   const seriesWithOrdering: SeriesWithOrdering[] = [];
   const groupNames = Object.keys(result);
 
   groupNames.forEach((groupName: string) => {
-    // Each aggregate series contains an order key which we should ignore
+    // Each group contains an order key which we should ignore
     const aggregateNames = Object.keys(omit(result[groupName], 'order'));
 
     aggregateNames.forEach((aggregate: string) => {
