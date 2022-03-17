@@ -63,8 +63,6 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == []
 
-    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_tag_values_for_derived_metrics(self):
         self.store_session(
             self.build_session(
@@ -82,12 +80,32 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == [{"key": "release", "value": "foobar"}]
 
+    def test_tag_not_available_in_the_indexer(self):
         response = self.get_response(
             self.organization.slug,
             "release",
-            metric=["crash_free_fake", "session.init"],
+            metric=["random_foo_metric"],
         )
         assert response.status_code == 400
+        assert response.json()["detail"] == "Tag release is not available in the indexer"
+
+    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    def test_incorrectly_setup_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "release",
+            metric=["crash_free_fake"],
+        )
         assert response.json()["detail"] == (
             "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
             "Please revise the definition of these singular entity derived metrics"

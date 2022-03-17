@@ -88,7 +88,6 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         raise InvalidParams
 
     for metric_type in ("counter", "set", "distribution"):
-        # TODO: What if metric_id exists for multiple types / units?
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         data = run_metrics_query(
             entity_key=entity_key,
