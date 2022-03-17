@@ -35,6 +35,7 @@ export function FilterResultsStep({
   onQueryRemove,
   onAddSearchConditions,
   onQueryChange,
+  organization,
   hideLegendAlias,
   projectIds,
   queryErrors,
@@ -101,6 +102,7 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 {widgetType === WidgetType.ISSUE ? (
                   <IssuesSearchBar
+                    organization={organization}
                     query={query}
                     onBlur={handleBlur(queryIndex)}
                     onSearch={handleSearch(queryIndex)}
@@ -108,6 +110,7 @@ export function FilterResultsStep({
                   />
                 ) : (
                   <EventsSearchBar
+                    organization={organization}
                     query={query}
                     projectIds={projectIds}
                     onBlur={handleBlur(queryIndex)}

@@ -2,19 +2,16 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Client} from 'sentry/api';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {
   explodeField,
   generateFieldAsString,
   getColumnsAndAggregates,
 } from 'sentry/utils/discover/fields';
-import withApi from 'sentry/utils/withApi';
-import withIssueTags from 'sentry/utils/withIssueTags';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import IssuesSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
@@ -24,13 +21,11 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import WidgetQueryFields from './widgetQueryFields';
 
 type Props = {
-  api: Client;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (widgetQuery: WidgetQuery) => void;
   organization: Organization;
   query: WidgetQuery;
   selection: PageFilters;
-  tags: TagCollection;
   error?: Record<string, any>;
 };
 
@@ -81,6 +76,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
             <IssuesSearchBar
               query={query}
               selection={selection}
+              organization={organization}
               onSearch={field => {
                 // IssueListSearchBar will call handlers for both onSearch and onBlur
                 // when selecting a value from the autocomplete dropdown. This can
@@ -159,4 +155,4 @@ export const SearchConditionsWrapper = styled('div')`
   }
 `;
 
-export default withApi(withIssueTags(IssueWidgetQueriesForm));
+export default IssueWidgetQueriesForm;

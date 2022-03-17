@@ -2,19 +2,24 @@ import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Organization} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 
 interface Props {
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
   projectIds: SearchBarProps['projectIds'];
   query: WidgetQuery;
 }
 
-export function EventsSearchBar({projectIds, onSearch, onBlur, query}: Props) {
-  const organization = useOrganization();
-
+export function EventsSearchBar({
+  projectIds,
+  onSearch,
+  onBlur,
+  organization,
+  query,
+}: Props) {
   return (
     <Search
       searchSource="widget_builder"

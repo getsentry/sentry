@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
-import {PageFilters, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
@@ -15,14 +14,21 @@ interface Props {
   api: Client;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
   query: WidgetQuery;
   selection: PageFilters;
   tags: TagCollection;
 }
 
-function IssuesSearchBar({tags, onSearch, onBlur, query, api, selection}: Props) {
-  const organization = useOrganization();
-
+function IssuesSearchBar({
+  tags,
+  onSearch,
+  onBlur,
+  organization,
+  query,
+  api,
+  selection,
+}: Props) {
   function tagValueLoader(key: string, search: string) {
     const orgId = organization.slug;
     const projectIds = selection.projects.map(id => id.toString());
