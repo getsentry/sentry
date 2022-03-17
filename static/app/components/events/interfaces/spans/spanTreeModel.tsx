@@ -48,7 +48,7 @@ class SpanTreeModel {
   isNestedSpanGroupExpanded: boolean = false;
   // Entries in this set will follow the format 'op.description'.
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
-  ungroupedSiblings: Set<string> = new Set();
+  expandedSiblingGroups: Set<string> = new Set();
 
   constructor(
     parentSpan: SpanType,
@@ -83,7 +83,7 @@ class SpanTreeModel {
       fetchEmbeddedTransactions: action,
       isNestedSpanGroupExpanded: observable,
       toggleNestedSpanGroup: action,
-      ungroupedSiblings: observable,
+      expandedSiblingGroups: observable,
       toggleSiblingSpanGroup: action,
     });
   }
@@ -467,7 +467,7 @@ class SpanTreeModel {
 
           // Check if the group is currently expanded or not
           const key = `${group[0].span.op}.${group[0].span.description}`;
-          if (this.ungroupedSiblings.has(key)) {
+          if (this.expandedSiblingGroups.has(key)) {
             acc.descendants.push(...wrappedSiblings);
             return acc;
           }
@@ -720,10 +720,10 @@ class SpanTreeModel {
   toggleSiblingSpanGroup = (span: SpanType) => {
     const key = getSiblingGroupKey(span);
 
-    if (this.ungroupedSiblings.has(key)) {
-      this.ungroupedSiblings.delete(key);
+    if (this.expandedSiblingGroups.has(key)) {
+      this.expandedSiblingGroups.delete(key);
     } else {
-      this.ungroupedSiblings.add(key);
+      this.expandedSiblingGroups.add(key);
     }
   };
 
