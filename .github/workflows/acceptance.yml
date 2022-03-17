@@ -34,6 +34,15 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+  # This check is to fake that Visual Snapshot run successfully
+  visual-snapshot:
+    runs-on: ubuntu-18.04
+    name: Visual Snapshot
+    # This is the opposite compared to the other checks
+    if: ${{ needs.changes.outputs.backend_or_frontend != 'true' }}
+    steps:
+      - run: 'echo "No Visual Snapshots required." '
+
   frontend:
     needs: changes
     if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
