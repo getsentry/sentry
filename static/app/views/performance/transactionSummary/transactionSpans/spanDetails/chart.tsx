@@ -17,7 +17,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import ExclusiveTimeChart from './exclusiveTimeChart';
+import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
+import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
 
 type Props = WithRouterProps & {
   eventView: EventView;
@@ -57,7 +58,12 @@ function Chart(props: Props) {
   return (
     <Panel>
       <ChartContainer>
-        <ExclusiveTimeChart {...props} withoutZerofill={false} display={display} />
+        {display === DisplayModes.TIMESERIES && (
+          <ExclusiveTimeTimeSeries {...props} withoutZerofill={false} />
+        )}
+        {display === DisplayModes.HISTOGRAM && (
+          <ExclusiveTimeHistogram {...props} withoutZerofill={false} />
+        )}
       </ChartContainer>
       <ChartControls>
         <InlineContainer>
