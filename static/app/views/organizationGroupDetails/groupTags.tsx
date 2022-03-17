@@ -5,16 +5,15 @@ import isEqual from 'lodash/isEqual';
 
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, TagWithTopValues} from 'sentry/types';
