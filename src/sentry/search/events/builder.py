@@ -559,7 +559,7 @@ class QueryBuilder:
         if function_details is None:
             return None
 
-        result_type = function_details.instance.get_result_type(
+        result_type: Optional[str] = function_details.instance.get_result_type(
             function_details.field, function_details.arguments
         )
         return result_type
