@@ -115,7 +115,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)
+        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
 
@@ -168,8 +168,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
         # TODO(mgaeta): Bug: Rule is optional.
-        delta = abs(self.rule.date_added - self.project.date_added)
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
+        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
         return guess
 
 
