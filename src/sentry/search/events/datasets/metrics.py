@@ -41,8 +41,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_metric(self, value: str) -> int:
         metric_id = indexer.resolve(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
-            # TODO: unsure if this should be incompatible or invalid
-            raise InvalidSearchQuery(f"Metric: {value} could not be resolved")
+            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
 
         self.builder.metric_ids.append(metric_id)
         return metric_id
