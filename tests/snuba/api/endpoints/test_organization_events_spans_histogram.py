@@ -81,6 +81,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_endpoint(self):
         self.create_event()
+        num_buckets = 100
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -88,11 +89,20 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "project": [self.project.id],
                     "span": f"django.middleware:{'cd'* 8}",
-                    "numBuckets": 100,
+                    "numBuckets": num_buckets,
                 },
                 format="json",
             )
 
-        label = f"spans_histogram__django_middleware__{'cd' * 8}_1_0_1"
+        # currently, num of buckets is hardcoded to 100, so we need to generate a result
+        # with 100 buckets
+        # then insert two non-null bins [{"bin": 3, "count": 2}, {"bin": 10, "count": 3}]
+        # TODO refactor this once num of buckets is dynamic
+        expected_data = [{"bin": i, "count": 0} for i in range(num_buckets)]
+        firstIndex = expected_data.index({"bin": 3, "count": 0})
+        expected_data[firstIndex] = {"bin": 3, "count": 2}
+        secondIndex = expected_data.index({"bin": 10, "count": 0})
+        expected_data[secondIndex] = {"bin": 10, "count": 3}
+
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [{label: 3, "count": 2}, {label: 10, "count": 3}]
+        assert response.data == expected_data
