@@ -32,7 +32,7 @@ describe('GroupTags', function () {
       })
     );
 
-    const headers = screen.getAllByRole('heading').map(header => header.innerHTML);
+    const headers = screen.getAllByTestId('heading').map(header => header.innerHTML);
     // Check headers have been sorted alphabetically
     expect(headers).toEqual(['browser', 'device', 'environment', 'url', 'user']);
 
