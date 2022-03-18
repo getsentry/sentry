@@ -2,6 +2,7 @@
 
 
 import datetime
+import logging
 import shutil
 import sys
 import time
@@ -12,6 +13,9 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
+
+_log = logging.getLogger(__name__)
+
 
 # This helps the Relay CI to specify the generated Docker build before it is published
 RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "us.gcr.io/sentryio/relay:nightly")
@@ -123,7 +127,9 @@ def relay_server(relay_server_setup, settings):
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
-    docker_client.containers.run(**options)
+    container = docker_client.containers.run(**options)
+
+    _log.info("Waiting for Relay container to start")
 
     url = relay_server_setup["url"]
 
@@ -131,7 +137,9 @@ def relay_server(relay_server_setup, settings):
         try:
             requests.get(url)
             break
-        except Exception:
+        except Exception as ex:
+            if i == 4:
+                raise ValueError(f"relay did not start in time:\n{container.logs()}") from ex
             time.sleep(0.1 * 2 ** i)
     else:
         raise ValueError("relay did not start in time")
@@ -163,6 +171,7 @@ def adjust_settings_for_relay_tests(settings):
         }
     }
     settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
+    settings.SENTRY_USE_RELAY = True
 
 
 @pytest.fixture
