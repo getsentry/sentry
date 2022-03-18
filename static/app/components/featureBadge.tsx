@@ -1,6 +1,8 @@
-import * as React from 'react';
+import {Fragment, HTMLAttributes} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {captureException, withScope} from '@sentry/react';
+import type {Severity} from '@sentry/types';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Tag from 'sentry/components/tagDeprecated';
@@ -16,7 +18,7 @@ type BadgeProps = {
   variant?: 'indicator' | 'badge';
 };
 
-type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
+type Props = Omit<HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
 const defaultTitles = {
   alpha: t('This feature is internal and available for QA purposes'),
@@ -40,18 +42,27 @@ function BaseFeatureBadge({
 }: Props) {
   const theme = useTheme();
   if (expiresAt && expiresAt.valueOf() < Date.now()) {
+    // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
+    if (Math.random() < 0.001) {
+      withScope(function (scope) {
+        scope.setTag('title', title);
+        scope.setTag('type', type);
+        scope.setLevel('warning' as Severity);
+        captureException(new Error('Expired Feature Badge'));
+      });
+    }
     return null;
   }
 
   return (
     <div {...p}>
       <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
-        <React.Fragment>
+        <Fragment>
           {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
           {variant === 'indicator' && (
             <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
           )}
-        </React.Fragment>
+        </Fragment>
       </Tooltip>
     </div>
   );
