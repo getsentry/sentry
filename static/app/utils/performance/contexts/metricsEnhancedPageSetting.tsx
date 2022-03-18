@@ -10,7 +10,7 @@ interface MetricsEnhancedPageSettingContext {
 
 const [_MEPPageSettingProvider, _useMEPPageSettingContext] =
   createDefinedContext<MetricsEnhancedPageSettingContext>({
-    name: 'MetricsEnhancedPerformanceDataContext',
+    name: 'MetricsEnhancedPerformancePageSettingContext',
   });
 
 // Used to switch metric setting on a page without persisting (as in landing)

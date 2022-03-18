@@ -381,7 +381,7 @@ const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
 `;
 
-const TransactionList = (
+const TransactionsList = (
   props: Omit<Props, 'cursorName' | 'limit'> & {
     cursorName?: Props['cursorName'];
     limit?: Props['limit'];
@@ -396,4 +396,4 @@ const TransactionList = (
   return <_TransactionsList {...props} />;
 };
 
-export default TransactionList;
+export default TransactionsList;

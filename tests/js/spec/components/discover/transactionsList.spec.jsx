@@ -5,6 +5,18 @@ import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
+import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+
+const WrapperComponent = props => {
+  return (
+    <MEPSettingProvider _isMEPEnabled={false}>
+      <MEPPageSettingProvider>
+        <TransactionsList {...props} />
+      </MEPPageSettingProvider>
+    </MEPSettingProvider>
+  );
+};
 
 describe('TransactionsList', function () {
   let wrapper;
@@ -117,7 +129,7 @@ describe('TransactionsList', function () {
 
     it('renders basic UI components', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -150,7 +162,7 @@ describe('TransactionsList', function () {
         trendType: 'regression',
       });
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -177,7 +189,7 @@ describe('TransactionsList', function () {
 
     it('renders default titles', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -199,7 +211,7 @@ describe('TransactionsList', function () {
 
     it('renders custom titles', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -222,7 +234,7 @@ describe('TransactionsList', function () {
 
     it('allows users to change the sort in the dropdown', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -255,7 +267,7 @@ describe('TransactionsList', function () {
 
     it('generates link for the transaction cell', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={api}
           location={location}
           organization={organization}
@@ -294,7 +306,7 @@ describe('TransactionsList', function () {
 
     it('handles forceLoading correctly', async function () {
       wrapper = mountWithTheme(
-        <TransactionsList
+        <WrapperComponent
           api={null}
           location={location}
           organization={organization}
