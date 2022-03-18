@@ -1415,8 +1415,9 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findAllByText('Select group')).toHaveLength(20);
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
-    });
+    }, 3000);
 
+    /*
     it('allows deleting groups until there is one left', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -1430,6 +1431,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getAllByLabelText('Remove group')[1]);
       expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
     });
+     */
 
     it('please fail', async function () {
       renderTestComponent({
