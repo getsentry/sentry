@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
@@ -62,9 +62,8 @@ type Props = {
   onFilterChange: (section: string, filterSelection: Set<string>) => void;
 };
 
-class Filter extends Component<Props> {
-  toggleFilter = (sectionId: string, value: string) => {
-    const {onFilterChange, dropdownSections} = this.props;
+function Filter({onFilterChange, header, dropdownSections}: Props) {
+  function toggleFilter(sectionId: string, value: string) {
     const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
     )!;
@@ -77,11 +76,10 @@ class Filter extends Component<Props> {
       newSelection.add(value);
     }
     onFilterChange(sectionId, newSelection);
-  };
+  }
 
-  toggleSection = (sectionId: string) => {
-    const {onFilterChange} = this.props;
-    const section = this.props.dropdownSections.find(
+  function toggleSection(sectionId: string) {
+    const section = dropdownSections.find(
       dropdownSection => dropdownSection.id === sectionId
     )!;
     const activeItems = section.items.filter(item => item.checked);
@@ -92,79 +90,76 @@ class Filter extends Component<Props> {
         : new Set(section.items.map(item => item.value));
 
     onFilterChange(sectionId, newSelection);
-  };
+  }
 
-  getNumberOfActiveFilters = (): number => {
-    return this.props.dropdownSections
+  function getNumberOfActiveFilters() {
+    return dropdownSections
       .map(section => section.items)
       .flat()
       .filter(item => item.checked).length;
+  }
+
+  const checkedQuantity = getNumberOfActiveFilters();
+
+  const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
+    hasDarkBorderBottomColor: boolean;
+  } = {
+    children: t('Filter'),
+    priority: 'default',
+    hasDarkBorderBottomColor: false,
   };
 
-  render() {
-    const {dropdownSections: dropdownItems, header} = this.props;
-    const checkedQuantity = this.getNumberOfActiveFilters();
-
-    const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
-      hasDarkBorderBottomColor: boolean;
-    } = {
-      children: t('Filter'),
-      priority: 'default',
-      hasDarkBorderBottomColor: false,
-    };
-
-    if (checkedQuantity > 0) {
-      dropDownButtonProps.children = tn(
-        '%s Active Filter',
-        '%s Active Filters',
-        checkedQuantity
-      );
-      dropDownButtonProps.hasDarkBorderBottomColor = true;
-    }
-
-    return (
-      <DropdownControl
-        menuWidth="240px"
-        blendWithActor
-        alwaysRenderMenu={false}
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            showChevron={false}
-            isOpen={isOpen}
-            icon={<IconFilter />}
-            hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-            priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
-            data-test-id="filter-button"
-          >
-            {dropDownButtonProps.children}
-          </StyledDropdownButton>
-        )}
-      >
-        {({isOpen, getMenuProps}) => (
-          <MenuContent
-            {...getMenuProps()}
-            isOpen={isOpen}
-            blendCorner
-            alignMenu="left"
-            width="240px"
-          >
-            <List>
-              {header}
-              {dropdownItems.map(section => (
-                <FilterSection
-                  key={section.id}
-                  {...section}
-                  toggleSection={this.toggleSection}
-                  toggleFilter={this.toggleFilter}
-                />
-              ))}
-            </List>
-          </MenuContent>
-        )}
-      </DropdownControl>
+  if (checkedQuantity > 0) {
+    dropDownButtonProps.children = tn(
+      '%s Active Filter',
+      '%s Active Filters',
+      checkedQuantity
     );
+    dropDownButtonProps.hasDarkBorderBottomColor = true;
   }
+
+  return (
+    <DropdownControl
+      menuWidth="240px"
+      blendWithActor
+      alwaysRenderMenu={false}
+      button={({isOpen, getActorProps}) => (
+        <StyledDropdownButton
+          {...getActorProps()}
+          showChevron={false}
+          isOpen={isOpen}
+          icon={<IconFilter />}
+          hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
+          priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
+          data-test-id="filter-button"
+        >
+          {dropDownButtonProps.children}
+        </StyledDropdownButton>
+      )}
+    >
+      {({isOpen, getMenuProps}) => (
+        <MenuContent
+          {...getMenuProps()}
+          isOpen={isOpen}
+          blendCorner
+          alignMenu="left"
+          width="240px"
+        >
+          <List>
+            {header}
+            {dropdownSections.map(section => (
+              <FilterSection
+                key={section.id}
+                {...section}
+                toggleSection={toggleSection}
+                toggleFilter={toggleFilter}
+              />
+            ))}
+          </List>
+        </MenuContent>
+      )}
+    </DropdownControl>
+  );
 }
 
 const MenuContent = styled(Content)`

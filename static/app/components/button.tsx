@@ -17,6 +17,8 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
+type TooltipProps = React.ComponentProps<typeof Tooltip>;
+
 interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
@@ -39,9 +41,9 @@ interface BaseButtonProps
   rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
   target?: HTMLAnchorElement['target'];
-  title?: React.ComponentProps<typeof Tooltip>['title'];
+  title?: TooltipProps['title'];
   to?: string | object;
-  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
   translucentBorder?: boolean;
 }
 
