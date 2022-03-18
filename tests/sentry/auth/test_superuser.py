@@ -176,8 +176,7 @@ class SuperuserTestCase(TestCase):
             )
 
     # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
-    @mock.patch("sentry.auth.superuser.logger")
-    def test_su_access_no_request(self, logger):
+    def test_su_access_no_request(self):
         user = User(is_superuser=True, id=10, email="test@sentry.io")
         request = self.make_request(user=user, method="PUT")
 
@@ -188,6 +187,25 @@ class SuperuserTestCase(TestCase):
             with self.assertRaises(serializers.ValidationError):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False
+
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_no_request_user_missing_info(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        request._body = json.dumps(
+            {
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "Edit organization settings",
+            }
+        )
+        del request.user.id
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            superuser.set_logged_in(request.user)
+            logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
