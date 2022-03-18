@@ -858,6 +858,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
         assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
+    def test_request_too_granular(self):
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="24h",
+            interval="5m",
+            orderBy="-sum(sentry.sessions.session)",
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Requested interval of 5m with statsPeriod of 24h is too granular for a per_page of "
+            "51 elements. Increase your interval, decrease your statsPeriod, or decrease your "
+            "per_page parameter."
+        )
+
 
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
