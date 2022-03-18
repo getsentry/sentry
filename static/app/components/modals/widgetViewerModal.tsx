@@ -62,6 +62,7 @@ type Props = ModalRenderProps &
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
+const HALF_CONTAINER_HEIGHT = 300;
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
@@ -225,7 +226,11 @@ function WidgetViewerModal(props: Props) {
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
-          <Container height={widget.displayType !== DisplayType.BIG_NUMBER ? 300 : null}>
+          <Container
+            height={
+              widget.displayType !== DisplayType.BIG_NUMBER ? HALF_CONTAINER_HEIGHT : null
+            }
+          >
             <MemoizedWidgetCardChartContainer
               location={location}
               router={router}
@@ -542,8 +547,8 @@ const footerCss = css`
 `;
 
 const Container = styled('div')<{height?: number | null}>`
-  height: ${p => (defined(p.height) ? `${p.height}px` : 'auto')};
-  max-height: 300px;
+  height: ${p => (p.height ? `${p.height}px` : 'auto')};
+  max-height: ${HALF_CONTAINER_HEIGHT}px;
   position: relative;
 
   & > div {
