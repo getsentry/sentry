@@ -37,6 +37,7 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
+      - run: 'exit 1'
 
   # It is necessary to update the name and matrix in tandem with the frontend workflow
   # to meet the required check

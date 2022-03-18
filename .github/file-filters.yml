@@ -44,8 +44,7 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
   # Temp change
-  - '.github/workflows/!(acceptance.yml)'
-  - '.github/workflows/!(visual-diff.yml)'
+  - '.github/workflows/!(acceptance|visual-diff).yml'
   - '.github/workflows/!(js-*)'
   - '.github/workflows/!(development-environment.yml)'
   - '.github/actions/setup-sentry/action.yml'
