@@ -4,6 +4,7 @@ import logging
 import uuid
 
 from django.http.response import HttpResponse
+from django.urls import resolve
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,21 +32,20 @@ class RatelimitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
-        response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+        # First, check if the endpoint call will violate.
+        data = {}
 
-    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
-        """Check if the endpoint call will violate."""
         try:
-            # TODO: put these fields into their own object
-            request.will_be_rate_limited = False
             request.rate_limit_category = None
-            request.rate_limit_uid = uuid.uuid4().hex
-            request.rate_limit_key = get_rate_limit_key(view_func, request)
-            if request.rate_limit_key is None:
+            rate_limit_uid = uuid.uuid4().hex
+            view_func = resolve(request.path).func
+            rate_limit_key = get_rate_limit_key(view_func, request)
+            if rate_limit_key is None:
                 return
-            category_str = request.rate_limit_key.split(":", 1)[0]
+            data["will_be_rate_limited"] = False
+            data["rate_limit_uid"] = rate_limit_uid
+            data["rate_limit_key"] = rate_limit_key
+            category_str = data["rate_limit_key"].split(":", 1)[0]
             request.rate_limit_category = category_str
 
             rate_limit = get_rate_limit_value(
@@ -57,7 +57,7 @@ class RatelimitMiddleware:
                 return
 
             request.rate_limit_metadata = above_rate_limit_check(
-                request.rate_limit_key, rate_limit, request.rate_limit_uid
+                data["rate_limit_key"], rate_limit, data["rate_limit_uid"]
             )
             # TODO: also limit by concurrent window once we have the data
             rate_limit_cond = (
@@ -66,7 +66,7 @@ class RatelimitMiddleware:
                 else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
             )
             if rate_limit_cond:
-                request.will_be_rate_limited = True
+                data["will_be_rate_limited"] = True
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                 if enforce_rate_limit:
                     return HttpResponse(
@@ -81,7 +81,10 @@ class RatelimitMiddleware:
         except Exception:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
-    def process_response(self, request: Request, response: Response) -> Response:
+        # Hit the endpoint
+        response = self.get_response(request)
+
+        # Process the response
         try:
             rate_limit_metadata: RateLimitMeta | None = getattr(
                 request, "rate_limit_metadata", None
@@ -96,8 +99,7 @@ class RatelimitMiddleware:
                 response[
                     "X-Sentry-Rate-Limit-ConcurrentLimit"
                 ] = rate_limit_metadata.concurrent_limit
-            if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
-                finish_request(request.rate_limit_key, request.rate_limit_uid)
+            finish_request(data["rate_limit_key"], data["rate_limit_uid"])
         except Exception:
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
         return response
