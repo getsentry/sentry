@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {revertToPinnedFilters} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -31,38 +30,36 @@ export default function DesyncedFilterAlert({router}: Props) {
   }
 
   return (
-    <Alert type="info" showIcon system>
-      <AlertWrapper>
-        <AlertText>
-          {t(
-            "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."
-          )}
-        </AlertText>
-        <ButtonBar gap={1.5}>
-          <RevertButton priority="link" size="zero" onClick={onRevertClick} borderless>
-            {t('Revert')}
-          </RevertButton>
-          <Button
-            priority="link"
-            size="zero"
-            icon={<IconClose color="purple300" />}
-            aria-label={t('Close Alert')}
-            onClick={() => setHideAlert(true)}
-          />
-        </ButtonBar>
-      </AlertWrapper>
+    <Alert
+      type="info"
+      showIcon
+      system
+      trailingItems={[
+        <RevertButton
+          key="revert-button"
+          priority="link"
+          size="zero"
+          onClick={onRevertClick}
+          borderless
+        >
+          {t('Revert')}
+        </RevertButton>,
+        <Button
+          key="close-button"
+          priority="link"
+          size="zero"
+          icon={<IconClose color="purple300" />}
+          aria-label={t('Close Alert')}
+          onClick={() => setHideAlert(true)}
+        />,
+      ]}
+    >
+      {t(
+        "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."
+      )}
     </Alert>
   );
 }
-
-const AlertWrapper = styled('div')`
-  display: flex;
-`;
-
-const AlertText = styled('div')`
-  flex: 1;
-  line-height: 22px;
-`;
 
 const RevertButton = styled(Button)`
   display: flex;

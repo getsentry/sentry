@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {Panel} from 'sentry/components/panels';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 
 type DefaultProps = {
   message: React.ReactNode;
@@ -31,16 +29,18 @@ class LoadingError extends React.Component<Props> {
   render() {
     const {message, onRetry} = this.props;
     return (
-      <StyledAlert type="error">
-        <Content>
-          <IconInfo size="lg" />
-          <div data-test-id="loading-error-message">{message}</div>
-          {onRetry && (
+      <StyledAlert
+        type="error"
+        showIcon
+        trailingItems={
+          onRetry && (
             <Button onClick={onRetry} type="button" priority="default" size="small">
               {t('Retry')}
             </Button>
-          )}
-        </Content>
+          )
+        }
+      >
+        <div data-test-id="loading-error-message">{message}</div>
       </StyledAlert>
     );
   }
@@ -53,11 +53,4 @@ const StyledAlert = styled(Alert)`
     border-radius: 0;
     border-width: 1px 0;
   }
-`;
-
-const Content = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: min-content auto max-content;
-  align-items: center;
 `;

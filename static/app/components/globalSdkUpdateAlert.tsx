@@ -1,12 +1,10 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Alert, {AlertProps} from 'sentry/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -89,44 +87,36 @@ function InnerGlobalSdkUpdateAlert(
   }
 
   return (
-    <Alert type="info" showIcon>
-      <Content>
-        {t(
-          `You have outdated SDKs in your projects. Update them for important fixes and features.`
-        )}
-        <Actions>
-          <Button
-            priority="link"
-            size="zero"
-            title={t('Dismiss for the next two weeks')}
-            onClick={handleSnoozePrompt}
-          >
-            {t('Remind me later')}
-          </Button>
-          |
-          <Button priority="link" size="zero" onClick={handleReviewUpdatesClick}>
-            {t('Review updates')}
-          </Button>
-        </Actions>
-      </Content>
+    <Alert
+      type="info"
+      showIcon
+      trailingItems={[
+        <Button
+          priority="link"
+          size="zero"
+          title={t('Dismiss for the next two weeks')}
+          onClick={handleSnoozePrompt}
+          key="dismiss-button"
+        >
+          {t('Remind me later')}
+        </Button>,
+        <span key="divider">|</span>,
+        <Button
+          priority="link"
+          size="zero"
+          onClick={handleReviewUpdatesClick}
+          key="review-button"
+        >
+          {t('Review updates')}
+        </Button>,
+      ]}
+    >
+      {t(
+        `You have outdated SDKs in your projects. Update them for important fixes and features.`
+      )}
     </Alert>
   );
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: space-between;
-  }
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  gap: ${space(1)};
-`;
 
 const WithSdkUpdatesGlobalSdkUpdateAlert = withSdkUpdates(
   withPageFilters(InnerGlobalSdkUpdateAlert)

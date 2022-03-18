@@ -120,7 +120,19 @@ function IncompatibleQueryAlert({
   };
 
   return (
-    <StyledAlert type="warning" showIcon>
+    <StyledAlert
+      type="warning"
+      showIcon
+      trailingItems={
+        <StyledCloseButton
+          icon={<IconClose size="sm" />}
+          aria-label={t('Close')}
+          size="zero"
+          onClick={onClose}
+          borderless
+        />
+      }
+    >
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -172,13 +184,6 @@ function IncompatibleQueryAlert({
           </StyledUnorderedList>
         </React.Fragment>
       )}
-      <StyledCloseButton
-        icon={<IconClose size="sm" />}
-        aria-label={t('Close')}
-        size="zero"
-        onClick={onClose}
-        borderless
-      />
     </StyledAlert>
   );
 }
@@ -441,9 +446,7 @@ const StyledCode = styled('code')`
 
 const StyledCloseButton = styled(Button)`
   transition: opacity 0.1s linear;
-  position: absolute;
-  top: 3px;
-  right: 0;
+  background-color: transparent;
 
   &:hover,
   &:focus {
