@@ -1,6 +1,5 @@
 type TooltipActions = {
   setOpen: (isOpen: boolean) => void;
-  setUseGlobalPortal: (useGlobalPortal: boolean) => void;
 };
 
 type Tooltip = {
@@ -47,7 +46,6 @@ class TooltipStore {
     }
 
     tooltips.forEach(tooltip => {
-      tooltip.actions.setUseGlobalPortal(false);
       tooltip.actions.setOpen(true);
     });
 
@@ -63,7 +61,6 @@ class TooltipStore {
 
     tooltips.forEach(tooltip => {
       tooltip.actions.setOpen(false);
-      tooltip.actions.setUseGlobalPortal(true);
     });
   };
 

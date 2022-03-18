@@ -14,7 +14,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import * as PopperJS from 'popper.js';
 
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -26,7 +25,8 @@ export const OPEN_DELAY = 50;
  */
 const CLOSE_DELAY = 50;
 
-type Props = React.PropsWithChildren<{
+export interface TooltipProps {
+  children: React.ReactNode;
   /**
    * The content to show in the tooltip popover
    */
@@ -85,7 +85,7 @@ type Props = React.PropsWithChildren<{
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
-}>;
+}
 
 /**
  * Used to compute the transform origin to give the scale-down micro-animation
@@ -114,71 +114,10 @@ function isOverflown(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
 }
 
-function getTooltipPortal(useGlobalPortal: boolean): HTMLElement {
-  // Use a single global portal element for tooltips
-  if (useGlobalPortal) {
-    let portal = document.getElementById('tooltip-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'tooltip-portal');
-      document.body.appendChild(portal);
-    }
-    return portal;
-  }
-
-  // Each tooltip gets it's own div element
+function createTooltipPortal(): HTMLElement {
   const portal = document.createElement('div');
   document.body.appendChild(portal);
   return portal;
-}
-
-/**
- * Codesplit loading of the TooltipStore used for visual acceptance tests
- */
-async function getAcceptanceTestTooltipStore() {
-  const {tooltipStore} = await import('sentry/stores/tooltipStore');
-  return tooltipStore;
-}
-
-type UseTooltipInAcceptanceTestsOptions = {
-  ignore: boolean;
-  setOpen: (open: boolean) => void;
-  setUseGlobalPortal: (useGlobalPortal: boolean) => void;
-  tooltipId: string;
-};
-
-/**
- * When running the acceptance tests, we expose functionality to open / close
- * all of the tooltips. This hook handles registration of tooltips in the store,
- * with special care to unregister tooltips if they become ignored.
- */
-function useTooltipInAcceptanceTests({
-  tooltipId,
-  setOpen,
-  setUseGlobalPortal,
-  ignore,
-}: UseTooltipInAcceptanceTestsOptions) {
-  if (!IS_ACCEPTANCE_TEST) {
-    return;
-  }
-
-  async function registerTooltip() {
-    const tooltipStore = await getAcceptanceTestTooltipStore();
-    tooltipStore?.addTooltip(tooltipId, {setOpen, setUseGlobalPortal});
-  }
-
-  async function unregisterTooltip() {
-    const tooltipStore = await getAcceptanceTestTooltipStore();
-    tooltipStore?.removeTooltip(tooltipId);
-  }
-
-  // Register and unregister tooltips from the store
-  useEffect(() => {
-    if (!ignore) {
-      registerTooltip();
-    }
-    return () => void unregisterTooltip();
-  }, [ignore]);
 }
 
 function Tooltip({
@@ -192,14 +131,10 @@ function Tooltip({
   skipWrapper,
   title,
   disabled = false,
-  disableForVisualTest = false,
   position = 'top',
   containerDisplayMode = 'inline-block',
-}: Props) {
+}: TooltipProps) {
   const [isOpen, setOpen] = useState(false);
-
-  // XXX: We use this when running acceptance tests with 'open all tooltips'
-  const [useGlobalPortal, setUseGlobalPortal] = useState(true);
 
   // Tooltip ID is stable accross renders
   const tooltipId = useMemo(() => domId('tooltip-'), []);
@@ -211,25 +146,15 @@ function Tooltip({
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  const tooltipPortal = useMemo(
-    () => getTooltipPortal(useGlobalPortal),
-    [useGlobalPortal]
-  );
+  const tooltipPortal = useMemo(() => {
+    return createTooltipPortal();
+  }, []);
 
-  // When not using a global portal we need to be sure to cleanup tooltip
-  // portals from the DOM
-  useEffect(
-    () => () => void !useGlobalPortal && document.body.removeChild(tooltipPortal),
-    [useGlobalPortal, tooltipPortal]
-  );
-
-  // Register functionality for visual acceptance tests
-  useTooltipInAcceptanceTests({
-    tooltipId,
-    setOpen,
-    setUseGlobalPortal,
-    ignore: disabled || disableForVisualTest,
-  });
+  useEffect(() => {
+    return () => {
+      tooltipPortal.remove();
+    };
+  }, [tooltipPortal]);
 
   function handleOpen() {
     if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
@@ -385,7 +310,7 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<Pick<Props, 'popperStyle'>>`
+const TooltipContent = styled(motion.div)<{popperStyle: TooltipProps['popperStyle']}>`
   will-change: transform, opacity;
   position: relative;
   background: ${p => p.theme.backgroundElevated};
