@@ -38,6 +38,23 @@ def _get_token_name(auth: RequestAuth) -> str | None:
     return token_class.__name__ if token_class else None
 
 
+def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
+    # TODO:: plumb the rate limit group up here as well for better future analysis
+    default = {
+        "rate_limit_type": "DNE",
+        "concurrent_limit": str(None),
+        "concurrent_requests": str(None),
+    }
+
+    rate_limit_metadata = getattr(request, "rate_limit_metadata", None)
+    if not rate_limit_metadata:
+        return default
+    res = {}
+    for field in default:
+        res[field] = str(getattr(rate_limit_metadata, field, None))
+    return res
+
+
 def _create_api_access_log(
     request: Request, response: Response | None, access_log_metadata: _AccessLogMetaData
 ) -> None:
@@ -74,6 +91,7 @@ def _create_api_access_log(
             rate_limited=str(getattr(request, "will_be_rate_limited", False)),
             rate_limit_category=str(getattr(request, "rate_limit_category", None)),
             request_duration_seconds=access_log_metadata.get_request_duration(),
+            **_get_rate_limit_stats_dict(request),
         )
         api_access_logger.info("api.access", extra=log_metrics)
     except Exception:
