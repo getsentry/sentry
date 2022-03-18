@@ -19,7 +19,7 @@ processed_profiles_publisher = None
     max_retries=5,
     acks_late=True,
 )
-def process_profile(profile: MutableMapping[str, Any]) -> None:
+def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
     if profile["platform"] == "cocoa":
         if not _validate_ios_profile(profile=profile):
             return None
