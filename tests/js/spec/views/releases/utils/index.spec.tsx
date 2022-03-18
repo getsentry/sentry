@@ -8,6 +8,7 @@ describe('releases/utils', () => {
       expect(getReleaseBounds(TestStubs.Release())).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2020-03-24T02:04:59Z',
+        type: 'normal',
       });
     });
 
@@ -21,6 +22,7 @@ describe('releases/utils', () => {
       ).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2020-03-24T03:04:59Z',
+        type: 'normal',
       });
     });
 
@@ -28,6 +30,7 @@ describe('releases/utils', () => {
       expect(getReleaseBounds(TestStubs.Release({lastEvent: null}))).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2017-10-17T02:41:59Z',
+        type: 'normal',
       });
     });
 
@@ -42,21 +45,52 @@ describe('releases/utils', () => {
       ).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2020-03-23T01:03:59Z',
+        type: 'normal',
       });
     });
 
-    it('clamps releases lasting longer than 90 days', () => {
+    it('clamps active releases lasting longer than 90 days', () => {
       expect(
         getReleaseBounds(
           TestStubs.Release({
-            dateCreated: '2020-03-23T01:02:30Z',
-            lastEvent: '2023-03-23T01:02:30Z',
+            dateCreated: '2017-05-17T02:41:20Z',
+            lastEvent: '2017-10-12T02:41:20Z',
           })
         )
       ).toEqual({
-        releaseStart: '2022-12-23T01:02:59Z',
-        releaseEnd: '2023-03-23T01:02:59Z',
-        clamped: true,
+        releaseStart: '2017-07-19T02:41:20Z',
+        releaseEnd: '2017-10-12T02:41:59Z',
+        type: 'clamped',
+      });
+    });
+
+    it('defaults ancient releases to last 90 days', () => {
+      expect(
+        getReleaseBounds(
+          TestStubs.Release({
+            dateCreated: '2010-05-17T02:41:20Z',
+            lastEvent: '2011-10-17T02:41:20Z',
+          })
+        )
+      ).toEqual({
+        releaseStart: '2017-07-19T02:41:20Z',
+        releaseEnd: '2017-10-17T02:41:20Z',
+        type: 'ancient',
+      });
+    });
+
+    it('handles no lastEvent for ancient releases', () => {
+      expect(
+        getReleaseBounds(
+          TestStubs.Release({
+            dateCreated: '2010-05-17T02:41:20Z',
+            lastEvent: null,
+          })
+        )
+      ).toEqual({
+        releaseStart: '2017-07-19T02:41:20Z',
+        releaseEnd: '2017-10-17T02:41:20Z',
+        type: 'ancient',
       });
     });
   });

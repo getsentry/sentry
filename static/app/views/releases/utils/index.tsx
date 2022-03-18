@@ -10,6 +10,7 @@ import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {Release, ReleaseStatus} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -128,45 +129,44 @@ export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
 export type ReleaseBounds = {
-  clamped?: boolean;
+  type: 'normal' | 'clamped' | 'ancient';
   releaseEnd?: string | null;
   releaseStart?: string | null;
 };
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
+  const retentionBound = moment().subtract(90, 'days');
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
   const {sessionsUpperBound} = currentProjectMeta || {};
 
-  const releaseStart = moment(dateCreated).startOf('minute').utc().format();
-  const releaseEnd = moment(
+  let type: ReleaseBounds['type'] = 'normal';
+  let releaseStart = moment(dateCreated).startOf('minute');
+  let releaseEnd = moment(
     (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       undefined
-  )
-    .endOf('minute')
-    .utc()
-    .format();
+  ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    return {
-      releaseStart,
-      releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
-    };
+    releaseEnd = moment(releaseEnd).add(1, 'minutes');
   }
 
-  const ninetyDaysBeforeReleaseEnd = moment(releaseEnd).subtract('90', 'days');
-  if (ninetyDaysBeforeReleaseEnd.isAfter(releaseStart)) {
-    // if the release spans for more than 90 days, we need to clamp it
-    // releases are not subject to 90 day retention policy, but sessions are
-    return {
-      releaseStart: ninetyDaysBeforeReleaseEnd.utc().format(),
-      releaseEnd,
-      clamped: true,
-    };
+  if (releaseStart.isBefore(retentionBound)) {
+    releaseStart = retentionBound;
+    type = 'clamped';
+
+    if (
+      releaseEnd.isBefore(releaseStart) ||
+      (!defined(sessionsUpperBound) && !defined(lastEvent))
+    ) {
+      releaseEnd = moment();
+      type = 'ancient';
+    }
   }
 
   return {
-    releaseStart,
-    releaseEnd,
+    type,
+    releaseStart: releaseStart.utc().format(),
+    releaseEnd: releaseEnd.utc().format(),
   };
 }
 
