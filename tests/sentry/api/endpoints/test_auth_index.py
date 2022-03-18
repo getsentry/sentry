@@ -76,15 +76,6 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
-    # case when verifying with sudo, will redirect to sso login page
-    def test_sso_not_superuser(self):
-        user = self.create_user("foo@example.com")
-        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-        self.login_as(user, organization_id=self.organization.id)
-        response = self.client.put(self.path, data={})
-        assert response.status_code == 401
-
     def test_valid_password(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
