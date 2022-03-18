@@ -23,7 +23,7 @@ type Props = DefaultProps & {
   suggested?: boolean;
   title?: string;
   tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
+  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
 };
 
 class ActorAvatar extends React.Component<Props> {
