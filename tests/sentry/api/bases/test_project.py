@@ -25,7 +25,6 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.project, user=user, is_superuser=True)
 
     def test_member_for_project_read(self):
@@ -167,7 +166,6 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.project, user=user, is_superuser=True)
 
     def test_member_for_project_read(self):

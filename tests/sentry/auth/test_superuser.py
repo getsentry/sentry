@@ -74,12 +74,7 @@ class SuperuserTestCase(TestCase):
     def test_ips(self):
         user = User(is_superuser=True)
         request = self.make_request(user=user)
-        request._body = json.dumps(
-            {
-                "superuserAccessCategory": "debugging",
-                "superuserReason": "Edit organization settings",
-            }
-        )
+
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
         # no ips = any host
@@ -201,7 +196,9 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
 
         superuser = Superuser(request, org_id=None)
-        with self.settings(SENTRY_SELF_HOSTED=False):
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
             with self.assertRaises(serializers.ValidationError):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False

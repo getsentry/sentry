@@ -52,7 +52,6 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
 
     def test_org_member(self):
@@ -86,7 +85,6 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
     def test_org_requires_2fa_with_superuser(self):
         self.org_require_2fa()
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
 
     def test_org_requires_2fa_with_enrolled_user(self):
@@ -137,7 +135,6 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
     @mock.patch("sentry.api.utils.get_cached_organization_member")
     def test_member_limit_with_superuser(self, mock_get_org_member):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         self.create_member(
             user=user,
             organization=self.org,

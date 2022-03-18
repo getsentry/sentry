@@ -24,7 +24,6 @@ class TeamPermissionTest(TeamPermissionBase):
 
     def test_get_superuser(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         assert self.has_object_perm("GET", self.team, user=user, is_superuser=True)
 
     def test_get_without_team_membership(self):

@@ -266,7 +266,6 @@ class FromUserTest(TestCase):
 class FromRequestTest(TestCase):
     def test_superuser(self):
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         UserPermission.objects.create(user=user, permission="test.permission")
 
         request = self.make_request(user=user, is_superuser=False)
@@ -284,7 +283,6 @@ class FromRequestTest(TestCase):
         project = self.create_project(organization=org, teams=[team])
 
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         self.create_member(user=user, organization=org, role="admin")
         UserPermission.objects.create(user=user, permission="test.permission")
 
@@ -316,7 +314,6 @@ class FromRequestTest(TestCase):
         project = self.create_project(organization=org, teams=[team])
 
         user = self.create_user(is_superuser=True)
-        self.login_as(user=user, superuser=True)
         UserPermission.objects.create(user=user, permission="test.permission")
 
         request = self.make_request(user=user, is_superuser=True)
