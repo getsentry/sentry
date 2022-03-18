@@ -215,7 +215,8 @@ describe('OrganizationRuleList', () => {
     userEvent.click(await screen.findByTestId('filter-button'));
 
     // Uncheck myteams
-    userEvent.click(await screen.findByText('My Teams'));
+    const myTeams = await screen.findAllByText('My Teams');
+    userEvent.click(myTeams[1]);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
