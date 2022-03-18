@@ -851,6 +851,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
             )
 
+    def test_incorrect_parameter_for_metrics(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                f"project:{self.project.slug}",
+                selected_columns=["transaction", "count_unique(test)"],
+            )
+
     def test_project_filter(self):
         query = MetricsQueryBuilder(
             self.params,
