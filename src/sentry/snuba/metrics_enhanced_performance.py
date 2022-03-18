@@ -44,7 +44,6 @@ def query(
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
-    use_snql=False,
 ):
     """ """
     metrics_compatible = not equations
@@ -97,7 +96,6 @@ def query(
             conditions=conditions,
             extra_snql_condition=extra_snql_condition,
             functions_acl=functions_acl,
-            use_snql=use_snql,
         )
         results["meta"]["isMetricsData"] = False
 
@@ -115,7 +113,6 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
-    use_snql: Optional[bool] = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -172,6 +169,5 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
-            use_snql,
         )
     return SnubaTSResult()

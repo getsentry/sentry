@@ -13,8 +13,6 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events.constants import (
-    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -24,7 +22,7 @@ from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import Dataset, get_array_column_alias
+from sentry.utils.snuba import get_array_column_alias
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
@@ -37,6 +35,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.now = before_now().replace(tzinfo=timezone.utc)
         self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
         self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
+        self.start = self.two_min_ago
+        self.end = self.now
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -59,22 +59,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=other_project.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "message"],
-                query="",
-                params={
-                    "project_id": [other_project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="project",
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["project", "message"],
+            query="",
+            params={
+                "project_id": [other_project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="project",
+        )
 
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            assert data[0]["project"] == other_project.slug, use_snql
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project"] == other_project.slug
 
     def test_sorting_project_name(self):
         project_ids = []
@@ -86,21 +84,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "message"],
-                query="",
-                params={
-                    "project_id": project_ids,
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="project",
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 3, use_snql
-            assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32], use_snql
+        result = discover.query(
+            selected_columns=["project", "message"],
+            query="",
+            params={
+                "project_id": project_ids,
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="project",
+        )
+        data = result["data"]
+        assert len(data) == 3
+        assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
 
     def test_reverse_sorting_project_name(self):
         project_ids = []
@@ -112,21 +108,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "message"],
-                query="",
-                params={
-                    "project_id": project_ids,
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="-project",
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 3, use_snql
-            assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32], use_snql
+        result = discover.query(
+            selected_columns=["project", "message"],
+            query="",
+            params={
+                "project_id": project_ids,
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="-project",
+        )
+        data = result["data"]
+        assert len(data) == 3
+        assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32]
 
     def test_using_project_and_project_name(self):
         project_ids = []
@@ -138,25 +132,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project.name", "message", "project"],
-                query="",
-                params={
-                    "project_id": project_ids,
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="project.name",
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 3, use_snql
-            assert [item["project.name"] for item in data] == [
-                "a" * 32,
-                "m" * 32,
-                "z" * 32,
-            ], use_snql
+        result = discover.query(
+            selected_columns=["project.name", "message", "project"],
+            query="",
+            params={
+                "project_id": project_ids,
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="project.name",
+        )
+        data = result["data"]
+        assert len(data) == 3
+        assert [item["project.name"] for item in data] == [
+            "a" * 32,
+            "m" * 32,
+            "z" * 32,
+        ]
 
     def test_missing_project(self):
         project_ids = []
@@ -173,20 +165,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         if other_project is not None:
             other_project.delete()
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["message", "project"],
-                query="",
-                params={
-                    "project_id": project_ids,
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="project",
-            )
-            data = result["data"]
-            assert len(data) == 3, use_snql
-            assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32], use_snql
+        result = discover.query(
+            selected_columns=["message", "project"],
+            query="",
+            params={
+                "project_id": project_ids,
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="project",
+        )
+        data = result["data"]
+        assert len(data) == 3
+        assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32]
 
     def test_issue_short_id_mapping(self):
         tests = [
@@ -196,23 +187,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("issue.id", f"issue.id:{self.event.group_id}"),
         ]
 
-        for use_snql in [False, True]:
-            for column, query in tests:
-                result = discover.query(
-                    selected_columns=[column],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                )
-                data = result["data"]
-                assert len(data) == 1, use_snql
-                # The query will translate `issue` into `issue.id`. Additional post processing
-                # is required to insert the `issue` column.
-                assert [item["issue.id"] for item in data] == [self.event.group_id], use_snql
+        for column, query in tests:
+            result = discover.query(
+                selected_columns=[column],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1
+            # The query will translate `issue` into `issue.id`. Additional post processing
+            # is required to insert the `issue` column.
+            assert [item["issue.id"] for item in data] == [self.event.group_id]
 
     def test_issue_filters(self):
         tests = [
@@ -222,24 +212,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             f"issue.id:[{self.event.group_id}]",
         ]
 
-        for use_snql in [False, True]:
-            for query in tests:
-                result = discover.query(
-                    selected_columns=["issue", "issue.id"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == 1, use_snql
-                # The query will translate `issue` into `issue.id`. Additional post processing
-                # is required to insert the `issue` column.
-                assert [item["issue.id"] for item in data] == [self.event.group_id], use_snql
+        for query in tests:
+            result = discover.query(
+                selected_columns=["issue", "issue.id"],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1
+            # The query will translate `issue` into `issue.id`. Additional post processing
+            # is required to insert the `issue` column.
+            assert [item["issue.id"] for item in data] == [self.event.group_id]
 
     def test_tags_orderby(self):
         self.event = self.store_event(
@@ -262,23 +250,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("tags[key1]", "-tags[key1]", ["value2", "value1"]),
         ]
 
-        for use_snql in [False, True]:
-            for column, orderby, expected in tests:
-                result = discover.query(
-                    selected_columns=[column],
-                    query="",
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby=orderby,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == len(expected), use_snql
-                assert [item[column] for item in data] == expected, use_snql
+        for column, orderby, expected in tests:
+            result = discover.query(
+                selected_columns=[column],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby=orderby,
+            )
+            data = result["data"]
+            assert len(data) == len(expected)
+            assert [item[column] for item in data] == expected
 
     def test_tags_filter(self):
         self.event = self.store_event(
@@ -316,23 +302,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("tags[key1]", 'tags[key1]:["value1", "value2"]', ["value1", "value2"]),
         ]
 
-        for use_snql in [False, True]:
-            for column, query, expected in tests:
-                result = discover.query(
-                    selected_columns=[column],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby=column,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == len(expected), (use_snql, column, query, expected)
-                assert [item[column] for item in data] == expected, use_snql
+        for column, query, expected in tests:
+            result = discover.query(
+                selected_columns=[column],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby=column,
+            )
+            data = result["data"]
+            assert len(data) == len(expected), (column, query, expected)
+            assert [item[column] for item in data] == expected
 
     def test_tags_colliding_with_fields(self):
         event = self.store_event(
@@ -355,23 +339,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("tags[id]", "tags[id]:new", ["new"]),
         ]
 
-        for use_snql in [False, True]:
-            for column, query, expected in tests:
-                result = discover.query(
-                    selected_columns=[column],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby=column,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == len(expected), (use_snql, query, expected)
-                assert [item[column] for item in data] == expected, use_snql
+        for column, query, expected in tests:
+            result = discover.query(
+                selected_columns=[column],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby=column,
+            )
+            data = result["data"]
+            assert len(data) == len(expected), (query, expected)
+            assert [item[column] for item in data] == expected
 
     def test_reverse_sorting_issue(self):
         other_event = self.store_event(
@@ -392,52 +374,44 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             "issue.id",
         ]
 
-        for use_snql in [False, True]:
-            for column in tests:
-                for direction in ["", "-"]:
-                    result = discover.query(
-                        selected_columns=[column],
-                        query="",
-                        params={
-                            "organization_id": self.organization.id,
-                            "project_id": [self.project.id],
-                            "start": self.two_min_ago,
-                            "end": self.now,
-                        },
-                        orderby=f"{direction}{column}",
-                        use_snql=use_snql,
-                    )
-                    data = result["data"]
-                    assert len(data) == 2, use_snql
-                    expected = [self.event.group_id, other_event.group_id]
-                    if direction == "-":
-                        expected.reverse()
-                    assert [item["issue.id"] for item in data] == expected, use_snql
+        for column in tests:
+            for direction in ["", "-"]:
+                result = discover.query(
+                    selected_columns=[column],
+                    query="",
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    orderby=f"{direction}{column}",
+                )
+                data = result["data"]
+                assert len(data) == 2
+                expected = [self.event.group_id, other_event.group_id]
+                if direction == "-":
+                    expected.reverse()
+                assert [item["issue.id"] for item in data] == expected
 
     def test_timestamp_rounding_fields(self):
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
-                query="",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 1, use_snql
+        result = discover.query(
+            selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+            query="",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+        )
+        data = result["data"]
+        assert len(data) == 1
 
-            hour = self.event_time.replace(minute=0, second=0, microsecond=0)
-            day = hour.replace(hour=0)
-            assert [item["timestamp.to_hour"] for item in data] == [
-                f"{iso_format(hour)}+00:00"
-            ], use_snql
-            assert [item["timestamp.to_day"] for item in data] == [
-                f"{iso_format(day)}+00:00"
-            ], use_snql
+        hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+        day = hour.replace(hour=0)
+        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
+        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
 
     def test_timestamp_rounding_filters(self):
         one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
@@ -456,29 +430,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
-                query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": three_day_ago,
-                    "end": self.now,
-                },
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 1, use_snql
+        result = discover.query(
+            selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+            query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": three_day_ago,
+                "end": self.now,
+            },
+        )
+        data = result["data"]
+        assert len(data) == 1
 
-            hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
-            day = hour.replace(hour=0)
-            assert [item["timestamp.to_hour"] for item in data] == [
-                f"{iso_format(hour)}+00:00"
-            ], use_snql
-            assert [item["timestamp.to_day"] for item in data] == [
-                f"{iso_format(day)}+00:00"
-            ], use_snql
+        hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
+        day = hour.replace(hour=0)
+        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
+        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
 
     def test_user_display(self):
         # `user.display` should give `username`
@@ -520,26 +488,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["user.display"],
-                query="",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 4, use_snql
-            assert {item["user.display"] for item in data} == {
-                "bruce@example.com",
-                "brucew",
-                "1234",
-                "127.0.0.1",
-            }, use_snql
+        result = discover.query(
+            selected_columns=["user.display"],
+            query="",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+        )
+        data = result["data"]
+        assert len(data) == 4
+        assert {item["user.display"] for item in data} == {
+            "bruce@example.com",
+            "brucew",
+            "1234",
+            "127.0.0.1",
+        }
 
     def test_user_display_filter(self):
         # `user.display` should give `username`
@@ -555,21 +521,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["user.display"],
-                query="has:user.display user.display:bruce@example.com",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            assert [item["user.display"] for item in data] == ["bruce@example.com"], use_snql
+        result = discover.query(
+            selected_columns=["user.display"],
+            query="has:user.display user.display:bruce@example.com",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
     def test_message_orderby(self):
         self.event = self.store_event(
@@ -589,23 +553,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("-message", ["oh yeah", "oh no"]),
         ]
 
-        for use_snql in [False, True]:
-            for orderby, expected in tests:
-                result = discover.query(
-                    selected_columns=["message"],
-                    query="",
-                    params={
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby=orderby,
-                    use_snql=use_snql,
-                )
+        for orderby, expected in tests:
+            result = discover.query(
+                selected_columns=["message"],
+                query="",
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby=orderby,
+            )
 
-                data = result["data"]
-                assert len(data) == 2, use_snql
-                assert [item["message"] for item in data] == expected, use_snql
+            data = result["data"]
+            assert len(data) == 2
+            assert [item["message"] for item in data] == expected
 
     def test_message_filter(self):
         self.event = self.store_event(
@@ -633,23 +595,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ('message:["oh yeah", "oh no"]', ["oh no", "oh yeah"]),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected in tests:
-                result = discover.query(
-                    selected_columns=["message"],
-                    query=query,
-                    params={
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby="message",
-                    use_snql=use_snql,
-                )
+        for query, expected in tests:
+            result = discover.query(
+                selected_columns=["message"],
+                query=query,
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="message",
+            )
 
-                data = result["data"]
-                assert len(data) == len(expected), use_snql
-                assert [item["message"] for item in data] == expected, use_snql
+            data = result["data"]
+            assert len(data) == len(expected)
+            assert [item["message"] for item in data] == expected
 
     def test_team_key_transactions(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -693,27 +653,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("team_key_transaction:false", [("/blah_transaction/", 0)]),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_results in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "team_key_transaction"],
-                    query=query,
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [self.project.id],
-                        "organization_id": self.organization.id,
-                        "team_id": [team1.id, team2.id],
-                    },
-                    use_snql=use_snql,
-                )
+        for query, expected_results in queries:
+            result = discover.query(
+                selected_columns=["transaction", "team_key_transaction"],
+                query=query,
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                    "organization_id": self.organization.id,
+                    "team_id": [team1.id, team2.id],
+                },
+            )
 
-                data = result["data"]
-                assert len(data) == len(expected_results), use_snql
-                assert [
-                    (x["transaction"], x["team_key_transaction"])
-                    for x in sorted(data, key=lambda k: k["transaction"])
-                ] == expected_results, use_snql
+            data = result["data"]
+            assert len(data) == len(expected_results)
+            assert [
+                (x["transaction"], x["team_key_transaction"])
+                for x in sorted(data, key=lambda k: k["transaction"])
+            ] == expected_results
 
     def test_snql_wip_project_threshold_config(self):
         ProjectTransactionThreshold.objects.create(
@@ -771,29 +729,27 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ["lcp", 600],
         ]
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "transaction", "project_threshold_config"],
-                query="",
-                params={
-                    "start": before_now(minutes=10),
-                    "end": before_now(minutes=2),
-                    "project_id": [self.project.id, project2.id],
-                    "organization_id": self.organization.id,
-                },
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["project", "transaction", "project_threshold_config"],
+            query="",
+            params={
+                "start": before_now(minutes=10),
+                "end": before_now(minutes=2),
+                "project_id": [self.project.id, project2.id],
+                "organization_id": self.organization.id,
+            },
+        )
 
-            assert len(result["data"]) == 5, use_snql
-            sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+        assert len(result["data"]) == 5
+        sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
 
-            assert [row["transaction"] for row in sorted_data] == expected_transaction, use_snql
-            assert [row["project_threshold_config"][0] for row in sorted_data] == [
-                r[0] for r in expected_project_threshold_config
-            ], use_snql
-            assert [row["project_threshold_config"][1] for row in sorted_data] == [
-                r[1] for r in expected_project_threshold_config
-            ], use_snql
+        assert [row["transaction"] for row in sorted_data] == expected_transaction
+        assert [row["project_threshold_config"][0] for row in sorted_data] == [
+            r[0] for r in expected_project_threshold_config
+        ]
+        assert [row["project_threshold_config"][1] for row in sorted_data] == [
+            r[1] for r in expected_project_threshold_config
+        ]
 
         ProjectTransactionThreshold.objects.filter(
             project=project2,
@@ -803,29 +759,27 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         expected_transaction = ["e" * 10]
         expected_project_threshold_config = [["duration", 300]]
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "transaction", "project_threshold_config"],
-                query="",
-                params={
-                    "start": before_now(minutes=10),
-                    "end": before_now(minutes=2),
-                    "project_id": [project2.id],
-                    "organization_id": self.organization.id,
-                },
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["project", "transaction", "project_threshold_config"],
+            query="",
+            params={
+                "start": before_now(minutes=10),
+                "end": before_now(minutes=2),
+                "project_id": [project2.id],
+                "organization_id": self.organization.id,
+            },
+        )
 
-            assert len(result["data"]) == 1, use_snql
-            sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
+        assert len(result["data"]) == 1
+        sorted_data = sorted(result["data"], key=lambda k: k["transaction"])
 
-            assert [row["transaction"] for row in sorted_data] == expected_transaction, use_snql
-            assert [row["project_threshold_config"][0] for row in sorted_data] == [
-                r[0] for r in expected_project_threshold_config
-            ], use_snql
-            assert [row["project_threshold_config"][1] for row in sorted_data] == [
-                r[1] for r in expected_project_threshold_config
-            ], use_snql
+        assert [row["transaction"] for row in sorted_data] == expected_transaction
+        assert [row["project_threshold_config"][0] for row in sorted_data] == [
+            r[0] for r in expected_project_threshold_config
+        ]
+        assert [row["project_threshold_config"][1] for row in sorted_data] == [
+            r[1] for r in expected_project_threshold_config
+        ]
 
     def test_to_other_function(self):
         project = self.create_project()
@@ -854,23 +808,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             (columns2, "", ["new", "new", "new", "old", "old"], "to_other_release__aaaa__old_new"),
         ]
 
-        for use_snql in [False, True]:
-            for cols, query, expected, alias in test_cases:
-                result = discover.query(
-                    selected_columns=cols,
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_snql=use_snql,
-                )
+        for cols, query, expected, alias in test_cases:
+            result = discover.query(
+                selected_columns=cols,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+            )
 
-                data = result["data"]
-                assert len(data) == len(expected), use_snql
-                assert [x[alias] for x in data] == expected, use_snql
+            data = result["data"]
+            assert len(data) == len(expected)
+            assert [x[alias] for x in data] == expected
 
     def test_count_if_function(self):
         for i in range(3):
@@ -910,22 +862,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ),
         ]
 
-        for use_snql in [False, True]:
-            for cols, query, expected in test_cases:
-                result = discover.query(
-                    selected_columns=cols,
-                    query=query,
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [self.project.id],
-                    },
-                    use_snql=use_snql,
-                )
+        for cols, query, expected in test_cases:
+            result = discover.query(
+                selected_columns=cols,
+                query=query,
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+            )
 
-                data = result["data"]
-                assert len(data) == 1, use_snql
-                assert data[0] == expected, use_snql
+            data = result["data"]
+            assert len(data) == 1
+            assert data[0] == expected
 
     def test_failure_count_function(self):
         project = self.create_project()
@@ -956,25 +906,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("failure_count():>0", 8, False),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "failure_count()"],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=["transaction", "failure_count()"],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                assert data[0]["failure_count"] == 2, use_snql
-                assert data[1]["failure_count"] == 1, use_snql
+            assert len(data) == expected_length
+            assert data[0]["failure_count"] == 2
+            assert data[1]["failure_count"] == 1
 
     def test_apdex_function(self):
         project = self.create_project()
@@ -1031,31 +979,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("apdex():>0", [1.0, 0.5, 0.5], ["apdex()"], "apdex"),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_apdex, col, alias in queries:
-                if not use_snql == discover.query:
-                    base_cols = ["transaction", "project_threshold_config"]
-                else:
-                    base_cols = ["transaction"]
-
-                result = discover.query(
-                    selected_columns=base_cols + col,
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=30),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id, project2.id],
-                        "organization_id": self.organization.id,
-                    },
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == len(expected_apdex), use_snql
-                assert [
-                    x[alias] for x in sorted(data, key=lambda k: k["transaction"])
-                ] == expected_apdex, use_snql
+        for query, expected_apdex, col, alias in queries:
+            result = discover.query(
+                selected_columns=["transaction"] + col,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=30),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id, project2.id],
+                    "organization_id": self.organization.id,
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
+            assert len(data) == len(expected_apdex)
+            assert [
+                x[alias] for x in sorted(data, key=lambda k: k["transaction"])
+            ] == expected_apdex
 
     def test_count_miserable_function(self):
         project = self.create_project()
@@ -1127,32 +1068,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_count_miserable, col, alias in queries:
-                if not use_snql:
-                    base_cols = ["transaction", "project_threshold_config"]
-                else:
-                    base_cols = ["transaction"]
+        for query, expected_count_miserable, col, alias in queries:
+            result = discover.query(
+                selected_columns=["transaction"] + col,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=30),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id, project2.id],
+                    "organization_id": self.organization.id,
+                },
+                use_aggregate_conditions=True,
+            )
 
-                result = discover.query(
-                    selected_columns=base_cols + col,
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=30),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id, project2.id],
-                        "organization_id": self.organization.id,
-                    },
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-
-                data = result["data"]
-                assert len(data) == len(expected_count_miserable), use_snql
-                assert [
-                    x[alias] for x in sorted(data, key=lambda k: k["transaction"])
-                ] == expected_count_miserable, use_snql
+            data = result["data"]
+            assert len(data) == len(expected_count_miserable)
+            assert [
+                x[alias] for x in sorted(data, key=lambda k: k["transaction"])
+            ] == expected_count_miserable
 
     def test_user_misery_function(self):
         project = self.create_project()
@@ -1226,31 +1160,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         similar = lambda a, b: abs(a - b) < 0.001
 
-        for use_snql in [False, True]:
-            for query, expected_user_misery, col, alias in queries:
-                if not use_snql:
-                    base_cols = ["transaction", "project_threshold_config"]
-                else:
-                    base_cols = ["transaction"]
+        for query, expected_user_misery, col, alias in queries:
+            result = discover.query(
+                selected_columns=["transaction"] + col,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=30),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id, project2.id],
+                    "organization_id": self.organization.id,
+                },
+                use_aggregate_conditions=True,
+            )
 
-                result = discover.query(
-                    selected_columns=base_cols + col,
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=30),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id, project2.id],
-                        "organization_id": self.organization.id,
-                    },
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-
-                data = result["data"]
-                assert len(data) == len(expected_user_misery), use_snql
-                for i, misery in enumerate(sorted(data, key=lambda k: k["transaction"])):
-                    assert similar(misery[alias], expected_user_misery[i]), use_snql
+            data = result["data"]
+            assert len(data) == len(expected_user_misery)
+            for i, misery in enumerate(sorted(data, key=lambda k: k["transaction"])):
+                assert similar(misery[alias], expected_user_misery[i])
 
     def test_count(self):
         project = self.create_project()
@@ -1270,25 +1197,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("count():>6", 1, (8,), True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, expected_counts, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "count()"],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, expected_counts, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=["transaction", "count()"],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                for index, count in enumerate(data):
-                    assert count["count"] == expected_counts[index], use_snql
+            assert len(data) == expected_length
+            for index, count in enumerate(data):
+                assert count["count"] == expected_counts[index]
 
     def test_compare_numeric_aggregate_function(self):
         project = self.create_project()
@@ -1327,24 +1252,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for i, test_case in enumerate(fields):
-            for use_snql in [False, True]:
-                selected, query = test_case
-                result = discover.query(
-                    selected_columns=selected,
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-                alias, expected_value = expected_results[i]
-                data = result["data"]
+            selected, query = test_case
+            result = discover.query(
+                selected_columns=selected,
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=True,
+            )
+            alias, expected_value = expected_results[i]
+            data = result["data"]
 
-                assert data[0][alias] == expected_value, use_snql
+            assert data[0][alias] == expected_value
 
     def test_last_seen(self):
         project = self.create_project()
@@ -1367,26 +1290,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("last_seen():>0", 1, False),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "last_seen()"],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=["transaction", "last_seen()"],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                assert data[0]["last_seen"] == expected_timestamp.strftime(
-                    "%Y-%m-%dT%H:%M:%S+00:00"
-                ), use_snql
+            assert len(data) == expected_length
+            assert data[0]["last_seen"] == expected_timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     def test_latest_event(self):
         project = self.create_project()
@@ -1401,23 +1320,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["transaction"] = "/latest_event"
             self.store_event(data, project_id=project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["transaction", "latest_event()"],
-                query="",
-                orderby="transaction",
-                params={
-                    "start": before_now(minutes=10),
-                    "end": before_now(minutes=2),
-                    "project_id": [project.id],
-                },
-                use_aggregate_conditions=False,
-                use_snql=use_snql,
-            )
-            data = result["data"]
+        result = discover.query(
+            selected_columns=["transaction", "latest_event()"],
+            query="",
+            orderby="transaction",
+            params={
+                "start": before_now(minutes=10),
+                "end": before_now(minutes=2),
+                "project_id": [project.id],
+            },
+            use_aggregate_conditions=False,
+        )
+        data = result["data"]
 
-            assert len(data) == 1, use_snql
-            assert data[0]["latest_event"] == stored_event.event_id, use_snql
+        assert len(data) == 1
+        assert data[0]["latest_event"] == stored_event.event_id
 
     def test_failure_rate(self):
         project = self.create_project()
@@ -1447,26 +1364,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("failure_rate():>0.5", 2, False),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "failure_rate()"],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=["transaction", "failure_rate()"],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                assert data[0]["failure_rate"] == 0.6, use_snql
-                if expected_length > 1:
-                    assert data[1]["failure_rate"] == 0.3, use_snql
+            assert len(data) == expected_length
+            assert data[0]["failure_rate"] == 0.6
+            if expected_length > 1:
+                assert data[1]["failure_rate"] == 0.3
 
     def test_percentile(self):
         project = self.create_project()
@@ -1487,30 +1402,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("percentile(transaction.duration, 0.7):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "percentile(transaction.duration, 0.7)",
-                        "percentile(transaction.duration, 0.5)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "percentile(transaction.duration, 0.7)",
+                    "percentile(transaction.duration, 0.5)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["percentile_transaction_duration_0_7"]) == 270000, use_snql
-                    assert round(data[0]["percentile_transaction_duration_0_5"]) == 210000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["percentile_transaction_duration_0_7"]) == 270000
+                assert round(data[0]["percentile_transaction_duration_0_5"]) == 210000
 
     def test_p50(self):
         project = self.create_project()
@@ -1531,28 +1444,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p50(transaction.duration):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p50(transaction.duration)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p50(transaction.duration)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["p50_transaction_duration"]) == 210000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["p50_transaction_duration"]) == 210000
 
     def test_p75(self):
         project = self.create_project()
@@ -1573,28 +1484,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p75(transaction.duration):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p75(transaction.duration)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p75(transaction.duration)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["p75_transaction_duration"]) == 285000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["p75_transaction_duration"]) == 285000
 
     def test_p95(self):
         project = self.create_project()
@@ -1615,28 +1524,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p95(transaction.duration):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p95(transaction.duration)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p95(transaction.duration)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["p95_transaction_duration"]) == 345000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["p95_transaction_duration"]) == 345000
 
     def test_p99(self):
         project = self.create_project()
@@ -1657,28 +1564,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p99(transaction.duration):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p99(transaction.duration)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p99(transaction.duration)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["p99_transaction_duration"]) == 357000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["p99_transaction_duration"]) == 357000
 
     def test_p100(self):
         project = self.create_project()
@@ -1699,28 +1604,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p100(transaction.duration):>100000", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p100(transaction.duration)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p100(transaction.duration)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert round(data[0]["p100_transaction_duration"]) == 360000, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert round(data[0]["p100_transaction_duration"]) == 360000
 
     def test_p100_with_measurement(self):
         project = self.create_project()
@@ -1743,28 +1646,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("p100(measurements.frames_slow_rate):>0.4", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "p100(measurements.frames_slow_rate)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=20),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "p100(measurements.frames_slow_rate)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=20),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert data[0]["p100_measurements_frames_slow_rate"] == 0.5, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert data[0]["p100_measurements_frames_slow_rate"] == 0.5
 
     def test_count_unique(self):
         for idx in range(3):
@@ -1775,23 +1676,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["user"] = {"email": f"{idx}@example.com"}
             data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
             self.store_event(data, project_id=self.project.id)
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["count_unique(user.display)", "count_unique(foo)"],
-                query="",
-                params={
-                    "start": before_now(minutes=4),
-                    "end": before_now(minutes=2),
-                    "project_id": [self.project.id],
-                },
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
-            data = result["data"]
 
-            assert len(data) == 1, use_snql
-            assert data[0]["count_unique_user_display"] == 3, use_snql
-            assert data[0]["count_unique_foo"] == 2, use_snql
+        result = discover.query(
+            selected_columns=["count_unique(user.display)", "count_unique(foo)"],
+            query="",
+            params={
+                "start": before_now(minutes=4),
+                "end": before_now(minutes=2),
+                "project_id": [self.project.id],
+            },
+            use_aggregate_conditions=True,
+        )
+        data = result["data"]
+
+        assert len(data) == 1
+        assert data[0]["count_unique_user_display"] == 3
+        assert data[0]["count_unique_foo"] == 2
 
     def test_min_max(self):
         """Testing both min and max since they're so similar"""
@@ -1803,26 +1703,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
             self.store_event(data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=[
-                    "min(transaction.duration)",
-                    "max(transaction.duration)",
-                ],
-                query="",
-                params={
-                    "start": before_now(minutes=4),
-                    "end": before_now(minutes=2),
-                    "project_id": [self.project.id],
-                },
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
-            data = result["data"]
+        result = discover.query(
+            selected_columns=[
+                "min(transaction.duration)",
+                "max(transaction.duration)",
+            ],
+            query="",
+            params={
+                "start": before_now(minutes=4),
+                "end": before_now(minutes=2),
+                "project_id": [self.project.id],
+            },
+            use_aggregate_conditions=True,
+        )
+        data = result["data"]
 
-            assert len(data) == 1, use_snql
-            assert data[0]["min_transaction_duration"] == 60000, use_snql
-            assert data[0]["max_transaction_duration"] == 180000, use_snql
+        assert len(data) == 1
+        assert data[0]["min_transaction_duration"] == 60000
+        assert data[0]["max_transaction_duration"] == 180000
 
     def test_stats_functions(self):
         for idx in range(3):
@@ -1849,23 +1747,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ),
         ]
 
-        for use_snql in [False, True]:
-            for column, alias, expected in queries:
-                result = discover.query(
-                    selected_columns=[column],
-                    query="",
-                    params={
-                        "start": before_now(minutes=4),
-                        "end": before_now(minutes=2),
-                        "project_id": [self.project.id],
-                    },
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for column, alias, expected in queries:
+            result = discover.query(
+                selected_columns=[column],
+                query="",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+                use_aggregate_conditions=True,
+            )
+            data = result["data"]
 
-                assert len(data) == 1, column
-                assert data[0][alias] == expected, column
+            assert len(data) == 1, column
+            assert data[0][alias] == expected, column
 
     def test_count_at_least(self):
         for idx in range(3):
@@ -1875,26 +1771,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 start_timestamp=before_now(minutes=4 if idx < 1 else 5),
             )
             self.store_event(data, project_id=self.project.id)
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=[
-                    "count_at_least(transaction.duration,60000)",
-                    "count_at_least(transaction.duration,120000)",
-                ],
-                query="",
-                params={
-                    "start": before_now(minutes=4),
-                    "end": before_now(minutes=2),
-                    "project_id": [self.project.id],
-                },
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
-            data = result["data"]
 
-            assert len(data) == 1, use_snql
-            assert data[0]["count_at_least_transaction_duration_60000"] == 3, use_snql
-            assert data[0]["count_at_least_transaction_duration_120000"] == 2, use_snql
+        result = discover.query(
+            selected_columns=[
+                "count_at_least(transaction.duration,60000)",
+                "count_at_least(transaction.duration,120000)",
+            ],
+            query="",
+            params={
+                "start": before_now(minutes=4),
+                "end": before_now(minutes=2),
+                "project_id": [self.project.id],
+            },
+            use_aggregate_conditions=True,
+        )
+        data = result["data"]
+
+        assert len(data) == 1
+        assert data[0]["count_at_least_transaction_duration_60000"] == 3
+        assert data[0]["count_at_least_transaction_duration_120000"] == 2
 
     def test_eps(self):
         project = self.create_project()
@@ -1917,38 +1812,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("tps(10):>0.5", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "eps()",
-                        "eps(10)",
-                        "eps(60)",
-                        "tps()",
-                        "tps(10)",
-                        "tps(60)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=4),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "eps()",
+                    "eps(10)",
+                    "eps(60)",
+                    "tps()",
+                    "tps(10)",
+                    "tps(60)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert data[0]["eps"] == 0.05, use_snql
-                    assert data[0]["eps_10"] == 0.6, use_snql
-                    assert data[0]["eps_60"] == 0.1, use_snql
-                    assert data[0]["tps"] == 0.05, use_snql
-                    assert data[0]["tps_10"] == 0.6, use_snql
-                    assert data[0]["tps_60"] == 0.1, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert data[0]["eps"] == 0.05
+                assert data[0]["eps_10"] == 0.6
+                assert data[0]["eps_60"] == 0.1
+                assert data[0]["tps"] == 0.05
+                assert data[0]["tps_10"] == 0.6
+                assert data[0]["tps_60"] == 0.1
 
     def test_epm(self):
         project = self.create_project()
@@ -1971,38 +1864,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("tpm(10):>3", 1, True),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_length, use_aggregate_conditions in queries:
-                result = discover.query(
-                    selected_columns=[
-                        "transaction",
-                        "epm()",
-                        "epm(10)",
-                        "epm(60)",
-                        "tpm()",
-                        "tpm(10)",
-                        "tpm(60)",
-                    ],
-                    query=query,
-                    orderby="transaction",
-                    params={
-                        "start": before_now(minutes=4),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_aggregate_conditions=use_aggregate_conditions,
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_length, use_aggregate_conditions in queries:
+            result = discover.query(
+                selected_columns=[
+                    "transaction",
+                    "epm()",
+                    "epm(10)",
+                    "epm(60)",
+                    "tpm()",
+                    "tpm(10)",
+                    "tpm(60)",
+                ],
+                query=query,
+                orderby="transaction",
+                params={
+                    "start": before_now(minutes=4),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+                use_aggregate_conditions=use_aggregate_conditions,
+            )
+            data = result["data"]
 
-                assert len(data) == expected_length, use_snql
-                if expected_length > 0:
-                    assert data[0]["epm"] == 3, use_snql
-                    assert data[0]["epm_10"] == 36.0, use_snql
-                    assert data[0]["epm_60"] == 6, use_snql
-                    assert data[0]["tpm"] == 3, use_snql
-                    assert data[0]["tpm_10"] == 36.0, use_snql
-                    assert data[0]["tpm_60"] == 6, use_snql
+            assert len(data) == expected_length
+            if expected_length > 0:
+                assert data[0]["epm"] == 3
+                assert data[0]["epm_10"] == 36.0
+                assert data[0]["epm_60"] == 6
+                assert data[0]["tpm"] == 3
+                assert data[0]["tpm_10"] == 36.0
+                assert data[0]["tpm_60"] == 6
 
     def test_transaction_status(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -2020,25 +1911,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data["contexts"]["trace"]["status"] = "already_exists"
         self.store_event(data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["transaction.status"],
-                query="",
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                use_snql=use_snql,
-            )
-            data = result["data"]
-            assert len(data) == 3, use_snql
-            assert {
-                data[0]["transaction.status"],
-                data[1]["transaction.status"],
-                data[2]["transaction.status"],
-            } == {0, 10, 6}, use_snql
+        result = discover.query(
+            selected_columns=["transaction.status"],
+            query="",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+        )
+        data = result["data"]
+        assert len(data) == 3
+        assert {
+            data[0]["transaction.status"],
+            data[1]["transaction.status"],
+            data[2]["transaction.status"],
+        } == {0, 10, 6}
 
     def test_transaction_status_filter(self):
         data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -2053,25 +1942,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.store_event(data, project_id=self.project.id)
 
         def run_query(query, expected_statuses, message):
-            for use_snql in [False, True]:
-                result = discover.query(
-                    selected_columns=["transaction.status"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == len(
-                    expected_statuses
-                ), f"failed with use_snql:'{use_snql}' due to {message}"
-                assert sorted(item["transaction.status"] for item in data) == sorted(
-                    expected_statuses
-                ), f"failed with use_snql:'{use_snql}' due to {message} condition"
+            result = discover.query(
+                selected_columns=["transaction.status"],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == len(expected_statuses), message
+            assert sorted(item["transaction.status"] for item in data) == sorted(
+                expected_statuses
+            ), message
 
         run_query("has:transaction.status transaction.status:ok", [0, 0], "status 'ok'")
         run_query(
@@ -2116,27 +2001,25 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("has:error.handled error.handled:false", []),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_data in queries:
-                result = discover.query(
-                    selected_columns=["error.handled"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": before_now(minutes=12),
-                        "end": before_now(minutes=8),
-                    },
-                    use_snql=use_snql,
-                )
+        for query, expected_data in queries:
+            result = discover.query(
+                selected_columns=["error.handled"],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+            )
 
-                data = result["data"]
-                data = sorted(
-                    data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
-                )
+            data = result["data"]
+            data = sorted(
+                data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
+            )
 
-                assert len(data) == len(expected_data), use_snql
-                assert [item["error.handled"] for item in data] == expected_data, use_snql
+            assert len(data) == len(expected_data)
+            assert [item["error.handled"] for item in data] == expected_data
 
     def test_error_unhandled_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
@@ -2162,23 +2045,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("has:error.unhandled error.unhandled:false", [], []),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_events, error_handled in queries:
-                result = discover.query(
-                    selected_columns=["error.unhandled"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": before_now(minutes=12),
-                        "end": before_now(minutes=8),
-                    },
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for query, expected_events, error_handled in queries:
+            result = discover.query(
+                selected_columns=["error.unhandled"],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+            )
+            data = result["data"]
 
-                assert len(data) == len(expected_events), use_snql
-                assert [item["error.unhandled"] for item in data] == error_handled, use_snql
+            assert len(data) == len(expected_events)
+            assert [item["error.unhandled"] for item in data] == error_handled
 
     def test_array_fields(self):
         data = load_data("javascript")
@@ -2200,43 +2081,40 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("!has:stack.filename", 0),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_len in queries:
-                result = discover.query(
-                    selected_columns=["stack.filename"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": before_now(minutes=12),
-                        "end": before_now(minutes=8),
-                    },
-                    use_snql=use_snql,
-                )
-
-                data = result["data"]
-                assert len(data) == expected_len, use_snql
-                if len(data) == 0:
-                    continue
-                assert len(data[0]["stack.filename"]) == len(expected_filenames), use_snql
-                assert sorted(data[0]["stack.filename"]) == expected_filenames, use_snql
-
+        for query, expected_len in queries:
             result = discover.query(
                 selected_columns=["stack.filename"],
-                query="stack.filename:[raven.js]",
+                query=query,
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [self.project.id],
                     "start": before_now(minutes=12),
                     "end": before_now(minutes=8),
                 },
-                use_snql=use_snql,
             )
 
             data = result["data"]
-            assert len(data) == 1
+            assert len(data) == expected_len
+            if len(data) == 0:
+                continue
             assert len(data[0]["stack.filename"]) == len(expected_filenames)
             assert sorted(data[0]["stack.filename"]) == expected_filenames
+
+        result = discover.query(
+            selected_columns=["stack.filename"],
+            query="stack.filename:[raven.js]",
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+                "start": before_now(minutes=12),
+                "end": before_now(minutes=8),
+            },
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert len(data[0]["stack.filename"]) == len(expected_filenames)
+        assert sorted(data[0]["stack.filename"]) == expected_filenames
 
     @pytest.mark.skip("setting snuba config is too slow")
     def test_spans_op_array_field(self):
@@ -2260,21 +2138,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("!has:spans_op", 0),
         ]
 
-        for use_snql in [False, True]:
-            for query, expected_len in queries:
-                result = discover.query(
-                    selected_columns=["spans_op"],
-                    query=query,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": before_now(minutes=12),
-                        "end": before_now(minutes=8),
-                    },
-                    use_snql=use_snql,
-                )
-                data = result["data"]
-                assert len(data) == expected_len, use_snql
+        for query, expected_len in queries:
+            result = discover.query(
+                selected_columns=["spans_op"],
+                query=query,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+            )
+            data = result["data"]
+            assert len(data) == expected_len
 
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
@@ -2298,23 +2174,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("-error.unhandled", [1, 0, 0]),
         ]
 
-        for use_snql in [False, True]:
-            for orderby, expected in queries:
-                result = discover.query(
-                    selected_columns=["transaction", "error.unhandled"],
-                    query="",
-                    orderby=orderby,
-                    params={
-                        "organization_id": self.organization.id,
-                        "project_id": [self.project.id],
-                        "start": before_now(minutes=12),
-                        "end": before_now(minutes=8),
-                    },
-                    use_snql=use_snql,
-                )
+        for orderby, expected in queries:
+            result = discover.query(
+                selected_columns=["transaction", "error.unhandled"],
+                query="",
+                orderby=orderby,
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+            )
 
-                data = result["data"]
-                assert [x["error.unhandled"] for x in data] == expected, use_snql
+            data = result["data"]
+            assert [x["error.unhandled"] for x in data] == expected
 
     def test_orderby_aggregate_function(self):
         project = self.create_project()
@@ -2348,28 +2222,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             ("-failure_count", [2, 1, 1, 1, 1, 1, 0, 0]),
         ]
 
-        for use_snql in [False, True]:
-            for orderby, expected in orderbys:
-                result = discover.query(
-                    selected_columns=["transaction", "failure_count()"],
-                    query="",
-                    orderby=orderby,
-                    params={
-                        "start": before_now(minutes=10),
-                        "end": before_now(minutes=2),
-                        "project_id": [project.id],
-                    },
-                    use_snql=use_snql,
-                )
-                data = result["data"]
+        for orderby, expected in orderbys:
+            result = discover.query(
+                selected_columns=["transaction", "failure_count()"],
+                query="",
+                orderby=orderby,
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [project.id],
+                },
+            )
+            data = result["data"]
 
-                assert [x["failure_count"] for x in data] == expected, use_snql
+            assert [x["failure_count"] for x in data] == expected
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         data = result["data"]
         assert len(data) == 1
@@ -2392,7 +2264,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user", "user.email"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         data = result["data"]
         assert len(data) == 1
@@ -2411,7 +2283,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "count_unique(user.email)"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             auto_fields=True,
         )
         data = result["data"]
@@ -2423,7 +2295,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user.email"],
             query="user.email:bruce@example.com",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             auto_fields=True,
         )
         data = result["data"]
@@ -2435,23 +2307,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["user.email", "release"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             auto_fields=True,
         )
         data = result["data"]
         assert len(data) == 1
         assert data[0]["id"] == self.event.event_id
-        assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
         assert data[0]["project.name"] == self.project.slug
 
-        assert len(result["meta"]) == 5
+        assert len(result["meta"]) == 4
         assert result["meta"] == {
             "user.email": "string",
             "release": "string",
             "id": "string",
-            "project.id": "integer",
             "project.name": "string",
         }
 
@@ -2459,7 +2329,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["count_unique(user.email)"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             auto_fields=True,
         )
         data = result["data"]
@@ -2470,14 +2340,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.create_release(self.project).version}",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         assert len(result["data"]) == 0
 
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.release.version}",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2491,34 +2361,39 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_2_e_2 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_3_e_1 = self.store_event(
-            data={"release": release_3.version},
+            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_3_e_2 = self.store_event(
-            data={"release": release_3.version},
+            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>1.2.3",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
@@ -2529,7 +2404,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>=1.2.3",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_1_e_1,
@@ -2542,13 +2422,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:<1.2.4",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
         result = discover.query(
             selected_columns=["id"],
             query=f"!{SEMVER_ALIAS}:1.2.3",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             self.event.event_id,
@@ -2573,19 +2463,35 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
         adopted_release_e_1 = self.store_event(
-            data={"release": adopted_release.version, "environment": self.environment.name},
+            data={
+                "release": adopted_release.version,
+                "environment": self.environment.name,
+                "timestamp": iso_format(self.one_min_ago),
+            },
             project_id=self.project.id,
         ).event_id
         adopted_release_e_2 = self.store_event(
-            data={"release": adopted_release.version, "environment": self.environment.name},
+            data={
+                "release": adopted_release.version,
+                "environment": self.environment.name,
+                "timestamp": iso_format(self.one_min_ago),
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_1 = self.store_event(
-            data={"release": replaced_release.version, "environment": self.environment.name},
+            data={
+                "release": replaced_release.version,
+                "environment": self.environment.name,
+                "timestamp": iso_format(self.one_min_ago),
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_2 = self.store_event(
-            data={"release": replaced_release.version, "environment": self.environment.name},
+            data={
+                "release": replaced_release.version,
+                "environment": self.environment.name,
+                "timestamp": iso_format(self.one_min_ago),
+            },
             project_id=self.project.id,
         ).event_id
 
@@ -2596,6 +2502,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "environment": [self.environment.name],
+                "environment_objects": [self.environment],
+                "start": self.start,
+                "end": self.end,
             },
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2610,6 +2519,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "environment": [self.environment.name],
+                "environment_objects": [self.environment],
+                "start": self.start,
+                "end": self.end,
             },
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2625,6 +2537,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "project_id": [self.project.id],
                 "organization_id": self.organization.id,
                 "environment": [self.environment.name],
+                "environment_objects": [self.environment],
+                "start": self.start,
+                "end": self.end,
             },
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2639,22 +2554,27 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         release_2 = self.create_release(version="test2@1.2.4")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_PACKAGE_ALIAS}:test",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_1_e_1,
@@ -2663,7 +2583,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_PACKAGE_ALIAS}:test2",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
@@ -2674,22 +2599,27 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         release_2 = self.create_release(version="test2@1.2.4+124")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:123",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_1_e_1,
@@ -2698,7 +2628,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:124",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
@@ -2706,7 +2641,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:>=123",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
@@ -2714,7 +2654,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query="release:latest",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "start": self.start,
+                "end": self.end,
+            },
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2726,14 +2671,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.create_environment(self.project).name}",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         assert len(result["data"]) == 0
 
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.environment.name}",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
         assert len(result["data"]) == 1
         data = result["data"]
@@ -2753,23 +2698,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=project3.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["project", "message"],
-                query=f"project:{self.project.slug} OR project:{project2.slug}",
-                params={
-                    "project_id": [self.project.id, project2.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="message",
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["project", "message"],
+            query=f"project:{self.project.slug} OR project:{project2.slug}",
+            params={
+                "project_id": [self.project.id, project2.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="message",
+        )
 
-            data = result["data"]
-            assert len(data) == 2, use_snql
-            assert data[0]["project"] == project2.slug, use_snql
-            assert data[1]["project"] == self.project.slug, use_snql
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["project"] == project2.slug
+        assert data[1]["project"] == self.project.slug
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
@@ -2790,25 +2733,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=project2.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["release"],
-                query="(release:{} OR release:{}) AND project:{}".format(
-                    "a" * 32, "b" * 32, self.project.slug
-                ),
-                params={
-                    "project_id": [self.project.id, project2.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="release",
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["release"],
+            query="(release:{} OR release:{}) AND project:{}".format(
+                "a" * 32, "b" * 32, self.project.slug
+            ),
+            params={
+                "project_id": [self.project.id, project2.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="release",
+        )
 
-            data = result["data"]
-            assert len(data) == 2, use_snql
-            assert data[0]["release"] == "a" * 32, use_snql
-            assert data[1]["release"] == "b" * 32, use_snql
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["release"] == "a" * 32
+        assert data[1]["release"] == "b" * 32
 
     def test_conditions_with_special_columns(self):
         for val in ["a", "b", "c"]:
@@ -2819,42 +2760,39 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
             self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["title", "message"],
-                query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
-                params={
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="title",
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["title", "message"],
+            query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="title",
+        )
 
-            data = result["data"]
-            assert len(data) == 2, use_snql
-            assert data[0]["title"] == "a" * 32, use_snql
-            assert data[1]["title"] == "b" * 32, use_snql
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["title"] == "a" * 32
+        assert data[1]["title"] == "b" * 32
 
-            result = discover.query(
-                selected_columns=["title", "sub_customer.is-Enterprise-42"],
-                query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
-                    "a" * 32, "a" * 32
-                ),
-                params={
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="title",
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["title", "sub_customer.is-Enterprise-42"],
+            query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
+                "a" * 32, "a" * 32
+            ),
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="title",
+        )
 
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            assert data[0]["title"] == "a" * 32, use_snql
-            assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32, use_snql
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["title"] == "a" * 32
+        assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32
 
     def test_conditions_with_aggregates(self):
         events = [("a", 2), ("b", 3), ("c", 4)]
@@ -2868,26 +2806,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["trek", "count()"],
-                query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
-                    "a" * 32, "b" * 32
-                ),
-                params={
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="trek",
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
+        result = discover.query(
+            selected_columns=["trek", "count()"],
+            query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
+                "a" * 32, "b" * 32
+            ),
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="trek",
+            use_aggregate_conditions=True,
+        )
 
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            assert data[0]["trek"] == "b" * 32, use_snql
-            assert data[0]["count"] == 3, use_snql
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["trek"] == "b" * 32
+        assert data[0]["count"] == 3
 
     def test_conditions_with_nested_aggregates(self):
         events = [("a", 2), ("b", 3), ("c", 4)]
@@ -2901,9 +2837,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["trek", "count()"],
+        result = discover.query(
+            selected_columns=["trek", "count()"],
+            query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
+                "b" * 32, "b" * 32
+            ),
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="trek",
+            use_aggregate_conditions=True,
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["trek"] == "b" * 32
+        assert data[0]["count"] == 3
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["trek", "transaction"],
                 query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
                     "b" * 32, "b" * 32
                 ),
@@ -2914,30 +2869,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 },
                 orderby="trek",
                 use_aggregate_conditions=True,
-                use_snql=use_snql,
             )
-
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            assert data[0]["trek"] == "b" * 32, use_snql
-            assert data[0]["count"] == 3, use_snql
-
-            with pytest.raises(InvalidSearchQuery) as err:
-                discover.query(
-                    selected_columns=["trek", "transaction"],
-                    query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
-                        "b" * 32, "b" * 32
-                    ),
-                    params={
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    orderby="trek",
-                    use_aggregate_conditions=True,
-                    use_snql=use_snql,
-                )
-            assert "used in a condition but is not a selected column" in str(err)
+        assert "used in a condition but is not a selected column" in str(err)
 
     def test_conditions_with_timestamps(self):
         events = [("a", 1), ("b", 2), ("c", 3)]
@@ -2948,36 +2881,38 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            results = discover.query(
-                selected_columns=["transaction", "count()"],
-                query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                    iso_format(self.now - timedelta(seconds=5)),
-                    iso_format(self.now - timedelta(seconds=3)),
-                ),
-                params={
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="transaction",
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
+        results = discover.query(
+            selected_columns=["transaction", "count()"],
+            query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
+                iso_format(self.now - timedelta(seconds=5)),
+                iso_format(self.now - timedelta(seconds=3)),
+            ),
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="transaction",
+            use_aggregate_conditions=True,
+        )
 
-            data = results["data"]
-            assert len(data) == 2, use_snql
-            assert data[0]["transaction"] == "a" * 32, use_snql
-            assert data[0]["count"] == 1, use_snql
-            assert data[1]["transaction"] == "c" * 32, use_snql
-            assert data[1]["count"] == 3, use_snql
+        data = results["data"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "a" * 32
+        assert data[0]["count"] == 1
+        assert data[1]["transaction"] == "c" * 32
+        assert data[1]["count"] == 3
 
     def test_timestamp_rollup_filter(self):
         event_hour = self.event_time.replace(minute=0, second=0)
         result = discover.query(
             selected_columns=["project.id", "user", "release"],
             query="timestamp.to_hour:" + iso_format(event_hour),
-            params={"project_id": [self.project.id]},
+            params={
+                "project_id": [self.project.id],
+                "start": self.now - timedelta(hours=3),
+                "end": self.now,
+            },
         )
         data = result["data"]
         assert len(data) == 1
@@ -3000,7 +2935,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (count():<1 OR count():>0)",
-            params={"project_id": [self.project.id]},
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
             orderby="transaction",
             use_aggregate_conditions=True,
         )
@@ -3019,38 +2958,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         }
         self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            results = discover.query(
-                selected_columns=["array_join(measurements_key)"],
+        results = discover.query(
+            selected_columns=["array_join(measurements_key)"],
+            query="",
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            functions_acl=["array_join"],
+        )
+        assert {"fcp", "fp", "lcp"} == {
+            row["array_join_measurements_key"] for row in results["data"]
+        }
+
+    def test_access_to_private_functions(self):
+        # using private functions directly without access should error
+        with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
+            discover.query(
+                selected_columns=["array_join(tags.key)"],
                 query="",
                 params={
                     "project_id": [self.project.id],
                     "start": self.two_min_ago,
                     "end": self.now,
                 },
-                functions_acl=["array_join"],
-                use_snql=use_snql,
             )
-            assert {"fcp", "fp", "lcp"} == {
-                row["array_join_measurements_key"] for row in results["data"]
-            }
-
-    def test_access_to_private_functions(self):
-        for use_snql in [False, True]:
-            # using private functions directly without access should error
-            with pytest.raises(
-                InvalidSearchQuery, match="array_join: no access to private function"
-            ):
-                discover.query(
-                    selected_columns=["array_join(tags.key)"],
-                    query="",
-                    params={
-                        "project_id": [self.project.id],
-                        "start": self.two_min_ago,
-                        "end": self.now,
-                    },
-                    use_snql=use_snql,
-                )
 
         # TODO: test the following with `use_snql=True` once histogram is using snql
 
@@ -3060,7 +2993,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=[f"histogram({array_column}_value, 1,0,1)"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={"project_id": [self.project.id]},
+                    params={"project_id": [self.project.id], "start": self.start, "end": self.end},
                     use_aggregate_conditions=True,
                 )
 
@@ -3071,7 +3004,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=["count()"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={"project_id": [self.project.id]},
+                    params={"project_id": [self.project.id], "start": self.start, "end": self.end},
                     auto_aggregations=True,
                     use_aggregate_conditions=True,
                 )
@@ -3095,8 +3028,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             },
             # make sure to opt in to gain access to the function
             functions_acl=["sumArray"],
-            # -Array combinator is only supported in SnQL
-            use_snql=True,
         )
         assert results["data"][0]["sumArray_measurements_value"] == 3000.0
 
@@ -3105,24 +3036,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data["transaction"] = "a" * 32
         self.store_event(data=data, project_id=self.project.id)
 
-        for use_snql in [False, True]:
-            results = discover.query(
-                selected_columns=["count()", "any(transaction)", "any(user.id)"],
-                query="event.type:transaction",
-                params={
-                    "start": before_now(minutes=5),
-                    "end": before_now(seconds=1),
-                    "project_id": [self.project.id],
-                },
-                use_aggregate_conditions=True,
-                use_snql=use_snql,
-            )
+        results = discover.query(
+            selected_columns=["count()", "any(transaction)", "any(user.id)"],
+            query="event.type:transaction",
+            params={
+                "start": before_now(minutes=5),
+                "end": before_now(seconds=1),
+                "project_id": [self.project.id],
+            },
+            use_aggregate_conditions=True,
+        )
 
-            data = results["data"]
-            assert len(data) == 1
-            assert data[0]["any_transaction"] == "a" * 32
-            assert data[0]["any_user_id"] is None
-            assert data[0]["count"] == 1
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["any_transaction"] == "a" * 32
+        assert data[0]["any_user_id"] is None
+        assert data[0]["count"] == 1
 
     def test_offsets(self):
         self.store_event(
@@ -3134,25 +3063,23 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        for use_snql in [False, True]:
-            result = discover.query(
-                selected_columns=["message"],
-                query="",
-                params={
-                    "project_id": [self.project.id],
-                    "start": self.two_min_ago,
-                    "end": self.now,
-                },
-                orderby="message",
-                use_snql=use_snql,
-                limit=1,
-                offset=1,
-            )
+        result = discover.query(
+            selected_columns=["message"],
+            query="",
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            orderby="message",
+            limit=1,
+            offset=1,
+        )
 
-            data = result["data"]
-            assert len(data) == 1, use_snql
-            # because we're ording by `message`, and offset by 1, the message should be `hello2`
-            assert data[0]["message"] == "hello2"
+        data = result["data"]
+        assert len(data) == 1
+        # because we're ording by `message`, and offset by 1, the message should be `hello2`
+        assert data[0]["message"] == "hello2"
 
     def test_reflective_types(self):
         results = discover.query(
@@ -3162,7 +3089,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "p50(spans.foo)",
             ],
             query="event.type:transaction",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             use_aggregate_conditions=True,
         )
 
@@ -3186,7 +3113,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "measurements.does_not_exist",
             ],
             query="event.type:transaction",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
 
         data = results["data"]
@@ -3212,7 +3139,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "spans.does_not_exist",
             ],
             query="event.type:transaction",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "start": self.start, "end": self.end},
         )
 
         data = results["data"]
@@ -3241,7 +3168,6 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "end": self.now,
             },
             orderby="project",
-            use_snql=True,
         )
         data = result["data"]
         assert len(data) == len(expected)
@@ -3250,10 +3176,15 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
 class QueryTransformTest(TestCase):
     """
-    This test mocks snuba.raw_query to let us isolate column transformations.
+    This test mocks snuba.bulk_snql_query to let us isolate column transformations.
     """
 
-    @patch("sentry.snuba.discover.raw_query")
+    def setUp(self):
+        super().setUp()
+        self.start = before_now(minutes=2).replace(tzinfo=timezone.utc)
+        self.end = before_now(minutes=1).replace(tzinfo=timezone.utc)
+
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_query_parse_error(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -3263,11 +3194,11 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=[],
                 query="foo(id):<1dino",
-                params={"project_id": [self.project.id]},
+                params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
         assert mock_query.call_count == 0
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_query_no_fields(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -3277,1746 +3208,34 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=[],
                 query="event.type:transaction",
-                params={"project_id": [self.project.id]},
+                params={"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
         assert "No columns selected" in str(err)
         assert mock_query.call_count == 0
 
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_field_alias_macro(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "user"}, {"name": "project_id"}],
-            "data": [{"user": "a@example.org", "project_id": self.project.id}],
-        }
-        discover.query(
-            selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
-        )
-        mock_query.assert_called_with(
-            selected_columns=[
-                "user",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{self.project.id}'"]],
-                        ["array", [f"'{self.project.slug}'"]],
-                        "''",
-                    ],
-                    "project",
-                ],
-            ],
-            aggregations=[],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            conditions=[],
-            groupby=[],
-            having=[],
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_project_filter_limits_automatic_fields(self, mock_query):
-        project2 = self.create_project(organization=self.organization)
-        mock_query.return_value = {
-            "meta": [{"name": "title"}, {"name": "project_id"}],
-            "data": [{"title": "stuff", "project_id": project2.id}],
-        }
-        discover.query(
-            selected_columns=["title", "project"],
-            query=f"project:{project2.slug}",
-            params={"project_id": [self.project.id, project2.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=[
-                "title",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{project2.id}'"]],
-                        ["array", [f"'{project2.slug}'"]],
-                        "''",
-                    ],
-                    "project",
-                ],
-            ],
-            aggregations=[],
-            filter_keys={"project_id": [project2.id]},
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            conditions=[["project_id", "=", project2.id]],
-            groupby=[],
-            having=[],
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_project_with_aggregate_grouping(self, mock_query):
-        project2 = self.create_project(organization=self.organization)
-        mock_query.return_value = {
-            "meta": [{"name": "title"}, {"name": "project_id"}],
-            "data": [{"title": "stuff", "project_id": project2.id}],
-        }
-        discover.query(
-            selected_columns=["title", "project", "p99()"],
-            query=f"project:{project2.slug}",
-            params={"project_id": [self.project.id, project2.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=[
-                "title",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{project2.id}'"]],
-                        ["array", [f"'{project2.slug}'"]],
-                        "''",
-                    ],
-                    "project",
-                ],
-            ],
-            aggregations=[["quantile(0.99)", "duration", "p99"]],
-            filter_keys={"project_id": [project2.id]},
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            conditions=[["project_id", "=", project2.id]],
-            groupby=["title", "project_id"],
-            having=[],
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_no_auto_fields(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "count"}],
-            "data": [{"count": 1}],
-        }
-        discover.query(
-            selected_columns=["count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=False,
-        )
-        mock_query.assert_called_with(
-            selected_columns=[],
-            aggregations=[["count", None, "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            conditions=[],
-            groupby=[],
-            having=[],
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_aliasing_in_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "transaction.duration",
-                "count_unique(transaction.duration)",
-            ],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction", "duration"],
-            aggregations=[["uniq", "duration", "count_unique_transaction_duration"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            conditions=[],
-            groupby=["transaction", "duration"],
-            having=[],
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_aggregate_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
-        }
-        discover.query(
-            selected_columns=["transaction", "p95()", "count_unique(transaction)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["uniq", "transaction", "count_unique_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_failure_rate_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "failure_rate"}],
-            "data": [{"transaction": "api.do_things", "failure_rate": 0.314159}],
-        }
-        discover.query(
-            selected_columns=["transaction", "failure_rate()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[["failure_rate()", None, "failure_rate"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_apdex_new_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-                {"name": "apdex"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 300),
-                    "apdex": 0.15,
-                }
-            ],
-        }
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "apdex()",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=["transaction", "project_threshold_config"],
-            conditions=[],
-            aggregations=[
-                [
-                    "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
-                    None,
-                    "apdex",
-                ]
-            ],
-            selected_columns=[
-                "transaction",
-                [
-                    "tuple",
-                    ["'duration'", 300],
-                    "project_threshold_config",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_user_misery_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "user_misery_300"}],
-            "data": [{"transaction": "api.do_things", "user_misery_300": 0.15}],
-        }
-        discover.query(
-            selected_columns=["transaction", "user_misery(300)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "ifNull(divide(plus(uniqIf(user, greater(duration, 1200)), 5.8875), plus(uniq(user), 117.75)), 0)",
-                    None,
-                    "user_misery_300",
-                ]
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_user_misery_new_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-                {"name": "user_misery"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 300),
-                    "user_misery": 0.15,
-                }
-            ],
-        }
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "user_misery()",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=["transaction", "project_threshold_config"],
-            conditions=[],
-            aggregations=[
-                [
-                    "ifNull(divide(plus(uniqIf(user,greater(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),multiply(tupleElement(project_threshold_config,2),4))),5.8875),plus(uniq(user),117.75)),0)",
-                    None,
-                    "user_misery",
-                ]
-            ],
-            selected_columns=[
-                "transaction",
-                [
-                    "tuple",
-                    ["'duration'", 300],
-                    "project_threshold_config",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_count_miserable_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "count_miserable_user_300"}],
-            "data": [{"transaction": "api.do_things", "count_miserable_user_300": 15}],
-        }
-        discover.query(
-            selected_columns=["transaction", "count_miserable(user, 300)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "uniqIf(user, greater(duration, 1200))",
-                    None,
-                    "count_miserable_user_300",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_count_miserable_allows_zero_threshold(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "count_miserable_user_0"}],
-            "data": [{"transaction": "api.do_things", "count_miserable_user_0": 15}],
-        }
-        discover.query(
-            selected_columns=["transaction", "count_miserable(user,0)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "uniqIf(user, greater(duration, 0))",
-                    None,
-                    "count_miserable_user_0",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_apdex_allows_zero_threshold(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "apdex_0"}],
-            "data": [{"transaction": "api.do_things", "apdex_0": 15}],
-        }
-        discover.query(
-            selected_columns=["transaction", "apdex(0)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "apdex(duration, 0)",
-                    None,
-                    "apdex_0",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_project_threshold_config_alias_no_configured_thresholds(
-        self, mock_query
-    ):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 300),
-                }
-            ],
-        }
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "project_threshold_config",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=[],
-            conditions=[],
-            aggregations=[],
-            selected_columns=[
-                "transaction",
-                [
-                    "tuple",
-                    ["'duration'", 300],
-                    "project_threshold_config",
-                ],
-                "event_id",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{self.project.id}'"]],
-                        ["array", ["'bar'"]],
-                        "''",
-                    ],
-                    "`project.name`",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_threshold_config_selected_with_project_threshold_configured(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 400),
-                }
-            ],
-        }
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "project_threshold_config",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=[],
-            conditions=[],
-            aggregations=[],
-            selected_columns=[
-                "transaction",
-                [
-                    "if",
-                    [
-                        [
-                            "equals",
-                            [
-                                [
-                                    "indexOf",
-                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
-                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-                                ],
-                                0,
-                            ],
-                        ],
-                        ["tuple", ["'duration'", 300]],
-                        [
-                            "arrayElement",
-                            [
-                                ["array", [["tuple", ["'duration'", 200]]]],
-                                [
-                                    "indexOf",
-                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
-                                    PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-                                ],
-                            ],
-                        ],
-                    ],
-                    "project_threshold_config",
-                ],
-                "event_id",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{self.project.id}'"]],
-                        ["array", ["'bar'"]],
-                        "''",
-                    ],
-                    "`project.name`",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_threshold_config_selected_with_txn_threshold_configured(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 400),
-                }
-            ],
-        }
-
-        ProjectTransactionThresholdOverride.objects.create(
-            transaction="transaction/threshold",
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "project_threshold_config",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=[],
-            conditions=[],
-            aggregations=[],
-            selected_columns=[
-                "transaction",
-                [
-                    "if",
-                    [
-                        [
-                            "equals",
-                            [
-                                [
-                                    "indexOf",
-                                    [
-                                        [
-                                            "array",
-                                            [
-                                                [
-                                                    "tuple",
-                                                    [
-                                                        ["toUInt64", [self.project.id]],
-                                                        "'transaction/threshold'",
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                        ["tuple", ["project_id", "transaction"]],
-                                    ],
-                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-                                ],
-                                0,
-                            ],
-                        ],
-                        ["tuple", ["'duration'", 300]],
-                        [
-                            "arrayElement",
-                            [
-                                ["array", [["tuple", ["'duration'", 200]]]],
-                                [
-                                    "indexOf",
-                                    [
-                                        [
-                                            "array",
-                                            [
-                                                [
-                                                    "tuple",
-                                                    [
-                                                        ["toUInt64", [self.project.id]],
-                                                        "'transaction/threshold'",
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                        ["tuple", ["project_id", "transaction"]],
-                                    ],
-                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-                                ],
-                            ],
-                        ],
-                    ],
-                    "project_threshold_config",
-                ],
-                "event_id",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{self.project.id}'"]],
-                        ["array", ["'bar'"]],
-                        "''",
-                    ],
-                    "`project.name`",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_threshold_config_selected_with_project_and_txn_thresholds_configured(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 400),
-                }
-            ],
-        }
-
-        ProjectTransactionThresholdOverride.objects.create(
-            transaction="transaction/threshold",
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "project_threshold_config",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=[],
-            conditions=[],
-            aggregations=[],
-            selected_columns=[
-                "transaction",
-                [
-                    "if",
-                    [
-                        [
-                            "equals",
-                            [
-                                [
-                                    "indexOf",
-                                    [
-                                        [
-                                            "array",
-                                            [
-                                                [
-                                                    "tuple",
-                                                    [
-                                                        ["toUInt64", [self.project.id]],
-                                                        "'transaction/threshold'",
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                        ["tuple", ["project_id", "transaction"]],
-                                    ],
-                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-                                ],
-                                0,
-                            ],
-                        ],
-                        [
-                            "if",
-                            [
-                                [
-                                    "equals",
-                                    [
-                                        [
-                                            "indexOf",
-                                            [
-                                                ["array", [["toUInt64", [self.project.id]]]],
-                                                "project_id",
-                                            ],
-                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-                                        ],
-                                        0,
-                                    ],
-                                ],
-                                ["tuple", ["'duration'", 300]],
-                                [
-                                    "arrayElement",
-                                    [
-                                        ["array", [["tuple", ["'duration'", 200]]]],
-                                        [
-                                            "indexOf",
-                                            [
-                                                ["array", [["toUInt64", [self.project.id]]]],
-                                                "project_id",
-                                            ],
-                                            PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                        [
-                            "arrayElement",
-                            [
-                                ["array", [["tuple", ["'duration'", 200]]]],
-                                [
-                                    "indexOf",
-                                    [
-                                        [
-                                            "array",
-                                            [
-                                                [
-                                                    "tuple",
-                                                    [
-                                                        ["toUInt64", [self.project.id]],
-                                                        "'transaction/threshold'",
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                        ["tuple", ["project_id", "transaction"]],
-                                    ],
-                                    PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-                                ],
-                            ],
-                        ],
-                    ],
-                    "project_threshold_config",
-                ],
-                "event_id",
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{self.project.id}'"]],
-                        ["array", ["'bar'"]],
-                        "''",
-                    ],
-                    "`project.name`",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            dataset=Dataset.Discover,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_count_miserable_new_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [
-                {"name": "transaction"},
-                {"name": "project_threshold_config"},
-                {"name": "count_miserable_user_project_threshold_config"},
-            ],
-            "data": [
-                {
-                    "transaction": "api.do_things",
-                    "project_threshold_config": ("duration", 400),
-                    "count_miserable_user": 15,
-                }
-            ],
-        }
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "count_miserable(user)",
-            ],
-            query="",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
-            auto_fields=True,
-        )
-
-        mock_query.assert_called_with(
-            start=None,
-            end=None,
-            groupby=["transaction", "project_threshold_config"],
-            conditions=[],
-            aggregations=[
-                [
-                    """
-                    uniqIf(user, greater(
-                        multiIf(
-                            equals(tupleElement(project_threshold_config, 1), 'lcp'),
-                            if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
-                            duration
-                        ),
-                        multiply(tupleElement(project_threshold_config, 2), 4)
-                    ))
-                    """.replace(
-                        "\n", ""
-                    ).replace(
-                        " ", ""
-                    ),
-                    None,
-                    "count_miserable_user",
-                ]
-            ],
-            selected_columns=[
-                "transaction",
-                [
-                    "tuple",
-                    ["'duration'", 300],
-                    "project_threshold_config",
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            having=[],
-            orderby=None,
-            limit=50,
-            dataset=Dataset.Discover,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_percentile_range_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "firstPercentile"}],
-            "data": [{"transaction": "api.do_things", "firstPercentile": 15}],
-        }
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "percentile_range(transaction.duration, 0.5, greater, 2020-05-02T14:45:01) as percentile_range_1",
-            ],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "quantileIf(0.50)",
-                    [
-                        "duration",
-                        ["greater", [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"]],
-                    ],
-                    "percentile_range_1",
-                ]
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_avg_range_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "firstAverage"}],
-            "data": [{"transaction": "api.do_things", "firstAverage": 15}],
-        }
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "avg_range(transaction.duration, greater, 2020-05-02T14:45:01) as avg_range_1",
-            ],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "avgIf",
-                    [
-                        "duration",
-                        ["greater", [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"]],
-                    ],
-                    "avg_range_1",
-                ]
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_percentile_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],
-            "data": [
-                {"transaction": "api.do_things", "percentile_transaction_duration_0_75": 1123}
-            ],
-        }
-        discover.query(
-            selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_orderby_limit_offset(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "title"}, {"name": "project.id"}],
-            "data": [{"project.id": "tester", "title": "test title"}],
-        }
-        discover.query(
-            selected_columns=["project.id", "title"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby=["project.id"],
-            offset=100,
-            limit=200,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["project_id", "title"],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            orderby=["project_id"],
-            aggregations=[],
-            end=None,
-            start=None,
-            conditions=[],
-            groupby=[],
-            having=[],
-            limit=200,
-            offset=100,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_orderby_must_be_selected_if_aggregate(self, mock_query):
-        with pytest.raises(InvalidSearchQuery):
-            discover.query(
-                selected_columns=["transaction", "transaction.duration"],
-                query="",
-                params={"project_id": [self.project.id]},
-                orderby=["count()"],
-            )
-        assert mock_query.call_count == 0
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_orderby_aggregate_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "count_id"}, {"name": "project.id"}],
-            "data": [{"project.id": "tester", "count_id": 10}],
-        }
-        discover.query(
-            selected_columns=["count(id)", "project.id", "id"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby=["count_id"],
-        )
-        mock_query.assert_called_with(
-            selected_columns=["project_id", "event_id"],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            orderby=["count_id"],
-            aggregations=[["count", None, "count_id"]],
-            end=None,
-            start=None,
-            conditions=[],
-            groupby=["project_id", "event_id"],
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_conditions_order_and_groupby_aliasing(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        discover.query(
-            selected_columns=["timestamp", "transaction", "transaction.duration", "count()"],
-            query="transaction.op:ok transaction.duration:200 sdk.name:python tags[projectid]:123",
-            params={"project_id": [self.project.id]},
-            orderby=["-timestamp", "-count"],
-        )
-        mock_query.assert_called_with(
-            selected_columns=["timestamp", "transaction", "duration"],
-            aggregations=[["count", None, "count"]],
-            conditions=[
-                ["transaction_op", "=", "ok"],
-                ["duration", "=", 200],
-                ["sdk_name", "=", "python"],
-                [["ifNull", ["tags[projectid]", "''"]], "=", "123"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["timestamp", "transaction", "duration"],
-            having=[],
-            orderby=["-timestamp", "-count"],
-            dataset=Dataset.Discover,
-            end=None,
-            start=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_conditions_nested_function_aliasing(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}],
-            "data": [{"transaction": "api.do_things"}],
-        }
-        discover.query(
-            selected_columns=["transaction", "count()"],
-            query="event.type:transaction user.email:*@sentry.io message:recent-searches",
-            params={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            conditions=[
-                ["type", "=", "transaction"],
-                [["match", ["email", r"'(?i)^.*@sentry\.io$'"]], "=", 1],
-                [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
-            ],
-            aggregations=[["count", None, "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            having=[],
-            orderby=None,
-            end=None,
-            start=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_condition_transform(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        discover.query(
-            selected_columns=["transaction", "transaction.duration"],
-            query="http.method:GET",
-            params={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=[],
-            dataset=Dataset.Discover,
-            aggregations=[],
-            having=[],
-            orderby=None,
-            end=None,
-            start=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_condition_projectid_transform(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        # The project_id column is not a public column, but we
-        # have to let it through in conditions to ensure project.name works.
-        discover.query(
-            selected_columns=["transaction", "transaction.duration"],
-            query="project_id:1",
-            params={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction", "duration"],
-            conditions=[["project_id", "=", 1]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=[],
-            dataset=Dataset.Discover,
-            aggregations=[],
-            having=[],
-            orderby=None,
-            end=None,
-            start=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_condition_projectname_transform(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        project2 = self.create_project(organization=self.organization)
-
-        # project.name is in the public schema and should be converted to a
-        # project_id condition.
-        discover.query(
-            selected_columns=["transaction", "transaction.duration"],
-            query=f"project.name:{project2.slug}",
-            params={"project_id": [self.project.id, project2.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction", "duration"],
-            conditions=[["project_id", "=", project2.id]],
-            filter_keys={"project_id": [project2.id]},
-            groupby=[],
-            dataset=Dataset.Discover,
-            aggregations=[],
-            having=[],
-            orderby=None,
-            end=None,
-            start=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_params_forward(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-        discover.query(
-            selected_columns=["transaction", "transaction.duration"],
-            query="http.method:GET",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=[],
-            dataset=Dataset.Discover,
-            aggregations=[],
-            having=[],
-            end=end_time,
-            start=start_time,
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_aggregate_conditions(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-        discover.query(
-            selected_columns=["transaction", "avg(transaction.duration)"],
-            query="http.method:GET avg(transaction.duration):>5",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction"],
-            dataset=Dataset.Discover,
-            aggregations=[["avg", "duration", "avg_transaction_duration"]],
-            having=[["avg_transaction_duration", ">", 5]],
-            end=end_time,
-            start=start_time,
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_alias_aggregate_conditions(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-        discover.query(
-            selected_columns=["transaction", "p95()"],
-            query="http.method:GET p95():>5",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-        )
-
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction"],
-            dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "p95"]],
-            having=[["p95", ">", 5]],
-            end=end_time,
-            start=start_time,
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_duration_aliases(self, mock_query):
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-        test_cases = [
-            ("1ms", 1),
-            ("1.5s", 1500),
-            ("23.4m", 1000 * 60 * 23.4),
-            ("1.00min", 1000 * 60),
-            ("3.45hr", 1000 * 60 * 60 * 3.45),
-            ("1.23h", 1000 * 60 * 60 * 1.23),
-            ("3wk", 1000 * 60 * 60 * 24 * 7 * 3),
-            ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
-        ]
-        for query_string, value in test_cases:
-            mock_query.return_value = {
-                "meta": [{"name": "transaction"}, {"name": "duration"}],
-                "data": [{"transaction": "api.do_things", "duration": 200}],
-            }
-            discover.query(
-                selected_columns=["transaction", "p95()"],
-                query=f"http.method:GET p95():>{query_string}",
-                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-                use_aggregate_conditions=True,
-            )
-
-            mock_query.assert_called_with(
-                selected_columns=["transaction"],
-                conditions=[["http_method", "=", "GET"]],
-                filter_keys={"project_id": [self.project.id]},
-                groupby=["transaction"],
-                dataset=Dataset.Discover,
-                aggregations=[["quantile(0.95)", "duration", "p95"]],
-                having=[["p95", ">", value]],
-                end=end_time,
-                start=start_time,
-                orderby=None,
-                limit=50,
-                offset=None,
-                referrer=None,
-            )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_alias_aggregate_conditions_with_brackets(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-        discover.query(
-            selected_columns=["transaction", "p95()"],
-            query="http.method:GET p95():>5",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-        )
-
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction"],
-            dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "p95"]],
-            having=[["p95", ">", 5]],
-            end=end_time,
-            start=start_time,
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_aggregate_date_conditions(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "avg(transaction.duration)",
-                "stddev(transaction.duration)",
-                "max(timestamp)",
-            ],
-            query="http.method:GET max(timestamp):>2019-12-01",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction"],
-            dataset=Dataset.Discover,
-            aggregations=[
-                ["avg", "duration", "avg_transaction_duration"],
-                ["stddevSamp", "duration", "stddev_transaction_duration"],
-                ["max", "timestamp", "max_timestamp"],
-            ],
-            having=[["max_timestamp", ">", 1575158400]],
-            end=end_time,
-            start=start_time,
-            orderby=None,
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_aggregate_duration_alias(self, mock_query):
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        test_cases = [
-            ("1ms", 1),
-            ("1.5s", 1500),
-            ("1.00min", 1000 * 60),
-            ("3.45hr", 1000 * 60 * 60 * 3.45),
-        ]
-        for query_string, value in test_cases:
-            mock_query.return_value = {
-                "meta": [{"name": "transaction"}, {"name": "duration"}],
-                "data": [{"transaction": "api.do_things", "duration": 200}],
-            }
-            discover.query(
-                selected_columns=[
-                    "transaction",
-                    "avg(transaction.duration)",
-                    "stddev(transaction.duration)",
-                    "max(timestamp)",
-                ],
-                query=f"http.method:GET avg(transaction.duration):>{query_string}",
-                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-                use_aggregate_conditions=True,
-            )
-            mock_query.assert_called_with(
-                selected_columns=["transaction"],
-                conditions=[["http_method", "=", "GET"]],
-                filter_keys={"project_id": [self.project.id]},
-                groupby=["transaction"],
-                dataset=Dataset.Discover,
-                aggregations=[
-                    ["avg", "duration", "avg_transaction_duration"],
-                    ["stddevSamp", "duration", "stddev_transaction_duration"],
-                    ["max", "timestamp", "max_timestamp"],
-                ],
-                having=[["avg_transaction_duration", ">", value]],
-                end=end_time,
-                start=start_time,
-                orderby=None,
-                limit=50,
-                offset=None,
-                referrer=None,
-            )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_aggregate_condition_missing_selected_column(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        with pytest.raises(InvalidSearchQuery):
-            discover.query(
-                selected_columns=["transaction"],
-                query="http.method:GET max(timestamp):>5",
-                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-                use_aggregate_conditions=True,
-            )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_aggregate_condition_missing_with_auto(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        with pytest.raises(InvalidSearchQuery):
-            discover.query(
-                selected_columns=["transaction"],
-                query="http.method:GET max(timestamp):>5",
-                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-                use_aggregate_conditions=True,
-                auto_aggregations=True,
-            )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_no_aggregate_conditions_with_auto(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        with pytest.raises(AssertionError):
-            discover.query(
-                selected_columns=["transaction"],
-                query="http.method:GET max(timestamp):>5",
-                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-                use_aggregate_conditions=False,
-                auto_aggregations=True,
-            )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_auto_aggregation(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        discover.query(
-            selected_columns=["transaction", "p95()"],
-            query="http.method:GET max(timestamp):>5",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-            auto_aggregations=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["max", "timestamp", "max_timestamp"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
-            start=start_time,
-            end=end_time,
-            orderby=None,
-            having=[["max_timestamp", ">", 5.0]],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_auto_aggregation_with_boolean_conditions(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        start_time = before_now(minutes=10)
-        end_time = before_now(minutes=1)
-
-        discover.query(
-            selected_columns=["transaction", "min(timestamp)"],
-            query="max(timestamp):>5 AND min(timestamp):<10",
-            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
-            use_aggregate_conditions=True,
-            auto_aggregations=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["min", "timestamp", "min_timestamp"],
-                ["max", "timestamp", "max_timestamp"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            start=start_time,
-            end=end_time,
-            orderby=None,
-            having=[["max_timestamp", ">", 5.0], ["min_timestamp", "<", 10.0]],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_function_conditions(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],
-            "data": [
-                {"transaction": "api.do_things", "percentile_transaction_duration_0_75": 1123}
-            ],
-        }
-        discover.query(
-            selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
-            query="percentile(transaction.duration, 0.75):>100",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-            use_aggregate_conditions=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[["percentile_transaction_duration_0_75", ">", 100]],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_find_histogram_min_max(self, mock_query):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
             # no rows returned from snuba
             mock_query.side_effect = [{"meta": [], "data": []}]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # more than 2 rows returned snuba
             mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (None, None), f"failing for {array_column}"
 
@@ -5031,13 +3250,21 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # use the given min/max
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], 1, 2, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                1,
+                2,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (1, 2), f"failing for {array_column}"
 
@@ -5049,7 +3276,11 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                1.23,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 1.23,
@@ -5065,7 +3296,11 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                3.5,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 3.5,
@@ -5081,7 +3316,11 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, 3.4, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                3.4,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 3.4,
@@ -5096,7 +3335,11 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                3.45,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 1.23,
@@ -5114,7 +3357,11 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
+                [f"{alias}.foo"],
+                None,
+                None,
+                "",
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 1.23,
@@ -5149,7 +3396,7 @@ class QueryTransformTest(TestCase):
                 None,
                 None,
                 "",
-                {"project_id": [self.project.id]},
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 1.23,
@@ -5184,7 +3431,7 @@ class QueryTransformTest(TestCase):
                 None,
                 None,
                 "",
-                {"project_id": [self.project.id]},
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
             )
             assert values == (
                 1.23,
@@ -5544,7 +3791,7 @@ class QueryTransformTest(TestCase):
                 ],
             }, f"failing for {array_column}"
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_histogram_query(self, mock_query):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
@@ -5591,7 +3838,7 @@ class QueryTransformTest(TestCase):
             results = discover.histogram_query(
                 [f"{alias}.bar", f"{alias}.foo"],
                 "",
-                {"project_id": [self.project.id]},
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
                 3,
                 0,
             )
@@ -5615,7 +3862,7 @@ class QueryTransformTest(TestCase):
                 discover.histogram_query(
                     [f"{alias}.bar", "transaction.duration"],
                     "",
-                    {"project_id": [self.project.id]},
+                    {"project_id": [self.project.id], "start": self.start, "end": self.end},
                     3,
                     0,
                 )
@@ -5623,7 +3870,7 @@ class QueryTransformTest(TestCase):
                 err
             ), f"failing for {array_column}"
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_histogram_query_with_optionals(self, mock_query):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
@@ -5668,7 +3915,7 @@ class QueryTransformTest(TestCase):
             results = discover.histogram_query(
                 [f"{alias}.bar", f"{alias}.foo"],
                 "",
-                {"project_id": [self.project.id]},
+                {"project_id": [self.project.id], "start": self.start, "end": self.end},
                 3,
                 1,
                 0.5,
@@ -5734,7 +3981,11 @@ class TimeseriesQueryTest(TimeseriesBase):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
-                params={"project_id": [self.project.id]},
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                },
                 rollup=1800,
             )
 
@@ -5746,7 +3997,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
-        assert "without a start and end" in str(err)
+        assert "Cannot query without a valid date range" in str(err)
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -5760,7 +4011,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 },
                 rollup=1800,
             )
-        assert "no aggregation" in str(err)
+        assert "Cannot query a timeseries without a Y-Axis" in str(err)
 
     def test_field_alias(self):
         result = discover.timeseries_query(
@@ -6114,144 +4365,6 @@ class TimeseriesQueryTest(TimeseriesBase):
                 assert d["count"] == 2
 
 
-class TopEventsTimeseriesQueryTest(TimeseriesBase):
-    @patch("sentry.snuba.discover.raw_query")
-    def test_project_filter_adjusts_filter(self, mock_query):
-        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
-        project2 = self.create_project(organization=self.organization)
-        top_events = {
-            "data": [
-                {
-                    "project": self.project.slug,
-                    "project.id": self.project.id,
-                }
-            ]
-        }
-        start = before_now(minutes=5)
-        end = before_now(seconds=1)
-        discover.top_events_timeseries(
-            selected_columns=["project", "count()"],
-            params={
-                "start": start,
-                "end": end,
-                "project_id": [self.project.id, project2.id],
-            },
-            rollup=3600,
-            top_events=top_events,
-            timeseries_columns=["count()"],
-            user_query="",
-            orderby=["count()"],
-            limit=10000,
-            organization=self.organization,
-        )
-        mock_query.assert_called_with(
-            aggregations=[["count", None, "count"]],
-            conditions=[],
-            # Should be limited to the project in top_events
-            filter_keys={"project_id": [self.project.id]},
-            selected_columns=[
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{project.id}'" for project in [self.project, project2]]],
-                        ["array", [f"'{project.slug}'" for project in [self.project, project2]]],
-                        "''",
-                    ],
-                    "project",
-                ],
-            ],
-            start=start,
-            end=end,
-            rollup=3600,
-            orderby=["time", "project_id"],
-            groupby=["time", "project_id"],
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_timestamp_fields(self, mock_query):
-        timestamp1 = before_now(days=2, minutes=5)
-        timestamp2 = before_now(minutes=2)
-        top_events = {
-            "data": [
-                {
-                    "timestamp": iso_format(timestamp1),
-                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
-                },
-                {
-                    "timestamp": iso_format(timestamp2),
-                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
-                },
-            ]
-        }
-        start = before_now(days=3, minutes=10)
-        end = before_now(minutes=1)
-        discover.top_events_timeseries(
-            selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
-            params={
-                "start": start,
-                "end": end,
-                "project_id": [self.project.id],
-            },
-            rollup=3600,
-            top_events=top_events,
-            timeseries_columns=["count()"],
-            user_query="",
-            orderby=["count()"],
-            limit=10000,
-            organization=self.organization,
-        )
-        to_hour = ["toStartOfHour", ["timestamp"], "timestamp.to_hour"]
-        to_day = ["toStartOfDay", ["timestamp"], "timestamp.to_day"]
-        mock_query.assert_called_with(
-            aggregations=[["count", None, "count"]],
-            conditions=[
-                # Each timestamp field should generated a nested condition.
-                # Within each, the conditions will be ORed together.
-                [
-                    ["timestamp", "=", iso_format(timestamp1)],
-                    ["timestamp", "=", iso_format(timestamp2)],
-                ],
-                [
-                    [
-                        to_day,
-                        "=",
-                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
-                    ],
-                    [
-                        to_day,
-                        "=",
-                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
-                    ],
-                ],
-                [
-                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            selected_columns=[
-                "timestamp",
-                to_day,
-                to_hour,
-            ],
-            start=start,
-            end=end,
-            rollup=3600,
-            orderby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
-            groupby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=None,
-        )
-
-
 def format_project_event(project_slug, event_id):
     return f"{project_slug}:{event_id}"
 
@@ -6476,7 +4589,11 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
         event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
-        self.params = {"project_id": [self.project.id]}
+        self.params = {
+            "project_id": [self.project.id],
+            "start": self.day_ago,
+            "end": self.day_ago + timedelta(hours=1),
+        }
         self.query = "event.type:transaction"
 
     def test_simple(self):
@@ -6707,9 +4824,10 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         query_params["orderby"] = ["equation[1]"]
         results = discover.query(**query_params)
         assert len(results["data"]) == 3
-        assert [result["equation[1]"] for result in results["data"]] == [1, 0, 0]
+        assert [result["equation[1]"] for result in results["data"]] == [1, None, None]
 
+        # Clickhouse throws nulls to the end
         query_params["orderby"] = ["-equation[0]"]
         results = discover.query(**query_params)
         assert len(results["data"]) == 3
-        assert [result["equation[0]"] for result in results["data"]] == [None, None, 2]
+        assert [result["equation[0]"] for result in results["data"]] == [2, None, None]

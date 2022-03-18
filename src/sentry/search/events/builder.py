@@ -544,7 +544,12 @@ class QueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(self, dividend: SelectType, divisor: SelectType, alias: str) -> SelectType:
+    def resolve_division(
+        self,
+        dividend: Union[SelectType, float],
+        divisor: Union[SelectType, float],
+        alias: Optional[str] = None,
+    ) -> SelectType:
         return Function(
             "if",
             [
@@ -569,7 +574,7 @@ class QueryBuilder:
         lhs = self._resolve_equation_operand(equation.lhs)
         rhs = self._resolve_equation_operand(equation.rhs)
         if equation.operator == "divide":
-            rhs = Function("nullIf", [rhs, 0])
+            return self.resolve_division(lhs, rhs, alias)
         return Function(equation.operator, [lhs, rhs], alias)
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:

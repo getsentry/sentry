@@ -4,11 +4,18 @@ from typing import List
 
 import pytest
 from django.utils import timezone
-from snuba_sdk.aliased_expression import AliasedExpression
-from snuba_sdk.column import Column
-from snuba_sdk.conditions import Condition, Op, Or
-from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, LimitBy, OrderBy
+from snuba_sdk import (
+    AliasedExpression,
+    And,
+    Column,
+    Condition,
+    Direction,
+    Function,
+    LimitBy,
+    Op,
+    Or,
+    OrderBy,
+)
 
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
@@ -16,9 +23,11 @@ from sentry.search.events.builder import (
     MetricsQueryBuilder,
     QueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopEventsQueryBuilder,
 )
 from sentry.sentry_metrics import indexer
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
 
@@ -578,6 +587,236 @@ class QueryBuilderTest(TestCase):
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
         with self.assertRaises(InvalidSearchQuery):
             query.get_snql_query()
+
+    def test_disable_auto_aggregation_with_boolean(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "transaction:blah AND count_unique(user):>10",
+            selected_columns=[
+                "count()",
+            ],
+            auto_aggregations=False,
+            use_aggregate_conditions=True,
+        )
+        # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
+        with self.assertRaises(InvalidSearchQuery):
+            query.get_snql_query()
+
+    def test_apdex_allows_zero_threshold(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "apdex(0)",
+            ],
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("apdex", [Column("duration"), 0], "apdex_0"),
+            ],
+        )
+
+    def test_orderby_limit_offset(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "transaction",
+            ],
+            offset=100,
+            limit=200,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+
+        assert snql_query.offset.offset == 100
+        assert snql_query.limit.limit == 200
+
+    def test_orderby_must_be_selected_if_aggregate(self):
+        with pytest.raises(InvalidSearchQuery):
+            query = QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=[
+                    "transaction",
+                ],
+                orderby=["count()"],
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
+            snql_query = query.get_snql_query()
+            snql_query.validate()
+
+    def test_orderby_aggregate_alias(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "p95(transaction.duration)",
+            ],
+            orderby=["p95_transaction_duration"],
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+        )
+        snql_query = query.get_snql_query()
+        snql_query.validate()
+
+        assert snql_query.orderby is not None
+        assert snql_query.orderby[0].exp == Function(
+            "quantile(0.95)", [Column("duration")], "p95_transaction_duration"
+        )
+
+
+class TopEventsQueryBuilderTest(TestCase):
+    def setUp(self):
+        self.start = datetime.datetime.now(tz=timezone.utc).replace(
+            hour=10, minute=15, second=0, microsecond=0
+        ) - datetime.timedelta(days=2)
+        self.end = self.start + datetime.timedelta(days=1)
+        self.projects = [1, 2, 3]
+        self.params = {
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
+        # These conditions should always be on a query when self.params is passed
+        self.default_conditions = [
+            Condition(Column("timestamp"), Op.GTE, self.start),
+            Condition(Column("timestamp"), Op.LT, self.end),
+            Condition(Column("project_id"), Op.IN, self.projects),
+        ]
+
+    def test_project_filter_adjusts_filter(self):
+        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
+        top_events = [
+            {
+                "project": self.project.slug,
+                "project.id": self.project.id,
+            }
+        ]
+        query = TopEventsQueryBuilder(
+            dataset=Dataset.Discover,
+            selected_columns=["project", "count()"],
+            params={
+                "start": self.start,
+                "end": self.end,
+                "project_id": self.projects,
+            },
+            interval=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            limit=10000,
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("timestamp"), Op.GTE, self.start),
+                Condition(Column("timestamp"), Op.LT, self.end),
+                Condition(Column("project_id"), Op.IN, [self.project.id]),
+            ],
+        )
+
+    def test_timestamp_fields(self):
+        timestamp1 = self.start
+        timestamp2 = self.end
+        top_events = [
+            {
+                "timestamp": iso_format(timestamp1),
+                "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
+                "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+            },
+            {
+                "timestamp": iso_format(timestamp2),
+                "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
+                "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+            },
+        ]
+        query = TopEventsQueryBuilder(
+            dataset=Dataset.Discover,
+            selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
+            params=self.params,
+            interval=3600,
+            top_events=top_events,
+            timeseries_columns=["count()"],
+            limit=10000,
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Column("timestamp"), Op.GTE, self.start),
+                Condition(Column("timestamp"), Op.LT, self.end),
+                Condition(Column("project_id"), Op.IN, [1, 2, 3]),
+                And(
+                    [
+                        # Each timestamp field should have generated a nested condition.
+                        # Within each, the conditions will be ORed together.
+                        Or(
+                            [
+                                Condition(Column("timestamp"), Op.EQ, iso_format(timestamp1)),
+                                Condition(Column("timestamp"), Op.EQ, iso_format(timestamp2)),
+                            ]
+                        ),
+                        Or(
+                            [
+                                Condition(
+                                    Function(
+                                        "toStartOfDay",
+                                        [Column(name="timestamp")],
+                                        "timestamp.to_day",
+                                    ),
+                                    Op.EQ,
+                                    iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                                ),
+                                Condition(
+                                    Function(
+                                        "toStartOfDay",
+                                        [Column(name="timestamp")],
+                                        "timestamp.to_day",
+                                    ),
+                                    Op.EQ,
+                                    iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                                ),
+                            ]
+                        ),
+                        Or(
+                            [
+                                Condition(
+                                    Function(
+                                        "toStartOfHour",
+                                        [Column(name="timestamp")],
+                                        "timestamp.to_hour",
+                                    ),
+                                    Op.EQ,
+                                    iso_format(timestamp1.replace(minute=0, second=0)),
+                                ),
+                                Condition(
+                                    Function(
+                                        "toStartOfHour",
+                                        [Column(name="timestamp")],
+                                        "timestamp.to_hour",
+                                    ),
+                                    Op.EQ,
+                                    iso_format(timestamp2.replace(minute=0, second=0)),
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+            ],
+        )
 
 
 def _metric_percentile_definition(quantile, field="transaction.duration") -> Function:

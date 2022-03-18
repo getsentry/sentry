@@ -992,7 +992,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
-        if args["satisfaction"]:
+        if args["satisfaction"] is not None:
             function_args = [self.builder.column("transaction.duration"), int(args["satisfaction"])]
         else:
             function_args = [
