@@ -23,6 +23,7 @@ from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.ratelimits.config import RateLimitConfig
 
 
 class RatelimitMiddlewareTest(TestCase):
@@ -211,10 +212,13 @@ class TestGetRateLimitValue(TestCase):
         """Override one or more of the default rate limits"""
 
         class TestEndpoint(Endpoint):
-            rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
-            }
+            rate_limits = RateLimitConfig(
+                group="default",
+                limit_overrides={
+                    "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
+                    "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
+                }
+            )
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
         # get is not overriddent for user, hence we use the default
