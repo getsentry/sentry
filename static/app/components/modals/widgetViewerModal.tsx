@@ -2,11 +2,15 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
+import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -25,6 +29,7 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -83,6 +88,29 @@ const MemoizedWidgetCardChartContainer = React.memo(
   }
 );
 
+async function fetchDiscoverTotal(
+  api: Client,
+  organization: Organization,
+  location: Location,
+  eventView: EventView
+): Promise<string | undefined> {
+  if (!eventView.isValid()) {
+    return undefined;
+  }
+
+  try {
+    const total = await fetchTotalCount(
+      api,
+      organization.slug,
+      eventView.getEventsAPIPayload(location)
+    );
+    return total.toLocaleString();
+  } catch (err) {
+    Sentry.captureException(err);
+  }
+  return undefined;
+}
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -100,6 +128,7 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
@@ -223,6 +252,16 @@ function WidgetViewerModal(props: Props) {
     });
   };
 
+  // Get discover result totals
+  React.useEffect(() => {
+    const getDiscoverTotals = async () => {
+      if (widget.widgetType !== WidgetType.ISSUE) {
+        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
+      }
+    };
+    getDiscoverTotals();
+  }, [selectedQueryIndex]);
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
@@ -324,7 +363,10 @@ function WidgetViewerModal(props: Props) {
               }
               cursor={cursor}
             >
-              {({transformedResults, loading, pageLinks}) => {
+              {({transformedResults, loading, pageLinks, totalCount}) => {
+                if (totalResults === undefined) {
+                  setTotalResults(totalCount);
+                }
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -491,6 +533,20 @@ function WidgetViewerModal(props: Props) {
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
+        <TotalResultsContainer>
+          {totalResults &&
+            (widget.widgetType === WidgetType.ISSUE ? (
+              <span>
+                <b>{t('Total Issues: ')}</b>
+                {totalResults === '1000' ? '1000+' : totalResults}
+              </span>
+            ) : (
+              <span>
+                <b>{t('Total Events: ')}</b>
+                {totalResults}
+              </span>
+            ))}
+        </TotalResultsContainer>
         <ButtonBar gap={1}>
           {onEdit && widget.id && (
             <Button
@@ -583,6 +639,11 @@ const WidgetTitle = styled('h4')`
 
 const StyledPagination = styled(Pagination)`
   padding-top: ${space(2)};
+`;
+
+const TotalResultsContainer = styled('span')`
+  flex-grow: 1;
+  margin: auto;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
