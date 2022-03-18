@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 
-import Tooltip, {TooltipProps} from 'sentry/components/tooltip';
+import {DO_NOT_USE_TOOLTIP, TooltipProps} from 'sentry/components/tooltip';
 import {tooltipStore} from 'sentry/stores/tooltipStore';
 import domId from 'sentry/utils/domId';
 
 export function AcceptanceTestTooltip(props: TooltipProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<undefined | boolean>(undefined);
 
   useEffect(() => {
     const tooltipId = domId('tooltip-');
@@ -16,5 +16,5 @@ export function AcceptanceTestTooltip(props: TooltipProps) {
     };
   }, []);
 
-  return open ? <Tooltip forceShow={open} {...props} /> : null;
+  return open === undefined ? null : <DO_NOT_USE_TOOLTIP forceShow={open} {...props} />;
 }

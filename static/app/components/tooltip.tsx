@@ -118,7 +118,7 @@ function createTooltipPortal(): HTMLElement {
 }
 
 // Warning: This component is conditionally exported eof based on IS_ACCEPTANCE_TEST env variable
-function Tooltip({
+export function DO_NOT_USE_TOOLTIP({
   children,
   className,
   delay,
@@ -389,19 +389,22 @@ const TooltipArrow = styled('span')`
   }
 `;
 
-interface AcceptanceTestProxyProps extends TooltipProps {
+interface AcceptanceTestTooltipProxyProps extends TooltipProps {
   /**
    * Stops tooltip from being opened during tooltip visual acceptance.
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
 }
-function AcceptanceTestProxy({disableForVisualTest, ...props}: AcceptanceTestProxyProps) {
+function AcceptanceTestTooltipProxy({
+  disableForVisualTest,
+  ...props
+}: AcceptanceTestTooltipProxyProps) {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? null : <AcceptanceTestTooltip {...props} />;
   }
 
-  return <Tooltip {...props} />;
+  return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-export default AcceptanceTestProxy;
+export default AcceptanceTestTooltipProxy;
