@@ -43,8 +43,7 @@ backend_dependencies: &backend_dependencies
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
-  # Temp change
-  - '.github/workflows/!(acceptance|visual-diff).yml'
+  - '.github/workflows/!(js-*)'
   - '.github/actions/setup-sentry/action.yml'
 
 backend: &backend
