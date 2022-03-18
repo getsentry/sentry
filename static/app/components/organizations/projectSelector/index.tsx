@@ -64,6 +64,10 @@ type Props = {
    * Represents if a search is taking place
    */
   searching?: boolean;
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 } & Pick<
   DropdownAutoCompleteProps,
   'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
@@ -86,6 +90,7 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
+  showPin,
   ...props
 }: Props) => {
   // We'll only update the selected project list every time we open the menu,
@@ -175,7 +180,6 @@ const ProjectSelector = ({
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
   const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
   const hasProjectWrite = organization.access.includes('project:write');
-  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
   return (
     <DropdownAutoComplete
@@ -210,9 +214,9 @@ const ProjectSelector = ({
                 : undefined
             }
           >
-            {hasPageFilters ? '' : t('Project')}
+            {showPin ? '' : t('Project')}
           </AddButton>
-          {hasPageFilters && <PageFilterPinButton size="xsmall" filter="projects" />}
+          {showPin && <PageFilterPinButton size="xsmall" filter="projects" />}
         </InputActions>
       }
       menuFooter={renderProps => {

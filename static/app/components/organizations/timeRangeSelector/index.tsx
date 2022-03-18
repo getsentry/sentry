@@ -154,6 +154,11 @@ type Props = WithRouterProps & {
    * Override defaults from DEFAULT_RELATIVE_PERIODS
    */
   relativeOptions?: Record<string, React.ReactNode>;
+
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -389,10 +394,9 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       customDropdownButton,
       detached,
       alignDropdown,
+      showPin,
     } = this.props;
     const {start, end, relative} = this.state;
-
-    const hasNewPageFilters = organization.features.includes('selection-filters-v2');
 
     const shouldShowAbsolute = showAbsolute;
     const shouldShowRelative = showRelative;
@@ -437,7 +441,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                   height: 100%;
                 `}
                 inputActions={
-                  hasNewPageFilters ? (
+                  showPin ? (
                     <StyledPinButton size="xsmall" filter="datetime" />
                   ) : undefined
                 }

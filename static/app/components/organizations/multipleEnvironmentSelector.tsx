@@ -49,6 +49,10 @@ type Props = WithRouterProps & {
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
   forceEnvironment?: string;
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 };
 
 /**
@@ -69,6 +73,7 @@ function MultipleEnvironmentSelector({
   detached,
   forceEnvironment,
   router,
+  showPin,
 }: Props) {
   const [selectedEnvs, setSelectedEnvs] = useState(value);
   const hasChanges = !isEqual(selectedEnvs, value);
@@ -186,8 +191,6 @@ function MultipleEnvironmentSelector({
     env,
   ]);
 
-  const hasNewPageFilters = organization.features.includes('selection-filters-v2');
-
   const validatedValue = value.filter(env => environments.includes(env));
   const summary = validatedValue.length
     ? `${validatedValue.join(', ')}`
@@ -249,9 +252,7 @@ function MultipleEnvironmentSelector({
           virtualizedHeight={theme.headerSelectorRowHeight}
           emptyHidesInput
           inputActions={
-            hasNewPageFilters ? (
-              <StyledPinButton size="xsmall" filter="environments" />
-            ) : undefined
+            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
           }
           menuFooter={({actions}) =>
             hasChanges ? (
