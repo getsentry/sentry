@@ -454,6 +454,25 @@ class IssueListOverview extends React.Component<Props, State> {
       ? endpointParams.query
       : null;
 
+    // Update the count based on the exact number of issues, these shown as is
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
+      const tab = getTabs(organization).find(
+        ([tabQuery]) => currentTabQuery === tabQuery
+      )?.[1];
+      if (tab && !endpointParams.cursor) {
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+          organization,
+          tab: tab.analyticsName,
+          num_issues: queryCounts[currentTabQuery].count,
+        });
+      }
+    }
+    this.setState({queryCounts});
+
     // If all tabs' counts are fetched, skip and only set
     if (
       fetchAllCounts ||
@@ -502,25 +521,6 @@ class IssueListOverview extends React.Component<Props, State> {
         }
       );
     }
-    // Update the count based on the exact number of issues, these shown as is
-    if (currentTabQuery) {
-      queryCounts[currentTabQuery] = {
-        count: currentQueryCount,
-        hasMore: false,
-      };
-      const tab = getTabs(organization).find(
-        ([tabQuery]) => currentTabQuery === tabQuery
-      )?.[1];
-      if (tab && !endpointParams.cursor) {
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab.analyticsName,
-          num_issues: queryCounts[currentTabQuery].count,
-        });
-      }
-    }
-
-    this.setState({queryCounts});
   };
 
   fetchData = (fetchAllCounts = false) => {
