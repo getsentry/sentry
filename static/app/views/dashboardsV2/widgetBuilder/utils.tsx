@@ -147,14 +147,12 @@ export function normalizeQueries({
       aggregates = aggregates.slice(0, 3);
     }
 
-    const queryData = {
+    return {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
       columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
-
-    return queryData;
   });
 
   if (isTimeseriesChart) {
