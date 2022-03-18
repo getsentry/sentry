@@ -47,7 +47,6 @@ jobs:
     name: frontend tests
     strategy:
       matrix:
-        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
     steps:
       - run: 'echo "Check not required." '
@@ -59,6 +58,7 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 20
     strategy:
+      # NOTE: Duplicate any changes to this matrix to the associated workflow
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
@@ -206,6 +206,7 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 20
     strategy:
+      # NOTE: Duplicate any changes to this matrix to the associated workflow
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -285,6 +286,7 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 30
     strategy:
+      # NOTE: Duplicate any changes to this matrix to the associated workflow
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
