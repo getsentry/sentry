@@ -20,7 +20,6 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
-from sentry.utils import json
 
 
 class MockSuperUser:
@@ -38,12 +37,6 @@ class OrganizationPermissionBase(TestCase):
         perm = OrganizationPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
-            request._body = json.dumps(
-                {
-                    "superuserAccessCategory": "debugging",
-                    "superuserReason": "Edit organization settings",
-                }
-            )
             request.superuser.set_logged_in(request.user)
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
