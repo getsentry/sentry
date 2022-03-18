@@ -1,3 +1,5 @@
+import type {ResolutionStatus} from 'sentry/types';
+
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
   project_id: string;
@@ -17,6 +19,24 @@ export type TeamInsightsEventParameters = {
     type: string;
   };
   'edit_alert_rule.viewed': RuleViewed;
+  'issue.action': {
+    action_type:
+      | 'deleted'
+      | 'mark_reviewed'
+      | 'bookmarked'
+      | 'subscribed'
+      | 'shared'
+      | 'discarded'
+      | ResolutionStatus;
+    group_id: string;
+    project_id: string;
+    /** If the user came to the page from an alert, the time that the alert was initially fired. */
+    alert_date?: string;
+    /** If the user came to the page from an alert, id of the rule that triggered the alert */
+    alert_rule_id?: string;
+    /**  If the user came to the page from an alert, the type of alert that brought them here. */
+    alert_type?: string;
+  };
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
   'issue_alert_rule_details.viewed': {rule_id: number};
   'new_alert_rule.viewed': RuleViewed & {
@@ -37,6 +57,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
+  'issue.action': 'Issue: Action Taken',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
