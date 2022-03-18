@@ -18,7 +18,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -279,7 +278,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <React.Fragment>
-            <Alert type="info" icon={<IconInfo />}>
+            <Alert type="info" showIcon>
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
               )}
