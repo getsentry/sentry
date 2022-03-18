@@ -17,7 +17,10 @@ describe('ProjectPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });

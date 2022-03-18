@@ -11,8 +11,8 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
+  doesPathHaveNewFilters,
   extractSelectionParameters,
-  getPathsWithNewFilters,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconChevron,
@@ -116,7 +116,7 @@ function Sidebar({location, organization}: Props) {
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
     if (organization) {
-      if (getPathsWithNewFilters(organization).includes(pathname)) {
+      if (doesPathHaveNewFilters(pathname, organization)) {
         return;
       }
     }
