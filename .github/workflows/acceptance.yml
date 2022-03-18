@@ -345,13 +345,12 @@ jobs:
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
     name: check to trigger visual snapshot
-    if: github.repository == 'getsentry/sentry'
+    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master' && needs.changes.outputs.backend_or_frontend == 'true'
     runs-on: ubuntu-18.04
     timeout-minutes: 20
 
     steps:
       - name: Diff snapshots
-        if: needs.changes.outputs.backend_or_frontend == 'true'
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@v2
         with:
