@@ -1,14 +1,12 @@
 import {mat3} from 'gl-matrix';
 
 import {Rect} from './gl/utils';
-import {FlamegraphFrame} from './flamegraphFrame';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
   resetZoom: () => void;
-  searchResults: (results: Record<string, FlamegraphFrame>) => void;
   selectedNode: (frame: any | null) => void;
   setConfigView: (configView: Rect) => void;
   transformConfigView: (transform: mat3) => void;
@@ -29,7 +27,6 @@ export class CanvasScheduler {
     zoomIntoFrame: new Set<FlamegraphEvents['zoomIntoFrame']>(),
     selectedNode: new Set<FlamegraphEvents['selectedNode']>(),
     resetZoom: new Set<FlamegraphEvents['resetZoom']>(),
-    searchResults: new Set<FlamegraphEvents['searchResults']>(),
     setConfigView: new Set<FlamegraphEvents['setConfigView']>(),
   };
 

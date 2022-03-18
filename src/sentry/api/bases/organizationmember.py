@@ -1,10 +1,14 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.db.models.fields.bounded import BoundedAutoField
-from sentry.models import OrganizationMember
+from sentry.models import InviteStatus, Organization, OrganizationMember
 
 from .organization import OrganizationEndpoint
 
@@ -30,8 +34,15 @@ class MemberSerializer(serializers.Serializer):
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
-    def convert_args(self, request: Request, organization_slug, member_id="me", *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str,
+        member_id: str = "me",
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         serializer = MemberSerializer(data={"id": member_id})
         if serializer.is_valid():
@@ -41,19 +52,27 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
             except OrganizationMember.DoesNotExist:
                 raise ResourceDoesNotExist
 
-            return (args, kwargs)
+            return args, kwargs
         else:
             raise ResourceDoesNotExist
 
-    def _get_member(self, request: Request, organization, member_id):
+    def _get_member(
+        self,
+        request: Request,
+        organization: Organization,
+        member_id: int | str,
+        invite_status: InviteStatus | None = None,
+    ) -> OrganizationMember:
+        args = []
+        kwargs = dict(organization=organization)
+
         if member_id == "me":
-            queryset = OrganizationMember.objects.filter(
-                organization=organization, user__id=request.user.id, user__is_active=True
-            )
+            kwargs.update(user__id=request.user.id, user__is_active=True)
         else:
-            queryset = OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                id=member_id,
-            )
-        return queryset.select_related("user").get()
+            args.append(Q(user__is_active=True) | Q(user__isnull=True))
+            kwargs.update(id=member_id)
+
+        if invite_status:
+            kwargs.update(invite_status=invite_status.value)
+
+        return OrganizationMember.objects.filter(*args, **kwargs).select_related("user").get()
