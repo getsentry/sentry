@@ -10,6 +10,7 @@ import space from 'sentry/styles/space';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';
+  expiresAt?: Date;
   noTooltip?: boolean;
   title?: string;
   variant?: 'indicator' | 'badge';
@@ -29,8 +30,11 @@ const labels = {
   new: t('new'),
 };
 
-function BaseFeatureBadge({type, variant = 'badge', title, noTooltip, ...p}: Props) {
+function BaseFeatureBadge({type, variant = 'badge', title, noTooltip, expiresAt, ...p}: Props) {
   const theme = useTheme();
+  if (expiresAt && expiresAt.valueOf() < Date.now()) {
+    return null;
+  }
 
   return (
     <div {...p}>
