@@ -19,7 +19,14 @@ from typing import (
 
 import pytz
 from dateutil import parser
-from sentry_sdk import capture_exception, capture_message, push_scope, set_context, set_tag
+from sentry_sdk import (
+    capture_exception,
+    capture_message,
+    push_scope,
+    set_context,
+    set_extra,
+    set_tag,
+)
 from typing_extensions import Literal
 
 from sentry import features
@@ -675,6 +682,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         set_tag("releasehealth.duplex.method", fn_name)
         set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
 
+        set_extra("function_args", args)  # Make sure we always know all function args
+
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
@@ -1187,6 +1196,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema = ComparatorType.Counter
         should_compare = lambda _: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
+        set_tag("rh.duplex.environment_id", str(environment_id))
         return self._dispatch_call(  # type: ignore
             "get_project_sessions_count",
             should_compare,
