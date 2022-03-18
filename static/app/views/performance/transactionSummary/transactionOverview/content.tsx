@@ -50,6 +50,7 @@ import {
   TransactionFilterOptions,
 } from '../utils';
 
+import {MetricsEventsDropdown} from './metricEvents/metricsEventsDropdown';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
@@ -278,6 +279,7 @@ function SummaryContent({
               maxQueryLength={MAX_QUERY_LENGTH}
             />
           </SearchBarContainer>
+          <MetricsEventsDropdown />
         </Search>
         <TransactionSummaryCharts
           organization={organization}
