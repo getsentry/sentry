@@ -42,8 +42,10 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             metric = get_single_metric_info(projects, metric_name)
-        except InvalidParams:
-            raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
+        except InvalidParams as e:
+            raise ResourceDoesNotExist(e)
+        except DerivedMetricParseException as exc:
+            raise ParseError(detail=str(exc))
 
         return Response(metric, status=200)
 

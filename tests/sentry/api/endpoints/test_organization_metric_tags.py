@@ -37,7 +37,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         assert response.data == []
 
-    def test_metric_details_metric_does_not_exist_in_indexer(self):
+    def test_metric_tags_metric_does_not_exist_in_indexer(self):
         assert (
             self.get_response(
                 self.organization.slug,
@@ -46,7 +46,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             == []
         )
 
-    def test_metric_details_metric_does_not_have_data(self):
+    def test_metric_tags_metric_does_not_have_data(self):
         indexer.record("foo.bar")
         assert (
             self.get_response(
