@@ -597,7 +597,7 @@ class QueryBuilder:
                     resolved_orderby = bare_orderby
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
-            except NotImplementedError:
+            except (NotImplementedError, IncompatibleMetricsQuery):
                 resolved_orderby = None
 
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
@@ -1474,7 +1474,7 @@ class MetricsQueryBuilder(QueryBuilder):
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
