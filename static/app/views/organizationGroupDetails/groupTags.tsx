@@ -75,7 +75,7 @@ class GroupTags extends AsyncComponent<Props, State> {
                       query: extractSelectionParameters(location.query),
                     }}
                   >
-                    <span data-test-id="heading">{tag.key}</span>
+                    <span data-test-id="tag-title">{tag.key}</span>
                   </Link>
                 </TagHeading>
                 <UnstyledUnorderedList>
