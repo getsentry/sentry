@@ -543,16 +543,14 @@ class QueryBuilder:
 
         params to this function should match that of resolve_function
         """
-        try:
-            resolved_function = self.resolve_function(
-                function, match, resolve_only, overwrite_alias
-            )
-        except InvalidSearchQuery:
+        if function in TREND_FUNCTION_TYPE_MAP:
             # HACK: Don't invalid query here if we don't recognize the function
             # this is cause non-snql tests still need to run and will check here
             # TODO: once non-snql is removed and trends has its own builder this
             # can be removed
-            return TREND_FUNCTION_TYPE_MAP.get(function, None)
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, match, resolve_only, overwrite_alias)
 
         if not isinstance(resolved_function, Function) or resolved_function.alias is None:
             return None
