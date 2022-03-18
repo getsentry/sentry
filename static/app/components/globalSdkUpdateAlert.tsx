@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
