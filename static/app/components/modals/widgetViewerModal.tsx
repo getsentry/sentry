@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -17,6 +18,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -277,11 +279,11 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <React.Fragment>
-            <TextContainer>
+            <Alert type="info" icon={<IconInfo />}>
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
               )}
-            </TextContainer>
+            </Alert>
             <StyledSelectControl
               value={selectedQueryIndex}
               options={queryOptions}
@@ -550,15 +552,12 @@ const Container = styled('div')`
   }
 `;
 
-const TextContainer = styled('div')`
-  padding: ${space(2)} 0 ${space(1.5)} 0;
-  color: ${p => p.theme.gray300};
-`;
-
 const StyledSelectControl = styled(SelectControl)`
   padding-top: 10px ${space(1.5)};
+  max-height: 40px;
+  display: flex;
   & > div {
-    max-height: 40px;
+    width: 100%;
   }
 `;
 
