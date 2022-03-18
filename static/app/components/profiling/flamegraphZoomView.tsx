@@ -6,6 +6,7 @@ import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasS
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -14,8 +15,6 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-
-import {useFlamegraphStateValue} from '../../utils/profiling/flamegraph/useFlamegraphState';
 
 import {BoundTooltip} from './boundTooltip';
 
@@ -42,8 +41,8 @@ function FlamegraphZoomView({
 
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
+  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-  const flamegraphState = useFlamegraphStateValue();
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
@@ -144,6 +143,20 @@ function FlamegraphZoomView({
   useEffect(() => {
     scheduler.draw();
   }, [flamegraphState.search.results]);
+
+  useEffect(() => {
+    const onKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key === 'z' && evt.metaKey) {
+        dispatchFlamegraphState({type: evt.shiftKey ? 'redo' : 'undo'});
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     if (!flamegraphRenderer) {
