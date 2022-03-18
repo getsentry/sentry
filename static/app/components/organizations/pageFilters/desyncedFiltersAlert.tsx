@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -34,25 +34,27 @@ export default function DesyncedFilterAlert({router}: Props) {
       type="info"
       showIcon
       system
-      trailingItems={[
-        <RevertButton
-          key="revert-button"
-          priority="link"
-          size="zero"
-          onClick={onRevertClick}
-          borderless
-        >
-          {t('Revert')}
-        </RevertButton>,
-        <Button
-          key="close-button"
-          priority="link"
-          size="zero"
-          icon={<IconClose color="purple300" />}
-          aria-label={t('Close Alert')}
-          onClick={() => setHideAlert(true)}
-        />,
-      ]}
+      trailingItems={
+        <Fragment>
+          <RevertButton
+            key="revert-button"
+            priority="link"
+            size="zero"
+            onClick={onRevertClick}
+            borderless
+          >
+            {t('Revert')}
+          </RevertButton>
+          <Button
+            key="close-button"
+            priority="link"
+            size="zero"
+            icon={<IconClose color="purple300" />}
+            aria-label={t('Close Alert')}
+            onClick={() => setHideAlert(true)}
+          />
+        </Fragment>
+      }
     >
       {t(
         "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."

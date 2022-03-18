@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useCallback, useState, useEffect} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
@@ -27,9 +27,9 @@ function InnerGlobalSdkUpdateAlert(
   const api = useApi();
   const organization = useOrganization();
 
-  const [showUpdateAlert, setShowUpdateAlert] = React.useState<boolean>(false);
+  const [showUpdateAlert, setShowUpdateAlert] = useState<boolean>(false);
 
-  const handleSnoozePrompt = React.useCallback(() => {
+  const handleSnoozePrompt = useCallback(() => {
     promptsUpdate(api, {
       organizationId: organization.id,
       feature: 'sdk_updates',
@@ -40,12 +40,12 @@ function InnerGlobalSdkUpdateAlert(
     setShowUpdateAlert(false);
   }, [api, organization]);
 
-  const handleReviewUpdatesClick = React.useCallback(() => {
+  const handleReviewUpdatesClick = useCallback(() => {
     SidebarPanelActions.activatePanel(SidebarPanelKey.Broadcasts);
     trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});
 
     let isUnmounted = false;
@@ -90,26 +90,28 @@ function InnerGlobalSdkUpdateAlert(
     <Alert
       type="info"
       showIcon
-      trailingItems={[
-        <Button
-          priority="link"
-          size="zero"
-          title={t('Dismiss for the next two weeks')}
-          onClick={handleSnoozePrompt}
-          key="dismiss-button"
-        >
-          {t('Remind me later')}
-        </Button>,
-        <span key="divider">|</span>,
-        <Button
-          priority="link"
-          size="zero"
-          onClick={handleReviewUpdatesClick}
-          key="review-button"
-        >
-          {t('Review updates')}
-        </Button>,
-      ]}
+      trailingItems={
+        <Fragment>
+          <Button
+            priority="link"
+            size="zero"
+            title={t('Dismiss for the next two weeks')}
+            onClick={handleSnoozePrompt}
+            key="dismiss-button"
+          >
+            {t('Remind me later')}
+          </Button>
+          <span key="divider">|</span>
+          <Button
+            priority="link"
+            size="zero"
+            onClick={handleReviewUpdatesClick}
+            key="review-button"
+          >
+            {t('Review updates')}
+          </Button>
+        </Fragment>
+      }
     >
       {t(
         `You have outdated SDKs in your projects. Update them for important fixes and features.`

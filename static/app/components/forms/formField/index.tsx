@@ -406,23 +406,25 @@ class FormField extends React.Component<FormFieldProps> {
                 return (
                   <PanelAlert
                     type={saveMessageAlertType}
-                    trailingItems={[
-                      <Button
-                        onClick={this.handleCancelField}
-                        size="xsmall"
-                        key="cancel-button"
-                      >
-                        {t('Cancel')}
-                      </Button>,
-                      <Button
-                        priority="primary"
-                        size="xsmall"
-                        onClick={this.handleSaveField}
-                        key="save-button"
-                      >
-                        {t('Save')}
-                      </Button>,
-                    ]}
+                    trailingItems={
+                      <React.Fragment>
+                        <Button
+                          onClick={this.handleCancelField}
+                          size="xsmall"
+                          key="cancel-button"
+                        >
+                          {t('Cancel')}
+                        </Button>
+                        <Button
+                          priority="primary"
+                          size="xsmall"
+                          onClick={this.handleSaveField}
+                          key="save-button"
+                        >
+                          {t('Save')}
+                        </Button>
+                      </React.Fragment>
+                    }
                   >
                     {typeof saveMessage === 'function'
                       ? saveMessage({...props, value})
