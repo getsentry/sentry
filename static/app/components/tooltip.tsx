@@ -396,9 +396,9 @@ interface AcceptanceTestProxyProps extends TooltipProps {
    */
   disableForVisualTest?: boolean;
 }
-function AcceptanceTestProxy(props: AcceptanceTestProxyProps) {
+function AcceptanceTestProxy({disableForVisualTest, ...props}: AcceptanceTestProxyProps) {
   if (IS_ACCEPTANCE_TEST) {
-    return props.disableForVisualTest ? null : <AcceptanceTestTooltip {...props} />;
+    return disableForVisualTest ? null : <AcceptanceTestTooltip {...props} />;
   }
 
   return <Tooltip {...props} />;
