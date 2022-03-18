@@ -215,6 +215,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
     const {size} = this.props;
+    const sessionUser = ConfigStore.get('user');
 
     return {
       value: {type: 'member', assignee: member},
@@ -229,7 +230,11 @@ class AssigneeSelector extends React.Component<Props, State> {
             <UserAvatar user={member} size={size} />
           </IconContainer>
           <Label>
-            <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            <Highlight text={inputValue}>
+              {sessionUser.id === member.id
+                ? `${member.name || member.email} ${t('(You)')}`
+                : member.name || member.email}
+            </Highlight>
             {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
@@ -301,9 +306,23 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
+    const sessionUser = ConfigStore.get('user');
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
+
+    const filteredSessionUser: ItemsBeforeFilter = members.filter(
+      member => member.value.assignee.id === sessionUser.id
+    );
+    // filter out session user from Suggested
+    const filteredSuggestedAssignees: ItemsBeforeFilter = suggestedAssignees.filter(
+      assignee => {
+        return assignee.value.type === 'member'
+          ? assignee.value.assignee.id !== sessionUser.id
+          : assignee;
+      }
+    );
+
     const assigneeIds = new Set(
-      suggestedAssignees.map(
+      filteredSuggestedAssignees.map(
         assignee => `${assignee.value.type}:${assignee.value.assignee.id}`
       )
     );
@@ -312,7 +331,10 @@ class AssigneeSelector extends React.Component<Props, State> {
       return !assigneeIds.has(`${team.value.type}:${team.value.assignee.id}`);
     });
     const filteredMembers: ItemsBeforeFilter = members.filter(member => {
-      return !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`);
+      return (
+        !assigneeIds.has(`${member.value.type}:${member.value.assignee.id}`) &&
+        member.value.assignee.id !== sessionUser.id
+      );
     });
 
     const dropdownItems: ItemsBeforeFilter = [
@@ -328,15 +350,43 @@ class AssigneeSelector extends React.Component<Props, State> {
       },
     ];
 
-    if (suggestedAssignees.length) {
-      dropdownItems.unshift({
-        label: this.renderDropdownGroupLabel(t('Suggested')),
-        id: 'suggested-header',
-        items: suggestedAssignees,
-      });
+    // session user is first on dropdown
+    if (suggestedAssignees.length || filteredSessionUser.length) {
+      dropdownItems.unshift(
+        {
+          label: this.renderDropdownGroupLabel(t('Suggested')),
+          id: 'suggested-header',
+          items: filteredSessionUser,
+        },
+        {
+          hideGroupLabel: true,
+          id: 'suggested-list',
+          items: filteredSuggestedAssignees,
+        }
+      );
     }
 
     return dropdownItems;
+  }
+
+  renderInviteMemberLink() {
+    const {loading} = this.state;
+
+    return (
+      <InviteMemberLink
+        to=""
+        data-test-id="invite-member"
+        disabled={loading}
+        onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
+      >
+        <MenuItemFooterWrapper>
+          <IconContainer>
+            <IconAdd color="purple300" isCircled size="14px" />
+          </IconContainer>
+          <Label>{t('Invite Member')}</Label>
+        </MenuItemFooterWrapper>
+      </InviteMemberLink>
+    );
   }
 
   getSuggestedAssignees(): SuggestedAssignee[] {
@@ -485,35 +535,26 @@ class AssigneeSelector extends React.Component<Props, State> {
             onSelect={this.handleAssign}
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
-            menuHeader={
-              assignedTo && (
-                <MenuItemWrapper
-                  data-test-id="clear-assignee"
-                  onClick={this.clearAssignTo}
-                  py={0}
-                >
-                  <IconContainer>
-                    <ClearAssigneeIcon isCircled size="14px" />
-                  </IconContainer>
-                  <Label>{t('Clear Assignee')}</Label>
-                </MenuItemWrapper>
+            menuFooter={
+              assignedTo ? (
+                <div>
+                  <MenuItemFooterWrapper
+                    data-test-id="clear-assignee"
+                    onClick={this.clearAssignTo}
+                    py={0}
+                  >
+                    <IconContainer>
+                      <IconClose color="purple300" isCircled size="14px" />
+                    </IconContainer>
+                    <Label>{t('Clear Assignee')}</Label>
+                  </MenuItemFooterWrapper>
+                  {this.renderInviteMemberLink()}
+                </div>
+              ) : (
+                this.renderInviteMemberLink()
               )
             }
-            menuFooter={
-              <InviteMemberLink
-                to=""
-                data-test-id="invite-member"
-                disabled={loading}
-                onClick={() => openInviteMembersModal({source: 'assignee_selector'})}
-              >
-                <MenuItemWrapper>
-                  <IconContainer>
-                    <InviteMemberIcon isCircled size="14px" />
-                  </IconContainer>
-                  <Label>{t('Invite Member')}</Label>
-                </MenuItemWrapper>
-              </InviteMemberLink>
-            }
+            disableLabelPadding
             menuWithArrow
             emptyHidesInput
           >
@@ -593,20 +634,25 @@ const MenuItemWrapper = styled('div')<{
     `};
 `;
 
+const MenuItemFooterWrapper = styled(MenuItemWrapper)`
+  padding: ${space(0.25)} ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  background-color: ${p => p.theme.tag.highlight.background};
+  color: ${p => p.theme.active};
+  :hover {
+    color: ${p => p.theme.activeHover};
+    svg {
+      fill: ${p => p.theme.activeHover};
+    }
+  }
+`;
+
 const InviteMemberLink = styled(Link)`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
 `;
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
-`;
-
-const ClearAssigneeIcon = styled(IconClose)`
-  opacity: 0.3;
-`;
-
-const InviteMemberIcon = styled(IconAdd)`
-  opacity: 0.3;
 `;
 
 const StyledChevron = styled(IconChevron)`
