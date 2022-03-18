@@ -7,6 +7,7 @@ __all__ = (
     "above_rate_limit_check",
     "get_rate_limit_key",
     "get_rate_limit_value",
+    "finish_request",
     "RateLimiter",
 )
 
@@ -19,6 +20,7 @@ backend.expose(locals())
 
 from .utils import (
     above_rate_limit_check,
+    finish_request,
     for_organization_member_invite,
     get_rate_limit_key,
     get_rate_limit_value,

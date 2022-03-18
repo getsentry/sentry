@@ -61,6 +61,7 @@ import {ColumnsStep} from './buildSteps/columnsStep';
 import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
+import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
@@ -267,6 +268,11 @@ function WidgetBuilder({
       : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
@@ -464,17 +470,20 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    state.queries.forEach((query, index) => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
+
       newQuery.fields = fieldStrings;
       newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (!(widgetBuilderNewDesign && isTimeseriesChart)) {
+        // Prevent overwriting columns when setting y-axis for time series
+        newQuery.columns = columns;
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
@@ -491,12 +500,23 @@ function WidgetBuilder({
         }
       }
 
-      if (widgetBuilderNewDesign && queryIndex === 0) {
+      if (widgetBuilderNewDesign && index === 0) {
         newQuery.orderby = aggregateAliasFieldStrings[0];
       }
 
-      handleQueryChange(queryIndex, newQuery);
-    }
+      handleQueryChange(index, newQuery);
+    });
+  }
+
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+
+      handleQueryChange(index, newQuery);
+    });
   }
 
   function handleDelete() {
@@ -792,7 +812,19 @@ function WidgetBuilder({
                     onAddSearchConditions={handleAddSearchConditions}
                     onQueryChange={handleQueryChange}
                     onQueryRemove={handleQueryRemove}
+                    selection={pageFilters}
+                    widgetType={widgetType}
                   />
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
+                    <GroupByStep
+                      columns={state.queries[0].columns
+                        .filter(field => !(field === 'equation|'))
+                        .map(field => explodeField({field}))}
+                      onGroupByChange={handleGroupByChange}
+                      organization={organization}
+                      tags={tags}
+                    />
+                  )}
                   {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
                     <SortByStep
                       queries={state.queries}

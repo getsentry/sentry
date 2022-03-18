@@ -6,6 +6,7 @@ import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasS
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -40,8 +41,8 @@ function FlamegraphZoomView({
 
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
+  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-  const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
@@ -140,12 +141,30 @@ function FlamegraphZoomView({
   }, [flamegraph]);
 
   useEffect(() => {
+    scheduler.draw();
+  }, [flamegraphState.search.results]);
+
+  useEffect(() => {
+    const onKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key === 'z' && evt.metaKey) {
+        dispatchFlamegraphState({type: evt.shiftKey ? 'redo' : 'undo'});
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
-      flamegraphRenderer.draw(searchResults);
+      flamegraphRenderer.draw(flamegraphState.search.results);
     };
 
     scheduler.registerBeforeFrameCallback(drawRectangles);
@@ -153,7 +172,7 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [scheduler, flamegraphRenderer, searchResults]);
+  }, [scheduler, flamegraphRenderer, flamegraphState.search.results]);
 
   useEffect(() => {
     if (!flamegraphRenderer || !textRenderer || !gridRenderer || !selectedFrameRenderer) {
@@ -304,23 +323,16 @@ function FlamegraphZoomView({
       scheduler.draw();
     };
 
-    const onSearchResultsChange = (results: Record<string, FlamegraphFrame>) => {
-      setSearchResults(results);
-      scheduler.draw();
-    };
-
     scheduler.on('setConfigView', onConfigViewChange);
     scheduler.on('transformConfigView', onTransformConfigView);
     scheduler.on('resetZoom', onResetZoom);
     scheduler.on('zoomIntoFrame', onZoomIntoFrame);
-    scheduler.on('searchResults', onSearchResultsChange);
 
     return () => {
       scheduler.off('setConfigView', onConfigViewChange);
       scheduler.off('transformConfigView', onTransformConfigView);
       scheduler.off('resetZoom', onResetZoom);
       scheduler.off('zoomIntoFrame', onZoomIntoFrame);
-      scheduler.off('searchResults', onSearchResultsChange);
     };
   }, [scheduler, flamegraphRenderer]);
 
