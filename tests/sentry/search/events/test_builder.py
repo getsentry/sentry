@@ -580,7 +580,9 @@ class QueryBuilderTest(TestCase):
             query.get_snql_query()
 
 
-def _metric_percentile_definition(quantile, field="transaction.duration") -> Function:
+def _metric_percentile_definition(quantile, field="transaction.duration", alias=None) -> Function:
+    if alias is None:
+        alias = f"p{quantile}_{field.replace('.', '_')}"
     return Function(
         "arrayElement",
         [
@@ -596,7 +598,7 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
             ),
             1,
         ],
-        f"p{quantile}_{field.replace('.', '_')}",
+        alias,
     )
 
 
@@ -847,6 +849,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.params,
                 "transaction:[something_else, something_else2]",
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
+
+    def test_incorrect_parameter_for_metrics(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                f"project:{self.project.slug}",
+                selected_columns=["transaction", "count_unique(test)"],
             )
 
     def test_project_filter(self):
@@ -1212,6 +1222,47 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 orderby=["-count_unique(user)", "p95(transaction.duration)"],
             )
             query.run_query("test_query")
+
+    def test_invalid_column_arg(self):
+        for function in [
+            "count_unique(transaction.duration)",
+            "count_miserable(measurements.fcp)",
+            "p75(user)",
+            "count_web_vitals(user, poor)",
+        ]:
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    "",
+                    selected_columns=[function],
+                )
+
+    def test_orderby_field_alias(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+            ],
+            orderby=["p95"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "p95"
+        )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95() as test",
+            ],
+            orderby=["test"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "test"
+        )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):

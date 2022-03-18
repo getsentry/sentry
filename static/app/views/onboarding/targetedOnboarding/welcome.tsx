@@ -141,6 +141,18 @@ function TargetedOnboardingWelcome({organization}: Props) {
                   <SandboxBtnWithFill
                     scenario="oneIssue"
                     priority="primary"
+                    clientData={{
+                      cta: {
+                        id: 'onboarding',
+                        shortTitle: t('Continue'),
+                        title: t('Continue Onboarding'),
+                        url: new URL(
+                          `/onboarding/${organization.slug}/welcome/`,
+                          window.location.origin
+                        ).toString(),
+                      },
+                      skipEmail: true,
+                    }}
                     {...{source}}
                   >
                     {t('Explore')}
