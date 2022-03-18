@@ -193,6 +193,13 @@ class SuperuserTestCase(TestCase):
                 "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
             )
 
+    @freeze_time("2022-03-03 08:21:34")
+    def test_expired_check_org_in_request(self):
+        request = self.build_request(expires=self.current_datetime)
+        superuser = Superuser(request, allowed_ips=())
+        assert superuser.is_active is False
+        assert not getattr(request, "organization", None)
+
     @freeze_time("2022-03-03 03:34:34")
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
