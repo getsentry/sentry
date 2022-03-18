@@ -207,7 +207,15 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
         : `max(min(8vw, 90px), ${space(4)})`;
 
       return (
-        <BigNumber key={`big_number:${result.title}`} style={{fontSize}}>
+        <BigNumber
+          key={`big_number:${result.title}`}
+          style={{
+            fontSize,
+            ...(!!expandNumbers
+              ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`}
+              : {}),
+          }}
+        >
           <Tooltip title={rendered} showOnlyOnOverflow>
             {rendered}
           </Tooltip>
