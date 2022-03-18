@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment, MouseEvent} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,15 +8,21 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {
+  ModalRenderProps,
+  openModal,
+  openReprocessEventModal,
+} from 'sentry/actionCreators/modal';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -31,6 +37,7 @@ import {
   UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
@@ -40,7 +47,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
 import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
-import DeleteAction from './deleteAction';
 import SubscribeAction from './subscribeAction';
 
 type Props = {
@@ -56,7 +62,7 @@ type State = {
   shareBusy: boolean;
 };
 
-class Actions extends React.Component<Props, State> {
+class Actions extends Component<Props, State> {
   state: State = {
     shareBusy: false,
   };
@@ -214,8 +220,64 @@ class Actions extends React.Component<Props, State> {
     });
   };
 
-  handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
-    return function (event: React.MouseEvent) {
+  renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
+    const {organization, project} = this.props;
+
+    function renderDiscardDisabled({children, ...props}) {
+      return children({
+        ...props,
+        renderDisabled: ({features}: {features: string[]}) => (
+          <FeatureDisabled alert featureName="Discard and Delete" features={features} />
+        ),
+      });
+    }
+
+    return (
+      <Feature
+        features={['projects:discard-groups']}
+        hookName="feature-disabled:discard-groups"
+        organization={organization}
+        project={project}
+        renderDisabled={renderDiscardDisabled}
+      >
+        {({hasFeature, renderDisabled, ...props}) => (
+          <Fragment>
+            <Body>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                renderDisabled({...props, hasFeature, children: null})}
+              {t(
+                `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
+              )}
+            </Body>
+            <Footer>
+              <Button onClick={closeModal}>{t('Cancel')}</Button>
+              <Button
+                style={{marginLeft: space(1)}}
+                priority="primary"
+                onClick={this.onDiscard}
+                disabled={!hasFeature}
+              >
+                {t('Discard Future Events')}
+              </Button>
+            </Footer>
+          </Fragment>
+        )}
+      </Feature>
+    );
+  };
+
+  openDiscardModal = () => {
+    const {organization} = this.props;
+
+    openModal(this.renderDiscardModal);
+    analytics('feature.discard_group.modal_opened', {
+      org_id: parseInt(organization.id, 10),
+    });
+  };
+
+  handleClick(disabled: boolean, onClick: (event: MouseEvent) => void) {
+    return function (event: MouseEvent) {
       if (disabled) {
         event.preventDefault();
         event.stopPropagation();
@@ -269,17 +331,6 @@ class Actions extends React.Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <Access organization={organization} access={['event:admin']}>
-          {({hasAccess}) => (
-            <DeleteAction
-              disabled={disabled || !hasAccess}
-              organization={organization}
-              project={project}
-              onDelete={this.onDelete}
-              onDiscard={this.onDiscard}
-            />
-          )}
-        </Access>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -325,23 +376,64 @@ class Actions extends React.Component<Props, State> {
           />
         )}
 
-        <DropdownMenuControlV2
-          triggerProps={{
-            'aria-label': t('More actions'),
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            size: 'xsmall',
-          }}
-          items={[
-            {
-              key: 'bookmark',
-              label: bookmarkTitle,
-              hidden: false,
-              // @ts-ignore the handled function needs no args
-              onAction: this.handleClick(disabled, this.onToggleBookmark),
-            },
-          ]}
-        />
+        <Access organization={organization} access={['event:admin']}>
+          {({hasAccess}) => (
+            <DropdownMenuControlV2
+              triggerProps={{
+                'aria-label': t('More actions'),
+                icon: <IconEllipsis size="xs" />,
+                showChevron: false,
+                size: 'xsmall',
+              }}
+              items={[
+                {
+                  key: 'bookmark',
+                  label: bookmarkTitle,
+                  hidden: false,
+                  // @ts-ignore the handled function needs no args
+                  onAction: this.handleClick(disabled, this.onToggleBookmark),
+                },
+                {
+                  key: 'delete',
+                  label: t('Delete'),
+                  hidden: !hasAccess,
+                  isSubmenu: true,
+                  children: [
+                    {
+                      key: 'delete-issue',
+                      label: t('Delete issue'),
+                      onAction: () =>
+                        openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+                          <Fragment>
+                            <Body>
+                              {t(
+                                'Deleting this issue is permanent. Are you sure you wish to continue?'
+                              )}
+                            </Body>
+                            <Footer>
+                              <Button onClick={closeModal}>{t('Cancel')}</Button>
+                              <Button
+                                style={{marginLeft: space(1)}}
+                                priority="primary"
+                                onClick={this.onDelete}
+                              >
+                                {t('Delete')}
+                              </Button>
+                            </Footer>
+                          </Fragment>
+                        )),
+                    },
+                    {
+                      key: 'delete-and-discard',
+                      label: t('Delete and discard future events'),
+                      onAction: () => this.openDiscardModal(),
+                    },
+                  ],
+                },
+              ]}
+            />
+          )}
+        </Access>
       </Wrapper>
     );
   }
