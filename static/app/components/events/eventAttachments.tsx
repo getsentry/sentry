@@ -48,7 +48,7 @@ class EventAttachments extends React.Component<Props, State> {
       case 'text/json':
       case 'text/x-json':
       case 'application/json':
-        if (attachment.name === 'rrweb.json') {
+        if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
           return RRWebJsonViewer;
         }
         return JsonViewer;
