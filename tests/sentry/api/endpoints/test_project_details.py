@@ -208,19 +208,6 @@ class ProjectUpdateTest(APITestCase):
         self.get_valid_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
 
-    def test_team_changes_deprecated(self):
-        project = self.create_project()
-        team = self.create_team(members=[self.user])
-        self.login_as(user=self.user)
-
-        resp = self.get_valid_response(
-            self.org_slug, self.proj_slug, team=team.slug, status_code=400
-        )
-        assert resp.data["detail"][0] == "Editing a team via this endpoint has been deprecated."
-
-        project = Project.objects.get(id=project.id)
-        assert project.teams.first() != team
-
     def test_simple_member_restriction(self):
         project = self.create_project()
         user = self.create_user("bar@example.com")
