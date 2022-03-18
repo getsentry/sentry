@@ -109,7 +109,7 @@ class Actions extends React.Component<Props, State> {
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
-    trackAdvancedAnalyticsEvent('issue.action', {
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
       project_id: project.id,
       group_id: group.id,

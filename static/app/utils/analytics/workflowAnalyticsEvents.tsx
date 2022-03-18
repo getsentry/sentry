@@ -19,7 +19,9 @@ export type TeamInsightsEventParameters = {
     type: string;
   };
   'edit_alert_rule.viewed': RuleViewed;
-  'issue.action': {
+  'issue_alert_rule_details.edit_clicked': {rule_id: number};
+  'issue_alert_rule_details.viewed': {rule_id: number};
+  'issue_details.action_clicked': {
     action_type:
       | 'deleted'
       | 'mark_reviewed'
@@ -37,8 +39,6 @@ export type TeamInsightsEventParameters = {
     /**  If the user came to the page from an alert, the type of alert that brought them here. */
     alert_type?: string;
   };
-  'issue_alert_rule_details.edit_clicked': {rule_id: number};
-  'issue_alert_rule_details.viewed': {rule_id: number};
   'new_alert_rule.viewed': RuleViewed & {
     session_id: string;
   };
@@ -57,9 +57,9 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
-  'issue.action': 'Issue: Action Taken',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
+  'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',
 };
