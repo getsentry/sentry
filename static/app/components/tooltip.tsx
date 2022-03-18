@@ -401,7 +401,7 @@ function AcceptanceTestTooltipProxy({
   ...props
 }: AcceptanceTestTooltipProxyProps) {
   if (IS_ACCEPTANCE_TEST) {
-    return disableForVisualTest ? null : <AcceptanceTestTooltip {...props} />;
+    return disableForVisualTest ? props.children : <AcceptanceTestTooltip {...props} />;
   }
 
   return <DO_NOT_USE_TOOLTIP {...props} />;
