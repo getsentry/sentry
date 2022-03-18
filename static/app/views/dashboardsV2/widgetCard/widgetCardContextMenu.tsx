@@ -55,6 +55,17 @@ function WidgetCardContextMenu({
   const menuOptions: MenuItemProps[] = [];
   const disabledKeys: string[] = [];
 
+  const openWidgetViewerPath = (id: string | undefined) => {
+    if (!isWidgetViewerPath(location.pathname)) {
+      router.push({
+        pathname: `${location.pathname}${
+          location.pathname.endsWith('/') ? '' : '/'
+        }widget/${id}/`,
+        query: location.query,
+      });
+    }
+  };
+
   if (isPreview) {
     return (
       <ContextWrapper>
@@ -81,16 +92,7 @@ function WidgetCardContextMenu({
             priority="link"
             size="zero"
             icon={<IconExpand size="xs" />}
-            onClick={() => {
-              if (!isWidgetViewerPath(location.pathname)) {
-                router.push({
-                  pathname: `${location.pathname}${
-                    location.pathname.endsWith('/') ? '' : '/'
-                  }widget/${index}/`,
-                  query: location.query,
-                });
-              }
-            }}
+            onClick={() => openWidgetViewerPath(index)}
           />
         )}
       </ContextWrapper>
@@ -189,16 +191,7 @@ function WidgetCardContextMenu({
           priority="link"
           size="zero"
           icon={<IconExpand size="xs" />}
-          onClick={() => {
-            if (!isWidgetViewerPath(location.pathname)) {
-              router.push({
-                pathname: `${location.pathname}${
-                  location.pathname.endsWith('/') ? '' : '/'
-                }widget/${widget.id}/`,
-                query: location.query,
-              });
-            }
-          }}
+          onClick={() => openWidgetViewerPath(widget.id)}
         />
       )}
     </ContextWrapper>
