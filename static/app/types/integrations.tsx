@@ -23,6 +23,8 @@ export type Permissions = {
   Team: PermissionValue;
 };
 
+export type PermissionResource = keyof Permissions;
+
 export type ExternalActorMapping = {
   externalName: string;
   id: string;
@@ -448,7 +450,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error';
+export type WebhookEvent = 'issue' | 'error' | 'comment';
 
 export type ServiceHook = {
   dateCreated: string;

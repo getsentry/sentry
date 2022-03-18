@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import withMetricsTags, {InjectedMetricsTagsProps} from 'sentry/utils/withMetricsTags';
@@ -27,16 +27,18 @@ describe('withMetricsTags HoC', function () {
     };
 
     const Container = withMetricsTags(MyComponent);
-    mountWithTheme(<Container other="value" />);
+    render(<Container other="value" />);
 
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
 
-    MetricsTagStore.onLoadTagsSuccess([
-      {key: 'environment'},
-      {key: 'release'},
-      {key: 'session.status'},
-    ]);
+    act(() => {
+      MetricsTagStore.onLoadSuccess([
+        {key: 'environment'},
+        {key: 'release'},
+        {key: 'session.status'},
+      ]);
+    });
 
     // Should forward prop
     expect(screen.getByText('value')).toBeInTheDocument();

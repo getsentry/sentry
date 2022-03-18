@@ -1191,3 +1191,10 @@ class Factories:
             prev_history_date=prev_history_date,
             **kwargs,
         )
+
+    @staticmethod
+    def create_comment(issue, project, user, text="hello world"):
+        data = {"text": text}
+        return Activity.objects.create(
+            project=project, group=issue, type=Activity.NOTE, user=user, data=data
+        )

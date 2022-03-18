@@ -15,6 +15,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IssueWidgetQueriesForm from 'sentry/components/dashboards/issueWidgetQueriesForm';
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Input from 'sentry/components/forms/controls/input';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Field from 'sentry/components/forms/field';
@@ -147,9 +148,11 @@ const IssueDataset: [WidgetType, string] = [
   WidgetType.ISSUE,
   t('Issues (States, Assignment, Time, etc.)'),
 ];
-const MetricsDataset: [WidgetType, string] = [
+const MetricsDataset: [WidgetType, React.ReactElement] = [
   WidgetType.METRICS,
-  t('Metrics (Release Health)'),
+  <React.Fragment key="metrics-dataset">
+    {t('Metrics (Release Health)')} <FeatureBadge type="alpha" />
+  </React.Fragment>,
 ];
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
@@ -180,7 +183,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
-      queries: normalizeQueries(widget.displayType, widget.queries),
+      queries: normalizeQueries({
+        displayType: widget.displayType,
+        queries: widget.queries,
+      }),
       errors: undefined,
       loading: false,
       dashboards: [],
@@ -367,7 +373,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const {displayType, defaultWidgetQuery, defaultTableColumns, widget} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+      });
+
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
@@ -379,7 +389,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ) {
         // World Map display type only supports Discover Dataset
         // so set state to default discover query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [newDiscoverQuery]));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [newDiscoverQuery],
+          })
+        );
         set(newState, 'widgetType', WidgetType.DISCOVER);
         return {...newState, errors: undefined};
       }
@@ -787,14 +804,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ) && state.displayType !== DisplayType.WORLD_MAP;
 
     const showIssueDatasetSelector =
-      showDatasetSelector &&
-      organization.features.includes('issues-in-dashboards') &&
-      state.displayType === DisplayType.TABLE;
+      showDatasetSelector && state.displayType === DisplayType.TABLE;
 
     const showMetricsDatasetSelector =
       showDatasetSelector && organization.features.includes('dashboards-metrics');
 
-    const datasetChoices: [WidgetType, string][] = [DiscoverDataset];
+    const datasetChoices: [WidgetType, React.ReactElement | string][] = [DiscoverDataset];
 
     if (showIssueDatasetSelector) {
       datasetChoices.push(IssueDataset);

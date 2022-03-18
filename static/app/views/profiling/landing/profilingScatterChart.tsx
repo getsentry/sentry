@@ -55,7 +55,10 @@ function ProfilingScatterChart({
   const data: Record<string, Trace[]> = useMemo(() => {
     const dataMap = {};
     for (const row of traces) {
-      const seriesName = row[colorEncoding];
+      const seriesName =
+        colorEncoding === 'version'
+          ? `${row.app_version_name} (build ${row.app_version})`
+          : row[colorEncoding];
       if (!dataMap[seriesName]) {
         dataMap[seriesName] = [];
       }

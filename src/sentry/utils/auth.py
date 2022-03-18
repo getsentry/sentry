@@ -237,7 +237,6 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-#
 def login(
     request: HttpRequest, user, passed_2fa=None, after_2fa=None, organization_id=None, source=None
 ):

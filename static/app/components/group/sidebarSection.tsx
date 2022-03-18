@@ -27,16 +27,17 @@ const Subheading = styled('h6')`
   margin-bottom: ${space(1)};
 `;
 
-type Props = {
+interface SidebarSectionProps
+  extends Omit<React.HTMLAttributes<HTMLHeadingElement>, 'title'> {
   children: React.ReactNode;
   title: React.ReactNode;
   secondary?: boolean;
-} & Omit<React.ComponentProps<typeof Heading>, 'title'>;
+}
 
 /**
  * Used to add a new section in Issue Details' sidebar.
  */
-function SidebarSection({title, children, secondary, ...props}: Props) {
+function SidebarSection({title, children, secondary, ...props}: SidebarSectionProps) {
   const HeaderComponent = secondary ? Subheading : Heading;
 
   return (

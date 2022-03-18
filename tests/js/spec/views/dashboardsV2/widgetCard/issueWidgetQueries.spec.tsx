@@ -1,19 +1,19 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', function () {
-  const {organization} = initializeOrg({
-    router: {orgId: 'orgId'},
-  } as Parameters<typeof initializeOrg>[0]);
-  const api = new MockApiClient();
-  const mockFunction = jest.fn(() => {
-    return <div />;
-  });
+  it('does an issue query and passes correct transformedResults to child component', async function () {
+    const {organization} = initializeOrg({
+      router: {orgId: 'orgId'},
+    } as Parameters<typeof initializeOrg>[0]);
+    const api = new MockApiClient();
+    const mockFunction = jest.fn(() => {
+      return <div />;
+    });
 
-  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -55,7 +55,7 @@ describe('IssueWidgetQueries', function () {
       widgetType: WidgetType.ISSUE,
     };
 
-    mountWithTheme(
+    render(
       <IssueWidgetQueries
         api={api}
         organization={organization}
@@ -74,9 +74,7 @@ describe('IssueWidgetQueries', function () {
         {mockFunction}
       </IssueWidgetQueries>
     );
-  });
 
-  it('does an issue query and passes correct transformedResults to child component', async function () {
     await tick();
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({

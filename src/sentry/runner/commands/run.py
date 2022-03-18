@@ -464,7 +464,7 @@ def batching_kafka_options(group):
             "force_cluster",
             default=None,
             type=str,
-            help="Kafka cluster ID of the overriden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
         )(f)
 
         return f

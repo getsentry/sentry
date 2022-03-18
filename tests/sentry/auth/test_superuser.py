@@ -17,6 +17,7 @@ from sentry.auth.superuser import (
     MAX_AGE,
     SESSION_KEY,
     Superuser,
+    SuperuserAccessSerializer,
     is_active_superuser,
 )
 from sentry.auth.system import SystemToken
@@ -146,29 +147,47 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_logs(self, logger):
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            user = User(is_superuser=True, id=10, email="test@sentry.io")
+            request = self.make_request(user=user, method="PUT")
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
+
+            superuser = Superuser(request, org_id=None)
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 2
+            logger.info.assert_any_call(
+                "superuser.superuser_access",
+                extra={
+                    "superuser_token_id": superuser.token,
+                    "user_id": 10,
+                    "user_email": "test@sentry.io",
+                    "su_access_category": "debugging",
+                    "reason_for_su": "Edit organization settings",
+                },
+            )
+
+    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_no_request(self, logger):
         user = User(is_superuser=True, id=10, email="test@sentry.io")
         request = self.make_request(user=user, method="PUT")
-        request._body = json.dumps(
-            {
-                "superuserAccessCategory": "Edit organization settings",
-                "superuserReason": "Edit organization settings",
-            }
-        )
 
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
-        assert superuser.is_active is True
-        assert logger.info.call_count == 2
-        logger.info.assert_any_call(
-            "superuser.superuser_access",
-            extra={
-                "superuser_session_id": superuser.token,
-                "user_id": 10,
-                "user_email": "test@sentry.io",
-                "su_access_category": "Edit organization settings",
-                "reason_for_su": "Edit organization settings",
-            },
-        )
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
+            )
 
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
@@ -275,3 +294,79 @@ class SuperuserTestCase(TestCase):
         request = self.build_request()
         request.superuser = None
         assert is_active_superuser(request)
+
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_superuser_session_self_hosted(self, logger):
+        with self.settings(
+            SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            user = User(is_superuser=True, id=10, email="test@sentry.io")
+            request = self.make_request(user=user, method="PUT")
+            request._body = json.dumps(
+                {
+                    "superuserAccessCategory": "debugging",
+                    "superuserReason": "Edit organization settings",
+                }
+            )
+
+            superuser = Superuser(request, org_id=None)
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in",
+                extra={"ip_address": "127.0.0.1", "user_id": user.id},
+            )
+
+    def test_superuser_invalid_serializer(self):
+        serialized_data = SuperuserAccessSerializer(data={})
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."],"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors) == '{"superuserReason":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserReason": "Edit organization settings",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserAccessCategory":["This field is required."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "Eds",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has at least 4 characters."]}'
+        )
+
+        serialized_data = SuperuserAccessSerializer(
+            data={
+                "superuserAccessCategory": "debugging",
+                "superuserReason": "128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars ",
+            }
+        )
+        assert serialized_data.is_valid() is False
+        assert (
+            json.dumps(serialized_data.errors)
+            == '{"superuserReason":["Ensure this field has no more than 128 characters."]}'
+        )

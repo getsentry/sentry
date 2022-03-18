@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -17,13 +17,19 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import {
+  ChartControls,
+  HeaderTitleLegend,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -31,9 +37,10 @@ import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, DateString, Organization, Project} from 'sentry/types';
+import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   getCrashFreeRateSeries,
@@ -67,11 +74,10 @@ import {TimePeriodType} from './constants';
 type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
-  handleZoom: (start: DateString, end: DateString) => void;
   interval: string;
   orgId: string;
   organization: Organization;
-  projects: Project[] | AvatarProject[];
+  project: Project;
   query: string;
   rule: IncidentRule;
   timePeriod: TimePeriodType;
@@ -236,6 +242,17 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
   };
 
+  handleZoom = (start: DateString, end: DateString) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        start,
+        end,
+      },
+    });
+  };
+
   getRuleChangeSeries = (data: AreaChartSeries[]): LineSeriesOption[] => {
     const {dateModified} = this.props.rule || {};
 
@@ -279,10 +296,10 @@ class MetricChart extends React.PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, projects, timePeriod, query} = this.props;
+    const {rule, orgId, project, timePeriod, query} = this.props;
     const ctaOpts = {
       orgSlug: orgId,
-      projects: projects as Project[],
+      projects: [project],
       rule,
       eventType: query,
       start: timePeriod.start,
@@ -299,24 +316,24 @@ class MetricChart extends React.PureComponent<Props, State> {
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
-      <ChartActions>
-        <ChartSummary>
-          <SummaryText>{t('SUMMARY')}</SummaryText>
-          <SummaryStats>
-            <StatItem>
+      <StyledChartControls>
+        <StyledInlineContainer>
+          <SectionHeading>{t('Summary')}</SectionHeading>
+          <StyledSectionValue>
+            <ValueItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {warningPercent ? warningPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-          </SummaryStats>
-        </ChartSummary>
+              {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+            </ValueItem>
+          </StyledSectionValue>
+        </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
             <Button size="small" {...props}>
@@ -324,7 +341,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             </Button>
           </Feature>
         )}
-      </ChartActions>
+      </StyledChartControls>
     );
   }
 
@@ -338,7 +355,6 @@ class MetricChart extends React.PureComponent<Props, State> {
       router,
       selectedIncident,
       interval,
-      handleZoom,
       filter,
       incidents,
       rule,
@@ -547,7 +563,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         ''
     );
 
-    const queryFilter = filter?.join(' ');
+    const queryFilter = filter?.join(' ') + t(' over ') + getDuration(timeWindow * 60);
 
     const percentOfWidth =
       width >= 1151
@@ -580,7 +596,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 router={router}
                 start={start}
                 end={end}
-                onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+                onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -747,7 +763,7 @@ class MetricChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
@@ -767,7 +783,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       <SessionsRequest
         api={api}
         organization={organization}
-        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        project={project.id ? [Number(project.id)] : []}
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
@@ -805,9 +821,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         organization={organization}
         query={query}
         environment={environment ? [environment] : undefined}
-        project={(projects as Project[])
-          .filter(p => p && p.slug)
-          .map(project => Number(project.id))}
+        project={project.id ? [Number(project.id)] : []}
         interval={interval}
         comparisonDelta={rule.comparisonDelta ? rule.comparisonDelta * 60 : undefined}
         start={viableStartDate}
@@ -836,6 +850,17 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
+const StyledChartControls = styled(ChartControls)`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const StyledInlineContainer = styled(InlineContainer)`
+  grid-auto-flow: column;
+  grid-column-gap: ${space(1)};
+`;
+
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
   height: ${space(1)};
@@ -855,47 +880,22 @@ const Filters = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const ChartActions = styled(PanelFooter)`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: ${space(1)} 20px;
+const StyledSectionValue = styled(SectionValue)`
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: ${space(1.5)};
+  margin: 0 0 0 ${space(1.5)};
 `;
 
-const ChartSummary = styled('div')`
-  display: flex;
-  margin-right: auto;
-`;
-
-const SummaryText = styled(SectionHeading)`
-  flex: 1;
-  display: flex;
+const ValueItem = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: ${space(0.5)};
   align-items: center;
-  margin: 0;
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-`;
-
-const SummaryStats = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)};
-`;
-
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)} 0 0;
+  font-variant-numeric: tabular-nums;
 `;
 
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
-`;
-
-const StatCount = styled('span')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.textColor};
 `;

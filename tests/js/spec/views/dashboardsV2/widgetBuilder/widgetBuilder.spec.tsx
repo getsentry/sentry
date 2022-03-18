@@ -3,12 +3,7 @@ import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -17,10 +12,15 @@ import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
+  MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+
+// Mock World Map because setState inside componentDidMount is
+// throwing UnhandledPromiseRejection
+jest.mock('sentry/components/charts/worldMapChart');
 
 function renderTestComponent({
   widget,
@@ -28,10 +28,12 @@ function renderTestComponent({
   query,
   orgFeatures,
   onSave,
+  params,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
+  params?: WidgetBuilderProps['params'];
   query?: Record<string, any>;
   widget?: WidgetBuilderProps['widget'];
 } = {}) {
@@ -54,7 +56,7 @@ function renderTestComponent({
     },
   });
 
-  mountWithTheme(
+  render(
     <WidgetBuilder
       route={{}}
       router={router}
@@ -75,6 +77,7 @@ function renderTestComponent({
       params={{
         orgId: organization.slug,
         widgetIndex: widget ? 0 : undefined,
+        ...params,
       }}
     />,
     {
@@ -163,10 +166,16 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-geo/',
+      body: {data: [], meta: {}},
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('no feature access', function () {
@@ -217,7 +226,7 @@ describe('WidgetBuilder', function () {
     );
     expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboards/new/?source=dashboards'
+      '/organizations/org-slug/dashboards/new/'
     );
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
@@ -302,7 +311,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -347,7 +356,7 @@ describe('WidgetBuilder', function () {
             queryOrderby: '',
             start: null,
             end: null,
-            period: '24h',
+            statsPeriod: '24h',
             utc: false,
             project: [],
             environment: [],
@@ -369,9 +378,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     userEvent.click(screen.getByText('(Required)'));
     userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
@@ -406,7 +412,6 @@ describe('WidgetBuilder', function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
-
     userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
@@ -414,9 +419,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add an equation button
     userEvent.click(screen.getByLabelText('Add an Equation'));
-
-    // Should be another field input.
-    expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(2);
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
@@ -672,7 +674,7 @@ describe('WidgetBuilder', function () {
     // Restricting to a single query
     expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
 
-    // // Restricting to a single y-axis
+    // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
     expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
@@ -702,10 +704,16 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
+    // Table display and column
     expect(screen.getAllByText('count()')).toHaveLength(2);
+    // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
-    expect(screen.getAllByText(/count_unique/)).toHaveLength(2);
+    // Table display
     expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('user')).toBeInTheDocument();
   });
 
   it('uses displayType if given a displayType', async function () {
@@ -810,6 +818,335 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('persists the global selection header period when updating a widget', async () => {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const {router} = renderTestComponent({
+      dashboard,
+      widget,
+      params: {orgId: 'org-slug', dashboardId: '1'},
+      query: {statsPeriod: '90d'},
+    });
+
+    await screen.findByText('Update Widget');
+    await screen.findByText('Last 90 days');
+
+    userEvent.click(screen.getByText('Update Widget'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: expect.objectContaining({
+            statsPeriod: '90d',
+          }),
+        })
+      );
+    });
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    const maxWidgetsDefaultValue = MAX_WIDGETS;
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.hover(screen.getByText('Test Dashboard'));
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+      )
+    ).toBeInTheDocument();
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {
+      value: maxWidgetsDefaultValue,
+    });
+  });
+
+  describe('Sort by selectors', function () {
+    it('renders', async function () {
+      renderTestComponent({
+        orgFeatures: [
+          'dashboards-edit',
+          'global-views',
+          'new-widget-builder-experience',
+          'new-widget-builder-experience-design',
+        ],
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+      expect(
+        screen.getByText("Choose one of the columns you've created to sort by.")
+      ).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
+
+    it('sortBy defaults to the first field value when changing display type to table', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Errors over time',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+          {
+            name: 'csp',
+            conditions: 'event.type:csp',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [
+          'dashboards-edit',
+          'global-views',
+          'new-widget-builder-experience',
+          'new-widget-builder-experience-design',
+        ],
+        dashboard,
+        widget,
+      });
+
+      // Click on the displayType selector
+      userEvent.click(await screen.findByText('Line Chart'));
+
+      // Choose the table visualization
+      userEvent.click(screen.getByText('Table'));
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('Low to high')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
+
+    it('can update selectors values', async function () {
+      const handleSave = jest.fn();
+
+      const widget: Widget = {
+        id: '1',
+        title: 'Errors over time',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+          {
+            name: 'csp',
+            conditions: 'event.type:csp',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [
+          'dashboards-edit',
+          'global-views',
+          'new-widget-builder-experience',
+          'new-widget-builder-experience-design',
+        ],
+        dashboard,
+        widget,
+        onSave: handleSave,
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('Low to high')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+
+      // Click on the "sortBy" selector
+      userEvent.click(screen.getAllByText('count()')[2]);
+
+      // menu of the "sortBy" selector is being displayed
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+
+      // Click on the second option of the "sortBy" selector
+      userEvent.click(screen.getAllByText('count_unique(id)')[1]);
+
+      // Wait for the Builder update the widget values
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(2);
+      });
+
+      // Now count_unique(id) is selected in the "sortBy" selector
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+
+      // Click on the "sortDirection" selector
+      userEvent.click(screen.getByText('Low to high'));
+
+      // Select the other option
+      userEvent.click(screen.getByText('High to low'));
+
+      // Saves the widget
+      userEvent.click(screen.getByText('Update Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [expect.objectContaining({orderby: '-count_unique_id'})],
+          }),
+        ]);
+      });
+    });
+
+    it('sortBy defaults to the first field value when coming from discover', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      };
+
+      const {router} = renderTestComponent({
+        orgFeatures: [
+          'dashboards-edit',
+          'global-views',
+          'new-widget-builder-experience',
+          'new-widget-builder-experience-design',
+        ],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.TABLE,
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+        },
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('Low to high')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('title')).toHaveLength(2);
+      userEvent.click(screen.getAllByText('title')[1]);
+
+      userEvent.click(screen.getByText('Select a dashboard'));
+      userEvent.click(screen.getByText('+ Create New Dashboard'));
+
+      // Saves the widget
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({queryOrderby: 'count'}),
+          })
+        );
+      });
+    });
+  });
+
+  it('renders fields with commas properly', async () => {
+    const defaultWidgetQuery = {
+      conditions: '',
+      fields: ['equation|count_if(transaction.duration,equals,300)*2'],
+      orderby: '',
+      name: '',
+    };
+    const defaultTableColumns = [
+      'count_if(transaction.duration,equals,300)',
+      'equation|count_if(transaction.duration,equals,300)*2',
+    ];
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns,
+        yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
+      },
+    });
+
+    await screen.findByText('Add Widget');
+
+    expect(
+      await screen.findByText('count_if(transaction.duration,equals,300)*2')
+    ).toBeInTheDocument();
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -841,7 +1178,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],
@@ -874,7 +1211,7 @@ describe('WidgetBuilder', function () {
               queryOrderby: '',
               start: null,
               end: null,
-              period: '24h',
+              statsPeriod: '24h',
               utc: false,
               project: [],
               environment: [],
@@ -979,7 +1316,6 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      expect(screen.getAllByLabelText('Remove this Y-Axis')).toHaveLength(3);
       userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
       userEvent.click(screen.getByText('High Throughput Transactions'));
 
@@ -987,31 +1323,5 @@ describe('WidgetBuilder', function () {
       expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
       expect(mockModal).toHaveBeenCalled();
     });
-  });
-
-  it('disables dashboards with max widgets', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [
-        {...untitledDashboard, widgetDisplay: []},
-        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
-      ],
-    });
-
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-      },
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.hover(screen.getByText('Test Dashboard'));
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-      )
-    ).toBeInTheDocument();
   });
 });

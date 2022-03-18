@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -28,6 +30,7 @@ type Props = {
   organization: Organization;
 
   query: string;
+  queryCount: number;
   savedSearch: SavedSearch;
   selectedProjects: number[];
   sort: string;
@@ -39,6 +42,7 @@ function IssueListFilters({
   organization,
   savedSearch,
   query,
+  queryCount,
   isSearchDisabled,
   sort,
   display,
@@ -91,10 +95,11 @@ function IssueListFilters({
         </ClassNames>
 
         {hasPageFilters ? (
-          <ProjectEnvironmentFilters>
+          <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-          </ProjectEnvironmentFilters>
+            <DatePageFilter hidePin alignDropdown="right" />
+          </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
             {hasIssuePercentDisplay && (
@@ -110,18 +115,28 @@ function IssueListFilters({
         )}
       </SearchContainer>
       {hasPageFilters && (
-        <IssueListDropdownsWrapper>
-          <DatePageFilter alignDropdown="left" />
-          {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-              hasSessions={hasSessions}
+        <ResultsRow>
+          <QueryCount>
+            {queryCount > 0 && tct('[queryCount] results found', {queryCount})}
+          </QueryCount>
+          <DisplayOptionsBar>
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+                hasPageFilters
+              />
+            )}
+            <IssueListSortOptions
+              sort={sort}
+              query={query}
+              onSelect={onSortChange}
+              hasPageFilters
             />
-          )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-        </IssueListDropdownsWrapper>
+          </DisplayOptionsBar>
+        </ResultsRow>
       )}
     </FilterContainer>
   );
@@ -130,7 +145,7 @@ function IssueListFilters({
 const FilterContainer = styled('div')`
   display: grid;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const SearchContainer = styled('div')<{
@@ -140,13 +155,21 @@ const SearchContainer = styled('div')<{
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
+  margin-bottom: ${space(1)};
 
   ${p =>
     p.hasPageFilters
       ? `
-    @media (min-width: ${p.theme.breakpoints[1]}) {
-      grid-template-columns: 3fr 2fr;
+    grid-template-columns: 1fr 32rem;
+
+    @media (max-width: ${p.theme.breakpoints[2]}) {
+      grid-template-columns: 1fr 28rem;
     }
+
+    @media (max-width: ${p.theme.breakpoints[1]}) {
+      grid-template-columns: 1fr 24rem;
+    }
+
   `
       : `
     @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
@@ -155,14 +178,8 @@ const SearchContainer = styled('div')<{
   }`}
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const ProjectEnvironmentFilters = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 `;
 
 const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
@@ -176,11 +193,24 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   }
 `;
 
-const IssueListDropdownsWrapper = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-columns: max-content;
-  grid-auto-flow: column;
+const QueryCount = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 600;
+  color: ${p => p.theme.headingColor};
+  margin-bottom: 0;
+`;
+
+const DisplayOptionsBar = styled(PageFilterBar)`
+  height: auto;
+  button[aria-haspopup='listbox'] {
+    font-weight: 600;
+  }
+`;
+
+const ResultsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 export default IssueListFilters;

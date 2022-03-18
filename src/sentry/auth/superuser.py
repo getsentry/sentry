@@ -23,6 +23,7 @@ from rest_framework import serializers
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
+from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -55,6 +56,8 @@ ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTE
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
+SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [])
+
 UNSET = object()
 
 
@@ -66,7 +69,7 @@ def is_active_superuser(request):
 
 
 class SuperuserAccessSerializer(serializers.Serializer):
-    superuserAccessCategory = serializers.CharField()
+    superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 
 
@@ -93,6 +96,13 @@ class Superuser:
         if org_id is not UNSET:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
+
+    @staticmethod
+    def _need_validation():
+        try:
+            return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+        except AttributeError:
+            return False
 
     @property
     def is_active(self):
@@ -302,9 +312,28 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if request.method == "PUT":
-            # Can't do this through request.data as in auth_index,  request obj is switched to httprequest
+        if is_self_hosted() or not self._need_validation():
+            self._set_logged_in(
+                expires=current_datetime + MAX_AGE,
+                token=token,
+                user=user,
+                current_datetime=current_datetime,
+            )
+
+            logger.info(
+                "superuser.logged-in",
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+            )
+            return
+
+        try:
+            # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
+        except AttributeError:
+            su_access_json = []
+
+        if "superuserAccessCategory" in su_access_json:
+
             su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
             if not su_access_info.is_valid():
@@ -313,7 +342,7 @@ class Superuser:
             logger.info(
                 "superuser.superuser_access",
                 extra={
-                    "superuser_session_id": token,
+                    "superuser_token_id": token,
                     "user_id": request.user.id,
                     "user_email": request.user.email,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],

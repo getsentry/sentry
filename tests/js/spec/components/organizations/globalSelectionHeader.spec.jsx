@@ -11,6 +11,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -159,7 +160,7 @@ describe('GlobalSelectionHeader', function () {
 
     // Open dropdown and select one project
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -168,7 +169,10 @@ describe('GlobalSelectionHeader', function () {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(0).simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(0)
+      .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -207,8 +211,8 @@ describe('GlobalSelectionHeader', function () {
 
     // Open dropdown and select both projects
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(0).simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -219,7 +223,10 @@ describe('GlobalSelectionHeader', function () {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(1).simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(1)
+      .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -243,7 +250,7 @@ describe('GlobalSelectionHeader', function () {
 
     // Now change projects, first project has no environments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
@@ -571,7 +578,13 @@ describe('GlobalSelectionHeader', function () {
     OrganizationActions.update(initializationObj.organization);
 
     wrapper = mountWithTheme(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <OrganizationContext.Provider value={initializationObj.organization}>
+        <PageFiltersContainer
+          organization={initializationObj.organization}
+          hideGlobalHeader
+        />
+      </OrganizationContext.Provider>,
+
       initializationObj.routerContext
     );
 
@@ -582,6 +595,9 @@ describe('GlobalSelectionHeader', function () {
     // Wait for desynced filters to update
     await tick();
     expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
+
+    wrapper.update();
+    expect(wrapper.find('DesyncedFilterAlert')).toHaveLength(1);
   });
 
   /**
@@ -765,7 +781,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
+      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
     });
@@ -1298,7 +1314,7 @@ describe('GlobalSelectionHeader', function () {
       const headerItem = wrapper.find('MultipleProjectSelector HeaderItem');
       headerItem.simulate('click');
       wrapper
-        .find('MultipleProjectSelector CheckboxFancy')
+        .find('MultipleProjectSelector MultiselectCheckbox')
         .forEach(project => project.simulate('click'));
       headerItem.simulate('click');
 
