@@ -15,6 +15,7 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
+    id = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
     label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/project-mgmt/jira/#issue-sync"
@@ -55,4 +56,4 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         self.fix_data_for_issue()
-        yield super().after(event, state)
+        yield super().after(event, state)  # type: ignore
