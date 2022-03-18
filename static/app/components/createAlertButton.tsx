@@ -124,7 +124,7 @@ function IncompatibleQueryAlert({
       type="warning"
       showIcon
       trailingItems={
-        <StyledCloseButton
+        <Button
           icon={<IconClose size="sm" />}
           aria-label={t('Close')}
           size="zero"
@@ -442,14 +442,4 @@ const StyledUnorderedList = styled('ul')`
 const StyledCode = styled('code')`
   background-color: transparent;
   padding: 0;
-`;
-
-const StyledCloseButton = styled(Button)`
-  transition: opacity 0.1s linear;
-  background-color: transparent;
-
-  &:hover,
-  &:focus {
-    background-color: transparent;
-  }
 `;
