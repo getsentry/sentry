@@ -64,11 +64,11 @@ export function flattenMultiSeriesDataWithGrouping(
   const seriesWithOrdering: SeriesWithOrdering[] = [];
   const groupNames = Object.keys(result);
 
-  groupNames.forEach((groupName: string) => {
+  groupNames.forEach(groupName => {
     // Each group contains an order key which we should ignore
     const aggregateNames = Object.keys(omit(result[groupName], 'order'));
 
-    aggregateNames.forEach((aggregate: string) => {
+    aggregateNames.forEach(aggregate => {
       const seriesName = `${groupName} : ${aggregate}`;
       const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
       const seriesData: EventsStats = result[groupName][aggregate];
