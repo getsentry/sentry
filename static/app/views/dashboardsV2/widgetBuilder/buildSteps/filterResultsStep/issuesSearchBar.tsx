@@ -18,6 +18,7 @@ interface Props {
   query: WidgetQuery;
   selection: PageFilters;
   tags: TagCollection;
+  searchSource?: string;
 }
 
 function IssuesSearchBar({
@@ -28,6 +29,7 @@ function IssuesSearchBar({
   query,
   api,
   selection,
+  searchSource,
 }: Props) {
   function tagValueLoader(key: string, search: string) {
     const orgId = organization.slug;
@@ -43,6 +45,7 @@ function IssuesSearchBar({
 
   return (
     <StyledIssueListSearchBar
+      searchSource={searchSource}
       organization={organization}
       query={query.conditions || ''}
       sort=""
