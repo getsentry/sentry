@@ -127,7 +127,11 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export type ReleaseBounds = {releaseEnd?: string | null; releaseStart?: string | null};
+export type ReleaseBounds = {
+  clamped?: boolean;
+  releaseEnd?: string | null;
+  releaseStart?: string | null;
+};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
@@ -149,13 +153,14 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     };
   }
 
-  const thousandDaysAfterReleaseStart = moment(releaseStart).add('999', 'days');
-  if (thousandDaysAfterReleaseStart.isBefore(releaseEnd)) {
-    // if the release spans for more than thousand days, we need to clamp it
-    // (otherwise we would hit the backend limit for the amount of data buckets)
+  const ninetyDaysBeforeReleaseEnd = moment(releaseEnd).subtract('90', 'days');
+  if (ninetyDaysBeforeReleaseEnd.isAfter(releaseStart)) {
+    // if the release spans for more than 90 days, we need to clamp it
+    // releases are not subject to 90 day retention policy, but sessions are
     return {
-      releaseStart,
-      releaseEnd: thousandDaysAfterReleaseStart.utc().format(),
+      releaseStart: ninetyDaysBeforeReleaseEnd.utc().format(),
+      releaseEnd,
+      clamped: true,
     };
   }
 

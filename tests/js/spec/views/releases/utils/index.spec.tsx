@@ -45,7 +45,7 @@ describe('releases/utils', () => {
       });
     });
 
-    it('clamps releases lasting longer than 1000 days', () => {
+    it('clamps releases lasting longer than 90 days', () => {
       expect(
         getReleaseBounds(
           TestStubs.Release({
@@ -54,8 +54,9 @@ describe('releases/utils', () => {
           })
         )
       ).toEqual({
-        releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2022-12-17T01:02:00Z',
+        releaseStart: '2022-12-23T01:02:59Z',
+        releaseEnd: '2023-03-23T01:02:59Z',
+        clamped: true,
       });
     });
   });

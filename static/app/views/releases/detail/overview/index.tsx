@@ -462,7 +462,10 @@ class ReleaseOverview extends AsyncView<Props> {
                             relativeOptions={{
                               [RELEASE_PERIOD_KEY]: (
                                 <Fragment>
-                                  {t('Entire Release Period')} (
+                                  {releaseBounds.clamped
+                                    ? t('Clamped Release Period')
+                                    : t('Entire Release Period')}{' '}
+                                  (
                                   <DateTime
                                     date={releaseBounds.releaseStart}
                                     timeAndDate
