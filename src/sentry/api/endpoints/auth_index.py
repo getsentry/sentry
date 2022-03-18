@@ -129,6 +129,8 @@ class AuthIndexEndpoint(Endpoint):
         )
 
         if not validator.is_valid() and not has_valid_sso_session:
+            if not request.user.is_superuser:
+                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
             self._reauthenticate_with_sso(request, Superuser.org_id)
 
         authenticated = False
