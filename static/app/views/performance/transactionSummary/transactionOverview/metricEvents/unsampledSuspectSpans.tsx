@@ -80,7 +80,7 @@ const Description = styled('div')`
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  gap: ${space(1)};
   align-items: center;
   justify-self: end;
   margin-bottom: 16px;
