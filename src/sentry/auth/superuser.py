@@ -146,11 +146,10 @@ class Superuser:
                 )
             return
         elif not data:
-            if getattr(self, "token", None):
-                logger.warning(
-                    "superuser.missing-session-data",
-                    extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-                )
+            logger.warning(
+                "superuser.missing-session-data",
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
+            )
             return
 
         session_token = data.get("tok")
