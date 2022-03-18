@@ -192,3 +192,8 @@ export type TraceBound = {
   traceEndTimestamp: number;
   traceStartTimestamp: number;
 };
+
+export enum GroupType {
+  DESCENDANTS,
+  SIBLINGS,
+}

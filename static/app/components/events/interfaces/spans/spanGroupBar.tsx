@@ -40,24 +40,18 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
+import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
-  getSpanGroupBounds,
-  getSpanGroupTimestamps,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
-
-export enum GroupType {
-  DESCENDANTS,
-  SIBLINGS,
-}
 
 const MARGIN_LEFT = 0;
 
@@ -65,20 +59,88 @@ type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  groupType: GroupType;
-  isLastSibling: boolean;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
-  toggleSiblingSpanGroup?: (span: SpanType) => void;
 };
 
 class SpanGroupBar extends React.Component<Props> {
+  getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
+    return spanGroup.reduce(
+      (acc, spanGroupItem) => {
+        const {start_timestamp, timestamp} = spanGroupItem.span;
+
+        let newStartTimestamp = acc.startTimestamp;
+        let newEndTimestamp = acc.endTimestamp;
+
+        if (start_timestamp < newStartTimestamp) {
+          newStartTimestamp = start_timestamp;
+        }
+
+        if (newEndTimestamp < timestamp) {
+          newEndTimestamp = timestamp;
+        }
+
+        return {
+          startTimestamp: newStartTimestamp,
+          endTimestamp: newEndTimestamp,
+        };
+      },
+      {
+        startTimestamp: spanGroup[0].span.start_timestamp,
+        endTimestamp: spanGroup[0].span.timestamp,
+      }
+    );
+  }
+
+  getSpanGroupBounds(spanGroup: EnhancedSpan[]): SpanViewBoundsType {
+    const {generateBounds} = this.props;
+
+    const {startTimestamp, endTimestamp} = this.getSpanGroupTimestamps(spanGroup);
+
+    const bounds = generateBounds({
+      startTimestamp,
+      endTimestamp,
+    });
+
+    switch (bounds.type) {
+      case 'TRACE_TIMESTAMPS_EQUAL':
+      case 'INVALID_VIEW_WINDOW': {
+        return {
+          warning: void 0,
+          left: void 0,
+          width: void 0,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'TIMESTAMPS_EQUAL': {
+        return {
+          warning: void 0,
+          left: bounds.start,
+          width: 0.00001,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      case 'TIMESTAMPS_REVERSED':
+      case 'TIMESTAMPS_STABLE': {
+        return {
+          warning: void 0,
+          left: bounds.start,
+          width: bounds.end - bounds.start,
+          isSpanVisibleInView: bounds.isSpanVisibleInView,
+        };
+      }
+      default: {
+        const _exhaustiveCheck: never = bounds;
+        return _exhaustiveCheck;
+      }
+    }
+  }
+
   renderGroupedSpansToggler() {
-    const {spanGrouping, treeDepth, toggleSpanGroup, toggleSiblingSpanGroup, groupType} =
-      this.props;
+    const {spanGrouping, treeDepth, toggleSpanGroup} = this.props;
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -92,9 +154,8 @@ class SpanGroupBar extends React.Component<Props> {
           isSpanGroupToggler
           onClick={event => {
             event.stopPropagation();
-            groupType === GroupType.DESCENDANTS
-              ? toggleSpanGroup()
-              : toggleSiblingSpanGroup?.(spanGrouping[0].span);
+
+            toggleSpanGroup();
           }}
         >
           <Count value={spanGrouping.length} />
@@ -161,13 +222,7 @@ class SpanGroupBar extends React.Component<Props> {
   }
 
   renderSpanTreeConnector() {
-    const {
-      treeDepth: spanTreeDepth,
-      continuingTreeDepths,
-      span,
-      groupType,
-      isLastSibling,
-    } = this.props;
+    const {treeDepth: spanTreeDepth, continuingTreeDepths, span} = this.props;
 
     const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
@@ -189,39 +244,21 @@ class SpanGroupBar extends React.Component<Props> {
       );
     });
 
-    if (groupType === GroupType.DESCENDANTS) {
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            right: '15px',
-            height: `${ROW_HEIGHT / 2}px`,
-            bottom: `-${ROW_HEIGHT / 2 + 1}px`,
-            top: 'auto',
-          }}
-          key="collapsed-span-group-row-bottom"
-          orphanBranch={false}
-        />
-      );
-    } else if (groupType === GroupType.SIBLINGS && !isLastSibling) {
-      const depth: number = unwrapTreeDepth(spanTreeDepth - 1);
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            left,
-          }}
-          key={`${span.description}-${depth}`}
-          orphanBranch={false}
-        />
-      );
-    }
+    connectorBars.push(
+      <ConnectorBar
+        style={{
+          right: '15px',
+          height: `${ROW_HEIGHT / 2}px`,
+          bottom: `-${ROW_HEIGHT / 2 + 1}px`,
+          top: 'auto',
+        }}
+        key="collapsed-span-group-row-bottom"
+        orphanBranch={false}
+      />
+    );
 
     return (
-      <TreeConnector
-        isLast={groupType === GroupType.DESCENDANTS || isLastSibling}
-        hasToggler
-        orphanBranch={isOrphanSpan(span)}
-      >
+      <TreeConnector isLast hasToggler orphanBranch={isOrphanSpan(span)}>
         {connectorBars}
       </TreeConnector>
     );
@@ -272,8 +309,6 @@ class SpanGroupBar extends React.Component<Props> {
                 spanGrouping,
                 toggleSpanGroup,
                 spanNumber,
-                toggleSiblingSpanGroup,
-                groupType,
               } = this.props;
 
               const {isSpanVisibleInView: isSpanVisible} = generateBounds({
@@ -285,6 +320,13 @@ class SpanGroupBar extends React.Component<Props> {
                 dividerHandlerChildrenProps;
               const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
               const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+
+              const bounds = this.getSpanGroupBounds(spanGrouping);
+              const durationDisplay = getDurationDisplay(bounds);
+              const {startTimestamp, endTimestamp} =
+                this.getSpanGroupTimestamps(spanGrouping);
+              const duration = Math.abs(endTimestamp - startTimestamp);
+              const durationString = getHumanDuration(duration);
 
               return (
                 <Row
@@ -300,11 +342,7 @@ class SpanGroupBar extends React.Component<Props> {
                         paddingTop: 0,
                       }}
                       onClick={() => {
-                        if (groupType === GroupType.DESCENDANTS) {
-                          toggleSpanGroup();
-                        } else if (groupType === GroupType.SIBLINGS) {
-                          toggleSiblingSpanGroup?.(spanGrouping[0].span);
-                        }
+                        toggleSpanGroup();
                       }}
                     >
                       <RowTitleContainer ref={generateContentSpanBarRef()}>
@@ -331,30 +369,25 @@ class SpanGroupBar extends React.Component<Props> {
                         width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
                       }}
                       onClick={() => {
-                        if (groupType === GroupType.DESCENDANTS) {
-                          toggleSpanGroup();
-                        } else if (groupType === GroupType.SIBLINGS) {
-                          toggleSiblingSpanGroup?.(spanGrouping[0].span);
-                        }
+                        toggleSpanGroup();
                       }}
                     >
-                      {groupType === GroupType.DESCENDANTS ? (
-                        <SpanRectangle
-                          spanGrouping={spanGrouping}
-                          generateBounds={generateBounds}
-                        />
-                      ) : (
-                        <React.Fragment>
-                          {spanGrouping.map((_, index) => (
-                            <SpanRectangle
-                              key={index}
-                              spanGrouping={spanGrouping}
-                              index={index}
-                              generateBounds={generateBounds}
-                            />
-                          ))}{' '}
-                        </React.Fragment>
-                      )}
+                      <RowRectangle
+                        spanBarHatch={false}
+                        style={{
+                          backgroundColor: theme.blue300,
+                          left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+                          width: toPercent(bounds.width || 0),
+                        }}
+                      >
+                        <DurationPill
+                          durationDisplay={durationDisplay}
+                          showDetail={false}
+                          spanBarHatch={false}
+                        >
+                          {durationString}
+                        </DurationPill>
+                      </RowRectangle>
                       {this.renderMeasurements()}
                       <SpanBarCursorGuide />
                     </RowCell>
@@ -387,87 +420,6 @@ class SpanGroupBar extends React.Component<Props> {
       </ScrollbarManager.Consumer>
     );
   }
-}
-
-function SpanRectangle({
-  spanGrouping,
-  index,
-  generateBounds,
-}: {
-  generateBounds: Props['generateBounds'];
-  spanGrouping: EnhancedSpan[];
-  index?: number;
-}) {
-  // If an index is provided, we treat this as an individual block for a single span in the grouping
-  if (index !== undefined) {
-    const grouping = [spanGrouping[index]];
-    const bounds = getSpanGroupBounds(grouping, generateBounds);
-
-    // If this is not the last span in the grouping, the duration does not need to be rendered
-    if (index !== spanGrouping.length - 1) {
-      return (
-        <RowRectangle
-          spanBarHatch={false}
-          style={{
-            backgroundColor: theme.blue300,
-            left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-            width: toPercent(bounds.width || 0),
-          }}
-        />
-      );
-    }
-
-    const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
-    const duration = Math.abs(endTimestamp - startTimestamp);
-    const durationDisplay = getDurationDisplay(bounds);
-    const durationString = getHumanDuration(duration);
-
-    return (
-      <RowRectangle
-        spanBarHatch={false}
-        style={{
-          backgroundColor: theme.blue300,
-          left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-          width: toPercent(bounds.width || 0),
-        }}
-      >
-        {index === spanGrouping.length - 1 && (
-          <DurationPill
-            durationDisplay={durationDisplay}
-            showDetail={false}
-            spanBarHatch={false}
-          >
-            {durationString}
-          </DurationPill>
-        )}
-      </RowRectangle>
-    );
-  }
-  const bounds = getSpanGroupBounds(spanGrouping, generateBounds);
-  const durationDisplay = getDurationDisplay(bounds);
-  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
-  const duration = Math.abs(endTimestamp - startTimestamp);
-  const durationString = getHumanDuration(duration);
-  return (
-    <RowRectangle
-      spanBarHatch={false}
-      style={{
-        backgroundColor: theme.blue300,
-        left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-        width: toPercent(bounds.width || 0),
-      }}
-    >
-      {
-        <DurationPill
-          durationDisplay={durationDisplay}
-          showDetail={false}
-          spanBarHatch={false}
-        >
-          {durationString}
-        </DurationPill>
-      }
-    </RowRectangle>
-  );
 }
 
 export default SpanGroupBar;

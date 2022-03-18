@@ -10,12 +10,13 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar, {GroupType} from './spanGroupBar';
+import SpanGroupBar from './spanGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
+  GroupType,
   ParsedTraceType,
   SpanType,
 } from './types';
@@ -218,8 +219,6 @@ class SpanTree extends React.Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
-              groupType={GroupType.DESCENDANTS}
-              isLastSibling={false}
             />
           );
           acc.spanNumber = spanNumber + 1;
