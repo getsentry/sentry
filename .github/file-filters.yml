@@ -40,16 +40,11 @@ backend_lintable: &backend_lintable
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
-# Any workflow that checks for backend changes is
-# a candidate for inclusion in this list
 backend_build_changes: &backend_build_changes
   - 'Makefile'
   - '.pre-commit-config.yaml'
-  # Skip for now
-  # - '.github/workflows/acceptance.yml'
-  - '.github/workflows/(command-*)'
-  - '.github/workflows/(backend-*)'
-  - '.github/workflows/(*-integration-*)'
+  - '.github/workflows/!(js-*)'
+  - '.github/workflows/!(development-environment.yml)'
   - '.github/actions/setup-sentry/action.yml'
 
 backend: &backend
