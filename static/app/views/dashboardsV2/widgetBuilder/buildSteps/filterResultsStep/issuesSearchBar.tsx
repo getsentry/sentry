@@ -1,17 +1,15 @@
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
-  api: Client;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
@@ -27,10 +25,10 @@ function IssuesSearchBar({
   onBlur,
   organization,
   query,
-  api,
   selection,
   searchSource,
 }: Props) {
+  const api = useApi();
   function tagValueLoader(key: string, search: string) {
     const orgId = organization.slug;
     const projectIds = selection.projects.map(id => id.toString());
@@ -59,7 +57,7 @@ function IssuesSearchBar({
   );
 }
 
-export default withApi(withIssueTags(IssuesSearchBar));
+export default withIssueTags(IssuesSearchBar);
 
 const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   flex-grow: 1;
