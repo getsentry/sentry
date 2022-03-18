@@ -11,3 +11,4 @@ pytest-django==3.10.0
 pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
 responses==0.10.12
+msgpack-types==0.2.0
