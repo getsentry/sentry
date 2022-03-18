@@ -2,17 +2,18 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
 import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {Organization, PageFilters} from 'sentry/types';
+import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
-import {BuildStep} from './buildStep';
+import {BuildStep} from '../buildStep';
+
+import {EventsSearchBar} from './eventsSearchBar';
+import IssuesSearchBar from './issuesSearchBar';
 
 interface Props {
   canAddSearchConditions: boolean;
@@ -22,22 +23,60 @@ interface Props {
   onQueryRemove: (queryIndex: number) => void;
   organization: Organization;
   queries: WidgetQuery[];
+  selection: PageFilters;
+  widgetType: WidgetType;
   projectIds?: number[] | readonly number[];
   queryErrors?: Record<string, any>[];
 }
 
 export function FilterResultsStep({
   canAddSearchConditions,
-  organization,
   queries,
   onQueryRemove,
   onAddSearchConditions,
   onQueryChange,
+  organization,
   hideLegendAlias,
   projectIds,
   queryErrors,
+  widgetType,
+  selection,
 }: Props) {
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+
+  function handleSearch(queryIndex) {
+    return field => {
+      // SearchBar will call handlers for both onSearch and onBlur
+      // when selecting a value from the autocomplete dropdown. This can
+      // cause state issues for the search bar in our use case. To prevent
+      // this, we set a timer in our onSearch handler to block our onBlur
+      // handler from firing if it is within 200ms, ie from clicking an
+      // autocomplete value.
+      setBlurTimeout(
+        window.setTimeout(() => {
+          setBlurTimeout(null);
+        }, 200)
+      );
+
+      const newQuery: WidgetQuery = {
+        ...queries[queryIndex],
+        conditions: field,
+      };
+      onQueryChange(queryIndex, newQuery);
+    };
+  }
+
+  function handleBlur(queryIndex) {
+    return field => {
+      if (!blurTimeout) {
+        const newQuery: WidgetQuery = {
+          ...queries[queryIndex],
+          conditions: field,
+        };
+        onQueryChange(queryIndex, newQuery);
+      }
+    };
+  }
 
   return (
     <BuildStep
@@ -61,43 +100,24 @@ export function FilterResultsStep({
               error={queryErrors?.[queryIndex]?.conditions}
             >
               <SearchConditionsWrapper>
-                <Search
-                  searchSource="widget_builder"
-                  organization={organization}
-                  projectIds={projectIds}
-                  query={query.conditions}
-                  fields={[]}
-                  onSearch={field => {
-                    // SearchBar will call handlers for both onSearch and onBlur
-                    // when selecting a value from the autocomplete dropdown. This can
-                    // cause state issues for the search bar in our use case. To prevent
-                    // this, we set a timer in our onSearch handler to block our onBlur
-                    // handler from firing if it is within 200ms, ie from clicking an
-                    // autocomplete value.
-                    setBlurTimeout(
-                      window.setTimeout(() => {
-                        setBlurTimeout(null);
-                      }, 200)
-                    );
-
-                    const newQuery: WidgetQuery = {
-                      ...queries[queryIndex],
-                      conditions: field,
-                    };
-                    onQueryChange(queryIndex, newQuery);
-                  }}
-                  onBlur={field => {
-                    if (!blurTimeout) {
-                      const newQuery: WidgetQuery = {
-                        ...queries[queryIndex],
-                        conditions: field,
-                      };
-                      onQueryChange(queryIndex, newQuery);
-                    }
-                  }}
-                  useFormWrapper={false}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {widgetType === WidgetType.ISSUE ? (
+                  <IssuesSearchBar
+                    organization={organization}
+                    query={query}
+                    onBlur={handleBlur(queryIndex)}
+                    onSearch={handleSearch(queryIndex)}
+                    selection={selection}
+                    searchSource="widget_builder"
+                  />
+                ) : (
+                  <EventsSearchBar
+                    organization={organization}
+                    query={query}
+                    projectIds={projectIds}
+                    onBlur={handleBlur(queryIndex)}
+                    onSearch={handleSearch(queryIndex)}
+                  />
+                )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -140,10 +160,6 @@ export function FilterResultsStep({
     </BuildStep>
   );
 }
-
-const Search = styled(SearchBar)`
-  flex-grow: 1;
-`;
 
 const LegendAliasInput = styled(Input)`
   width: 33%;
