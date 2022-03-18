@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -30,6 +31,7 @@ from sentry.utils.auth import mark_sso_complete
 UNSET = object()
 
 
+@freeze_time("2022-03-03 03:21:34")
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
@@ -57,7 +59,7 @@ class SuperuserTestCase(TestCase):
         if session_data:
             request.session[SESSION_KEY] = {
                 "exp": (
-                    current_datetime + timedelta(hours=6) if expires is UNSET else expires
+                    current_datetime + timedelta(hours=4) if expires is UNSET else expires
                 ).strftime("%s"),
                 "idl": (
                     current_datetime + timedelta(minutes=15)
@@ -135,11 +137,13 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
+    @freeze_time("2022-03-03 08:21:34")
     def test_expired(self):
         request = self.build_request(expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
+    @freeze_time("2022-03-03 03:37:34")
     def test_idle_expired(self):
         request = self.build_request(idle_expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
@@ -189,6 +193,7 @@ class SuperuserTestCase(TestCase):
                 "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
             )
 
+    @freeze_time("2022-03-03 03:34:34")
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
         request.organization = self.create_organization(name="not_our_org")
@@ -196,6 +201,7 @@ class SuperuserTestCase(TestCase):
 
         assert superuser.is_active is True
 
+    @freeze_time("2022-03-03 03:37:34")
     def test_max_time_org_change_time_expired(self):
         request = self.build_request()
         request.organization = self.create_organization(name="not_our_org")
