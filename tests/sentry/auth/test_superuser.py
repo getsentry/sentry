@@ -296,7 +296,6 @@ class SuperuserTestCase(TestCase):
         request.auth = SystemToken()
         assert is_active_superuser(request)
 
-    @freeze_time("2022-03-03 03:21:34")
     def test_is_active_superuser(self):
         request = self.build_request()
         request.superuser = Superuser(request, allowed_ips=())
