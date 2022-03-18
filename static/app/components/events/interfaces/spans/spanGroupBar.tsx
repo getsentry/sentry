@@ -44,12 +44,13 @@ import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types'
 import {
   getMeasurementBounds,
   getMeasurements,
+  getSpanGroupBounds,
+  getSpanGroupTimestamps,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
 
@@ -73,79 +74,6 @@ type Props = {
   treeDepth: number;
   toggleSiblingSpanGroup?: (span: SpanType) => void;
 };
-
-function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
-  return spanGroup.reduce(
-    (acc, spanGroupItem) => {
-      const {start_timestamp, timestamp} = spanGroupItem.span;
-
-      let newStartTimestamp = acc.startTimestamp;
-      let newEndTimestamp = acc.endTimestamp;
-
-      if (start_timestamp < newStartTimestamp) {
-        newStartTimestamp = start_timestamp;
-      }
-
-      if (newEndTimestamp < timestamp) {
-        newEndTimestamp = timestamp;
-      }
-
-      return {
-        startTimestamp: newStartTimestamp,
-        endTimestamp: newEndTimestamp,
-      };
-    },
-    {
-      startTimestamp: spanGroup[0].span.start_timestamp,
-      endTimestamp: spanGroup[0].span.timestamp,
-    }
-  );
-}
-
-function getSpanGroupBounds(
-  spanGroup: EnhancedSpan[],
-  generateBounds: Props['generateBounds']
-): SpanViewBoundsType {
-  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGroup);
-
-  const bounds = generateBounds({
-    startTimestamp,
-    endTimestamp,
-  });
-
-  switch (bounds.type) {
-    case 'TRACE_TIMESTAMPS_EQUAL':
-    case 'INVALID_VIEW_WINDOW': {
-      return {
-        warning: void 0,
-        left: void 0,
-        width: void 0,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_EQUAL': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: 0.00001,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_REVERSED':
-    case 'TIMESTAMPS_STABLE': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    default: {
-      const _exhaustiveCheck: never = bounds;
-      return _exhaustiveCheck;
-    }
-  }
-}
 
 class SpanGroupBar extends React.Component<Props> {
   renderGroupedSpansToggler() {

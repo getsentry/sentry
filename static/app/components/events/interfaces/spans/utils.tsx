@@ -10,6 +10,7 @@ import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
+  EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -638,4 +639,77 @@ export function spanTargetHash(spanId: string): string {
 
 export function getSiblingGroupKey(span: SpanType): string {
   return `${span?.op}.${span?.description}`;
+}
+
+export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
+  return spanGroup.reduce(
+    (acc, spanGroupItem) => {
+      const {start_timestamp, timestamp} = spanGroupItem.span;
+
+      let newStartTimestamp = acc.startTimestamp;
+      let newEndTimestamp = acc.endTimestamp;
+
+      if (start_timestamp < newStartTimestamp) {
+        newStartTimestamp = start_timestamp;
+      }
+
+      if (newEndTimestamp < timestamp) {
+        newEndTimestamp = timestamp;
+      }
+
+      return {
+        startTimestamp: newStartTimestamp,
+        endTimestamp: newEndTimestamp,
+      };
+    },
+    {
+      startTimestamp: spanGroup[0].span.start_timestamp,
+      endTimestamp: spanGroup[0].span.timestamp,
+    }
+  );
+}
+
+export function getSpanGroupBounds(
+  spanGroup: EnhancedSpan[],
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+): SpanViewBoundsType {
+  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGroup);
+
+  const bounds = generateBounds({
+    startTimestamp,
+    endTimestamp,
+  });
+
+  switch (bounds.type) {
+    case 'TRACE_TIMESTAMPS_EQUAL':
+    case 'INVALID_VIEW_WINDOW': {
+      return {
+        warning: void 0,
+        left: void 0,
+        width: void 0,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_EQUAL': {
+      return {
+        warning: void 0,
+        left: bounds.start,
+        width: 0.00001,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    case 'TIMESTAMPS_REVERSED':
+    case 'TIMESTAMPS_STABLE': {
+      return {
+        warning: void 0,
+        left: bounds.start,
+        width: bounds.end - bounds.start,
+        isSpanVisibleInView: bounds.isSpanVisibleInView,
+      };
+    }
+    default: {
+      const _exhaustiveCheck: never = bounds;
+      return _exhaustiveCheck;
+    }
+  }
 }
