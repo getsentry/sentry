@@ -1223,6 +1223,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
             query.run_query("test_query")
 
+    def test_invalid_column_arg(self):
+        for function in [
+            "count_unique(transaction.duration)",
+            "count_miserable(measurements.fcp)",
+            "p75(user)",
+            "count_web_vitals(user, poor)",
+        ]:
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    "",
+                    selected_columns=[function],
+                )
+
     def test_orderby_field_alias(self):
         query = MetricsQueryBuilder(
             self.params,

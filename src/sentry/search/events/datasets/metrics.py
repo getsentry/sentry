@@ -72,7 +72,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
-                    required_args=[fields.FunctionArg("column")],
+                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
@@ -87,7 +87,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p50",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -98,7 +103,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p75",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -109,7 +119,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p90",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -120,7 +135,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p95",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -131,7 +151,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p99",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -142,7 +167,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p100",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
@@ -157,7 +187,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_unique",
-                    required_args=[fields.FunctionArg("column")],
+                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
@@ -172,7 +202,16 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
-                        fields.FunctionArg("column"),
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.fp",
+                                "measurements.fcp",
+                                "measurements.lcp",
+                                "measurements.fid",
+                                "measurements.cls",
+                            ],
+                        ),
                         fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
                     ],
                     calculated_args=[resolve_metric_id],
