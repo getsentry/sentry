@@ -43,6 +43,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
+    TREND_FUNCTION_TYPE_MAP,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
@@ -542,15 +543,16 @@ class QueryBuilder:
 
         params to this function should match that of resolve_function
         """
-        # HACK: Don't invalid query here if we don't recognize the function
-        # this is cause we want to use trend function aliases in top events, see TODO about introducing dataset on the
-        # endpoint file
         try:
             resolved_function = self.resolve_function(
                 function, match, resolve_only, overwrite_alias
             )
         except InvalidSearchQuery:
-            return None
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function, None)
 
         if not isinstance(resolved_function, Function) or resolved_function.alias is None:
             return None

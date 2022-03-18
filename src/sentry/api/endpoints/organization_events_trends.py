@@ -78,7 +78,7 @@ class TrendQueryBuilder(QueryBuilder):
         overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         if function in self.params.get("aliases", {}):
-            alias = self.params["aliases"][function]
+            alias: Function = self.params["aliases"][function]
             if match is None:
                 match = is_function(function)
 
@@ -283,7 +283,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 ),
                 ["minus", "transaction.duration"],
                 trend_columns["trend_difference"],
-                "number",
+                "duration",
             ),
             "confidence()": Alias(
                 lambda aggregate_filter: Condition(
