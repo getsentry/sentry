@@ -202,12 +202,6 @@ class BaseTestCase(Fixtures, Exam):
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         if is_superuser:
-            request._body = json.dumps(
-                {
-                    "superuserAccessCategory": "debugging",
-                    "superuserReason": "Edit organization settings",
-                }
-            )
             # XXX: this is gross, but its a one off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
@@ -249,12 +243,6 @@ class BaseTestCase(Fixtures, Exam):
             # XXX(dcramer): we're calling the internal method to avoid logging
             request.superuser._set_logged_out()
         elif request.user.is_superuser and superuser:
-            request._body = json.dumps(
-                {
-                    "superuserAccessCategory": "debugging",
-                    "superuserReason": "Edit organization settings",
-                }
-            )
             request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful

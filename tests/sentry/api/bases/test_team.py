@@ -1,7 +1,6 @@
 from sentry.api.bases.team import TeamPermission
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
-from sentry.utils import json
 
 
 class TeamPermissionBase(TestCase):
@@ -14,12 +13,6 @@ class TeamPermissionBase(TestCase):
         perm = TeamPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
-            request._body = json.dumps(
-                {
-                    "superuserAccessCategory": "debugging",
-                    "superuserReason": "Edit organization settings",
-                }
-            )
             request.superuser.set_logged_in(request.user)
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 

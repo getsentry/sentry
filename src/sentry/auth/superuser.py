@@ -46,7 +46,7 @@ MAX_AGE = getattr(settings, "SUPERUSER_MAX_AGE", timedelta(hours=4))
 
 # the maximum time the session can stay alive when accessing different orgs
 MAX_AGE_PRIVILEGED_ORG_ACCESS = getattr(
-    settings, "SUPERUSER_ORG_CHANGE_MAX_AGE", timedelta(minutes=15)
+    settings, "MAX_AGE_PRIVILEGED_ORG_ACCESS", timedelta(minutes=15)
 )
 
 # the maximum time the session can stay alive without making another request
@@ -77,6 +77,13 @@ class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
+
+    @staticmethod
+    def _need_validation():
+        try:
+            return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+        except AttributeError:
+            return False
 
     def _check_expired_on_org_change(self):
         if hasattr(self, "expires") and self.expires is not None:
@@ -306,7 +313,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if is_self_hosted():
+        if is_self_hosted() or not self._need_validation():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -321,6 +328,7 @@ class Superuser:
             return
 
         try:
+            # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
         except AttributeError:
             su_access_json = {}
