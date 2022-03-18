@@ -1401,9 +1401,7 @@ def spans_histogram_query(
     if not normalize_results:
         return results
 
-    # TODO refactor normalize_histogram_results so that it can operate with span data
-    # return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
-    return results
+    return normalize_span_histogram_resutls(span, histogram_params, results)
 
 
 def histogram_query(
@@ -1743,6 +1741,40 @@ def find_histogram_min_max(
             max_value = max([max_value, min_value])
 
     return min_value, max_value
+
+
+def normalize_span_histogram_resutls(span, histogram_params, results):
+    """
+    Normalizes the span histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param [Span] span: The span for which you want to generate the
+        histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
+    histogram_column = get_span_histogram_column(span, histogram_params)
+    bin_name = get_function_alias(histogram_column)
+
+    # zerofill and rename the columns while making sure to adjust for precision
+    bucket_map = {}
+    for row in results["data"]:
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        bucket_map[bucket] = row["count"]
+
+    new_data = []
+    for i in range(histogram_params.num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        row = {"bin": bucket, "count": bucket_map.get(bucket, 0)}
+        if histogram_params.multiplier > 1:
+            row["bin"] /= float(histogram_params.multiplier)
+        new_data.append(row)
+
+    return new_data
 
 
 def normalize_histogram_results(fields, key_column, histogram_params, results, array_column):
