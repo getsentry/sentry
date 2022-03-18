@@ -5,6 +5,7 @@ from django.db import connections, models, router
 from django.utils import timezone
 
 from sentry.db.models import Model
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
 
 
@@ -32,3 +33,20 @@ class MetricsKeyIndexer(Model):  # type: ignore
             "SELECT nextval('sentry_metricskeyindexer_id_seq') from generate_series(1,%s)", [num]
         )
         return connection.fetchall()
+
+
+class StringIndexer(Model):  # type: ignore
+    __include_in_export__ = False
+
+    string = models.CharField(max_length=200)
+    organization_id = BoundedBigIntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    retention_days = models.IntegerField(default=90)
+
+    class Meta:
+        db_table = "sentry_stringindexer"
+        app_label = "sentry"
+        constraints = [
+            models.UniqueConstraint(fields=["string", "organization_id"], name="unique_org_string"),
+        ]
