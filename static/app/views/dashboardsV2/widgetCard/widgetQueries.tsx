@@ -30,7 +30,7 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
     data:
-      stats?.data.map(([timestamp, counts]) => ({
+      stats?.data?.map(([timestamp, counts]) => ({
         name: timestamp * 1000,
         value: counts.reduce((acc, {count}) => acc + count, 0),
       })) ?? [],
@@ -149,6 +149,7 @@ class WidgetQueries extends React.Component<Props, State> {
       );
 
     if (
+      !isEqual(widget.limit, prevProps.widget.limit) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
@@ -327,7 +328,7 @@ class WidgetQueries extends React.Component<Props, State> {
           [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
           query.columns?.length !== 0
         ) {
-          requestData.topEvents = TOP_N;
+          requestData.topEvents = widget.limit ?? TOP_N;
           // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
           requestData.orderby = query.columns?.[0];

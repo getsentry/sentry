@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
@@ -30,7 +31,10 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
         }))}
         value={values.sortDirection}
         onChange={(option: SelectValue<SortDirection>) => {
-          onChange({sortBy: values.sortBy, sortDirection: option.value});
+          onChange({
+            sortBy: values.sortBy,
+            sortDirection: option.value,
+          });
         }}
       />
       <SelectControl
@@ -38,9 +42,12 @@ export function SortBySelectors({values, sortByOptions, onChange}: Props) {
         menuPlacement="auto"
         placeholder={`${t('Select a column')}\u{2026}`}
         value={values.sortBy}
-        options={sortByOptions}
+        options={uniqBy(sortByOptions, ({value}) => value)}
         onChange={(option: SelectValue<string>) => {
-          onChange({sortBy: option.value, sortDirection: values.sortDirection});
+          onChange({
+            sortBy: option.value,
+            sortDirection: values.sortDirection,
+          });
         }}
       />
     </Wrapper>
