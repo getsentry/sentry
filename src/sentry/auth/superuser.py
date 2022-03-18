@@ -83,6 +83,13 @@ class Superuser:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
 
+    @staticmethod
+    def _need_validation():
+        try:
+            return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
+        except AttributeError:
+            return False
+
     @property
     def is_active(self):
         # if we've been logged out
@@ -289,7 +296,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if is_self_hosted():
+        if is_self_hosted() or not self._need_validation():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -304,6 +311,7 @@ class Superuser:
             return
 
         try:
+            # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
         except AttributeError:
             su_access_json = {}
