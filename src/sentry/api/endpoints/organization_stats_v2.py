@@ -15,6 +15,7 @@ from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -124,13 +125,16 @@ class StatsApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="orgstats",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1, 10),
+                RateLimitCategory.USER: RateLimit(20, 1, 10),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, 10),
+            }
+        },
+    )
     public = {"GET"}
 
     @extend_schema(

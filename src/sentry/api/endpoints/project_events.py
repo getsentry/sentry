@@ -8,18 +8,22 @@ from rest_framework.response import Response
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectEventsEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="issues",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(5, 1, 3),
+                RateLimitCategory.USER: RateLimit(5, 1, 3),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 1, 3),
+            }
+        },
+    )
 
     def get(self, request: Request, project) -> Response:
         """

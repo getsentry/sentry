@@ -7,6 +7,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -18,13 +19,16 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="issues",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(10, 1),
+                RateLimitCategory.USER: RateLimit(10, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+            }
+        },
+    )
 
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None

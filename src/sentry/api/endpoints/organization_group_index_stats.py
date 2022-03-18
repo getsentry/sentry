@@ -9,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.compat import map
 
@@ -17,13 +18,16 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="orgstats",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(10, 1, 5),
+                RateLimitCategory.USER: RateLimit(10, 1, 5),
+                RateLimitCategory.ORGANIZATION: RateLimit(10, 1, 5),
+            }
+        },
+    )
 
     def get(self, request: Request, organization) -> Response:
         """

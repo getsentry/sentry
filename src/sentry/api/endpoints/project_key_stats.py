@@ -9,18 +9,22 @@ from sentry.api.base import StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
-        }
-    }
+    rate_limits = RateLimitConfig(
+        group="issues",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1),
+                RateLimitCategory.USER: RateLimit(20, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            }
+        },
+    )
 
     def get(self, request: Request, project, key_id) -> Response:
         try:

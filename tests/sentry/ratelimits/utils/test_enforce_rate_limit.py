@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -13,7 +14,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class RateLimitTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+    )
 
     def get(self, request):
         return Response({"ok": True})

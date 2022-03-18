@@ -34,6 +34,7 @@ from sentry.models import (
     GroupStatus,
     Project,
 )
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -139,23 +140,26 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(10, 1),
-            RateLimitCategory.USER: RateLimit(10, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
+    rate_limits = RateLimitConfig(
+        group="issues",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(10, 1, 5),
+                RateLimitCategory.USER: RateLimit(10, 1, 5),
+                RateLimitCategory.ORGANIZATION: RateLimit(10, 1, 5),
+            },
+            "PUT": {
+                RateLimitCategory.IP: RateLimit(5, 5, 2),
+                RateLimitCategory.USER: RateLimit(5, 5, 2),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 5, 2),
+            },
+            "DELETE": {
+                RateLimitCategory.IP: RateLimit(5, 5, 2),
+                RateLimitCategory.USER: RateLimit(5, 5, 2),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 5, 2),
+            },
         },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-    }
+    )
 
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None

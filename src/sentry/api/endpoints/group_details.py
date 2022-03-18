@@ -23,6 +23,7 @@ from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, 
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -32,23 +33,26 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+    rate_limits = RateLimitConfig(
+        group="issues",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(5, 1, 3),
+                RateLimitCategory.USER: RateLimit(5, 1, 3),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 1, 3),
+            },
+            "PUT": {
+                RateLimitCategory.IP: RateLimit(5, 1, 3),
+                RateLimitCategory.USER: RateLimit(5, 1, 3),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 1, 3),
+            },
+            "DELETE": {
+                RateLimitCategory.IP: RateLimit(5, 5, 3),
+                RateLimitCategory.USER: RateLimit(5, 5, 3),
+                RateLimitCategory.ORGANIZATION: RateLimit(5, 5, 3),
+            },
         },
-        "PUT": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
-        },
-        "DELETE": {
-            RateLimitCategory.IP: RateLimit(5, 5),
-            RateLimitCategory.USER: RateLimit(5, 5),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 5),
-        },
-    }
+    )
 
     def _get_activity(self, request: Request, group, num):
         return Activity.objects.get_activities_for_group(group, num)

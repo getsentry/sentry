@@ -27,10 +27,12 @@ class TestGetRateLimitValue(TestCase):
         """Override one or more of the default rate limits."""
 
         class TestEndpoint(Endpoint):
-            rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
-            }
+            rate_limits = RateLimitConfig(
+                limit_overrides={
+                    "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
+                    "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
+                }
+            )
 
         assert get_rate_limit_value("GET", TestEndpoint, RateLimitCategory.IP) == RateLimit(100, 5)
         assert get_rate_limit_value(
