@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import Hook from 'sentry/components/hook';
@@ -154,19 +155,28 @@ class SudoModal extends React.Component<Props, State> {
               {t(errorType)}
             </StyledAlert>
           )}
-          <Form
-            apiMethod="PUT"
-            apiEndpoint="/auth/"
-            submitLabel={t('Re-authenticate')}
-            onSubmitSuccess={this.handleSuccess}
-            onSubmitError={this.handleError}
-            initialData={{isSuperuserModal: isSuperuser}}
-            resetOnError
-          >
-            {!isSelfHosted && showAccessForms && isSuperuser && (
-              <Hook name="component:superuser-access-category" />
-            )}
-          </Form>
+          {isSuperuser ? (
+            <Form
+              apiMethod="PUT"
+              apiEndpoint="/auth/"
+              submitLabel={t('Re-authenticate')}
+              onSubmitSuccess={this.handleSuccess}
+              onSubmitError={this.handleError}
+              initialData={{isSuperuserModal: isSuperuser}}
+              resetOnError
+            >
+              {!isSelfHosted && showAccessForms && isSuperuser && (
+                <Hook name="component:superuser-access-category" />
+              )}
+            </Form>
+          ) : (
+            <Button
+              priority="primary"
+              href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
+            >
+              {t('Continue')}
+            </Button>
+          )}
         </React.Fragment>
       );
     }
