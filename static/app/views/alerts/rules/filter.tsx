@@ -107,7 +107,6 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
       button={({isOpen, getActorProps}) => (
         <StyledDropdownButton
           {...getActorProps()}
-          showChevron={false}
           isOpen={isOpen}
           icon={<IconUser />}
           priority="default"
