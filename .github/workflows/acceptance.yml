@@ -56,8 +56,6 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-
-
       - uses: volta-cli/action@v1
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
@@ -112,17 +110,13 @@ jobs:
 
   webpack:
     name: create frontend bundle
+    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
     runs-on: ubuntu-18.04
     timeout-minutes: 10
     outputs:
       dist-path: ${{ steps.config.outputs.dist-path }}
 
     steps:
-      - name: Skip to the end
-        if: ${{ needs.changes.outputs.backend_or_frontend != 'true' }}
-        run: |
-          exit 1
-
       - uses: actions/checkout@v2
         name: Checkout sentry
 
@@ -171,11 +165,6 @@ jobs:
           retention-days: 3
           name: frontend-dist
           path: dist.tar.gz
-
-      - name: Turn it green
-        if: always()
-        run: |
-          echo "All other steps were skipped but this will turn the job green!"
 
   acceptance:
     needs: changes
