@@ -9,7 +9,7 @@ export function AcceptanceTestTooltip(props: TooltipProps) {
 
   useEffect(() => {
     const tooltipId = domId('tooltip-');
-    tooltipStore.addTooltip(tooltipId, {setOpen});
+    tooltipStore.addTooltip(tooltipId, setOpen);
 
     return () => {
       tooltipStore.removeTooltip(tooltipId);
