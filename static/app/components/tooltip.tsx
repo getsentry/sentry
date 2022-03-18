@@ -18,13 +18,16 @@ import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
 
+import {IS_ACCEPTANCE_TEST} from '../constants/index';
+
+import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
+
 export const OPEN_DELAY = 50;
 
 /**
  * How long to wait before closing the tooltip when isHoverable is set
  */
 const CLOSE_DELAY = 50;
-
 export interface TooltipProps {
   children: React.ReactNode;
   /**
@@ -43,12 +46,6 @@ export interface TooltipProps {
    * Time to wait (in milliseconds) before showing the tooltip
    */
   delay?: number;
-
-  /**
-   * Stops tooltip from being opened during tooltip visual acceptance.
-   * Should be set to true if tooltip contains unisolated data (eg. dates)
-   */
-  disableForVisualTest?: boolean;
 
   /**
    * Disable the tooltip display entirely
@@ -120,6 +117,7 @@ function createTooltipPortal(): HTMLElement {
   return portal;
 }
 
+// Warning: This component is conditionally exported eof based on IS_ACCEPTANCE_TEST env variable
 function Tooltip({
   children,
   className,
@@ -391,4 +389,19 @@ const TooltipArrow = styled('span')`
   }
 `;
 
-export default Tooltip;
+interface AcceptanceTestProxyProps extends TooltipProps {
+  /**
+   * Stops tooltip from being opened during tooltip visual acceptance.
+   * Should be set to true if tooltip contains unisolated data (eg. dates)
+   */
+  disableForVisualTest?: boolean;
+}
+function AcceptanceTestProxy(props: AcceptanceTestProxyProps) {
+  if (IS_ACCEPTANCE_TEST) {
+    return props.disableForVisualTest ? null : <AcceptanceTestTooltip {...props} />;
+  }
+
+  return <Tooltip {...props} />;
+}
+
+export default AcceptanceTestProxy;
