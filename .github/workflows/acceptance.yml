@@ -340,6 +340,15 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+  fake-visual-snapshot:
+    if: needs.changes.outputs.backend_or_frontend != 'true'
+    needs: changes
+    runs-on: ubuntu-18.04
+    # This name has to match in order to satisfy the required check
+    name: Visual Snapshot
+    steps:
+      - run: 'echo "Check not required." '
+
   visual-diff:
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
@@ -357,12 +366,3 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-  fake-visual-snapshot:
-    if: needs.changes.outputs.backend_or_frontend != 'true'
-    needs: changes
-    runs-on: ubuntu-18.04
-    # This name has to match in order to satisfy the required check
-    name: Visual Snapshot
-    steps:
-      - run: 'echo "Check not required." '
