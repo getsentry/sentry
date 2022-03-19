@@ -404,7 +404,11 @@ interface AcceptanceTestTooltipProxyProps extends TooltipProps {
  */
 function Tooltip({disableForVisualTest, ...props}: AcceptanceTestTooltipProxyProps) {
   if (IS_ACCEPTANCE_TEST) {
-    return disableForVisualTest ? props.children : <AcceptanceTestTooltip {...props} />;
+    return disableForVisualTest ? (
+      <Fragment>{props.children}</Fragment>
+    ) : (
+      <AcceptanceTestTooltip {...props} />
+    );
   }
 
   return <DO_NOT_USE_TOOLTIP {...props} />;
