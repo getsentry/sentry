@@ -402,10 +402,7 @@ interface AcceptanceTestTooltipProxyProps extends TooltipProps {
  * functionality used in src/sentry/utils/pytest/selenium.py so that tooltips
  * can be opened and closed for specific snapshots.
  */
-function AcceptanceTestTooltipProxy({
-  disableForVisualTest,
-  ...props
-}: AcceptanceTestTooltipProxyProps) {
+function Tooltip({disableForVisualTest, ...props}: AcceptanceTestTooltipProxyProps) {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? props.children : <AcceptanceTestTooltip {...props} />;
   }
@@ -414,5 +411,4 @@ function AcceptanceTestTooltipProxy({
 }
 
 // Rename for better language support
-const Tooltip = AcceptanceTestTooltipProxy;
 export default Tooltip;
