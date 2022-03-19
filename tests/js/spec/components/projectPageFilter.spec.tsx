@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -17,7 +17,10 @@ describe('ProjectPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });
@@ -39,7 +42,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pick project', function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -65,7 +68,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can pin selection', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -75,10 +78,10 @@ describe('ProjectPageFilter', function () {
     userEvent.click(screen.getByText('My Projects'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
     userEvent.click(pinButton);
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -88,7 +91,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
@@ -126,7 +129,7 @@ describe('ProjectPageFilter', function () {
   });
 
   it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
-    mountWithTheme(<ProjectPageFilter />, {
+    render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });

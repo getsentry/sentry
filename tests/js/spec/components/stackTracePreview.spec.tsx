@@ -1,9 +1,4 @@
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
 import {EntryType, Event} from 'sentry/types/event';
@@ -31,7 +26,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         eventId="event_id"
@@ -59,7 +54,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -85,7 +80,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -107,7 +102,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({slug: 'org_slug'})}
@@ -156,7 +151,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    mountWithTheme(
+    render(
       <StackTracePreview
         issueId="issue"
         organization={TestStubs.Organization({

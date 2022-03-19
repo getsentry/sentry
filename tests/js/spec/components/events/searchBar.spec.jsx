@@ -184,7 +184,7 @@ describe('Events > SearchBar', function () {
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('filters dropdown to accommodate for num characters left in query', async function () {
+  it('filters dropdown to accomodate for num characters left in query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     wrapper.update();

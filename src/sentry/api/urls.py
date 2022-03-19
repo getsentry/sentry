@@ -91,6 +91,15 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.codeowners import (
+    ExternalTeamDetailsEndpoint,
+    ExternalTeamEndpoint,
+    ExternalUserDetailsEndpoint,
+    ExternalUserEndpoint,
+    ProjectCodeOwnersDetailsEndpoint,
+    ProjectCodeOwnersEndpoint,
+    ProjectCodeOwnersRequestEndpoint,
+)
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -108,10 +117,6 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
-from .endpoints.external_team import ExternalTeamEndpoint
-from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
-from .endpoints.external_user import ExternalUserEndpoint
-from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
@@ -204,6 +209,7 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -316,9 +322,6 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
-from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
-from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -1119,6 +1122,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
                     OrganizationEventsHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-histogram",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
+                    OrganizationEventsSpansHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",

@@ -31,7 +31,7 @@ describe('EventsV2 > ResultsChart', function () {
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
   });
 
-  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
+  it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
@@ -62,7 +62,7 @@ describe('EventsV2 > ResultsChart', function () {
     });
   });
 
-  it('does not display a chart if no y axis is selected', async function () {
+  it('does not display a chart if no y axis is selected', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
@@ -83,7 +83,7 @@ describe('EventsV2 > ResultsChart', function () {
     );
   });
 
-  it('disables other y-axis options when not in default, daily, previous period, or bar display mode', async function () {
+  it('disables other y-axis options when not in default, daily, previous period, or bar display mode', function () {
     eventView.display = DisplayModes.WORLDMAP;
     const wrapper = mountWithTheme(
       <ResultsChart
@@ -108,7 +108,7 @@ describe('EventsV2 > ResultsChart', function () {
     });
   });
 
-  it('disables equation y-axis options when in World Map display mode', async function () {
+  it('disables equation y-axis options when in World Map display mode', function () {
     eventView.display = DisplayModes.WORLDMAP;
     eventView.fields = [
       {field: 'count()'},

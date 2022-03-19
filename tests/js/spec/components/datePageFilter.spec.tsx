@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -7,7 +7,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 describe('DatePageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: undefined,
+    organization: {features: ['selection-filters-v2']},
     project: undefined,
     projects: undefined,
     router: {
@@ -31,7 +31,7 @@ describe('DatePageFilter', function () {
   );
 
   it('can change period', async function () {
-    mountWithTheme(<DatePageFilter />, {
+    render(<DatePageFilter />, {
       context: routerContext,
       organization,
     });
@@ -61,7 +61,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can pin datetime', async function () {
-    mountWithTheme(<DatePageFilter />, {
+    render(<DatePageFilter />, {
       context: routerContext,
       organization,
     });
@@ -73,11 +73,14 @@ describe('DatePageFilter', function () {
       })
     );
 
+    // Open time period dropdown
+    userEvent.click(screen.getByText('30D'));
+
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
     userEvent.click(pinButton);
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

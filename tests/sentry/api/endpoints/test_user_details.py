@@ -1,4 +1,11 @@
-from sentry.models import Organization, OrganizationStatus, User, UserOption, UserPermission
+from sentry.models import (
+    Organization,
+    OrganizationStatus,
+    User,
+    UserOption,
+    UserPermission,
+    UserRole,
+)
 from sentry.testutils import APITestCase
 
 
@@ -36,6 +43,23 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["id"] == str(self.user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
+
+    def test_includes_roles_and_permissions(self):
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.add_user_permission(superuser, "users.admin")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_valid_response(superuser.id)
+
+        assert resp.data["id"] == str(superuser.id)
+        assert "permissions" in resp.data
+        assert resp.data["permissions"] == ["users.admin"]
+
+        role = UserRole.objects.create(name="test", permissions=["broadcasts.admin"])
+        role.users.add(superuser)
+
+        resp = self.get_valid_response(superuser.id)
+        assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
 class UserDetailsUpdateTest(UserDetailsTest):

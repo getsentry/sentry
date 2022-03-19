@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamInsightsContainer from 'sentry/views/organizationStats/teamInsights';
@@ -11,7 +11,7 @@ describe('TeamInsightsContainer', () => {
   it('blocks access if org is missing flag', () => {
     const organization = TestStubs.Organization();
     const context = TestStubs.routerContext([{organization}]);
-    mountWithTheme(
+    render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
       </TeamInsightsContainer>,
@@ -24,7 +24,7 @@ describe('TeamInsightsContainer', () => {
     ProjectsStore.loadInitialData([TestStubs.Project()]);
     const organization = TestStubs.Organization({features: ['team-insights']});
     const context = TestStubs.routerContext([{organization}]);
-    mountWithTheme(
+    render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
       </TeamInsightsContainer>,
@@ -37,7 +37,7 @@ describe('TeamInsightsContainer', () => {
     ProjectsStore.loadInitialData([]);
     const organization = TestStubs.Organization({features: ['team-insights']});
     const context = TestStubs.routerContext([{organization}]);
-    mountWithTheme(<TeamInsightsContainer organization={organization} />, {context});
+    render(<TeamInsightsContainer organization={organization} />, {context});
 
     expect(
       screen.getByText('You need at least one project to use this view')

@@ -819,7 +819,9 @@ class TopEventsQueryBuilderTest(TestCase):
         )
 
 
-def _metric_percentile_definition(quantile, field="transaction.duration") -> Function:
+def _metric_percentile_definition(quantile, field="transaction.duration", alias=None) -> Function:
+    if alias is None:
+        alias = f"p{quantile}_{field.replace('.', '_')}"
     return Function(
         "arrayElement",
         [
@@ -835,7 +837,7 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
             ),
             1,
         ],
-        f"p{quantile}_{field.replace('.', '_')}",
+        alias,
     )
 
 
@@ -956,6 +958,46 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_p100(self):
+        """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p100(transaction.duration)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    [
+                        "transaction.duration",
+                    ]
+                ),
+            ],
+        )
+        self.assertCountEqual(
+            query.distributions,
+            [
+                Function(
+                    "maxIf",
+                    [
+                        Column("value"),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                indexer.resolve(constants.METRICS_MAP["transaction.duration"]),
+                            ],
+                        ),
+                    ],
+                    "p100_transaction_duration",
+                )
+            ],
+        )
+
     def test_grouping(self):
         query = MetricsQueryBuilder(
             self.params,
@@ -1048,6 +1090,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
             )
 
+    def test_incorrect_parameter_for_metrics(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                f"project:{self.project.slug}",
+                selected_columns=["transaction", "count_unique(test)"],
+            )
+
     def test_project_filter(self):
         query = MetricsQueryBuilder(
             self.params,
@@ -1112,12 +1162,25 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             tags={"transaction": "foo_transaction"},
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
+        self.store_metric(
+            100,
+            metric="measurements.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1000,
+            metric="measurements.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
         query = MetricsQueryBuilder(
             self.params,
             f"project:{self.project.slug}",
             selected_columns=[
                 "transaction",
                 "p95(transaction.duration)",
+                "p100(measurements.lcp)",
             ],
         )
         result = query.run_query("test_query")
@@ -1125,12 +1188,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][0] == {
             "transaction": indexer.resolve("foo_transaction"),
             "p95_transaction_duration": 100,
+            "p100_measurements_lcp": 1000,
         }
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "transaction", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "p100_measurements_lcp", "type": "Float64"},
             ],
         )
 
@@ -1396,6 +1461,47 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 orderby=["-count_unique(user)", "p95(transaction.duration)"],
             )
             query.run_query("test_query")
+
+    def test_invalid_column_arg(self):
+        for function in [
+            "count_unique(transaction.duration)",
+            "count_miserable(measurements.fcp)",
+            "p75(user)",
+            "count_web_vitals(user, poor)",
+        ]:
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    "",
+                    selected_columns=[function],
+                )
+
+    def test_orderby_field_alias(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+            ],
+            orderby=["p95"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "p95"
+        )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95() as test",
+            ],
+            orderby=["test"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "test"
+        )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):

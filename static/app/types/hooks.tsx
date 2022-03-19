@@ -2,7 +2,7 @@ import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {
   Integration,
@@ -195,6 +195,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': GenericComponentHook;
 };
 
 /**
