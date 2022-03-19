@@ -17,7 +17,10 @@ describe('ProjectPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });
@@ -75,10 +78,10 @@ describe('ProjectPageFilter', function () {
     userEvent.click(screen.getByText('My Projects'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
     userEvent.click(pinButton);
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

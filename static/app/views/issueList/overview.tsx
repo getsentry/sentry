@@ -20,7 +20,6 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -268,6 +267,7 @@ class IssueListOverview extends React.Component<Props, State> {
   private _poller: any;
   private _lastRequest: any;
   private _lastStatsRequest: any;
+  private _lastFetchCountsRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -437,7 +437,7 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
-  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+  fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
@@ -447,6 +447,25 @@ class IssueListOverview extends React.Component<Props, State> {
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
+
+    // Update the count based on the exact number of issues, these shown as is
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
+      const tab = getTabs(organization).find(
+        ([tabQuery]) => currentTabQuery === tabQuery
+      )?.[1];
+      if (tab && !endpointParams.cursor) {
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+          organization,
+          tab: tab.analyticsName,
+          num_issues: queryCounts[currentTabQuery].count,
+        });
+      }
+    }
+    this.setState({queryCounts});
 
     // If all tabs' counts are fetched, skip and only set
     if (
@@ -464,51 +483,38 @@ class IssueListOverview extends React.Component<Props, State> {
         requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
 
-      try {
-        const response = await this.props.api.requestPromise(
-          this.getGroupCountsEndpoint(),
-          {
-            method: 'GET',
-            data: qs.stringify(requestParams),
-          }
-        );
+      this._lastFetchCountsRequest = this.props.api.request(
+        this.getGroupCountsEndpoint(),
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
 
-        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-        queryCounts = {
-          ...queryCounts,
-          ...mapValues(response, (count: number) => ({
-            count,
-            hasMore: count > TAB_MAX_COUNT,
-          })),
-        };
-      } catch (e) {
-        this.setState({
-          error: parseApiError(e),
-        });
-        return;
-      }
+          success: data => {
+            if (!data) {
+              return;
+            }
+            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+            queryCounts = {
+              ...queryCounts,
+              ...mapValues(data, (count: number) => ({
+                count,
+                hasMore: count > TAB_MAX_COUNT,
+              })),
+            };
+          },
+          error: err => {
+            this.setState({
+              error: parseApiError(err),
+            });
+          },
+          complete: () => {
+            this._lastFetchCountsRequest = null;
+
+            this.setState({queryCounts});
+          },
+        }
+      );
     }
-
-    // Update the count based on the exact number of issues, these shown as is
-    if (currentTabQuery) {
-      queryCounts[currentTabQuery] = {
-        count: currentQueryCount,
-        hasMore: false,
-      };
-
-      const tab = getTabs(organization).find(
-        ([tabQuery]) => currentTabQuery === tabQuery
-      )?.[1];
-      if (tab && !endpointParams.cursor) {
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab.analyticsName,
-          num_issues: queryCounts[currentTabQuery].count,
-        });
-      }
-    }
-
-    this.setState({queryCounts});
   };
 
   fetchData = (fetchAllCounts = false) => {
@@ -557,6 +563,9 @@ class IssueListOverview extends React.Component<Props, State> {
     }
     if (this._lastStatsRequest) {
       this._lastStatsRequest.cancel();
+    }
+    if (this._lastFetchCountsRequest) {
+      this._lastFetchCountsRequest.cancel();
     }
 
     this._poller.disable();
@@ -1161,8 +1170,6 @@ class IssueListOverview extends React.Component<Props, State> {
             )}
           </Layout.Body>
         </StyledPageContent>
-
-        {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
       </React.Fragment>
     );
   }

@@ -4,12 +4,9 @@ import Field from 'sentry/components/forms/field';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollection';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-
-import {WidgetType} from '../types';
-
-import {DisplayType} from './utils';
 
 interface Props {
   aggregates: QueryFieldValue[];

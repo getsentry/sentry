@@ -64,15 +64,6 @@ class DerivedMetricSnQLTestCase(TestCase):
         init_session_snql = init_sessions(self.metric_ids, "init_sessions")
         crashed_session_snql = crashed_sessions(self.metric_ids, "crashed_sessions")
 
-        assert percentage(
-            crashed_session_snql, init_session_snql, self.metric_ids, alias=alias
-        ) == Function(
-            "multiply",
-            [
-                100,
-                Function(
-                    "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])]
-                ),
-            ],
-            alias,
+        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
+            "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
         )

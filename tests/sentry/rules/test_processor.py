@@ -25,6 +25,9 @@ EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCo
 
 
 class MockConditionTrue(EventCondition):
+    id = "tests.sentry.rules.test_processor.MockConditionTrue"
+    label = "Mock condition which always passes."
+
     def passes(self, event, state):
         return True
 
@@ -202,14 +205,18 @@ class RuleProcessorTest(TestCase):
         assert passes.call_count == 0
 
 
-# mock filter which always passes
 class MockFilterTrue(EventFilter):
+    id = "tests.sentry.rules.test_processor.MockFilterTrue"
+    label = "Mock filter which always passes."
+
     def passes(self, event, state):
         return True
 
 
-# mock filter which never passes
 class MockFilterFalse(EventFilter):
+    id = "tests.sentry.rules.test_processor.MockFilterFalse"
+    label = "Mock filter which never passes."
+
     def passes(self, event, state):
         return False
 

@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 
-import {SortDirection, sortDirections} from './utils';
+import {SortDirection, sortDirections} from '../../utils';
 
 interface Values {
   sortBy: string;
