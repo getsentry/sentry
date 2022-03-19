@@ -46,6 +46,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     id: 'setup-docs',
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
+    hasFooter: true,
   },
 ];
 
@@ -58,7 +59,8 @@ function Onboarding(props: Props) {
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    cornerVariantControl.start('top-right');
+    // TODO: find better way to delay thhe corner animation
+    setTimeout(() => cornerVariantControl.start('top-right'), 1000);
   };
 
   React.useEffect(updateCornerVariant, []);
@@ -75,6 +77,7 @@ function Onboarding(props: Props) {
 
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
+
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={t('Welcome')} />
@@ -82,8 +85,13 @@ function Onboarding(props: Props) {
         <LogoSvg />
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
-      <Container>
+      <Container hasFooter={!!stepObj.hasFooter}>
         <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
+          {/* <TargetedOnboardingSidebar
+            stepId={stepObj.id}
+            // subStep={subStep}
+            activeProject={activeProject}
+          /> */}
           <OnboardingStep
             centered={stepObj.centered}
             key={stepObj.id}
@@ -96,6 +104,7 @@ function Onboarding(props: Props) {
                 onUpdate={() => {}}
                 orgId={props.params.orgId}
                 organization={props.organization}
+                search={props.location.search}
               />
             )}
           </OnboardingStep>
@@ -113,15 +122,17 @@ const OnboardingWrapper = styled('main')`
   flex-grow: 1;
 `;
 
-const Container = styled('div')`
+const Container = styled('div')<{hasFooter: boolean}>`
   display: flex;
   justify-content: center;
   position: relative;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.surface100};
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
   flex-grow: 1;
+  padding-bottom: ${p => p.hasFooter && '72px'};
+  margin-bottom: ${p => p.hasFooter && '72px'};
 `;
 
 const Header = styled('header')`
@@ -152,6 +163,23 @@ const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
 `;
 
 OnboardingStep.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {animate: {}},
+  transition: testableTransition({
+    staggerChildren: 0.2,
+  }),
+};
+
+const Sidebar = styled(motion.div)`
+  width: 850px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+Sidebar.defaultProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',

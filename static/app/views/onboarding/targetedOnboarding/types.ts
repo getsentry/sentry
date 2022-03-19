@@ -1,5 +1,5 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 
 export type StepData = {
   platform?: PlatformKey | null;
@@ -10,12 +10,15 @@ export type StepProps = {
   onComplete: (data: StepData) => void;
   onUpdate: (data: StepData) => void;
   orgId: string;
-  organization?: Organization;
+  organization: Organization;
+  search: string;
 };
 
 export type StepDescriptor = {
   Component: React.ComponentType<StepProps>;
   id: string;
   title: string;
+  FooterComponent?: React.ComponentType<{organization: Organization; project?: Project}>;
   centered?: boolean;
+  hasFooter?: boolean;
 };
