@@ -45,6 +45,7 @@ function SavedSearchMenuItem({
       <StyledMenuItem
         isActive={search.query === query && search.sort === sort}
         isLast={isLast}
+        data-test-id={`saved-search-${search.id}`}
       >
         <MenuItemLink tabIndex={-1} onClick={() => onSavedSearchSelect(search)}>
           <SearchTitle>{search.name}</SearchTitle>

@@ -25,6 +25,7 @@ RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
 SEMVER_BUILD_ALIAS = "release.build"
+TITLE_ALIAS = "title"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
@@ -174,3 +175,13 @@ METRIC_SATISFIED_TAG_KEY = "is_satisfied"
 METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
 METRIC_TRUE_TAG_VALUE = "true"
 METRIC_FALSE_TAG_VALUE = "false"
+METRIC_DURATION_COLUMNS = [
+    "measurements.fp",
+    "measurements.fcp",
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "measurements.ttfb",
+    "measurements.ttfb.requesttime",
+    "transaction.duration",
+]
