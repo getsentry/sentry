@@ -256,25 +256,11 @@ function WidgetBuilder({
     };
   });
 
-  const groupByColumns = state.queries[0].columns
-    .filter(field => !(field === 'equation|'))
-    .map(field => explodeField({field}));
-
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
   }, [source]);
-
-  useEffect(() => {
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      setState({
-        ...state,
-        limit:
-          groupByColumns.length === 0 ? undefined : state.limit ?? DEFAULT_RESULTS_LIMIT,
-      });
-    }
-  }, [groupByColumns.length]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -465,12 +451,20 @@ function WidgetBuilder({
   }
 
   function handleQueryChange(queryIndex: number, newQuery: WidgetQuery) {
-    setState(prevState => {
-      const newState = cloneDeep(prevState);
-      set(newState, `queries.${queryIndex}`, newQuery);
-      set(newState, 'userHasModified', true);
-      return {...newState, errors: undefined};
-    });
+    const newState = cloneDeep(state);
+    set(newState, `queries.${queryIndex}`, newQuery);
+    set(newState, 'userHasModified', true);
+
+    if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
+      const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
+
+      if (groupByFields.length === 0) {
+        set(newState, 'limit', undefined);
+      } else {
+        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+      }
+    }
+    return {...newState, errors: undefined};
   }
 
   function handleYAxisOrColumnFieldChange(
@@ -483,6 +477,8 @@ function WidgetBuilder({
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
       : undefined;
+
+    const newState = cloneDeep(state);
 
     for (const index in state.queries) {
       const queryIndex = Number(index);
@@ -527,19 +523,50 @@ function WidgetBuilder({
         }
       }
 
-      handleQueryChange(queryIndex, newQuery);
+      set(newState, `queries.${queryIndex}`, newQuery);
     }
+
+    set(newState, 'userHasModified', true);
+
+    if (widgetBuilderNewDesign && isTimeseriesChart) {
+      const groupByFields = newState.queries[0].columns.filter(
+        field => !(field === 'equation|')
+      );
+      if (groupByFields.length === 0) {
+        set(newState, 'limit', undefined);
+      } else {
+        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+      }
+    }
+
+    setState(newState);
   }
 
   function handleGroupByChange(newFields: QueryFieldValue[]) {
     const fieldStrings = newFields.map(generateFieldAsString);
 
+    const newState = cloneDeep(state);
+
     state.queries.forEach((query, index) => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-
-      handleQueryChange(index, newQuery);
+      set(newState, `queries.${index}`, newQuery);
     });
+
+    set(newState, 'userHasModified', true);
+
+    if (widgetBuilderNewDesign && isTimeseriesChart) {
+      const groupByFields = newState.queries[0].columns.filter(
+        field => !(field === 'equation|')
+      );
+      if (groupByFields.length === 0) {
+        set(newState, 'limit', undefined);
+      } else {
+        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+      }
+    }
+
+    setState(newState);
   }
 
   function handleLimitChange(newLimit: number) {
@@ -851,7 +878,9 @@ function WidgetBuilder({
                   />
                   {widgetBuilderNewDesign && isTimeseriesChart && (
                     <GroupByStep
-                      columns={groupByColumns}
+                      columns={columns
+                        .filter(field => !(field === 'equation|'))
+                        .map(field => explodeField({field}))}
                       onGroupByChange={handleGroupByChange}
                       organization={organization}
                       tags={tags}
