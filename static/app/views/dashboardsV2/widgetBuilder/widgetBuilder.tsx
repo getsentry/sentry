@@ -451,20 +451,22 @@ function WidgetBuilder({
   }
 
   function handleQueryChange(queryIndex: number, newQuery: WidgetQuery) {
-    const newState = cloneDeep(state);
-    set(newState, `queries.${queryIndex}`, newQuery);
-    set(newState, 'userHasModified', true);
+    setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, `queries.${queryIndex}`, newQuery);
+      set(newState, 'userHasModified', true);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
-      const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
+      if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
+        const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
 
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        if (groupByFields.length === 0) {
+          set(newState, 'limit', undefined);
+        } else {
+          set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        }
       }
-    }
-    return {...newState, errors: undefined};
+      return {...newState, errors: undefined};
+    });
   }
 
   function handleYAxisOrColumnFieldChange(

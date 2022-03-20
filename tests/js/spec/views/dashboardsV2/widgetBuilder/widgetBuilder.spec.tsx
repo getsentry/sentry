@@ -1440,20 +1440,6 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
-    it('allows deleting groups until there is one left', async function () {
-      renderTestComponent({
-        query: {displayType: 'line'},
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      await screen.findByText('Group your results');
-      userEvent.click(screen.getByText('Add Group'));
-      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
-
-      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
-      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
-    });
-
     it("doesn't reset group by when changing y-axis", async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -1462,7 +1448,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Group your results'));
       userEvent.type(screen.getByText('Select group'), 'project{enter}');
-      userEvent.click(screen.getByText('count()'), undefined, {skipHover: true});
+      userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
       userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
 
       expect(screen.getByText('project')).toBeInTheDocument();
@@ -1492,7 +1478,6 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Group your results'));
       userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
-      // TODO: This should change after adding a limit and sorting field
       expect(eventsStatsMock).toHaveBeenNthCalledWith(
         2,
         '/organizations/org-slug/events-stats/',
@@ -1502,10 +1487,93 @@ describe('WidgetBuilder', function () {
             yAxis: ['count()'],
             field: ['project', 'count()'],
             topEvents: TOP_N,
-            orderby: 'project',
+            orderby: 'count()',
           }),
         })
       );
+    });
+
+    it('allows deleting groups until there is one left', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+
+      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('limit field', function () {
+    it('renders if groupBy value and  is present in the handleSave', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        onSave: handleSave,
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() =>
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            limit: 5,
+          }),
+        ])
+      );
+    });
+
+    it('update value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      userEvent.click(screen.getByText('Limit to 5 results'));
+      userEvent.click(screen.getByText('Limit to 2 results'));
+
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: 2,
+            orderby: 'count()',
+          }),
+        })
+      );
+    });
+
+    it('gets removed if no groupBy value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Remove group'));
+
+      expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
     });
   });
 });
