@@ -1,16 +1,63 @@
-import React, {createContext, useReducer} from 'react';
+import React, {ReducerAction, ReducerState} from 'react';
+
+import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
+import {
+  UndoableReducer,
+  UndoableReducerAction,
+  useUndoableReducer,
+} from 'sentry/utils/useUndoableReducer';
 
 import {FlamegraphFrame} from '../flamegraphFrame';
 
-const exhaustiveCheck = (x: never) => void x;
+export interface FlamegraphPreferences {
+  colorCoding:
+    | 'by symbol name'
+    | 'by system / application'
+    | 'by library'
+    | 'by recursion';
+  sorting: 'left heavy' | 'call order';
+  view: 'top down' | 'bottom up';
+}
 
-export type FlamegraphState = {
-  search: {
-    index: number | null;
-    open: boolean;
-    query: string;
-    results: Record<string, FlamegraphFrame> | null;
-  };
+type FlamegraphPreferencesAction =
+  | {payload: FlamegraphPreferences['colorCoding']; type: 'set color coding'}
+  | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
+  | {payload: FlamegraphPreferences['view']; type: 'set view'};
+
+function flamegraphPreferencesReducer(
+  state: FlamegraphPreferences,
+  action: FlamegraphPreferencesAction
+): FlamegraphPreferences {
+  switch (action.type) {
+    case 'set color coding': {
+      return {
+        ...state,
+        colorCoding: action.payload,
+      };
+    }
+    case 'set sorting': {
+      return {
+        ...state,
+        sorting: action.payload,
+      };
+    }
+    case 'set view': {
+      return {
+        ...state,
+        view: action.payload,
+      };
+    }
+    default: {
+      return state;
+    }
+  }
+}
+
+type FlamegraphSearchState = {
+  index: number | null;
+  open: boolean;
+  query: string;
+  results: Record<string, FlamegraphFrame> | null;
 };
 
 type OpenFlamegraphSearchAction = {
@@ -31,7 +78,7 @@ type ClearFlamegraphSearchAction = {
 type SetFlamegraphResultsAction = {
   payload: {
     query: string;
-    results: FlamegraphState['search']['results'];
+    results: FlamegraphSearchState['results'];
   };
   type: 'set results';
 };
@@ -41,56 +88,59 @@ type FlamegraphSearchArrowNavigationAction = {
   type: 'set search index position';
 };
 
-export type FlamegraphStateAction =
+type FlamegraphStateAction =
   | OpenFlamegraphSearchAction
   | CloseFlamegraphSearchAction
   | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
   | SetFlamegraphResultsAction;
 
-export const flamegraphReducer: React.Reducer<FlamegraphState, FlamegraphStateAction> = (
-  state,
-  action
-): FlamegraphState => {
+function flamegraphSearchReducer(
+  state: FlamegraphSearchState,
+  action: FlamegraphStateAction
+): FlamegraphSearchState {
   switch (action.type) {
     case 'open search': {
-      return {...state, search: {...state.search, open: true}};
+      return {...state, open: true};
     }
     case 'close search': {
-      return {...state, search: {...state.search, open: false}};
+      return {...state, open: false};
     }
     case 'clear search': {
       return {
         ...state,
-        search: {
-          query: '',
-          index: null,
-          open: action.payload?.open ?? false,
-          results: null,
-        },
+        query: '',
+        index: null,
+        open: action.payload?.open ?? false,
+        results: null,
       };
     }
     case 'set results': {
-      return {...state, search: {...state.search, ...action.payload}};
+      return {...state, ...action.payload};
     }
     case 'set search index position': {
-      return {...state, search: {...state.search, index: action.payload}};
+      return {...state, index: action.payload};
     }
     default: {
-      exhaustiveCheck(action);
       return state;
     }
   }
-};
+}
 
-type FlamegraphStateContextValue = [
-  FlamegraphState,
-  React.Dispatch<FlamegraphStateAction>
-];
+export const combinedReducers = makeCombinedReducers({
+  search: flamegraphSearchReducer,
+  preferences: flamegraphPreferencesReducer,
+});
 
-export const FlamegraphStateContext = createContext<FlamegraphStateContextValue | null>(
-  null
-);
+type FlamegraphState = ReducerState<FlamegraphStateReducer>['current'];
+type FlamegraphAction = React.Dispatch<
+  UndoableReducerAction<ReducerAction<FlamegraphStateReducer>>
+>;
+type FlamegraphStateReducer = UndoableReducer<typeof combinedReducers>;
+export type FlamegraphStateContextValue = [FlamegraphState, FlamegraphAction];
+
+export const FlamegraphStateContext =
+  React.createContext<FlamegraphStateContextValue | null>(null);
 
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
@@ -99,7 +149,12 @@ interface FlamegraphStateProviderProps {
 export function FlamegraphStateProvider(
   props: FlamegraphStateProviderProps
 ): React.ReactElement {
-  const reducer = useReducer(flamegraphReducer, {
+  const reducer = useUndoableReducer(combinedReducers, {
+    preferences: {
+      colorCoding: 'by symbol name',
+      sorting: 'call order',
+      view: 'top down',
+    },
     search: {
       open: false,
       index: null,

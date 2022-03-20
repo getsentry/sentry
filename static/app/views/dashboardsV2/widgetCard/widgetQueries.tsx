@@ -1,6 +1,7 @@
 import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -26,6 +27,8 @@ import {eventViewFromWidget, getWidgetInterval} from '../utils';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
+type SeriesWithOrdering = [order: number, series: Series];
+
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
@@ -37,31 +40,86 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
-function transformResult(query: WidgetQuery, result: RawResult): Series[] {
+/**
+ * Multiseries data with a grouping needs to be "flattened" because the aggregate data
+ * are stored under the group names. These names need to be combined with the aggregate
+ * names to show a series.
+ *
+ * e.g. count() and count_unique() grouped by environment
+ * {
+ *    "local": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    },
+ *    "prod": {
+ *      "count()": {...},
+ *      "count_unique()": {...}
+ *    }
+ * }
+ */
+export function flattenMultiSeriesDataWithGrouping(
+  result: RawResult,
+  queryAlias: string
+): SeriesWithOrdering[] {
+  const seriesWithOrdering: SeriesWithOrdering[] = [];
+  const groupNames = Object.keys(result);
+
+  groupNames.forEach(groupName => {
+    // Each group contains an order key which we should ignore
+    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+
+    aggregateNames.forEach(aggregate => {
+      const seriesName = `${groupName} : ${aggregate}`;
+      const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
+      const seriesData: EventsStats = result[groupName][aggregate];
+
+      seriesWithOrdering.push([
+        result[groupName].order || 0,
+        transformSeries(seriesData, prefixedName),
+      ]);
+    });
+  });
+
+  return seriesWithOrdering;
+}
+
+function transformResult(
+  query: WidgetQuery,
+  result: RawResult,
+  displayType: DisplayType,
+  widgetBuilderNewDesign: boolean = false
+): Series[] {
   let output: Series[] = [];
 
-  const seriesNamePrefix = query.name;
+  const queryAlias = query.name;
 
   if (isMultiSeriesStats(result)) {
+    let seriesWithOrdering: SeriesWithOrdering[] = [];
+    const isMultiSeriesDataWithGrouping =
+      query.aggregates.length > 1 && query.columns.length;
+
     // Convert multi-series results into chartable series. Multi series results
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series result set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    const transformed: Series[] = Object.keys(result)
-      .map((seriesName: string): [number, Series] => {
-        const prefixedName = seriesNamePrefix
-          ? `${seriesNamePrefix} : ${seriesName}`
-          : seriesName;
+    if (
+      widgetBuilderNewDesign &&
+      displayType !== DisplayType.TOP_N &&
+      isMultiSeriesDataWithGrouping
+    ) {
+      seriesWithOrdering = flattenMultiSeriesDataWithGrouping(result, queryAlias);
+    } else {
+      seriesWithOrdering = Object.keys(result).map((seriesName: string) => {
+        const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
         const seriesData: EventsStats = result[seriesName];
         return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-      })
-      .sort((a, b) => a[0] - b[0])
-      .map(item => item[1]);
+      });
+    }
 
-    output = output.concat(transformed);
+    output = [...seriesWithOrdering.sort().map(item => item[1])];
   } else {
     const field = query.aggregates[0];
-    const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
+    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
     const transformed = transformSeries(result, prefixedName);
     output.push(transformed);
   }
@@ -112,7 +170,10 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, widget, cursor} = this.props;
+    const {selection, widget, cursor, organization} = this.props;
+    const widgetBuilderNewDesign = organization.features.includes(
+      'new-widget-builder-experience-design'
+    );
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -170,7 +231,14 @@ class WidgetQueries extends React.Component<Props, State> {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
-          return acc.concat(transformResult(query, prevState.rawResults![index]));
+          return acc.concat(
+            transformResult(
+              query,
+              prevState.rawResults![index],
+              widget.displayType,
+              widgetBuilderNewDesign
+            )
+          );
         }, []);
 
         return {...prevState, timeseriesResults};
@@ -275,6 +343,9 @@ class WidgetQueries extends React.Component<Props, State> {
 
   fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
     const {selection, api, organization, widget} = this.props;
+    const widgetBuilderNewDesign = organization.features.includes(
+      'new-widget-builder-experience-design'
+    );
     this.setState({timeseriesResults: [], rawResults: []});
 
     const {environments, projects} = selection;
@@ -331,7 +402,7 @@ class WidgetQueries extends React.Component<Props, State> {
           requestData.topEvents = widget.limit ?? TOP_N;
           // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
-          requestData.orderby = query.columns?.[0];
+          requestData.orderby = query.aggregates?.[0];
         }
       }
       return doEventsRequest(api, requestData);
@@ -353,7 +424,9 @@ class WidgetQueries extends React.Component<Props, State> {
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           const transformedResult = transformResult(
             widget.queries[requestIndex],
-            rawResults
+            rawResults,
+            widget.displayType,
+            widgetBuilderNewDesign
           );
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at

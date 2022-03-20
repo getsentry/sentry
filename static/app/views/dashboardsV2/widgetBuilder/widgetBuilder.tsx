@@ -846,6 +846,8 @@ function WidgetBuilder({
                     onAddSearchConditions={handleAddSearchConditions}
                     onQueryChange={handleQueryChange}
                     onQueryRemove={handleQueryRemove}
+                    selection={pageFilters}
+                    widgetType={widgetType}
                   />
                   {widgetBuilderNewDesign && isTimeseriesChart && (
                     <GroupByStep
