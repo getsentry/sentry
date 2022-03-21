@@ -148,6 +148,20 @@ export function DO_NOT_USE_TOOLTIP({
     return createTooltipPortal();
   }, []);
 
+  const modifiers: PopperJS.Modifiers = useMemo(() => {
+    return {
+      hide: {enabled: false},
+      preventOverflow: {
+        padding: 10,
+        enabled: true,
+        boundariesElement: 'viewport',
+      },
+      applyStyle: {
+        gpuAcceleration: true,
+      },
+    };
+  }, []);
+
   useEffect(() => {
     return () => {
       tooltipPortal.remove();
@@ -230,67 +244,56 @@ export function DO_NOT_USE_TOOLTIP({
     return <Fragment>{children}</Fragment>;
   }
 
-  const modifiers: PopperJS.Modifiers = {
-    hide: {enabled: false},
-    preventOverflow: {
-      padding: 10,
-      enabled: true,
-      boundariesElement: 'viewport',
-    },
-    applyStyle: {
-      gpuAcceleration: true,
-    },
-  };
-
-  const visible = forceShow || isOpen;
-
-  const tip = visible ? (
-    <Popper placement={position} modifiers={modifiers}>
-      {({ref, style, placement, arrowProps}) => (
-        <PositionWrapper style={style}>
-          <TooltipContent
-            id={tooltipId}
-            initial={{opacity: 0}}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              transition: testableTransition({
-                type: 'linear',
-                ease: [0.5, 1, 0.89, 1],
-                duration: 0.2,
-              }),
-            }}
-            exit={{
-              opacity: 0,
-              scale: 0.95,
-              transition: testableTransition({type: 'spring', delay: 0.1}),
-            }}
-            style={computeOriginFromArrow(position, arrowProps)}
-            transition={{duration: 0.2}}
-            className="tooltip-content"
-            aria-hidden={!visible}
-            ref={ref}
-            data-placement={placement}
-            popperStyle={popperStyle}
-            onMouseEnter={() => isHoverable && handleOpen()}
-            onMouseLeave={() => isHoverable && handleClose()}
-          >
-            {title}
-            <TooltipArrow
-              ref={arrowProps.ref}
-              data-placement={placement}
-              style={arrowProps.style}
-            />
-          </TooltipContent>
-        </PositionWrapper>
-      )}
-    </Popper>
-  ) : null;
-
   return (
     <Manager>
       <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
-      {createPortal(<AnimatePresence>{tip}</AnimatePresence>, tooltipPortal)}
+      {createPortal(
+        <AnimatePresence>
+          {forceShow || isOpen ? (
+            <Popper placement={position} modifiers={modifiers}>
+              {({ref, style, placement, arrowProps}) => (
+                <PositionWrapper style={style}>
+                  <TooltipContent
+                    id={tooltipId}
+                    initial={{opacity: 0}}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                      transition: testableTransition({
+                        type: 'linear',
+                        ease: [0.5, 1, 0.89, 1],
+                        duration: 0.2,
+                      }),
+                    }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.95,
+                      transition: testableTransition({type: 'spring', delay: 0.1}),
+                    }}
+                    style={computeOriginFromArrow(position, arrowProps)}
+                    transition={{duration: 0.2}}
+                    className="tooltip-content"
+                    aria-hidden={false}
+                    ref={ref}
+                    data-placement={placement}
+                    popperStyle={popperStyle}
+                    onMouseEnter={() => isHoverable && handleOpen()}
+                    onMouseLeave={() => isHoverable && handleClose()}
+                  >
+                    {title}
+                    <TooltipArrow
+                      ref={arrowProps.ref}
+                      data-placement={placement}
+                      style={arrowProps.style}
+                    />
+                  </TooltipContent>
+                </PositionWrapper>
+              )}
+            </Popper>
+          ) : null}
+        </AnimatePresence>,
+        tooltipPortal
+      )}
     </Manager>
   );
 }
