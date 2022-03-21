@@ -1,5 +1,4 @@
 import * as React from 'react';
-import countBy from 'lodash/countBy';
 
 import Count from 'sentry/components/count';
 import {
@@ -38,7 +37,6 @@ import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types'
 import {
   getMeasurementBounds,
   getMeasurements,
-  getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
@@ -90,25 +88,16 @@ export default function SpanSiblingGroupBar(props: Props) {
       return '';
     }
 
-    const operationCounts = countBy(spanGroup, enhancedSpan =>
-      getSpanOperation(enhancedSpan.span)
-    );
-
-    const hasOthers = Object.keys(operationCounts).length > 1;
-
-    const [mostFrequentOperationName] = Object.entries(operationCounts).reduce(
-      (acc, [operationNameKey, count]) => {
-        if (count > acc[1]) {
-          return [operationNameKey, count];
-        }
-        return acc;
-      }
-    );
+    const operation = spanGroup[0].span.op;
+    const description = spanGroup[0].span.description;
 
     return (
-      <strong>{`${t('Autogrouped ')}\u2014 ${mostFrequentOperationName}${
-        hasOthers ? t(' and more') : ''
-      }`}</strong>
+      <React.Fragment>
+        <strong>{`${t('Autogrouped ')}\u2014 ${operation} ${
+          description && '\u2014 '
+        }`}</strong>
+        {description && `${description}`}
+      </React.Fragment>
     );
   }
 

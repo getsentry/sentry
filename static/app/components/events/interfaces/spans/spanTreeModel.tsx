@@ -464,7 +464,7 @@ class SpanTreeModel {
             wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
 
           // Check if the group is currently expanded or not
-          const key = `${group[0].span.op}.${group[0].span.description}`;
+          const key = getSiblingGroupKey(group[0].span);
           if (this.expandedSiblingGroups.has(key)) {
             acc.descendants.push(...wrappedSiblings);
             return acc;
