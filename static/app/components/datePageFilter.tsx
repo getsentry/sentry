@@ -75,6 +75,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       onUpdate={handleUpdate}
       label={<IconCalendar color="textColor" />}
       customDropdownButton={customDropdownButton}
+      showPin
       {...props}
     />
   );

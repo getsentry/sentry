@@ -1,7 +1,3 @@
-from collections import namedtuple
-
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
-
 from .base import EventState, RuleBase
 from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType
 from .registry import RuleRegistry
@@ -13,7 +9,6 @@ __all__ = (
     "MATCH_CHOICES",
     "MatchType",
     "RuleBase",
-    "RuleFuture",
     "rules",
 )
 
