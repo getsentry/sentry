@@ -37,6 +37,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -64,6 +65,7 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
+  expandNumbers,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -197,6 +199,7 @@ export function WidgetCardChartContainer({
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={legendOptions}
+                expandNumbers={expandNumbers}
               />
             </React.Fragment>
           );

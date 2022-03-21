@@ -10,6 +10,7 @@ import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof TimeRangeSelector> & {
   className?: string;
+  showPin?: boolean;
 };
 
 function PageTimeRangeSelector({className, customDropdownButton, ...props}: Props) {

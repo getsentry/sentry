@@ -17,8 +17,8 @@ import {
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {
+  doesPathHaveNewFilters,
   getDefaultSelection,
-  getPathsWithNewFilters,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -194,7 +194,7 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
+    const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
 
     const filtersToRestore = pageHasPinning
       ? pinnedFilters
@@ -429,7 +429,7 @@ async function updateDesyncedUrlState(router?: Router) {
   }
 
   const storedPageFilters = getPageFilterStorage(organization.slug);
-  const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
+  const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
 
   // If we don't have any stored page filters OR pinning is not enabled for
   // this page, then we do not check desynced state

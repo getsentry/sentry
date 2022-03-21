@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -17,6 +18,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -62,6 +64,7 @@ type Props = ModalRenderProps &
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
+const HALF_CONTAINER_HEIGHT = 300;
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
@@ -225,7 +228,11 @@ function WidgetViewerModal(props: Props) {
     return (
       <React.Fragment>
         {widget.displayType !== DisplayType.TABLE && (
-          <Container>
+          <Container
+            height={
+              widget.displayType !== DisplayType.BIG_NUMBER ? HALF_CONTAINER_HEIGHT : null
+            }
+          >
             <MemoizedWidgetCardChartContainer
               location={location}
               router={router}
@@ -272,16 +279,17 @@ function WidgetViewerModal(props: Props) {
                 );
               }}
               legendOptions={{selected: disabledLegends}}
+              expandNumbers
             />
           </Container>
         )}
         {widget.queries.length > 1 && (
           <React.Fragment>
-            <TextContainer>
+            <Alert type="info" icon={<IconInfo />}>
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
               )}
-            </TextContainer>
+            </Alert>
             <StyledSelectControl
               value={selectedQueryIndex}
               options={queryOptions}
@@ -540,9 +548,9 @@ const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
 `;
 
-const Container = styled('div')`
-  height: 300px;
-  max-height: 300px;
+const Container = styled('div')<{height?: number | null}>`
+  height: ${p => (p.height ? `${p.height}px` : 'auto')};
+  max-height: ${HALF_CONTAINER_HEIGHT}px;
   position: relative;
 
   & > div {
@@ -550,15 +558,12 @@ const Container = styled('div')`
   }
 `;
 
-const TextContainer = styled('div')`
-  padding: ${space(2)} 0 ${space(1.5)} 0;
-  color: ${p => p.theme.gray300};
-`;
-
 const StyledSelectControl = styled(SelectControl)`
   padding-top: 10px ${space(1.5)};
+  max-height: 40px;
+  display: flex;
   & > div {
-    max-height: 40px;
+    width: 100%;
   }
 `;
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
@@ -6,7 +6,7 @@ import Fuse from 'fuse.js';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
@@ -104,11 +104,11 @@ function FlamegraphSearch({
   flamegraphs,
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
-  const ref = React.useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
 
-  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
+  const [search, dispatchSearch] = useFlamegraphSearch();
 
-  const allFrames = React.useMemo(() => {
+  const allFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
       return flamegraphs.reduce(
         (acc: FlamegraphFrame[], graph) => acc.concat(graph.frames),
@@ -119,7 +119,7 @@ function FlamegraphSearch({
     return flamegraphs.frames;
   }, [flamegraphs]);
 
-  const searchIndex = React.useMemo(() => {
+  const searchIndex = useMemo(() => {
     return new Fuse(allFrames, {
       keys: ['frame.name'],
       threshold: 0.3,
@@ -127,21 +127,32 @@ function FlamegraphSearch({
     });
   }, [allFrames]);
 
-  const onZoomIntoFrame = React.useCallback(
+  const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoomIntoFrame', [frame]);
     },
     [canvasPoolManager]
   );
 
-  const handleSearchInput = React.useCallback(
+  useEffect(() => {
+    if (typeof search.index !== 'number') {
+      return;
+    }
+
+    const frames = memoizedSortFrameResults(search.results);
+    if (frames[search.index]) {
+      onZoomIntoFrame(frames[search.index]);
+    }
+  }, [search.results, search.index]);
+
+  const handleSearchInput = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       if (!evt.currentTarget.value) {
-        dispatchFlamegraphState({type: 'clear search', payload: {open: true}});
+        dispatchSearch({type: 'clear search', payload: {open: true}});
         return;
       }
 
-      dispatchFlamegraphState({
+      dispatchSearch({
         type: 'set results',
         payload: {
           results: frameSearch(evt.currentTarget.value, allFrames, searchIndex),
@@ -152,70 +163,65 @@ function FlamegraphSearch({
     [searchIndex, frames, canvasPoolManager, allFrames]
   );
 
-  const onNextSearchClick = React.useCallback(() => {
-    const frames = memoizedSortFrameResults(flamegraphState.search.results);
+  const onNextSearchClick = useCallback(() => {
+    const frames = memoizedSortFrameResults(search.results);
     if (!frames.length) {
-      return undefined;
+      return;
     }
 
-    if (
-      flamegraphState.search.index === null ||
-      flamegraphState.search.index === frames.length - 1
-    ) {
-      dispatchFlamegraphState({type: 'set search index position', payload: 0});
-      return onZoomIntoFrame(frames[0]);
+    if (search.index === null || search.index === frames.length - 1) {
+      dispatchSearch({type: 'set search index position', payload: 0});
+      return;
     }
 
-    dispatchFlamegraphState({
+    dispatchSearch({
       type: 'set search index position',
-      payload: flamegraphState.search.index + 1,
+      payload: search.index + 1,
     });
-    return onZoomIntoFrame(frames[flamegraphState.search.index + 1]);
-  }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
+  }, [search.results, search.index]);
 
-  const onPreviousSearchClick = React.useCallback(() => {
-    const frames = memoizedSortFrameResults(flamegraphState.search.results);
+  const onPreviousSearchClick = useCallback(() => {
+    const frames = memoizedSortFrameResults(search.results);
     if (!frames.length) {
-      return undefined;
+      return;
     }
 
-    if (flamegraphState.search.index === null || flamegraphState.search.index === 0) {
-      dispatchFlamegraphState({
+    if (search.index === null || search.index === 0) {
+      dispatchSearch({
         type: 'set search index position',
         payload: frames.length - 1,
       });
-      return onZoomIntoFrame(frames[frames.length - 1]);
+      return;
     }
 
-    dispatchFlamegraphState({
+    dispatchSearch({
       type: 'set search index position',
-      payload: flamegraphState.search.index - 1,
+      payload: search.index - 1,
     });
-    return onZoomIntoFrame(frames[flamegraphState.search.index - 1]);
-  }, [flamegraphState.search.results, flamegraphState.search.index, onZoomIntoFrame]);
+  }, [search.results, search.index]);
 
-  const onCmdF = React.useCallback(
+  const onCmdF = useCallback(
     (evt: KeyboardEvent) => {
       if (evt.key === 'f' && evt.metaKey) {
         evt.preventDefault();
-        if (flamegraphState.search.open) {
+        if (search.open) {
           ref.current?.focus();
         } else {
-          dispatchFlamegraphState({type: 'open search'});
+          dispatchSearch({type: 'open search'});
         }
         return;
       }
       if (evt.key === 'Escape') {
-        dispatchFlamegraphState({type: 'clear search'});
+        dispatchSearch({type: 'clear search'});
       }
     },
-    [flamegraphState.search.open]
+    [search.open]
   );
 
-  const onKeyDown = React.useCallback(
+  const onKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
       if (evt.key === 'Escape') {
-        dispatchFlamegraphState({type: 'clear search'});
+        dispatchSearch({type: 'clear search'});
       }
       if (evt.key === 'ArrowDown') {
         evt.preventDefault();
@@ -229,7 +235,7 @@ function FlamegraphSearch({
     [onNextSearchClick, onPreviousSearchClick]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener('keydown', onCmdF);
 
     return () => {
@@ -237,11 +243,12 @@ function FlamegraphSearch({
     };
   }, [onCmdF]);
 
-  return flamegraphState.search.open ? (
+  return search.open ? (
     <Input
       ref={ref}
       autoFocus
       type="text"
+      value={search.query}
       onChange={handleSearchInput}
       onKeyDown={onKeyDown}
     />
