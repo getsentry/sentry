@@ -7,7 +7,7 @@ import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-export interface AlertProps extends React.HTMLProps<HTMLDivElement> {
+export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode[];
   expandIcon?: React.ReactNode;
   icon?: React.ReactNode;

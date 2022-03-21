@@ -5,12 +5,12 @@ import styled from '@emotion/styled';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = Omit<React.HTMLProps<HTMLDivElement>, 'size'> & {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   isChecked?: boolean;
   isDisabled?: boolean;
   isIndeterminate?: boolean;
   size?: string;
-};
+}
 
 const disabledStyles = (p: Props & {theme: Theme}) =>
   p.isDisabled &&

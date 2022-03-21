@@ -694,9 +694,9 @@ const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
+interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
   to?: React.ComponentProps<typeof Link>['to'];
-};
+}
 
 const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>
