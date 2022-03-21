@@ -1,11 +1,12 @@
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
-import AlertLink from 'sentry/components/alertLink';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp} from 'sentry/types';
@@ -155,27 +156,40 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Developer Settings')} />
-        <PanelAlert type="info">
+        <Container>
+          <SettingsPageHeader
+            title={t('Developer Settings')}
+            body={t(
+              `Create integrations to interact with Sentry using the REST API and webhooks.`
+            )}
+          />
+          <Button
+            external
+            href="https://docs.sentry.io/product/integrations/integration-platform/"
+          >
+            {t('View Docs')}
+          </Button>
+        </Container>
+        <Alert type="info">
           {tct(
-            "We've added new webhooks for comments on issues! Read more in our [link:webhook documentation].",
+            'You can create integrations with webhooks notifying you when a comment on an issue is added or changes.  [link:Learn more].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
               ),
             }
           )}
-        </PanelAlert>
-        <AlertLink href="https://docs.sentry.io/product/integrations/integration-platform/">
-          {t(
-            'Have questions about the Integration Platform? Learn more about it in our docs.'
-          )}
-        </AlertLink>
+        </Alert>
         {this.renderExernalIntegrations()}
         {this.renderInternalIntegrations()}
       </div>
     );
   }
 }
+
+const Container = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
 export default withOrganization(OrganizationDeveloperSettings);
