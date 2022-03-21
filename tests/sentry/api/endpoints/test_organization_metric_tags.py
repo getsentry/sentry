@@ -1,6 +1,7 @@
 import time
 from unittest.mock import patch
 
+from sentry.sentry_metrics import indexer
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -36,8 +37,25 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         assert response.data == []
 
-    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    def test_metric_tags_metric_does_not_exist_in_indexer(self):
+        assert (
+            self.get_response(
+                self.organization.slug,
+                metric=["foo.bar"],
+            ).data
+            == []
+        )
+
+    def test_metric_tags_metric_does_not_have_data(self):
+        indexer.record("foo.bar")
+        assert (
+            self.get_response(
+                self.organization.slug,
+                metric=["foo.bar"],
+            ).data
+            == []
+        )
+
     def test_derived_metric_tags(self):
         for minute in range(4):
             self.store_session(
@@ -68,6 +86,9 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             {"key": "session.status"},
         ]
 
+    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    def test_incorrectly_setup_derived_metric(self):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
@@ -79,18 +100,10 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         response = self.get_response(
             self.organization.slug,
-            metric=["crash_free_fake", "session.init"],
+            metric=["crash_free_fake"],
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
             "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
             "Please revise the definition of these singular entity derived metrics"
-        )
-
-        assert (
-            self.get_response(
-                self.organization.slug,
-                metric=["foo.bar"],
-            ).data
-            == []
         )

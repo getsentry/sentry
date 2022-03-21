@@ -10,7 +10,7 @@ import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
-import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -79,7 +79,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphPreferencesProvider>
+      <FlamegraphStateProvider>
         <FlamegraphThemeProvider>
           <FullScreenFlamegraphContainer>
             {requestState === 'errored' ? (
@@ -96,7 +96,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
             ) : null}
           </FullScreenFlamegraphContainer>
         </FlamegraphThemeProvider>
-      </FlamegraphPreferencesProvider>
+      </FlamegraphStateProvider>
     </SentryDocumentTitle>
   );
 }

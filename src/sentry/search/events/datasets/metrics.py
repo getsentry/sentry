@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Optional, Union
 
-from snuba_sdk import Column, Function
+from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import constants, field_aliases, fields, filter_aliases
+from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.sentry_metrics import indexer
@@ -34,13 +35,13 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
+            constants.TITLE_ALIAS: self._resolve_title_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
         metric_id = indexer.resolve(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
-            # TODO: unsure if this should be incompatible or invalid
-            raise InvalidSearchQuery(f"Metric: {value} could not be resolved")
+            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
 
         self.builder.metric_ids.append(metric_id)
         return metric_id
@@ -71,7 +72,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
-                    required_args=[fields.FunctionArg("column")],
+                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
@@ -86,7 +87,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p50",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -97,7 +103,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p75",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -108,7 +119,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p90",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -119,7 +135,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p95",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -130,7 +151,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p99",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
@@ -141,7 +167,12 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "p100",
                     optional_args=[
-                        fields.with_default("transaction.duration", fields.FunctionArg("column")),
+                        fields.with_default(
+                            "transaction.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
@@ -156,7 +187,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_unique",
-                    required_args=[fields.FunctionArg("column")],
+                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
@@ -171,7 +202,16 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
-                        fields.FunctionArg("column"),
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.fp",
+                                "measurements.fcp",
+                                "measurements.lcp",
+                                "measurements.fid",
+                                "measurements.cls",
+                            ],
+                        ),
                         fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
                     ],
                     calculated_args=[resolve_metric_id],
@@ -267,10 +307,17 @@ class MetricsDatasetConfig(DatasetConfig):
         return function_converter
 
     # Field Aliases
+    def _resolve_title_alias(self, alias: str) -> SelectType:
+        """title == transaction in discover"""
+        return AliasedExpression(self.builder.resolve_column("transaction"), alias)
+
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         return field_aliases.resolve_team_key_transaction_alias(
             self.builder, resolve_metric_index=True
         )
+
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     # Query Filters
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
@@ -280,6 +327,12 @@ class MetricsDatasetConfig(DatasetConfig):
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
+
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)
 
     # Query Functions
     def _resolve_count_if(
