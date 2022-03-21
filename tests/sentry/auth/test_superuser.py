@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -30,8 +30,16 @@ from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
+BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=timezone.utc)
 
-@freeze_time("2022-03-03 03:21:34")
+EXPIRE_TIME = timedelta(hours=4, minutes=1)
+
+INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
+
+IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=16)
+
+
+@freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
@@ -137,13 +145,13 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
-    @freeze_time("2022-03-03 08:21:34")
+    @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
         request = self.build_request(expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
-    @freeze_time("2022-03-03 03:37:34")
+    @freeze_time(BASETIME + IDLE_EXPIRE_TIME)
     def test_idle_expired(self):
         request = self.build_request(idle_expires=self.current_datetime)
         superuser = Superuser(request, allowed_ips=())
@@ -193,14 +201,18 @@ class SuperuserTestCase(TestCase):
                 "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
             )
 
-    @freeze_time("2022-03-03 08:21:34")
-    def test_expired_check_org_in_request(self):
-        request = self.build_request(expires=self.current_datetime)
+    @freeze_time(BASETIME + INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME, as_arg=True)
+    def test_not_expired_check_org_in_request(frozen_time, self):
+        request = self.build_request()
         superuser = Superuser(request, allowed_ips=())
-        assert superuser.is_active is False
+        assert superuser.is_active is True
+
+        frozen_time.move_to(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
+
+        assert superuser.is_active is True
         assert not getattr(request, "organization", None)
 
-    @freeze_time("2022-03-03 03:34:34")
+    @freeze_time(BASETIME + INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
     def test_max_time_org_change_within_time(self):
         request = self.build_request()
         request.organization = self.create_organization(name="not_our_org")
@@ -208,12 +220,11 @@ class SuperuserTestCase(TestCase):
 
         assert superuser.is_active is True
 
-    @freeze_time("2022-03-03 03:37:34")
+    @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
     def test_max_time_org_change_time_expired(self):
         request = self.build_request()
         request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
-        superuser.expires = timezone.now()
 
         assert superuser.is_active is False
 

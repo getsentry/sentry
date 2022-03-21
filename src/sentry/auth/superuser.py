@@ -79,7 +79,7 @@ class Superuser:
     org_id = ORG_ID
 
     def _check_expired_on_org_change(self):
-        if hasattr(self, "expires") and self.expires is not None:
+        if self.expires is not None:
             session_start_time = self.expires - MAX_AGE
             current_datetime = timezone.now()
             if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
