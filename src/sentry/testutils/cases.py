@@ -1075,6 +1075,7 @@ class SessionMetricsTestCase(SnubaTestCase):
                 "release",
                 "environment",
             )
+            if session[tag] is not None
         }
 
         extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}

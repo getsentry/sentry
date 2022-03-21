@@ -473,3 +473,18 @@ class OrganizationMember(Model):
         Must check if member member has member:admin first before checking
         """
         return [r for r in roles.get_all() if r.priority <= roles.get(self.role).priority]
+
+    def is_only_owner(self) -> bool:
+        if self.role != roles.get_top_dog().id:
+            return False
+
+        return (
+            not OrganizationMember.objects.filter(
+                organization=self.organization_id,
+                role=roles.get_top_dog().id,
+                user__isnull=False,
+                user__is_active=True,
+            )
+            .exclude(id=self.id)
+            .exists()
+        )

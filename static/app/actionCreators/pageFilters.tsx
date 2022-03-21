@@ -17,8 +17,8 @@ import {
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {
+  doesPathHaveNewFilters,
   getDefaultSelection,
-  getPathsWithNewFilters,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -129,6 +129,10 @@ type InitializeUrlStateParams = {
   shouldForceProject?: boolean;
   showAbsolute?: boolean;
   /**
+   * Skip setting the query parameters
+   */
+  skipInitializeUrlParams?: boolean;
+  /**
    * If true, do not load from local storage
    */
   skipLoadLastUsed?: boolean;
@@ -146,6 +150,7 @@ export function initializeUrlState({
   defaultSelection,
   forceProject,
   showAbsolute = true,
+  skipInitializeUrlParams = false,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
 
@@ -189,7 +194,7 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
+    const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
 
     const filtersToRestore = pageHasPinning
       ? pinnedFilters
@@ -261,10 +266,12 @@ export function initializeUrlState({
     utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
   };
 
-  updateParams({project, environment, ...newDatetime}, router, {
-    replace: true,
-    keepCursor: true,
-  });
+  if (!skipInitializeUrlParams) {
+    updateParams({project, environment, ...newDatetime}, router, {
+      replace: true,
+      keepCursor: true,
+    });
+  }
 }
 
 function isProjectsValid(projects: ProjectId[]) {
@@ -422,7 +429,7 @@ async function updateDesyncedUrlState(router?: Router) {
   }
 
   const storedPageFilters = getPageFilterStorage(organization.slug);
-  const pageHasPinning = getPathsWithNewFilters(organization).includes(pathname);
+  const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
 
   // If we don't have any stored page filters OR pinning is not enabled for
   // this page, then we do not check desynced state

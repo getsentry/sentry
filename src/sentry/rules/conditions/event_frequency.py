@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import logging
 import re
 from datetime import datetime, timedelta
@@ -80,7 +81,7 @@ class EventFrequencyForm(forms.Form):  # type: ignore
         return cleaned_data
 
 
-class BaseEventFrequencyCondition(EventCondition):
+class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
     label: str
@@ -114,7 +115,7 @@ class BaseEventFrequencyCondition(EventCondition):
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)
+        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
         logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
         return current_value > value
 
@@ -167,12 +168,13 @@ class BaseEventFrequencyCondition(EventCondition):
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
         # TODO(mgaeta): Bug: Rule is optional.
-        delta = abs(self.rule.date_added - self.project.date_added)
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
+        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
         return guess
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventFrequencyCondition"
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
@@ -188,6 +190,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
@@ -248,6 +251,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
     label = "The issue affects more than {value} percent of sessions in {interval}"
     logger = logging.getLogger("rules.event_frequency")
 
