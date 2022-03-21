@@ -152,7 +152,7 @@ const IssueDataset: [WidgetType, string] = [
 const MetricsDataset: [WidgetType, React.ReactElement] = [
   WidgetType.METRICS,
   <React.Fragment key="metrics-dataset">
-    {t('Metrics (Release Health)')} <FeatureBadge type="alpha" />
+    {t('Health (Releases, sessions)')} <FeatureBadge type="alpha" />
   </React.Fragment>,
 ];
 

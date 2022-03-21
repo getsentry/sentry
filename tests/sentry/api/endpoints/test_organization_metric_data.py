@@ -858,6 +858,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
         assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
+    def test_request_too_granular(self):
+        response = self.get_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="24h",
+            interval="5m",
+            orderBy="-sum(sentry.sessions.session)",
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Requested interval of 5m with statsPeriod of 24h is too granular for a per_page of "
+            "51 elements. Increase your interval, decrease your statsPeriod, or decrease your "
+            "per_page parameter."
+        )
+
 
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -907,10 +922,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["session.crash_free_rate"] == 50
+        assert group["totals"]["session.crash_free_rate"] == 0.5
         assert group["totals"]["session.init"] == 8
         assert group["totals"]["session.crashed"] == 4
-        assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
+        assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage_with_orderby(self):
@@ -943,13 +958,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         group = response.data["groups"][0]
         assert group["by"]["release"] == "foobar@2.0"
-        assert group["totals"]["session.crash_free_rate"] == 100
-        assert group["series"]["session.crash_free_rate"] == [None, None, 100, 100, 100, 100]
+        assert group["totals"]["session.crash_free_rate"] == 1
+        assert group["series"]["session.crash_free_rate"] == [None, None, 1, 1, 1, 1]
 
         group = response.data["groups"][1]
         assert group["by"]["release"] == "foobar@1.0"
-        assert group["totals"]["session.crash_free_rate"] == 50
-        assert group["series"]["session.crash_free_rate"] == [None, None, 50, 50, 50, 50]
+        assert group["totals"]["session.crash_free_rate"] == 0.5
+        assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
     def test_crash_free_rate_when_no_session_metrics_data_exist(self):
         response = self.get_success_response(
