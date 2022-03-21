@@ -1,16 +1,16 @@
-import { Location } from 'history';
+import {Location} from 'history';
 
-import { COL_WIDTH_UNDEFINED } from 'sentry/components/gridEditable';
-import { ALL_ACCESS_PROJECTS } from 'sentry/constants/pageFilters';
-import { t } from 'sentry/locale';
-import { NewQuery, Organization, Project, SelectValue } from 'sentry/types';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
+import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import { WEB_VITAL_DETAILS } from 'sentry/utils/performance/vitals/constants';
-import { decodeScalar } from 'sentry/utils/queryString';
-import { MutableSearch } from 'sentry/utils/tokenizeSearch';
-import { getCurrentTrendParameter } from 'sentry/views/performance/trends/utils';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
-import { getCurrentLandingDisplay, LandingDisplayField } from './landing/utils';
+import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
   getVitalDetailTableMehStatusFunction,
   getVitalDetailTablePoorStatusFunction,
@@ -383,14 +383,14 @@ export function getTermHelp(
 }
 
 function shouldAddDefaultConditions(location: Location) {
-  const { query } = location;
+  const {query} = location;
   const searchQuery = decodeScalar(query.query, '');
   const isDefaultQuery = decodeScalar(query.isDefaultQuery);
   return !searchQuery && isDefaultQuery !== 'false';
 }
 
 function generateGenericPerformanceEventView(location: Location): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const fields = [
     'team_key_transaction',
@@ -462,7 +462,7 @@ function generateGenericPerformanceEventView(location: Location): EventView {
 }
 
 function generateBackendPerformanceEventView(location: Location): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const fields = [
     'team_key_transaction',
@@ -532,7 +532,7 @@ function generateMobilePerformanceEventView(
   projects: Project[],
   genericEventView: EventView
 ): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const fields = [
     'team_key_transaction',
@@ -610,7 +610,7 @@ function generateMobilePerformanceEventView(
 }
 
 function generateFrontendPageloadPerformanceEventView(location: Location): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const fields = [
     'team_key_transaction',
@@ -675,7 +675,7 @@ function generateFrontendPageloadPerformanceEventView(location: Location): Event
 }
 
 function generateFrontendOtherPerformanceEventView(location: Location): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const fields = [
     'team_key_transaction',
@@ -741,7 +741,7 @@ function generateFrontendOtherPerformanceEventView(location: Location): EventVie
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  { isTrends = false } = {}
+  {isTrends = false} = {}
 ) {
   const eventView = generateGenericPerformanceEventView(location);
 
@@ -765,7 +765,7 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(location: Location): EventView {
-  const { query } = location;
+  const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
 
