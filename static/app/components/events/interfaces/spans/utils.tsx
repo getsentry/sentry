@@ -473,6 +473,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.vue',
     'sentry.javascript.angular',
     'sentry.javascript.nextjs',
+    'sentry.javascript.electron',
   ].includes(sdkName.toLowerCase());
 }
 
