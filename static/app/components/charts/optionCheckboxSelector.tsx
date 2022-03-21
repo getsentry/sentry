@@ -26,7 +26,7 @@ export type OptionCheckboxSelectorProps = {
   title: string;
 } & typeof defaultProps;
 
-export type OptionCheckboxSelectorState = {
+type OptionCheckboxSelectorState = {
   menuContainerWidth?: number;
 };
 

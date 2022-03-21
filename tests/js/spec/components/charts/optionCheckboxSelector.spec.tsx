@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OptionCheckboxSelector, {
   OptionCheckboxSelectorProps,
-  OptionCheckboxSelectorState,
 } from 'sentry/components/charts/optionCheckboxSelector';
 import {t} from 'sentry/locale';
 
@@ -21,7 +20,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
   let organization: Organization;
   let initialData: ReturnType<typeof initializeOrg>;
   let selected: string[];
-  let wrapper: ReactWrapper<OptionCheckboxSelectorProps, OptionCheckboxSelectorState>;
+  let wrapper: ReactWrapper<OptionCheckboxSelectorProps, OptionCheckboxSelector['state']>;
   let onChangeStub: jest.Mock;
   let dropdownItem: ReactWrapper<{isChecked: boolean}>;
 
