@@ -1,6 +1,38 @@
 // https://github.com/microsoft/typescript-analyze-trace/blob/9e2c745ea424911d364b0c8d37998d77e8373049/src/simplify-type.ts
-function expandTypeFlags41(flags41: number): string[] {
-  const flags: string[] = [];
+
+type TypeFlag =
+  | 'Any'
+  | 'Unknown'
+  | 'String'
+  | 'Number'
+  | 'Boolean'
+  | 'Enum'
+  | 'BigInt'
+  | 'StringLiteral'
+  | 'NumberLiteral'
+  | 'BooleanLiteral'
+  | 'EnumLiteral'
+  | 'BigIntLiteral'
+  | 'ESSymbol'
+  | 'UniqueESSymbol'
+  | 'Void'
+  | 'Undefined'
+  | 'Null'
+  | 'Never'
+  | 'TypeParameter'
+  | 'Object'
+  | 'Union'
+  | 'Intersection'
+  | 'Index'
+  | 'IndexedAccess'
+  | 'Conditional'
+  | 'Substitution'
+  | 'NonPrimitive'
+  | 'TemplateLiteral'
+  | 'StringMapping';
+
+function expandTypeFlags41(flags41: number): TypeFlag[] {
+  const flags: TypeFlag[] = [];
 
   if (flags41 & (1 << 0)) {
     flags.push('Any');
@@ -93,11 +125,33 @@ function expandTypeFlags41(flags41: number): string[] {
   return flags;
 }
 
-function getTypeFlags(flags: readonly string[]): readonly string[] {
+function getTypeFlags(flags: readonly string[]): readonly TypeFlag[] {
   // Traces from TS 4.1 contained numeric flags, rather than their string equivalents
   return flags.length === 1 && /^\d+$/.test(flags[0])
     ? expandTypeFlags41(+flags[0])
-    : flags;
+    : (flags as TypeFlag[]);
 }
 
-function importTypeJSON(input) {}
+type TypeNode = {
+  flags: ReadonlyArray<TypeFlag>;
+  node: TypeScriptTrace.TypeDescriptor;
+  types: ReadonlyArray<TypeScriptTrace.TypeDescriptor>;
+};
+
+type TypeTree = Record<TypeScriptTrace.TypeDescriptor['id'], TypeNode>;
+
+export function importTypeJSON(
+  input: ReadonlyArray<TypeScriptTrace.TypeDescriptor>
+): TypeTree {
+  const tree: TypeTree = {};
+
+  for (let i = 0; i < input.length; i++) {
+    const node: TypeNode = {
+      flags: getTypeFlags(input[i].flags ?? []),
+      node: input[i],
+      types: [],
+    };
+    tree[input[i].id] = node;
+  }
+  return tree;
+}
