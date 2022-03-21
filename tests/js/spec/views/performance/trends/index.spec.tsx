@@ -1,8 +1,16 @@
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/discover/fields';
@@ -17,42 +25,80 @@ const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
+jest.mock('sentry/components/forms/utils/getAllowAutosize', () => {
+  () => false;
+});
+
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment');
   moment.now = jest.fn().mockReturnValue(1601251200000);
   return moment;
 });
 
-function selectTrendFunction(wrapper, field) {
-  const menu = wrapper.find('TrendsDropdown DropdownMenu');
-  expect(menu).toHaveLength(2);
-  menu.find('DropdownButton').first().simulate('click');
-
-  const option = menu.find(`DropdownItem[data-test-id="${field}"] span`);
-  expect(option).toHaveLength(1);
-  option.simulate('click');
-
-  wrapper.update();
+async function getTrendDropdown() {
+  const dropdown = (await screen.findAllByTestId('dropdown-control'))[0];
+  expect(dropdown).toBeInTheDocument();
+  return dropdown;
 }
 
-function selectTrendParameter(wrapper, label) {
-  const menu = wrapper.find('TrendsDropdown DropdownMenu');
-  expect(menu).toHaveLength(2);
-  menu.find('DropdownButton').at(1).simulate('click');
+async function getParameterDropdown() {
+  const dropdown = (await screen.findAllByTestId('dropdown-control'))[1];
+  expect(dropdown).toBeInTheDocument();
+  return dropdown;
+}
 
-  const option = menu.find(`DropdownItem[data-test-id="${label}"] span`);
-  expect(option).toHaveLength(1);
-  option.simulate('click');
+async function selectMenuItemFromDropdown(dropdownEl, testid) {
+  (browserHistory.push as any).mockReset();
+  expect(browserHistory.push).not.toHaveBeenCalled();
+  const option = await within(await within(dropdownEl).findByTestId(testid)).findByTestId(
+    'menu-item'
+  );
+  expect(option).toBeInTheDocument();
+  clickEl(option);
 
-  wrapper.update();
+  await waitFor(() => expect(browserHistory.push).toHaveBeenCalled());
+}
+
+async function selectTrendFunction(field) {
+  const dropdown = await getTrendDropdown();
+  clickEl(dropdown);
+
+  await selectMenuItemFromDropdown(dropdown, field);
+}
+
+async function getDropdownButtons() {
+  return await screen.findAllByTestId('dropdown-control-button');
+}
+
+async function selectTrendParameter(label) {
+  const dropdown = await getParameterDropdown();
+  clickEl(dropdown);
+
+  await selectMenuItemFromDropdown(dropdown, label);
+}
+
+async function waitForMockCall(mock: any) {
+  await waitFor(() => {
+    expect(mock).toHaveBeenCalled();
+  });
+}
+
+async function enterSearch(el, text) {
+  fireEvent.change(el, {target: {value: text}});
+  fireEvent.submit(el);
+}
+
+// Might swap on/off the skiphover to check perf later.
+async function clickEl(el) {
+  userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
 }
 
 function initializeTrendsData(
-  projects = undefined,
+  projects: null | any[] = null,
   query = {},
   includeDefaultQuery = true
 ) {
-  projects = Array.isArray(projects)
+  const _projects = Array.isArray(projects)
     ? projects
     : [
         TestStubs.Project({id: '1', firstTransactionEvent: false}),
@@ -61,7 +107,7 @@ function initializeTrendsData(
   const features = ['transaction-event', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
-    projects,
+    projects: _projects,
   });
 
   const newQuery = {...(includeDefaultQuery ? trendsViewQuery : {}), ...query};
@@ -73,16 +119,15 @@ function initializeTrendsData(
         query: newQuery,
       },
     },
+    projects: _projects,
+    project: projects ? projects[0] : undefined,
   });
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
 describe('Performance > Trends', function () {
-  enforceActOnUseLegacyStoreHook();
-
   let trendsStatsMock;
-  let wrapper;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
@@ -174,7 +219,6 @@ describe('Performance > Trends', function () {
   });
 
   afterEach(function () {
-    wrapper.unmount();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
@@ -183,60 +227,52 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
-    // Trends dropdown and transaction widgets should render.
-    expect(wrapper.find('TrendsDropdown')).toHaveLength(2);
-    expect(wrapper.find('ChangedTransactions')).toHaveLength(2);
+    expect(await screen.findByTestId('trends-dropdown')).toBeInTheDocument();
+    expect(await screen.findAllByTestId('changed-transactions')).toHaveLength(2);
   });
 
   it('transaction list items are rendered', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('TrendsListItem')).toHaveLength(4);
+    expect(await screen.findAllByTestId('trends-list-item-regression')).toHaveLength(2);
+    expect(await screen.findAllByTestId('trends-list-item-improved')).toHaveLength(2);
   });
 
   it('view summary menu action links to the correct view', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    const transactions = await screen.findAllByTestId('trends-list-item-improved');
+    expect(transactions).toHaveLength(2);
+    const firstTransaction = transactions[0];
 
-    wrapper.find('DropdownLink').first().simulate('click');
+    const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
 
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    const summaryLink = firstTransaction.find('ItemTransactionName');
-
-    expect(summaryLink.props().to).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/summary/',
-        query: expect.objectContaining({
-          project: 1,
-          display: 'trend',
-          trendFunction: 'p50',
-          trendColumn: 'transaction.duration',
-        }),
-      })
+    expect(summaryLink.closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendColumn=transaction.duration&trendFunction=p50&unselectedSeries=p100%28%29'
     );
   });
 
@@ -244,22 +280,22 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    const transactions = await screen.findAllByTestId('trends-list-item-improved');
+    expect(transactions).toHaveLength(2);
+    const firstTransaction = transactions[0];
 
-    wrapper.find('DropdownLink').first().simulate('click');
-
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    const menuActions = firstTransaction.find('StyledMenuAction');
+    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(2);
-    menuAction.simulate('click');
+    const menuAction = menuActions[2];
+    clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -273,20 +309,15 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-    const search = wrapper.find('#smart-search-input').first();
-
-    search
-      .simulate('change', {target: {value: 'transaction.duration:>9000'}})
-      .simulate('submit', {
-        preventDefault() {},
-      });
+    const input = await screen.findByTestId('smart-search-input');
+    enterSearch(input, 'transaction.duration:>9000');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
@@ -303,23 +334,22 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    const transactions = await screen.findAllByTestId('trends-list-item-improved');
+    expect(transactions).toHaveLength(2);
+    const firstTransaction = transactions[0];
 
-    wrapper.find('DropdownLink').first().simulate('click');
-
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    const menuActions = firstTransaction.find('StyledMenuAction');
+    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(0);
-    expect(menuAction.text()).toEqual('Show \u2264 863ms');
-    menuAction.simulate('click');
+    const menuAction = menuActions[0];
+    clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -333,28 +363,27 @@ describe('Performance > Trends', function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    const transactions = await screen.findAllByTestId('trends-list-item-improved');
+    expect(transactions).toHaveLength(2);
+    const firstTransaction = transactions[0];
 
-    wrapper.find('DropdownLink').first().simulate('click');
-
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    const menuActions = firstTransaction.find('StyledMenuAction');
+    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(1);
-    expect(menuAction.text()).toEqual('Show \u2265 863ms');
-    menuAction.simulate('click');
+    const menuAction = menuActions[1];
+    clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: `tpm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
+        query: 'tpm():>0.01 transaction.duration:<15min transaction.duration:>=863',
       }),
     });
   });
@@ -362,19 +391,16 @@ describe('Performance > Trends', function () {
   it('choosing a trend function changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
     for (const trendFunction of TRENDS_FUNCTIONS) {
-      selectTrendFunction(wrapper, trendFunction.field);
-
-      await tick();
-      wrapper.update();
+      await selectTrendFunction(trendFunction.field);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
@@ -384,72 +410,66 @@ describe('Performance > Trends', function () {
         }),
       });
     }
-  }, 10000);
+  });
 
   it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
-    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
-    const label = menu.find('DropdownButton');
-    expect(label.text()).toContain('LCP');
+    const dropdownButton = await getDropdownButtons();
+    expect(dropdownButton[1]).toHaveTextContent('LCP');
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
-    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
-    const label = menu.find('DropdownButton');
-    expect(label.text()).toContain('Duration');
+    const dropdownButton = await getDropdownButtons();
+    expect(dropdownButton[1]).toHaveTextContent('Duration');
   });
 
   it('sets trend parameter from query and ignores default trend parameter', async function () {
     const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
-    const menu = wrapper.find('TrendsDropdown DropdownMenu').find('DropdownButton').at(1);
-    const label = menu.find('DropdownButton');
-    expect(label.text()).toContain('FCP');
+    const dropdownButton = await getDropdownButtons();
+    expect(dropdownButton[1]).toHaveTextContent('FCP');
   });
 
   it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
     for (const parameter of TRENDS_PARAMETERS) {
-      selectTrendParameter(wrapper, parameter.label);
-
-      await tick();
-      wrapper.update();
+      await selectTrendParameter(parameter.label);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
@@ -457,30 +477,34 @@ describe('Performance > Trends', function () {
         }),
       });
     }
-  }, 10000);
+  });
 
   it('choosing a web vitals parameter adds it as an additional condition to the query', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    const {rerender} = render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
-
     for (const parameter of TRENDS_PARAMETERS) {
-      if (Object.values(WebVital).includes(parameter.column)) {
+      if (Object.values(WebVital).includes(parameter.column as WebVital)) {
         trendsStatsMock.mockReset();
 
-        wrapper.setProps({
-          location: {query: {...trendsViewQuery, trendParameter: parameter.label}},
-        });
+        const newLocation = {
+          query: {...trendsViewQuery, trendParameter: parameter.label},
+        };
+        rerender(
+          <TrendsIndex
+            location={newLocation as unknown as Location}
+            organization={data.organization}
+          />
+        );
 
-        wrapper.update();
-        await tick();
+        await waitForMockCall(trendsStatsMock);
 
         expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
@@ -507,27 +531,33 @@ describe('Performance > Trends', function () {
         );
       }
     }
-  }, 10000);
+  });
 
   it('trend functions in location make api calls', async function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    const {rerender} = render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
-
-    await tick();
-    wrapper.update();
 
     for (const trendFunction of TRENDS_FUNCTIONS) {
       trendsStatsMock.mockReset();
-      wrapper.setProps({
-        location: {query: {...trendsViewQuery, trendFunction: trendFunction.field}},
-      });
-      wrapper.update();
-      await tick();
+
+      const newLocation = {
+        query: {...trendsViewQuery, trendFunction: trendFunction.field},
+      };
+      rerender(
+        <TrendsIndex
+          location={newLocation as unknown as Location}
+          organization={data.organization}
+        />
+      );
+
+      await waitForMockCall(trendsStatsMock);
 
       expect(trendsStatsMock).toHaveBeenCalledTimes(2);
 
@@ -573,17 +603,17 @@ describe('Performance > Trends', function () {
         })
       );
     }
-  }, 10000);
+  });
 
   it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
-    await tick();
-    wrapper.update();
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -604,25 +634,20 @@ describe('Performance > Trends', function () {
       false
     );
 
-    wrapper = mountWithTheme(
-      <TrendsIndex organization={data.organization} location={data.router.location} />,
-      data.routerContext
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+      }
     );
 
-    await tick();
-    wrapper.update();
+    (browserHistory.push as any).mockReset();
 
-    browserHistory.push.mockReset();
+    const byTransactionLink = await screen.findByTestId('breadcrumb-link');
 
-    const byTransactionLink = wrapper.find('BreadcrumbLink');
-
-    expect(byTransactionLink.props().to).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/',
-        query: {
-          query: 'device.family:Mac',
-        },
-      })
+    expect(byTransactionLink.closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/?query=device.family%3AMac'
     );
   });
 });

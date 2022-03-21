@@ -267,7 +267,7 @@ function ChangedTransactions(props: Props) {
         );
 
         return (
-          <TransactionsListContainer>
+          <TransactionsListContainer data-test-id="changed-transactions">
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
                 {chartTitle}
@@ -466,7 +466,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             )
           }
         >
-          <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
+          <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
         </MenuItem>
         <MenuItem
           onClick={() =>
@@ -479,12 +479,12 @@ function TrendsListItem(props: TrendsListItemProps) {
             )
           }
         >
-          <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
+          <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
         </MenuItem>
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >
-          <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
+          <MenuAction>{t('Hide from list')}</MenuAction>
         </MenuItem>
       </DropdownLink>
       <ItemTransactionDurationChange>
@@ -557,7 +557,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     trendColumn: currentTrendColumn,
   });
 
-  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
+  return (
+    <ItemTransactionName to={target} data-test-id="item-transaction-name">
+      {transaction.transaction}
+    </ItemTransactionName>
+  );
 };
 
 const TransactionsListContainer = styled('div')`
@@ -583,7 +587,11 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const StyledMenuAction = styled('div')`
+const MenuAction = () => {
+  return <_StyledMenuAction data-test-id="menu-action" />;
+};
+
+const _StyledMenuAction = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.textColor};
 `;

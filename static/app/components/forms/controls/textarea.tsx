@@ -6,6 +6,8 @@ import styled from '@emotion/styled';
 import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
+import getAllowAutosize from '../utils/getAllowAutosize';
+
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 export interface TextAreaProps
   extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'>,
@@ -28,7 +30,8 @@ const TextAreaControl = React.forwardRef(function TextAreaControl(
   {autosize, rows, maxRows, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
-  return autosize ? (
+  const _autosize = getAllowAutosize() && autosize;
+  return _autosize ? (
     <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />

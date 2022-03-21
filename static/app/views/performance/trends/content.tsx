@@ -240,7 +240,7 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <TrendsDropdown>
+                <TrendsDropdown data-test-id="trends-dropdown">
                   <DropdownControl
                     buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}

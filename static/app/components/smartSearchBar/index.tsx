@@ -1324,6 +1324,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         type="text"
         placeholder={placeholder}
         id="smart-search-input"
+        data-test-id="smart-search-input"
         name="query"
         ref={this.searchInput}
         autoComplete="off"
