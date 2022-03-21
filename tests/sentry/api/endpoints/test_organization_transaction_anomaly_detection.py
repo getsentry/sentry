@@ -10,6 +10,7 @@ from sentry.api.endpoints.organization_transaction_anomaly_detection import get_
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
+@freeze_time("2022-02-21")
 class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-transaction-anomaly-detection"
 
