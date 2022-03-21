@@ -42,12 +42,12 @@ const typescriptProfile = importProfile(
 
 export const TypescriptProfile = () => {
   return (
-    <FlamegraphPreferencesProvider>
+    <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
         <FullScreenFlamegraphContainer>
           {typescriptProfile ? <Flamegraph profiles={typescriptProfile} /> : null}
         </FullScreenFlamegraphContainer>
       </FlamegraphThemeProvider>
-    </FlamegraphPreferencesProvider>
+    </FlamegraphStateProvider>
   );
 };
