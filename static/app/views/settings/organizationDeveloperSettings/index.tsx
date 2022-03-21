@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
@@ -156,20 +155,22 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <Container>
+        <div>
           <SettingsPageHeader
             title={t('Developer Settings')}
             body={t(
               `Create integrations to interact with Sentry using the REST API and webhooks.`
             )}
+            action={
+              <Button
+                external
+                href="https://docs.sentry.io/product/integrations/integration-platform/"
+              >
+                {t('View Docs')}
+              </Button>
+            }
           />
-          <Button
-            external
-            href="https://docs.sentry.io/product/integrations/integration-platform/"
-          >
-            {t('View Docs')}
-          </Button>
-        </Container>
+        </div>
         <Alert type="info">
           {tct(
             'You can create integrations with webhooks notifying you when a comment on an issue is added or changes.  [link:Learn more].',
@@ -186,10 +187,5 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 }
-
-const Container = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
 
 export default withOrganization(OrganizationDeveloperSettings);
