@@ -225,7 +225,7 @@ class SpanTree extends React.Component<PropType> {
           return acc;
         }
 
-        if (payload.type === 'span_group_sibling') {
+        if (payload.type === 'span_group_siblings') {
           acc.spanTree.push(
             <SpanSiblingGroupBar
               key={`${spanNumber}-span-sibling`}

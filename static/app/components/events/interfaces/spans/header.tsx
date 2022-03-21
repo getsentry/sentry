@@ -545,7 +545,7 @@ class ActualMinimap extends React.PureComponent<{
             />
           );
         }
-        case 'span_group_sibling': {
+        case 'span_group_siblings': {
           const {spanSiblingGrouping} = payload;
 
           return (

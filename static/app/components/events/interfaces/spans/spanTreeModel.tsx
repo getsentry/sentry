@@ -451,7 +451,7 @@ class SpanTreeModel {
           }
 
           const groupedSiblingsSpan: EnhancedProcessedSpanType = {
-            type: 'span_group_sibling',
+            type: 'span_group_siblings',
             span: this.span,
             treeDepth: treeDepth + 1,
             continuingTreeDepths,
