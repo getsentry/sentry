@@ -3,8 +3,12 @@ import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Tooltip from 'sentry/components/tooltip';
+import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -19,6 +23,54 @@ type Props = {
 type State = AsyncView['state'] & {
   inviteRequests: Member[];
 };
+
+function DisabledInviteMembersTooltip({children}: any) {
+  const title = tct(
+    `Enable this feature on your sentry installation by adding the
+    following configuration into your [configFile:sentry.conf.py].
+    See [configLink:the configuration documentation] for more
+    details.`,
+    {
+      configFile: <code />,
+      configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
+    }
+  );
+
+  return <Tooltip title={title}>{children}</Tooltip>;
+}
+
+function InviteMembersButton({
+  disabled,
+  onClick,
+}: {
+  onClick: () => void | Promise<void>;
+  disabled?: boolean;
+}) {
+  const action = (
+    <Button
+      priority="primary"
+      size="small"
+      onClick={onClick}
+      data-test-id="email-invite"
+      icon={<IconMail />}
+      disabled={disabled}
+    >
+      {t('Invite Members')}
+    </Button>
+  );
+
+  return disabled ? (
+    <DisabledInviteMembersTooltip>{action}</DisabledInviteMembersTooltip>
+  ) : (
+    action
+  );
+}
+
+const InviteMembersButtonHook = HookOrDefault({
+  hookName: 'member-invite-buttom:customization',
+  defaultComponent: ({children, organization}) =>
+    children({disabled: !organization.features.includes('invite-members')}),
+});
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -45,14 +97,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       return false;
     }
     return organization.access.includes('member:write');
-  }
-
-  get hasInviteFeature() {
-    const {organization} = this.props;
-    if (!organization) {
-      return false;
-    }
-    return organization.features.includes('invite-members');
   }
 
   get showInviteRequests() {
@@ -100,27 +144,26 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     });
 
   renderBody() {
-    const {children} = this.props;
+    const {children, organization} = this.props;
     const {requestList, inviteRequests} = this.state;
 
-    const action = this.hasInviteFeature ? (
-      <Button
-        priority="primary"
-        size="small"
-        onClick={() =>
-          openInviteMembersModal({
-            onClose: () => {
-              this.fetchData();
-            },
-            source: 'members_settings',
-          })
-        }
-        data-test-id="email-invite"
-        icon={<IconMail />}
-      >
-        {t('Invite Members')}
-      </Button>
-    ) : null;
+    const action = (
+      <InviteMembersButtonHook organization={organization}>
+        {({disabled}: {disabled: boolean}) => (
+          <InviteMembersButton
+            disabled={disabled}
+            onClick={() =>
+              openInviteMembersModal({
+                onClose: () => {
+                  this.fetchData();
+                },
+                source: 'members_settings',
+              })
+            }
+          />
+        )}
+      </InviteMembersButtonHook>
+    );
 
     return (
       <Fragment>

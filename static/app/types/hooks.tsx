@@ -115,6 +115,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-buttom:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
@@ -521,6 +522,19 @@ type IntegrationsFeatureGatesHook = () => {
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
+
+/**
+ * Invite Button customization allows for ???
+ */
+type InviteButtonCustomizationHook = () => React.ComponentType<{
+  children: (opts: {
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
+  }) => React.ReactElement;
+  organization: Organization;
+}>;
 
 /**
  * Invite Modal customization allows for a render-prop component to add
