@@ -592,7 +592,10 @@ def _metric_percentile_definition(quantile, field="transaction.duration", alias=
                     Column("value"),
                     Function(
                         "equals",
-                        [Column("metric_id"), indexer.resolve(constants.METRICS_MAP[field])],
+                        [
+                            Column("metric_id"),
+                            indexer.resolve(constants.METRICS_MAP[field]),
+                        ],
                     ),
                 ],
             ),

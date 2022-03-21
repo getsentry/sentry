@@ -370,7 +370,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(release)
+            release_tag_value = indexer.resolve(org_id, release)
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
@@ -1077,8 +1077,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # No need to query snuba with an empty list
             return generate_defaults
 
-        status_init = indexer.resolve("init")
-        status_crashed = indexer.resolve("crashed")
+        status_init = indexer.resolve(org_id, "init")
+        status_crashed = indexer.resolve(org_id, "crashed")
 
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1096,7 +1096,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ) -> Tuple[int, int]:
                 total = 0
                 crashed = 0
-                metric_id = indexer.resolve(metric_key.value)
+                metric_id = indexer.resolve(org_id, metric_key.value)
                 if metric_id is not None:
                     where = conditions + [
                         Condition(Column("metric_id"), Op.EQ, metric_id),
@@ -1392,7 +1392,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
     ) -> Mapping[datetime, DurationPercentiles]:
         series: MutableMapping[datetime, DurationPercentiles] = {}
-        session_status_healthy = indexer.resolve("exited")
+        session_status_healthy = indexer.resolve(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
                 Query(
