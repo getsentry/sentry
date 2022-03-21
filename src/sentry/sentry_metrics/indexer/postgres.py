@@ -65,7 +65,7 @@ class PGStringIndexer(Service):
         result = self.bulk_record(strings=[string])
         return result[string]
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.

@@ -532,14 +532,14 @@ def _fetch_data_for_field(
                 Column("value"),
                 Function(
                     "equals",
-                    [Column(tag_key_session_status), indexer.resolve(status)],
+                    [Column(tag_key_session_status), indexer.resolve(org_id, status)],
                 ),
             ],
             alias=f"{prefix}_{status}",
         )
 
     if "count_unique(user)" == raw_field:
-        metric_id = indexer.resolve(MetricKey.USER.value)
+        metric_id = indexer.resolve(org_id, MetricKey.USER.value)
         if metric_id is not None:
             if group_by_status:
                 data.extend(
@@ -575,7 +575,7 @@ def _fetch_data_for_field(
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
     if raw_field in _DURATION_FIELDS:
-        metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
+        metric_id = indexer.resolve(org_id, MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -583,7 +583,7 @@ def _fetch_data_for_field(
 
             # Filter down
             # to healthy sessions, because that's what sessions_v2 exposes:
-            healthy = indexer.resolve("exited")
+            healthy = indexer.resolve(org_id, "exited")
             if healthy is None:
                 # There are no healthy sessions, return
                 return [], {}
@@ -611,7 +611,7 @@ def _fetch_data_for_field(
             )
 
     if "sum(session)" == raw_field:
-        metric_id = indexer.resolve(MetricKey.SESSION.value)
+        metric_id = indexer.resolve(org_id, MetricKey.SESSION.value)
         if metric_id is not None:
             if group_by_status:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -637,7 +637,7 @@ def _fetch_data_for_field(
                 )
 
                 # 2: session.error
-                error_metric_id = indexer.resolve(MetricKey.SESSION_ERROR.value)
+                error_metric_id = indexer.resolve(org_id, MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
                     # Should not limit session.error to session.status=X,
                     # because that tag does not exist for this metric
@@ -657,7 +657,7 @@ def _fetch_data_for_field(
                     limit_state.skip_columns.remove(Column(tag_key_session_status))
             else:
                 # Simply count the number of started sessions:
-                init = indexer.resolve("init")
+                init = indexer.resolve(org_id, "init")
                 if tag_key_session_status is not None and init is not None:
                     extra_conditions = [Condition(Column(tag_key_session_status), Op.EQ, init)]
                     data.extend(
@@ -856,7 +856,7 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return indexer.resolve(input_)
+        return indexer.resolve(org_id, input_)
 
     if isinstance(input_, Function):
         return Function(

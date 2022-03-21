@@ -39,7 +39,7 @@ class SimpleIndexer(StringIndexer):
     def record(self, string: str) -> int:
         return self._record(string)
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         return self._strings.get(string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:

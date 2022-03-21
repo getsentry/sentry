@@ -8,6 +8,7 @@ class PostgresIndexerTest(TestCase):
         self.indexer = PGStringIndexer()
 
     def test_indexer(self):
+        org_id = self.organization.id
         results = PGStringIndexer().bulk_record(strings=["hello", "hey", "hi"])
         obj_ids = list(
             MetricsKeyIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
@@ -18,13 +19,13 @@ class PostgresIndexerTest(TestCase):
 
         # test resolve and reverse_resolve
         obj = MetricsKeyIndexer.objects.get(string="hello")
-        assert PGStringIndexer().resolve("hello") == obj.id
+        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
         assert PGStringIndexer().reverse_resolve(obj.id) == obj.string
 
         # test record on a string that already exists
         PGStringIndexer().record("hello")
-        assert PGStringIndexer().resolve("hello") == obj.id
+        assert PGStringIndexer().resolve(org_id, "hello") == obj.id
 
         # test invalid values
-        assert PGStringIndexer().resolve("beep") is None
+        assert PGStringIndexer().resolve(org_id, "beep") is None
         assert PGStringIndexer().reverse_resolve(1234) is None
