@@ -11,7 +11,10 @@ describe('DatePageFilter', function () {
     project: undefined,
     projects: undefined,
     router: {
-      location: {query: {}},
+      location: {
+        query: {},
+        pathname: '/test',
+      },
       params: {orgId: 'org-slug'},
     },
   });
