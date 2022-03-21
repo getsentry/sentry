@@ -1,7 +1,8 @@
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
-  importDroppedProfile,
+  importDroppedFile,
   importProfile,
+  ProfileGroup,
 } from 'sentry/utils/profiling/profile/importProfile';
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
@@ -127,7 +128,7 @@ describe('importProfile', () => {
   });
 });
 
-describe('importDroppedProfile', () => {
+describe('importDroppedFile', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
@@ -146,7 +147,7 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(importDroppedFile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
@@ -165,14 +166,14 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(importDroppedFile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
 
   it('throws if contents are not valid JSON', async () => {
     const file = new File(['{"json": true'], 'test.tsx');
-    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
+    await expect(importDroppedFile(file)).rejects.toBeInstanceOf(Error);
   });
 
   it('imports schema file', async () => {
@@ -195,7 +196,7 @@ describe('importDroppedProfile', () => {
       },
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = (await importDroppedFile(file)) as ProfileGroup;
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
   });
@@ -221,7 +222,7 @@ describe('importDroppedProfile', () => {
     };
 
     const file = new File([JSON.stringify(jsSelfProfile)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = (await importDroppedFile(file)) as ProfileGroup;
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });

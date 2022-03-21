@@ -162,7 +162,7 @@ export class EventedProfile extends Profile {
     this.lastValue = at;
   }
 
-  build(): EventedProfile {
+  build() {
     if (this.appendOrderStack.length > 1) {
       throw new Error('Unbalanced append order stack');
     }

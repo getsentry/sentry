@@ -2,6 +2,7 @@ import {
   ChromeTraceProfile,
   parseChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
+  TypeScriptProfile,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
 
 describe('splitEventsByProcessAndTraceId', () => {
@@ -338,6 +339,49 @@ describe('parseChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(100);
+  });
+
+  it('marks trace as typescript trace if first frame.cat is createProgram', () => {
+    expect(
+      parseChromeTraceArrayFormat([
+        {
+          name: 'process_name',
+          args: {name: 'tsc'},
+          cat: '__metadata',
+          ph: 'M',
+          ts: 86978.20799797773,
+          pid: 1,
+          tid: 1,
+        },
+        {
+          name: 'TracingStartedInBrowser',
+          cat: 'disabled-by-default-devtools.timeline',
+          ph: 'M',
+          ts: 86978.20799797773,
+          pid: 1,
+          tid: 1,
+        },
+        {
+          pid: 1,
+          tid: 1,
+          ph: 'B',
+          cat: 'program',
+          ts: 87415.45800119638,
+          name: 'createProgram',
+          args: {},
+        },
+        {
+          ph: 'X',
+          ts: 900000,
+          cat: '',
+          pid: 1,
+          tid: 1,
+          dur: 100,
+          name: '',
+          args: {frame: '0'},
+        },
+      ]).profiles[0]
+    ).toBeInstanceOf(TypeScriptProfile);
   });
 });
 

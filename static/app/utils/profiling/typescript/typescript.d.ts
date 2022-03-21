@@ -1,5 +1,5 @@
 // https://github.com/microsoft/TypeScript/blob/7e3eccedd70de40a40425e2a1fb6bbc61965762a/src/compiler/tracing.ts
-namespace TypeScriptTrace {
+namespace TypeScriptTypes {
   interface TypeLocationDescriptor {
     path: string;
     start: {
@@ -56,4 +56,11 @@ namespace TypeScriptTrace {
     evolvingArrayElementType?: number;
     evolvingArrayFinalType?: number | undefined;
   }
+
+  type TreeNode = {
+    flags: ReadonlyArray<TypeFlag>;
+    node: TypeScriptTypes.TypeDescriptor;
+  };
+
+  type TypeTree = Record<TypeDescriptor['id'], TreeNode>;
 }

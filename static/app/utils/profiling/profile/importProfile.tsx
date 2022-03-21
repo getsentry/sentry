@@ -10,6 +10,10 @@ import {
   isSampledProfile,
   isSchema,
 } from '../guards/profile';
+import {
+  importTypeScriptTypesJSONFile,
+  isTypeScriptTypesJSONFile,
+} from '../typescript/importTypeFile';
 
 import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
@@ -146,6 +150,10 @@ function importSingleProfile(
       }
     );
   }
+
+  if (isTypeScriptTypesJSONFile(json)) {
+    return importTypeScriptTypesJSONFile(json);
+  }
   throw new Error('Unrecognized trace format');
 }
 
@@ -185,7 +193,7 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export async function importDroppedProfile(
+export async function importDroppedFile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
 ): Promise<ProfileGroup> {

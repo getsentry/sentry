@@ -132,26 +132,29 @@ function getTypeFlags(flags: readonly string[]): readonly TypeFlag[] {
     : (flags as TypeFlag[]);
 }
 
-type TypeNode = {
-  flags: ReadonlyArray<TypeFlag>;
-  node: TypeScriptTrace.TypeDescriptor;
-  types: ReadonlyArray<TypeScriptTrace.TypeDescriptor>;
-};
+export function isTypeScriptTypesJSONFile(
+  input: any
+): input is TypeScriptTypes.TypeDescriptor[] {
+  return Array.isArray(input) && typeof input[0]?.id === 'number';
+}
 
-type TypeTree = Record<TypeScriptTrace.TypeDescriptor['id'], TypeNode>;
+export function importTypeScriptTypesJSONFile(
+  input: TypeScriptTypes.TypeDescriptor[]
+): TypeScriptTypes.TypeTree {
+  const tree: TypeScriptTypes.TypeTree = {};
 
-export function importTypeJSON(
-  input: ReadonlyArray<TypeScriptTrace.TypeDescriptor>
-): TypeTree {
-  const tree: TypeTree = {};
+  while (input.length > 0) {
+    const type = input.pop();
 
-  for (let i = 0; i < input.length; i++) {
-    const node: TypeNode = {
-      flags: getTypeFlags(input[i].flags ?? []),
-      node: input[i],
-      types: [],
+    if (!type) {
+      throw new Error('Empty type queue');
+    }
+
+    tree[type.id] = {
+      flags: getTypeFlags(type.flags ?? []),
+      node: type,
     };
-    tree[input[i].id] = node;
   }
+
   return tree;
 }

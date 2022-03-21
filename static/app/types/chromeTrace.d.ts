@@ -74,7 +74,7 @@ namespace ChromeTrace {
     pid: number;
     tid: number;
     cname?: string;
-    args: Record<string, any | Record<string, any>>;
+    args?: Record<string, any | Record<string, any>>;
   }
 
   // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1399

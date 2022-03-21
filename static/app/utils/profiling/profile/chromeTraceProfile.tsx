@@ -15,6 +15,13 @@ import {EventedProfile} from './eventedProfile';
 import {ImportOptions, ProfileGroup} from './importProfile';
 
 export class ChromeTraceProfile extends EventedProfile {}
+export class TypeScriptProfile extends ChromeTraceProfile {
+  typeScriptTypeTree?: TypeScriptTypes.TypeTree;
+
+  setTypeScriptTypeTree(tree: TypeScriptTypes.TypeTree) {
+    this.typeScriptTypeTree = tree;
+  }
+}
 
 type ProcessId = number;
 type ThreadId = number;
@@ -98,12 +105,12 @@ function buildProfile(
 
     // M events are not pushed to the queue, we just store their information
     if (event.ph === 'M') {
-      if (event.name === 'thread_name' && typeof event.args.name === 'string') {
+      if (event.name === 'thread_name' && typeof event?.args?.name === 'string') {
         threadName = `${event.args.name} (${threadId})`;
         continue;
       }
 
-      if (event.name === 'process_name' && typeof event.args.name === 'string') {
+      if (event.name === 'process_name' && typeof event?.args?.name === 'string') {
         processName = `${event.args.name} (${processId})`;
         continue;
       }
@@ -143,7 +150,12 @@ function buildProfile(
     throw new Error('First begin event contains no timestamp');
   }
 
-  const profile = new ChromeTraceProfile(
+  const ProfileConstructor =
+    beginQueue[beginQueue.length - 1].name === 'createProgram'
+      ? TypeScriptProfile
+      : ChromeTraceProfile;
+
+  const profile = new ProfileConstructor(
     0,
     0,
     0,

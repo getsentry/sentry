@@ -7,14 +7,22 @@ import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraphToolbar';
 import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraphZoomViewMinimap';
-import {ProfileDragDropImport} from 'sentry/components/profiling/profileDragDropImport';
+import {
+  ProfileDragDropImport,
+  ProfileImportProps,
+} from 'sentry/components/profiling/profileDragDropImport';
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {
+  importDroppedFile,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
+
+import {TypeScriptProfile} from '../../utils/profiling/profile/chromeTraceProfile';
 
 interface FlamegraphProps {
   profiles: ProfileGroup;
@@ -41,9 +49,16 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     });
   }, [props.profiles, sorting, view, importedProfiles, activeProfileIndex]);
 
-  const onImport = useCallback((profile: ProfileGroup) => {
+  const onImport: ProfileImportProps['onImport'] = useCallback(file => {
     setActiveProfileIndex(null);
-    setImportedProfiles(profile);
+
+    return importDroppedFile(file).then(profileOrTypes => {
+      if ('profiles' in profileOrTypes) {
+        setImportedProfiles(profileOrTypes);
+      } else if (flamegraph.profile instanceof TypeScriptProfile) {
+        flamegraph.profile.setTypeScriptTypeTree(profileOrTypes);
+      }
+    });
   }, []);
 
   return (

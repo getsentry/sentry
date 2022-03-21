@@ -51,3 +51,19 @@ export const TypescriptProfile = () => {
     </FlamegraphStateProvider>
   );
 };
+
+const sentryTscTraceProfile = importProfile(
+  require('./../../../../tsc_traces/trace.json')
+);
+
+export const SentryTypescriptProfile = () => {
+  return (
+    <FlamegraphStateProvider>
+      <FlamegraphThemeProvider>
+        <FullScreenFlamegraphContainer>
+          {sentryTscTraceProfile ? <Flamegraph profiles={sentryTscTraceProfile} /> : null}
+        </FullScreenFlamegraphContainer>
+      </FlamegraphThemeProvider>
+    </FlamegraphStateProvider>
+  );
+};

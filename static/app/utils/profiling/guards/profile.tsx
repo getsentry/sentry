@@ -23,11 +23,13 @@ export function isChromeTraceFormat(input: any): input is ChromeTrace.ProfileTyp
   return isChromeTraceArrayFormat(input) || isChromeTraceObjectFormat(input);
 }
 
-export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectFormat {
+function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectFormat {
   return typeof input === 'object' && 'traceEvents' in input;
 }
 
-export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ArrayFormat {
+function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ArrayFormat {
   // @TODO we need to check if the profile actually includes the v8 profile nodes.
-  return Array.isArray(input);
+  return (
+    Array.isArray(input) && 'ph' in input[0] && 'ts' in input[0] && 'cat' in input[0]
+  );
 }
