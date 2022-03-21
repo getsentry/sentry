@@ -288,9 +288,9 @@ def alert(request):
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
-            "link": get_group_settings_link(
-                group, None, "email", None, rule.id
-            ),  # "http://example.com/link",
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
