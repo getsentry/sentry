@@ -13,12 +13,13 @@ from sentry.testutils.cases import TestCase
 class GetRateLimitKeyTest(TestCase):
     def setUp(self) -> None:
         self.view = OrganizationGroupIndexEndpoint.as_view()
+        self.rate_limit_group = OrganizationGroupIndexEndpoint.rate_limits.group
         self.request = RequestFactory().get("/")
 
     def test_default_ip(self):
         assert (
             get_rate_limit_key(self.view, self.request)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            == f"ip:{self.rate_limit_group}:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
 
     def test_ip_address_missing(self):
@@ -29,7 +30,7 @@ class GetRateLimitKeyTest(TestCase):
         self.request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
             get_rate_limit_key(self.view, self.request)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == f"ip:{self.rate_limit_group}:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
     def test_system_token(self):
@@ -42,7 +43,7 @@ class GetRateLimitKeyTest(TestCase):
         self.request.user = user
         assert (
             get_rate_limit_key(self.view, self.request)
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{user.id}"
+            == f"user:{self.rate_limit_group}:OrganizationGroupIndexEndpoint:GET:{user.id}"
         )
 
     def test_organization(self):
@@ -67,7 +68,7 @@ class GetRateLimitKeyTest(TestCase):
 
         assert (
             get_rate_limit_key(self.view, self.request)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
+            == f"org:{self.rate_limit_group}:OrganizationGroupIndexEndpoint:GET:{install.organization_id}"
         )
 
 
