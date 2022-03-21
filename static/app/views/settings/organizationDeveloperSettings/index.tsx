@@ -159,7 +159,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
           <SettingsPageHeader
             title={t('Developer Settings')}
             body={t(
-              `Create integrations to interact with Sentry using the REST API and webhooks.`
+              `Create integrations that interact with Sentry using the REST API and webhooks.`
             )}
             action={
               <Button
@@ -173,7 +173,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         </div>
         <Alert type="info">
           {tct(
-            'You can create integrations with webhooks notifying you when a comment on an issue is added or changes.  [link:Learn more].',
+            'You can now create integrations that subscribe to webhooks which notify you when a comment on an issue is added or changes.  [link:Learn more].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
