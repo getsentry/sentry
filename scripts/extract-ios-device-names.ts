@@ -2,8 +2,7 @@
 import path from 'path';
 import fs from 'fs';
 
-import process from 'process';
-console.log('Current working directory: ', process.cwd());
+import prettier from 'prettier';
 
 //joining path of directory
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
@@ -68,16 +67,25 @@ const HEADER = `
 
 const template = (contents: string) => {
   return `
-${HEADER}
-const iOSDeviceMapping: Record<string, string> = ${contents}
+      ${HEADER}
+      const iOSDeviceMapping: Record<string, string> = ${contents}
 
-export {iOSDeviceMapping}
+      export {iOSDeviceMapping}
   `;
+};
+
+const formatOutput = async (unformatted: string) => {
+  const config = await prettier.resolveConfig(outputPath);
+  return prettier.format(unformatted, config);
 };
 
 export async function extractIOSDeviceNames() {
   const files = await getDefinitionFiles();
   const definitions = await collectDefinitions(files);
-  fs.writeFileSync(outputPath, template(JSON.stringify(definitions, undefined, 2)));
+  const formatted = await formatOutput(
+    template(JSON.stringify(definitions, undefined, 2))
+  );
+
+  fs.writeFileSync(outputPath, formatted);
   console.log('✅ Regenerated ios-device-list.tsx');
 }
