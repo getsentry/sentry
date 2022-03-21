@@ -117,7 +117,7 @@ function createTooltipPortal(): HTMLElement {
   return portal;
 }
 
-// Warning: This component is conditionally exported eof based on IS_ACCEPTANCE_TEST env variable
+// Warning: This component is conditionally exported end-of-file based on IS_ACCEPTANCE_TEST env variable
 export function DO_NOT_USE_TOOLTIP({
   children,
   className,
