@@ -77,7 +77,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-internal/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -123,7 +123,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-public/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -155,22 +155,21 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <div>
-          <SettingsPageHeader
-            title={t('Developer Settings')}
-            body={t(
-              `Create integrations that interact with Sentry using the REST API and webhooks.`
-            )}
-            action={
-              <Button
-                external
-                href="https://docs.sentry.io/product/integrations/integration-platform/"
-              >
-                {t('View Docs')}
-              </Button>
-            }
-          />
-        </div>
+        <SettingsPageHeader
+          title={t('Developer Settings')}
+          body={t(
+            `Create integrations that interact with Sentry using the REST API and webhooks.`
+          )}
+          action={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/integrations/integration-platform/"
+            >
+              {t('View Docs')}
+            </Button>
+          }
+        />
         <Alert type="info">
           {tct(
             'You can now create integrations that subscribe to webhooks which notify you when a comment on an issue is added or changes.  [link:Learn more].',
