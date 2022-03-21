@@ -216,6 +216,7 @@ function WidgetBuilder({
       dataSet: DataSet.EVENTS,
     };
   });
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
@@ -229,26 +230,26 @@ function WidgetBuilder({
       parseInt(widgetIndex, 10) >= 0 &&
       parseInt(widgetIndex, 10) < dashboard.widgets.length
     ) {
-      const widgetToBeUpdated = dashboard.widgets[widgetIndex];
+      const widgetFromDashboard = dashboard.widgets[widgetIndex];
       setState({
-        title: widgetToBeUpdated.title,
-        displayType: widgetToBeUpdated.displayType,
-        interval: widgetToBeUpdated.interval,
+        title: widgetFromDashboard.title,
+        displayType: widgetFromDashboard.displayType,
+        interval: widgetFromDashboard.interval,
         queries: normalizeQueries({
-          displayType: widgetToBeUpdated.displayType,
-          queries: widgetToBeUpdated.queries,
-          widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
+          displayType: widgetFromDashboard.displayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
         }),
         errors: undefined,
         loading: false,
         dashboards: [],
         userHasModified: false,
-        dataSet: widgetToBeUpdated.widgetType
-          ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
+        dataSet: widgetFromDashboard.widgetType
+          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
-        widgetToBeUpdated,
       });
+      setWidgetToBeUpdated(widgetFromDashboard);
     }
   }, []);
 
@@ -299,8 +300,8 @@ function WidgetBuilder({
 
       if (
         prevState.displayType === DisplayType.TABLE &&
-        state.widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[state.widgetToBeUpdated.widgetType] === DataSet.ISSUES
+        widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
@@ -322,9 +323,9 @@ function WidgetBuilder({
         // If the Widget is an issue widget,
         if (
           newDisplayType === DisplayType.TABLE &&
-          state.widgetToBeUpdated?.widgetType === WidgetType.ISSUE
+          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
         ) {
-          set(newState, 'queries', state.widgetToBeUpdated.queries);
+          set(newState, 'queries', widgetToBeUpdated.queries);
           set(newState, 'dataSet', DataSet.ISSUES);
           return {...newState, errors: undefined};
         }
@@ -399,9 +400,9 @@ function WidgetBuilder({
       }
 
       newState.queries.push(
-        ...(state.widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[state.widgetToBeUpdated.widgetType] === newDataSet
-          ? state.widgetToBeUpdated.queries
+        ...(widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
+          ? widgetToBeUpdated.queries
           : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
       );
 
@@ -542,8 +543,8 @@ function WidgetBuilder({
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
 
-    if (state.widgetToBeUpdated) {
-      widgetData.layout = state.widgetToBeUpdated?.layout;
+    if (widgetToBeUpdated) {
+      widgetData.layout = widgetToBeUpdated?.layout;
     }
 
     // Only Table and Top N views need orderby
@@ -562,14 +563,14 @@ function WidgetBuilder({
       return;
     }
 
-    if (!!state.widgetToBeUpdated) {
+    if (!!widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
-      const updateIndex = nextWidgetList.indexOf(state.widgetToBeUpdated);
-      const nextWidgetData = {...widgetData, id: state.widgetToBeUpdated.id};
+      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(state.widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
         nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);

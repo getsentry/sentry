@@ -64,20 +64,19 @@ function renderTestComponent({
       routes={router.routes}
       routeParams={router.params}
       location={router.location}
-      dashboard={
-        dashboard ?? {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-        }
-      }
+      dashboard={{
+        id: 'new',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [],
+        ...dashboard,
+      }}
       onSave={onSave ?? jest.fn()}
       params={{
         orgId: organization.slug,
         widgetIndex: 'new',
-        dashboardId: dashboard?.id ?? '1',
+        dashboardId: dashboard?.id,
         ...params,
       }}
     />,
@@ -222,6 +221,9 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       dashboard,
       orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '2', // Out of bounds, only one widget
+      },
     });
 
     expect(
@@ -1027,6 +1029,10 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
+        params: {
+          dashboardId: 'new',
+          widgetIndex: '0',
+        },
       });
 
       // Click on the displayType selector
@@ -1044,7 +1050,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
-    it.only('can update selectors values', async function () {
+    it('can update selectors values', async function () {
       const handleSave = jest.fn();
 
       const widget: Widget = {
