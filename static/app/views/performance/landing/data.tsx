@@ -57,8 +57,8 @@ export const REACT_NATIVE_COLUMN_TITLES = [
   'cold start',
   'warm start',
   // TODO(tonyx): add these back in once the SDKs are ready
-  // 'slow frame %',
-  // 'frozen frame %',
+  'slow frame %',
+  'frozen frame %',
   'stall %',
   'users',
   'user misery',
