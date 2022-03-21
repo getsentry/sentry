@@ -158,10 +158,6 @@ const StyledIconQuestion = styled(IconQuestion)`
 const HelpfulBody = styled('div')`
   padding: ${space(1)};
   text-align: center;
-
-  p {
-    line-height: 1.5;
-  }
 `;
 
 const Container = styled(Panel)`
