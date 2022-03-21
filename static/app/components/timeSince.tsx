@@ -14,17 +14,15 @@ const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Suffix after elapsed time
    * e.g. "ago" in "5 minutes ago"
    */
   suffix: string;
-};
+}
 
-type TimeProps = React.HTMLProps<HTMLTimeElement>;
-
-type Props = DefaultProps & {
+interface Props extends DefaultProps, React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
@@ -48,7 +46,7 @@ type Props = DefaultProps & {
   shorten?: boolean;
 
   tooltipTitle?: React.ReactNode;
-} & TimeProps;
+}
 
 type State = {
   relative: string;

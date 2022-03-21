@@ -7,11 +7,14 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 describe('DatePageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: undefined,
+    organization: {features: ['selection-filters-v2']},
     project: undefined,
     projects: undefined,
     router: {
-      location: {query: {}},
+      location: {
+        query: {},
+        pathname: '/test',
+      },
       params: {orgId: 'org-slug'},
     },
   });
@@ -73,11 +76,14 @@ describe('DatePageFilter', function () {
       })
     );
 
+    // Open time period dropdown
+    userEvent.click(screen.getByText('30D'));
+
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
     userEvent.click(pinButton);
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

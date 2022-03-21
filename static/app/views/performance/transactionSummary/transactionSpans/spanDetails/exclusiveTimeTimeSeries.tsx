@@ -34,7 +34,7 @@ type Props = WithRouterProps & {
   withoutZerofill: boolean;
 };
 
-export default function ExclusiveTimeChart(props: Props) {
+export default function ExclusiveTimeTimeSeries(props: Props) {
   const {location, router, organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();

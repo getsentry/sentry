@@ -99,7 +99,7 @@ type BaseProps = DefaultProps & {
   /**
    * Additional props for the tooltip
    */
-  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
+  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
   uploadId?: string | null | undefined;
 };
 
