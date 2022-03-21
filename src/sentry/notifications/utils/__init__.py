@@ -136,7 +136,9 @@ def get_group_settings_link(
     alert_timestamp: int | None = None,
 ) -> str:
     alert_type = str(AlertRuleTriggerAction.Type.EMAIL.name).lower()
-    alert_timestamp = str(round(time.time() * 1000)) if not alert_timestamp else alert_timestamp
+    alert_timestamp = (
+        str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
+    )
     alert_rule_id = str(rule_details[0].id) if rule_details and rule_details[0].id else None
 
     query_params = {"referrer": "alert_email"}
