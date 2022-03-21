@@ -75,8 +75,8 @@ function renderTestComponent({
       onSave={onSave ?? jest.fn()}
       params={{
         orgId: organization.slug,
+        dashboardId: dashboard?.id ?? 'new',
         widgetIndex: 'new',
-        dashboardId: dashboard?.id,
         ...params,
       }}
     />,
@@ -922,7 +922,7 @@ describe('WidgetBuilder', function () {
 
     const {router} = renderTestComponent({
       dashboard,
-      params: {orgId: 'org-slug', dashboardId: '1', widgetIndex: '0'},
+      params: {orgId: 'org-slug', widgetIndex: '0'},
       query: {statsPeriod: '90d'},
     });
 
@@ -1030,7 +1030,6 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         params: {
-          dashboardId: 'new',
           widgetIndex: '0',
         },
       });
@@ -1099,7 +1098,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getAllByText('count()')[2]);
 
       // menu of the "sortBy" selector is being displayed
-      expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the second option of the "sortBy" selector
       userEvent.click(screen.getAllByText('count_unique(id)')[1]);
@@ -1110,7 +1109,7 @@ describe('WidgetBuilder', function () {
       });
 
       // Now count_unique(id) is selected in the "sortBy" selector
-      expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the "sortDirection" selector
       userEvent.click(screen.getByText('Low to high'));
