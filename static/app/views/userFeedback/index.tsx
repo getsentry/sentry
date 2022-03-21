@@ -157,7 +157,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   <PageFilterBar>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
-                    <DatePageFilter hidePin alignDropdown="right" />
+                    <DatePageFilter alignDropdown="right" />
                   </PageFilterBar>
                 </Filters>
               </Feature>
@@ -182,7 +182,7 @@ const Header = styled('div')`
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: max-content max-content;
+  grid-template-columns: max-content minmax(0, max-content);
   justify-content: start;
   gap: ${space(1)};
   margin-bottom: ${space(2)};

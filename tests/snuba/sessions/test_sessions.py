@@ -1231,6 +1231,50 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         assert actual == 2
 
+    def test_environment_without_sessions(self):
+        """
+        We should get zero sessions, even if the environment name has not been indexed
+        by the metrics indexer.
+
+        """
+
+        env_without_sessions = self.create_environment(
+            name="this_has_no_sessions", project=self.project
+        )
+
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    environment=self.prod_env.name,
+                    received=self._5_min_ago,
+                    started=self._5_min_ago,
+                ),
+                self.build_session(
+                    environment=None, received=self._5_min_ago, started=self._5_min_ago
+                ),
+            ]
+        )
+
+        count_env_all = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=None,
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert count_env_all == 2
+
+        count_env_new = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=env_without_sessions.id,
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert count_env_new == 0
+
     def test_sessions_in_all_environments(self):
         """
         When the environment is not specified sessions from all environments are counted

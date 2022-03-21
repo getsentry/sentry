@@ -17,7 +17,6 @@ export enum DisplayType {
   TABLE = 'table',
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
   TOP_N = 'top_n',
 }
 
@@ -28,12 +27,15 @@ export enum WidgetType {
 }
 
 export type WidgetQuery = {
+  aggregates: string[];
+  columns: string[];
   conditions: string;
-  fields: string[];
   name: string;
   orderby: string;
-  aggregates?: string[];
-  columns?: string[];
+  // Fields is replaced with aggregates + columns. It
+  // is currently used to track column order on table
+  // widgets.
+  fields?: string[];
 };
 
 export type Widget = {

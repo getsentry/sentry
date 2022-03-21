@@ -75,14 +75,7 @@ describe('GlobalSelectionHeader', function () {
 
   afterEach(function () {
     wrapper.unmount();
-    [
-      globalActions.updateDateTime,
-      globalActions.updateProjects,
-      globalActions.updateEnvironments,
-      router.push,
-      router.replace,
-      getItem,
-    ].forEach(mock => mock.mockClear());
+    jest.clearAllMocks();
     PageFiltersStore.reset();
   });
 
@@ -740,20 +733,21 @@ describe('GlobalSelectionHeader', function () {
   });
 
   describe('forceProject selection mode', function () {
+    const initialData = initializeOrg({
+      organization: {features: ['global-views']},
+      projects: [
+        {id: 1, slug: 'staging-project', environments: ['staging']},
+        {id: 2, slug: 'prod-project', environments: ['prod']},
+      ],
+      router: {
+        location: {query: {}},
+      },
+    });
+
     beforeEach(async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
-      });
-      const initialData = initializeOrg({
-        organization: {features: ['global-views']},
-        projects: [
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
-        ],
-        router: {
-          location: {query: {}},
-        },
       });
 
       ProjectsStore.loadInitialData(initialData.projects);
@@ -784,6 +778,49 @@ describe('GlobalSelectionHeader', function () {
       const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
+    });
+
+    it('replaces URL with project', function () {
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {environment: [], project: ['1']},
+        })
+      );
+    });
+  });
+
+  describe('skipInitializeUrlParams', function () {
+    const initialData = initializeOrg({
+      organization,
+      projects: [{id: 1, slug: 'staging-project', environments: ['staging']}],
+      router: {
+        location: {query: {}},
+      },
+    });
+
+    beforeEach(function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      ProjectsStore.loadInitialData(initialData.projects);
+    });
+
+    it('does not add forced project to URL', async function () {
+      wrapper = mountWithTheme(
+        <PageFiltersContainer
+          skipInitializeUrlParams
+          shouldForceProject
+          organization={initialData.organization}
+          forceProject={initialData.projects[0]}
+          showIssueStreamLink
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(router.replace).not.toHaveBeenCalled();
     });
   });
 
@@ -1109,7 +1146,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets member projects', function () {
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
     });
@@ -1129,7 +1166,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
 

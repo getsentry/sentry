@@ -770,8 +770,9 @@ def run_sessions_query(
     if len(data_points) == 0:
         # We're only interested in `session.status` group-byes. The rest of the
         # conditions require work (e.g. getting all environments) that we can't
-        # get without querying the DB.
-        if "session.status" in query_clone.raw_groupby:
+        # get without querying the DB, including group-byes consisting of
+        # multiple parameters (even if `session.status` is one of them).
+        if query_clone.raw_groupby == ["session.status"]:
             for status in get_args(_SessionStatus):
                 gkey: GroupKey = (("session.status", status),)
                 groups[gkey]

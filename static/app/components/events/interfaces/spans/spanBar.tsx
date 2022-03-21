@@ -61,11 +61,13 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
+import {GroupType} from './spanGroupBar';
 import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
   ParsedTraceType,
   ProcessedSpanType,
+  SpanType,
   TreeDepthType,
 } from './types';
 import {
@@ -116,10 +118,12 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
+  groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
@@ -424,17 +428,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth, toggleSpanGroup} = this.props;
+    const {span, treeDepth, toggleSpanGroup, toggleSiblingSpanGroup, groupType} =
+      this.props;
 
     let titleFragments: React.ReactNode[] = [];
 
-    if (typeof toggleSpanGroup === 'function') {
+    if (
+      typeof toggleSpanGroup === 'function' ||
+      typeof toggleSiblingSpanGroup === 'function'
+    ) {
       titleFragments.push(
         <Regroup
           onClick={event => {
             event.stopPropagation();
             event.preventDefault();
-            toggleSpanGroup();
+            if (groupType === GroupType.SIBLINGS && 'op' in span) {
+              toggleSiblingSpanGroup?.(span);
+            } else {
+              toggleSpanGroup && toggleSpanGroup();
+            }
           }}
         >
           <a
@@ -923,6 +935,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
+    const {spanNumber} = this.props;
     const bounds = this.getBounds();
     const {isSpanVisibleInView} = bounds;
 
@@ -932,7 +945,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           ref={this.spanRowDOMRef}
           visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
-          data-test-id="span-row"
+          data-test-id={`span-row-${spanNumber}`}
         >
           <QuickTraceContext.Consumer>
             {quickTrace => {
