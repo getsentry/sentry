@@ -152,7 +152,12 @@ function SpanDetailsContent(props: ContentProps) {
         totalCount={totalCount}
         suspectSpan={suspectSpan}
       />
-      <SpanChart organization={organization} eventView={eventView} spanSlug={spanSlug} />
+      <SpanChart
+        totalCount={totalCount}
+        organization={organization}
+        eventView={eventView}
+        spanSlug={spanSlug}
+      />
       <SpanTable
         location={location}
         organization={organization}
