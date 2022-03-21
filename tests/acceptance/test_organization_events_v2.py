@@ -55,6 +55,20 @@ def transactions_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
+# Sorted by transactions to avoid sorting issues caused by storing events
+def transactions_sorted_query(**kwargs):
+    options = {
+        "sort": ["transaction"],
+        "name": ["Transactions"],
+        "field": ["transaction", "project", "count()"],
+        "statsPeriod": ["14d"],
+        "query": ["event.type:transaction"],
+    }
+    options.update(kwargs)
+
+    return urlencode(options, doseq=True)
+
+
 def generate_transaction(trace=None, span=None):
     end_datetime = before_now(minutes=1)
     start_datetime = end_datetime - timedelta(milliseconds=500)
@@ -392,7 +406,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
-            self.browser.get(self.result_path + "?" + transactions_query())
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
 
             # Open the stack
@@ -420,6 +434,59 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Click on the child transaction.
             self.browser.click(child_button)
             self.wait_until_loaded()
+
+    @patch("django.utils.timezone.now")
+    def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
+        # TODO(Ash): Will replace above test after sibling EA.
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
+
+        for i in range(5):
+            clone = copy.deepcopy(event_data["spans"][-1])
+            # If range > 9 this might no longer work because of constraints on span_id (hex 16)
+            clone["span_id"] = (str("ac" * 6) + str(i)).ljust(16, "0")
+            event_data["spans"].append(clone)
+
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        # Create a child event that is linked to the parent so we have coverage
+        # of traversal buttons.
+        child_event = generate_transaction(
+            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
+        )
+        child_event["event_id"] = "b" * 32
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
+        child_event["transaction"] = "z-child-transaction"
+        child_event["spans"] = child_event["spans"][0:3]
+        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES + ["organizations:performance-autogroup-sibling-spans"]):
+            # Get the list page
+            self.browser.get(self.result_path + "?" + transactions_sorted_query())
+            self.wait_until_loaded()
+
+            # Open the stack
+            self.browser.elements('[data-test-id="open-group"]')[0].click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event with descendant and sibling auto-grouped spans"
+            )
+
+            # Expand auto-grouped descendant spans
+            self.browser.element('[data-test-id="span-row-5"]').click()
+
+            # Expand auto-grouped sibling spans
+            self.browser.element('[data-test-id="span-row-9"]').click()
+
+            self.browser.snapshot(
+                "events-v2 - transactions event with expanded descendant and sibling auto-grouped spans"
+            )
 
     @patch("django.utils.timezone.now")
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):

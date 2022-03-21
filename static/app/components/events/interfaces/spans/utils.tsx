@@ -635,3 +635,7 @@ export function scrollToSpan(
 export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
+
+export function getSiblingGroupKey(span: SpanType): string {
+  return `${span?.op}.${span?.description}`;
+}
