@@ -37,6 +37,10 @@ def _get_superuser():
     return click.confirm("Should this user be a superuser?", default=False)
 
 
+def _get_staff():
+    return click.confirm("Should this user be staff?", default=False)
+
+
 def _set_user_permissions(user):
     from sentry.models import UserRole, UserRoleUser
 
@@ -52,11 +56,12 @@ def _set_user_permissions(user):
 @click.option("--email")
 @click.option("--password")
 @click.option("--superuser/--no-superuser", default=None, is_flag=True)
+@click.option("--staff/--no-staff", default=None, is_flag=True)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
 @click.option("--force-update", default=False, is_flag=True)
 @configuration
-def createuser(email, password, superuser, no_password, no_input, force_update):
+def createuser(email, password, superuser, staff, no_password, no_input, force_update):
     "Create a new user."
     if not no_input:
         if not email:
@@ -68,8 +73,14 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
         if superuser is None:
             superuser = _get_superuser()
 
+        if staff is None:
+            staff = _get_staff()
+
     if superuser is None:
         superuser = False
+
+    if staff is None:
+        staff = superuser
 
     if not email:
         raise click.ClickException("Invalid or missing email address.")
@@ -84,7 +95,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     from sentry.models import User
 
     fields = dict(
-        email=email, username=email, is_superuser=superuser, is_staff=superuser, is_active=True
+        email=email, username=email, is_superuser=superuser, is_staff=staff, is_active=True
     )
 
     verb = None
