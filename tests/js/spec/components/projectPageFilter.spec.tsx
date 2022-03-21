@@ -79,7 +79,7 @@ describe('ProjectPageFilter', function () {
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton);
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
@@ -98,10 +98,10 @@ describe('ProjectPageFilter', function () {
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
-    userEvent.click(screen.getByText('My Projects'), undefined, {skipHover: true});
+    userEvent.click(screen.getByText('My Projects'));
 
     // Click the first project's checkbox
-    userEvent.click(screen.getByText('project-2'), undefined, {skipHover: true});
+    userEvent.click(screen.getByText('project-2'));
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(

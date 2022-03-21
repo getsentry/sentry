@@ -83,7 +83,7 @@ describe('EnvironmentPageFilter', function () {
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton);
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
@@ -102,10 +102,10 @@ describe('EnvironmentPageFilter', function () {
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Environments'), undefined, {skipHover: true});
+    userEvent.click(screen.getByText('All Environments'));
 
     // Click the first environment directly
-    userEvent.click(screen.getByText('prod'), undefined, {skipHover: true});
+    userEvent.click(screen.getByText('prod'));
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
