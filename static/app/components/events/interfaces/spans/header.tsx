@@ -523,7 +523,6 @@ class ActualMinimap extends React.PureComponent<{
       switch (payload.type) {
         case 'root_span':
         case 'span':
-        case 'span_group_sibling':
         case 'span_group_chain': {
           const {span} = payload;
 
@@ -539,14 +538,39 @@ class ActualMinimap extends React.PureComponent<{
             <MinimapSpanBar
               style={{
                 backgroundColor:
-                  payload.type === 'span_group_chain' ||
-                  payload.type === 'span_group_sibling'
-                    ? theme.blue300
-                    : spanBarColor,
+                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
               }}
             />
+          );
+        }
+        case 'span_group_sibling': {
+          const {spanSiblingGrouping} = payload;
+
+          return (
+            <MinimapSiblingGroupBar>
+              {spanSiblingGrouping?.map(({span}, index) => {
+                const bounds = generateBounds({
+                  startTimestamp: span.start_timestamp,
+                  endTimestamp: span.timestamp,
+                });
+                const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+                return (
+                  <MinimapSpanBar
+                    style={{
+                      backgroundColor: theme.blue300,
+                      left: spanLeft,
+                      width: spanWidth,
+                      minWidth: 0,
+                      position: 'absolute',
+                    }}
+                    key={index}
+                  />
+                );
+              })}
+            </MinimapSiblingGroupBar>
           );
         }
         default: {
@@ -767,6 +791,15 @@ const MinimapSpanBar = styled('div')`
   min-width: 1px;
   border-radius: 1px;
   box-sizing: border-box;
+`;
+
+const MinimapSiblingGroupBar = styled('div')`
+  display: flex;
+  position: relative;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
+  top: -2px;
 `;
 
 const BackgroundSlider = styled('div')`
