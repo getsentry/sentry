@@ -1044,7 +1044,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
-    it('can update selectors values', async function () {
+    it.only('can update selectors values', async function () {
       const handleSave = jest.fn();
 
       const widget: Widget = {
@@ -1076,6 +1076,9 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         onSave: handleSave,
+        params: {
+          widgetIndex: '0',
+        },
       });
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -1090,9 +1093,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getAllByText('count()')[2]);
 
       // menu of the "sortBy" selector is being displayed
-      await waitFor(() => {
-        expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
-      });
+      expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the second option of the "sortBy" selector
       userEvent.click(screen.getAllByText('count_unique(id)')[1]);
@@ -1103,9 +1104,7 @@ describe('WidgetBuilder', function () {
       });
 
       // Now count_unique(id) is selected in the "sortBy" selector
-      await waitFor(() => {
-        expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
-      });
+      expect(await screen.findAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the "sortDirection" selector
       userEvent.click(screen.getByText('Low to high'));
