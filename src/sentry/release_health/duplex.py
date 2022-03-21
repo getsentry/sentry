@@ -1194,9 +1194,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         environment_id: Optional[int] = None,
     ) -> int:
         schema = ComparatorType.Counter
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+
+        # We verified the correctness of the metrics implementation manually.
+        # The results still differ because the sessions impl gets its results
+        # from hourly aggregations.
+        should_compare = False
+
         organization = self._org_from_projects([project_id])
-        set_tag("rh.duplex.environment_id", str(environment_id))
         return self._dispatch_call(  # type: ignore
             "get_project_sessions_count",
             should_compare,
