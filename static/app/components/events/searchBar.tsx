@@ -30,7 +30,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
-type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
+export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   api: Client;
   organization: Organization;
   tags: TagCollection;

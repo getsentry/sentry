@@ -16,11 +16,12 @@ type InjectedTeamsProps = {
 const withTeams = <P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) => {
-  const WithTeams: React.FC<Omit<P, keyof InjectedTeamsProps> & InjectedTeamsProps> =
-    props => {
-      const {teams} = useTeams();
-      return <WrappedComponent teams={teams} {...(props as P)} />;
-    };
+  const WithTeams: React.FC<
+    Omit<P, keyof InjectedTeamsProps> & InjectedTeamsProps
+  > = props => {
+    const {teams} = useTeams();
+    return <WrappedComponent teams={teams} {...(props as P)} />;
+  };
 
   WithTeams.displayName = `withTeams(${getDisplayName(WrappedComponent)})`;
 

@@ -11,7 +11,6 @@ function renderComponent(
   routerContext?: ReturnType<typeof initializeOrg>['routerContext']
 ) {
   const onChangeHandler = jest.fn();
-  const api = new MockApiClient();
 
   const testOrganization = organization || TestStubs.Organization();
 
@@ -84,7 +83,6 @@ function renderComponent(
 
   const container = render(
     <IssueWidgetQueriesForm
-      api={api}
       organization={testOrganization}
       selection={{
         projects: [1],
@@ -99,6 +97,8 @@ function renderComponent(
       query={{
         conditions: 'assigned:',
         fields: ['issue', 'assignee'],
+        columns: ['issue', 'assignee'],
+        aggregates: ['issue', 'assignee'],
         name: '',
         orderby: 'date',
       }}

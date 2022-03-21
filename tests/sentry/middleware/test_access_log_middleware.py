@@ -46,6 +46,24 @@ class RateLimitedEndpoint(Endpoint):
         return Response({"ok": True})
 
 
+class ConcurrentRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1, 1),
+                RateLimitCategory.USER: RateLimit(20, 1, 1),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, 1),
+            },
+        },
+    )
+
+    def get(self, request):
+        return Response({"ok": True})
+
+
 access_log_fields = (
     "method",
     "view",
@@ -61,6 +79,9 @@ access_log_fields = (
     "rate_limited",
     "rate_limit_category",
     "request_duration_seconds",
+    "rate_limit_type",
+    "concurrent_limit",
+    "concurrent_requests",
 )
 
 
@@ -73,6 +94,11 @@ urlpatterns = [
     url(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     url(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
     url(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
+    url(
+        r"^/dummyratelimitconcurrent$",
+        ConcurrentRateLimitedEndpoint.as_view(),
+        name="concurrent-ratelimit-endpoint",
+    ),
     url(
         r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
@@ -109,6 +135,27 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
         assert self.captured_logs[0].token_type == "None"
+
+
+class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
+
+    endpoint = "concurrent-ratelimit-endpoint"
+
+    def test_concurrent_request_finishes(self):
+        self._caplog.set_level(logging.INFO, logger="api.access")
+        self.get_success_response()
+        # these requests were done in succession, so we should not have any
+        # rate limiting
+        self.assert_access_log_recorded()
+        assert self.captured_logs[0].token_type == "None"
+        assert self.captured_logs[0].concurrent_requests == "1"
+        assert self.captured_logs[0].concurrent_limit == "1"
+        assert self.captured_logs[0].rate_limit_type == "RateLimitType.NOT_LIMITED"
+        self.get_success_response()
+        assert self.captured_logs[1].token_type == "None"
+        assert self.captured_logs[1].concurrent_requests == "1"
+        assert self.captured_logs[1].concurrent_limit == "1"
+        assert self.captured_logs[1].rate_limit_type == "RateLimitType.NOT_LIMITED"
 
 
 class TestAccessLogSuccess(LogCaptureAPITestCase):
