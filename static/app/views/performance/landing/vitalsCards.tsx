@@ -278,21 +278,19 @@ function _MobileCards(props: MobileCardsProps) {
       kind: 'function',
       function: ['p75', 'measurements.app_start_warm', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    },
   ];
   if (props.showStallPercentage) {
     functions.push({
       kind: 'function',
       function: ['p75', 'measurements.stall_percentage', undefined, undefined],
-    });
-  } else {
-    // TODO(tonyx): add these by default once the SDKs are ready
-    functions.push({
-      kind: 'function',
-      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
-    });
-    functions.push({
-      kind: 'function',
-      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
     });
   }
   return <GenericCards {...props} functions={functions} />;
