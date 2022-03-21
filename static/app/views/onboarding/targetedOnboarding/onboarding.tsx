@@ -2,11 +2,13 @@ import * as React from 'react';
 import {useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
+import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -78,6 +80,13 @@ function Onboarding(props: Props) {
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
+  const activeStepIndex = ONBOARDING_STEPS.findIndex(({id}) => props.params.step === id);
+
+  const handleGoBack = () => {
+    const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
+    browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
+  };
+
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={t('Welcome')} />
@@ -86,12 +95,11 @@ function Onboarding(props: Props) {
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
+        <Back
+          animate={activeStepIndex > 0 ? 'visible' : 'hidden'}
+          onClick={handleGoBack}
+        />
         <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
-          {/* <TargetedOnboardingSidebar
-            stepId={stepObj.id}
-            // subStep={subStep}
-            activeProject={activeProject}
-          /> */}
           <OnboardingStep
             centered={stepObj.centered}
             key={stepObj.id}
@@ -153,7 +161,6 @@ const LogoSvg = styled(LogoSentry)`
 `;
 
 const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
-  width: 850px;
   display: flex;
   flex-direction: column;
   ${p =>
@@ -193,6 +200,46 @@ const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     --corner-scale: 0.5;
+  }
+`;
+
+interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
+  animate: MotionProps['animate'];
+  className?: string;
+}
+
+const Back = styled(({className, animate, ...props}: BackButtonProps) => (
+  <motion.div
+    className={className}
+    animate={animate}
+    transition={testableTransition()}
+    variants={{
+      initial: {opacity: 0, visibility: 'hidden'},
+      visible: {
+        opacity: 1,
+        visibility: 'visible',
+        transition: testableTransition({delay: 1}),
+      },
+      hidden: {
+        opacity: 0,
+        transitionEnd: {
+          visibility: 'hidden',
+        },
+      },
+    }}
+  >
+    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+      {t('Back')}
+    </Button>
+  </motion.div>
+))`
+  position: absolute;
+  top: 40px;
+  left: 20px;
+
+  button {
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
   }
 `;
 

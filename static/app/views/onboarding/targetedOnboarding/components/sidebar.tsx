@@ -37,10 +37,10 @@ function Sidebar({projects, activeProject, setNewProject}: Props) {
     );
   };
   return (
-    <Wrapper>
+    <div>
       <Title>{t('Projects to Setup')}</Title>
       {projects.map(oneProject)}
-    </Wrapper>
+    </div>
   );
 }
 
@@ -50,12 +50,6 @@ const Title = styled('span')`
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-`;
-
-// the number icon will be space(2) + 30px to the left of the margin of center column
-// so we need to offset the right margin by that much
-const Wrapper = styled('div')`
-  margin: 0 calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
 `;
 
 const ProjectWrapper = styled('div')<{isActive: boolean}>`

@@ -128,7 +128,7 @@ function SetupDocs({organization, projects, search}: Props) {
           onClickSetupLater={() => {
             // TODO: analytics
             if (projectIndex >= projects.length - 1) {
-              // TODO: integratioins
+              // TODO: integrations
               browserHistory.push('/');
               return;
             }
@@ -155,13 +155,13 @@ function SetupDocs({organization, projects, search}: Props) {
   return (
     <Wrapper>
       <TargetedOnboardingSidebar activeProject={project} setNewProject={setNewProject} />
-      <div>
+      <MainContent>
         <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: !hasError ? docs : loadingError,
           fixed: testOnlyAlert,
         })}
-      </div>
+      </MainContent>
     </Wrapper>
   );
 }
@@ -236,6 +236,11 @@ DocsWrapper.defaultProps = {
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr fit-content(100%) 1fr;
+  grid-template-columns: fit-content(100%) fit-content(100%);
   width: max-content;
+  margin: ${space(2)};
+`;
+
+const MainContent = styled('div')`
+  width: 850px;
 `;
