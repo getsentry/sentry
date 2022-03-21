@@ -99,6 +99,14 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
 
   const activeFilters = getActiveFilters();
 
+  let filterDescription = t('All Teams');
+  if (activeFilters.length > 0) {
+    filterDescription = activeFilters[0].label;
+  }
+  if (activeFilters.length > 1) {
+    filterDescription = `${activeFilters[0].label} + ${activeFilters.length - 1}`;
+  }
+
   return (
     <DropdownControl
       menuWidth="240px"
@@ -112,11 +120,7 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
           priority="default"
           data-test-id="filter-button"
         >
-          <DropdownButtonText>
-            {activeFilters.length > 0
-              ? activeFilters.map(filter => filter.label).join(', ')
-              : t('All Teams')}
-          </DropdownButtonText>
+          <DropdownButtonText>{filterDescription}</DropdownButtonText>
         </StyledDropdownButton>
       )}
     >
