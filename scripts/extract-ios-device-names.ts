@@ -76,7 +76,11 @@ const template = (contents: string) => {
 
 const formatOutput = async (unformatted: string) => {
   const config = await prettier.resolveConfig(outputPath);
-  return prettier.format(unformatted, config);
+  if (config) {
+    return prettier.format(unformatted, config);
+  }
+
+  return unformatted;
 };
 
 export async function extractIOSDeviceNames() {
