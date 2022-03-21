@@ -44,7 +44,13 @@ async function collectDefinitions(files: string[]): Promise<Mapping> {
 
   while (queue.length > 0) {
     const file = queue.pop();
-    const content = JSON.parse(fs.readFileSync(file, 'utf-8'));
+
+    if (!file) {
+      throw new Error('Empty queue');
+    }
+
+    const contents = fs.readFileSync(file, 'utf-8');
+    const content = JSON.parse(contents);
 
     if (typeof content?.[0]?.Identifier === 'undefined') {
       continue;
