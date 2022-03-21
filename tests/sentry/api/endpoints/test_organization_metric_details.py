@@ -12,7 +12,7 @@ MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
             metric_name="derived_metric.multiple_metrics",
-            metrics=["metric1", "session.init"],
+            metrics=["metric_foo_doe", "session.init"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"
@@ -80,6 +80,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "foo.bar",
         )
         assert response.status_code == 404
+        assert (
+            response.data["detail"]
+            == "Some or all of the metric names in ['foo.bar'] do not exist in the indexer"
+        )
 
     def test_metric_details_metric_does_not_have_data(self):
         indexer.record("foo.bar")
@@ -97,7 +101,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == "metric name session.crash_free_rate does not exist in the dataset"
+            == "The following metrics ['session.crash_free_rate'] do not exist in the dataset"
         )
 
     def test_derived_metric_details(self):
@@ -161,15 +165,25 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                 errors=2,
             )
         )
+        response = self.get_response(
+            self.organization.slug,
+            "derived_metric.multiple_metrics",
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == (
+            "Not all the requested metrics or the constituent metrics in "
+            "['derived_metric.multiple_metrics'] have data in the dataset"
+        )
+
         self._send_buckets(
             [
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": resolve_weak("metric1"),
-                    "timestamp": time.time(),
+                    "metric_id": indexer.record("metric_foo_doe"),
+                    "timestamp": int(time.time()),
                     "tags": {
-                        indexer.record("release"): indexer.record("foo"),
+                        resolve_weak("release"): indexer.record("foo"),
                     },
                     "type": "c",
                     "value": 1,
