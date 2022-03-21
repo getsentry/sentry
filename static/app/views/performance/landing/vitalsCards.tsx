@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import { Location } from 'history';
+import {Location} from 'history';
 
 import Card from 'sentry/components/card';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import { HeaderTitle } from 'sentry/components/charts/styles';
-import { getInterval } from 'sentry/components/charts/utils';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -14,12 +14,12 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Sparklines from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import Tooltip from 'sentry/components/tooltip';
-import { t } from 'sentry/locale';
+import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import { Organization, Project } from 'sentry/types';
-import { defined } from 'sentry/utils';
-import { getUtcToLocalDateObject } from 'sentry/utils/dates';
+import {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -28,12 +28,12 @@ import {
   getAggregateAlias,
   WebVital,
 } from 'sentry/utils/discover/fields';
-import { WEB_VITAL_DETAILS } from 'sentry/utils/performance/vitals/constants';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import { decodeList } from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 
@@ -62,7 +62,7 @@ type FrontendCardsProps = {
 };
 
 export function FrontendCards(props: FrontendCardsProps) {
-  const { eventView, location, organization, projects, frontendOnly = false } = props;
+  const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
     const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
@@ -82,7 +82,7 @@ export function FrontendCards(props: FrontendCardsProps) {
       orgSlug={organization.slug}
       vitals={vitals}
     >
-      {({ isLoading, vitalsData }) => {
+      {({isLoading, vitalsData}) => {
         return (
           <VitalsContainer>
             {vitals.map(vital => {
@@ -142,8 +142,8 @@ type GenericCardsProps = BaseCardsProps & {
 function GenericCards(props: GenericCardsProps) {
   const api = useApi();
 
-  const { eventView: baseEventView, location, organization, functions } = props;
-  const { query } = location;
+  const {eventView: baseEventView, location, organization, functions} = props;
+  const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
   // construct request parameters for fetching chart data
@@ -158,13 +158,13 @@ function GenericCards(props: GenericCardsProps) {
     typeof query.sparkInterval === 'string'
       ? query.sparkInterval
       : getInterval(
-        {
-          start: start || null,
-          end: end || null,
-          period: globalSelection.datetime.period,
-        },
-        'low'
-      );
+          {
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          },
+          'low'
+        );
   const apiPayload = eventView.getEventsAPIPayload(location);
 
   return (
@@ -175,7 +175,7 @@ function GenericCards(props: GenericCardsProps) {
       limit={1}
       referrer="api.performance.vitals-cards"
     >
-      {({ isLoading: isSummaryLoading, tableData }) => (
+      {({isLoading: isSummaryLoading, tableData}) => (
         <EventsRequest
           api={api}
           organization={organization}
@@ -191,7 +191,7 @@ function GenericCards(props: GenericCardsProps) {
           yAxis={eventView.getFields()}
           partial
         >
-          {({ results }) => {
+          {({results}) => {
             const series = results?.reduce((allSeries, oneSeries) => {
               allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
               return allSeries;
@@ -214,7 +214,7 @@ function GenericCards(props: GenericCardsProps) {
                     return null;
                   }
 
-                  const { title, tooltip, formatter } = cardDetail;
+                  const {title, tooltip, formatter} = cardDetail;
                   const alias = getAggregateAlias(fieldName);
                   const rawValue = tableData?.data?.[0]?.[alias];
 
@@ -252,8 +252,8 @@ function _BackendCards(props: BaseCardsProps) {
       kind: 'function',
       function: ['p75', 'transaction.duration', undefined, undefined],
     },
-    { kind: 'function', function: ['tpm', '', undefined, undefined] },
-    { kind: 'function', function: ['failure_rate', '', undefined, undefined] },
+    {kind: 'function', function: ['tpm', '', undefined, undefined]},
+    {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
     {
       kind: 'function',
       function: ['apdex', '', undefined, undefined],
@@ -285,7 +285,7 @@ function _MobileCards(props: MobileCardsProps) {
     {
       kind: 'function',
       function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
-    }
+    },
   ];
   if (props.showStallPercentage) {
     functions.push({
@@ -303,14 +303,14 @@ type SparklineChartProps = {
 };
 
 function SparklineChart(props: SparklineChartProps) {
-  const { data } = props;
+  const {data} = props;
   const width = 150;
   const height = 24;
   const lineColor = theme.charts.getColorPalette(1)[0];
   return (
     <SparklineContainer data-test-id="sparkline" width={width} height={height}>
       <Sparklines data={data} width={width} height={height}>
-        <SparklinesLine style={{ stroke: lineColor, fill: 'none', strokeWidth: 3 }} />
+        <SparklinesLine style={{stroke: lineColor, fill: 'none', strokeWidth: 3}} />
       </Sparklines>
     </SparklineContainer>
   );
@@ -321,7 +321,7 @@ type SparklineContainerProps = {
   width: number;
 };
 
-const SparklineContainer = styled('div') <SparklineContainerProps>`
+const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
   max-height: ${p => p.height}px;
   max-width: ${p => p.width}px;
@@ -459,7 +459,7 @@ type VitalCardProps = {
 };
 
 function VitalCard(props: VitalCardProps) {
-  const { chart, minHeight, horizontal, title, tooltip, value, isNotInteractive } = props;
+  const {chart, minHeight, horizontal, title, tooltip, value, isNotInteractive} = props;
   return (
     <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
       <HeaderTitle>
@@ -474,14 +474,14 @@ function VitalCard(props: VitalCardProps) {
   );
 }
 
-const CardContent = styled('div') <{ horizontal?: boolean }>`
+const CardContent = styled('div')<{horizontal?: boolean}>`
   width: 100%;
   display: flex;
   flex-direction: ${p => (p.horizontal ? 'row' : 'column')};
   justify-content: space-between;
 `;
 
-const StyledCard = styled(Card) <{ minHeight?: number }>`
+const StyledCard = styled(Card)<{minHeight?: number}>`
   color: ${p => p.theme.textColor};
   padding: ${space(2)} ${space(3)};
   align-items: flex-start;
@@ -506,7 +506,7 @@ type Percent = {
   vitalState: VitalState;
 };
 
-function getPercentsFromCounts({ poor, meh, good, total }) {
+function getPercentsFromCounts({poor, meh, good, total}) {
   const poorPercent = poor / total;
   const mehPercent = meh / total;
   const goodPercent = good / total;
@@ -530,7 +530,7 @@ function getPercentsFromCounts({ poor, meh, good, total }) {
 }
 
 function getColorStopsFromPercents(percents: Percent[]) {
-  return percents.map(({ percent, vitalState }) => ({
+  return percents.map(({percent, vitalState}) => ({
     percent,
     color: vitalStateColors[vitalState],
   }));
