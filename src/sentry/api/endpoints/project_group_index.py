@@ -17,7 +17,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -31,7 +31,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
 
     rate_limits = RateLimitConfig(
-        group="issues",
+        group=RateLimitGroup.issues,
         limit_overrides={
             "GET": {
                 RateLimitCategory.IP: RateLimit(3, 1, 1),

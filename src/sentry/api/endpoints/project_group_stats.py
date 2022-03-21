@@ -6,14 +6,14 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.app import tsdb
 from sentry.models import Environment, Group
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
-        group="issues",
+        group=RateLimitGroup.issues,
         limit_overrides={
             "GET": {
                 RateLimitCategory.IP: RateLimit(20, 1, 10),

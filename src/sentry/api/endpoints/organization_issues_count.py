@@ -7,7 +7,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -20,7 +20,7 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
-        group="issues",
+        group=RateLimitGroup.issues,
         limit_overrides={
             "GET": {
                 RateLimitCategory.IP: RateLimit(10, 1),

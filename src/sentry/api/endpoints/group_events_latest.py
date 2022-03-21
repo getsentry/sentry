@@ -5,14 +5,14 @@ from sentry.api import client
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class GroupEventsLatestEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
-        group="issues",
+        group=RateLimitGroup.issues,
         limit_overrides={
             "GET": {
                 RateLimitCategory.IP: RateLimit(15, 1, 8),

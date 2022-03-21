@@ -34,7 +34,7 @@ from sentry.models import (
     GroupStatus,
     Project,
 )
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -141,7 +141,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
 
     rate_limits = RateLimitConfig(
-        group="issues",
+        group=RateLimitGroup.issues,
         limit_overrides={
             "GET": {
                 RateLimitCategory.IP: RateLimit(10, 1, 5),

@@ -12,7 +12,7 @@ from sentry.app import ratelimiter
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -45,7 +45,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     permission_classes = []
 
     rate_limits = RateLimitConfig(
-        group="auth",
+        group=RateLimitGroup.auth,
         limit_overrides={
             "POST": {
                 RateLimitCategory.IP: RateLimit(5, 86400),

@@ -11,7 +11,7 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.discover.utils import transform_aliases_and_query
-from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.config import RateLimitConfig, RateLimitGroup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import snuba
 from sentry.utils.compat import map
@@ -30,7 +30,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
     enforce_rate_limit = True
 
     rate_limits = RateLimitConfig(
-        group="discover",
+        group=RateLimitGroup.discover,
         limit_overrides={
             "POST": {
                 RateLimitCategory.IP: RateLimit(4, 1, 2),

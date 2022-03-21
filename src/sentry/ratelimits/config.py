@@ -15,6 +15,52 @@ class InvalidRateLimitConfig(Exception):
     pass
 
 
+class RateLimitGroup:
+    """
+    Groups are arbitrary clusters of endpoints that are useful to the business in the same dimension.
+    Most endpoints belong to the default group. When endpoints belong to the same group,
+    their rate limit uses the same key. Example:
+
+    >>> EndpointA:
+    >>>      rate_limits = RateLimitConfig(group="foo")
+
+    >>> EndpointB:
+    >>>      rate_limits = RateLimitConfig(group="foo")
+
+    If a user is being rate limited on calls to EndpointA,
+    they will also be rate limited on calls to EndpointB.
+
+    However, endpoints with rate limit overrides disregard the group limit and have their own.
+
+    >>> EndpointA:
+    >>>      rate_limits = RateLimitConfig(
+    >>>          group="foo", limit_overrides={"GET": {
+    >>>             RateLimitCategory.IP: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+    >>>             RateLimitCategory.USER: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+    >>>             RateLimitCategory.ORGANIZATION: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+    >>>         }})
+
+    >>> EndpointB:
+    >>>      rate_limits = RateLimitConfig(group="foo")
+
+    Endpoint A's endpoints will not influence Endpoint B's despite the fact that they are in
+    the same group.
+
+    We should work to remove these override limits and have endpoints which are closely
+    tied by business usecase simply be in the same group.
+
+    The custom overrides that exist today are holdovers from a time where
+    we could only rate limit by endpoint. We don't have to do that anymore
+    """
+
+    default = "default"
+    discover = "discover"
+    orgstats = "orgstats"
+    issues = "issues"
+    auth = "auth"
+    releases = "releases"
+
+
 GroupName = str
 HttpMethodName = str
 
@@ -30,10 +76,11 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 
 
 _SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
-    "default": {
+    RateLimitGroup.default: {
         category: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1, _SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
         for category in RateLimitCategory
     }
+    # TODO: define defaults for other groups
 }
 
 
