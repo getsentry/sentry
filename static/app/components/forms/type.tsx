@@ -14,6 +14,7 @@ export const FieldType = [
   'bool',
   'boolean',
   'choice_mapper',
+  'datetime',
   'email',
   'file',
   'hidden',
@@ -136,6 +137,8 @@ type FileType = {type: 'file'} & {
   accept?: string[];
 };
 
+type DateTimeType = {type: 'datetime'};
+
 export interface TableType {
   /**
    * A list of column keys for the table, in the order that you want
@@ -199,6 +202,7 @@ export type Field = (
   | ChoiceMapperType
   | {type: typeof FieldType[number]}
   | FileType
+  | DateTimeType
 ) &
   BaseField;
 
