@@ -43,7 +43,7 @@ function BaseFeatureBadge({
   const theme = useTheme();
   if (expiresAt && expiresAt.valueOf() < Date.now()) {
     // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
-    if (Math.random() < 0.001) {
+    if (Math.random() < 0.01) {
       withScope(scope => {
         scope.setTag('title', title);
         scope.setTag('type', type);
