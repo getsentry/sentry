@@ -71,6 +71,7 @@ function EnvironmentPageFilter({router, resetParamsOnChange = [], alignDropdown}
       customLoadingIndicator={customLoadingIndicator}
       alignDropdown={alignDropdown}
       detached
+      showPin
     />
   );
 }
