@@ -36,7 +36,6 @@ type PlatformDoc = {html: string; link: string};
 type Props = {
   projects: Project[];
   search: string;
-  // subStep: 'project' | 'integration';
 } & StepProps;
 
 function SetupDocs({organization, projects, search}: Props) {
@@ -44,12 +43,23 @@ function SetupDocs({organization, projects, search}: Props) {
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
+  // store what projects have sent first event in state based project.firstEvent
+  const [hasFirstEventMap, setHasFirstEventMap] = useState<Record<string, boolean>>(
+    projects.reduce((accum, project: Project) => {
+      accum[project.id] = !!project.firstEvent;
+      return accum;
+    }, {} as Record<string, boolean>)
+  );
+  const checkProjectHasFirstEvent = (project: Project) => {
+    return !!hasFirstEventMap[project.id];
+  };
 
   // TODO: Check no projects
   const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
   const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : 0;
+  const firstProjectNoError = projects.findIndex(p => !checkProjectHasFirstEvent(p));
+  const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
   const {platform} = project || {};
   const currentPlatform = loadedPlatform ?? platform ?? 'other';
@@ -125,14 +135,23 @@ function SetupDocs({organization, projects, search}: Props) {
         <FirstEventFooter
           project={project}
           organization={organization}
+          isLast={projectIndex === projects.length - 1}
+          hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
             // TODO: analytics
-            if (projectIndex >= projects.length - 1) {
+            const nextProject = projects.find(
+              (p, index) => !p.firstEvent && index > projectIndex
+            );
+            if (!nextProject) {
               // TODO: integrations
               browserHistory.push('/');
               return;
             }
-            setNewProject(projects[projectIndex + 1].id);
+            setNewProject(nextProject.id);
+          }}
+          handleFirstIssueReceived={() => {
+            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+            setHasFirstEventMap(newHasFirstEventMap);
           }}
         />
       )}
@@ -154,7 +173,10 @@ function SetupDocs({organization, projects, search}: Props) {
 
   return (
     <Wrapper>
-      <TargetedOnboardingSidebar activeProject={project} setNewProject={setNewProject} />
+      <TargetedOnboardingSidebar
+        activeProject={project}
+        {...{checkProjectHasFirstEvent, setNewProject}}
+      />
       <MainContent>
         <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({

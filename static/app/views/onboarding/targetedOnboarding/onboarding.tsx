@@ -239,7 +239,6 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 
   button {
     font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => p.theme.subText};
   }
 `;
 

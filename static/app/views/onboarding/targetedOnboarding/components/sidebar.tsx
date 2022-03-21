@@ -3,6 +3,7 @@ import {motion, Variants} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import platforms from 'sentry/data/platforms';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
@@ -11,14 +12,21 @@ import testableTransition from 'sentry/utils/testableTransition';
 import withProjects from 'sentry/utils/withProjects';
 
 type Props = {
+  checkProjectHasFirstEvent: (project: Project) => boolean;
   projects: Project[];
   setNewProject: (newProjectId: string) => void;
   activeProject?: Project;
 };
-function Sidebar({projects, activeProject, setNewProject}: Props) {
+function Sidebar({
+  projects,
+  activeProject,
+  setNewProject,
+  checkProjectHasFirstEvent,
+}: Props) {
   const oneProject = (project: Project) => {
     const name = platforms.find(p => p.id === project.platform)?.name ?? '';
     const isActive = activeProject?.id === project.id;
+    const errorReceived = checkProjectHasFirstEvent(project);
     return (
       <ProjectWrapper
         key={project.id}
@@ -30,17 +38,25 @@ function Sidebar({projects, activeProject, setNewProject}: Props) {
         </IconWrapper>
         <MiddleWrapper>
           {name}
-          <SubHeader>{t('Waiting for error')}</SubHeader>
+          <SubHeader errorReceived={errorReceived}>
+            {errorReceived ? t('Error Received') : t('Waiting for error')}
+          </SubHeader>
         </MiddleWrapper>
-        <IconWrapper>{isActive && <WaitingIndicator />}</IconWrapper>
+        <IconWrapper>
+          {errorReceived ? (
+            <IconCheckmark isCircled color="green400" />
+          ) : (
+            isActive && <WaitingIndicator />
+          )}
+        </IconWrapper>
       </ProjectWrapper>
     );
   };
   return (
-    <div>
+    <Wrapper>
       <Title>{t('Projects to Setup')}</Title>
       {projects.map(oneProject)}
-    </div>
+    </Wrapper>
   );
 }
 
@@ -60,8 +76,9 @@ const ProjectWrapper = styled('div')<{isActive: boolean}>`
   cursor: pointer;
 `;
 
-const SubHeader = styled('div')`
-  color: ${p => p.theme.charts.getColorPalette(5)[4]};
+const SubHeader = styled('div')<{errorReceived: boolean}>`
+  color: ${p =>
+    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
 `;
 
 const indicatorAnimation: Variants = {
@@ -87,4 +104,10 @@ const IconWrapper = styled('div')`
 
 const MiddleWrapper = styled('div')`
   margin: 0 ${space(1)};
+`;
+
+// the number icon will be space(2) + 30px to the left of the margin of center column
+// so we need to offset the right margin by that much
+const Wrapper = styled('div')`
+  margin: 0 calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
 `;
