@@ -2,6 +2,7 @@ from collections import namedtuple
 from datetime import datetime, timezone
 from unittest import mock
 
+import pytest
 from django.http import HttpResponse
 from django.urls import reverse
 from freezegun import freeze_time
@@ -112,6 +113,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
 
         mock_get_anomalies.assert_called_once_with(expected_snuba_io)
 
+    @pytest.mark.skip(reason="too flaky")
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.timeseries_query")
     @mock.patch("sentry.api.endpoints.organization_transaction_anomaly_detection.get_anomalies")
     def test_get_no_query(self, mock_get_anomalies, mock_timeseries_query):
@@ -158,6 +160,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
         )
         assert returned_tuple == expected_tuple
 
+    @pytest.mark.skip(reason="too flaky")
     @staticmethod
     def test_get_time_params_1200_granularity():
         expected_tuple = (
