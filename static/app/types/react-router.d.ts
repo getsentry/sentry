@@ -16,12 +16,12 @@ declare module 'react-router' {
     routes: PlainRoute[];
   }
 
-  type RouteContextInterface = {
+  interface RouteContextInterface {
     location: Location<Q>;
     params: P;
     router: InjectedRouter<P, Q>;
     routes: PlainRoute[];
-  };
+  }
 
   type ComponentConstructor<P> =
     | ComponentClass<P>
