@@ -1401,7 +1401,7 @@ def spans_histogram_query(
     if not normalize_results:
         return results
 
-    return normalize_span_histogram_resutls(span, histogram_params, results)
+    return normalize_span_histogram_results(span, histogram_params, results)
 
 
 def histogram_query(
@@ -1743,7 +1743,7 @@ def find_histogram_min_max(
     return min_value, max_value
 
 
-def normalize_span_histogram_resutls(span, histogram_params, results):
+def normalize_span_histogram_results(span, histogram_params, results):
     """
     Normalizes the span histogram results by renaming the columns to key and bin
     and make sure to zerofill any missing values.
