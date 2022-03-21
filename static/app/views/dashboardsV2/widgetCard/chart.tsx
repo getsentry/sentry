@@ -225,11 +225,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }
 
   chartComponent(chartProps): React.ReactNode {
-    const {widget} = this.props;
+    const {organization, widget} = this.props;
+    const stacked =
+      organization.features.includes('new-widget-builder-experience-design') &&
+      widget.queries[0].columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':
-        return <BarChart {...chartProps} />;
+        return <BarChart {...chartProps} stacked={stacked} />;
       case 'area':
       case 'top_n':
         return <AreaChart stacked {...chartProps} />;
