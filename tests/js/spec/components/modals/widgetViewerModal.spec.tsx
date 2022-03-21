@@ -150,7 +150,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders updated table columns and orderby', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByText('title')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
       expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
@@ -162,7 +162,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders area chart', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByText('echarts mock')).toBeInTheDocument();
+      expect(screen.getByText('echarts mock')).toBeInTheDocument();
     });
 
     it('renders Discover area chart widget viewer', async function () {
@@ -172,9 +172,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Discover when clicking Open in Discover', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(
-        await screen.findByRole('button', {name: 'Open in Discover'})
-      ).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-count&statsPeriod=14d&yAxis=count%28%29'
       );
@@ -400,14 +398,14 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
-      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {cursor: '0:10:0'},
@@ -590,7 +588,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders events, status, and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByText('title')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       expect(screen.getByText('events')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
@@ -605,7 +603,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
       );
@@ -651,14 +649,14 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
-      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
       expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -23,7 +23,7 @@ import GridEditable, {
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -107,8 +107,8 @@ async function fetchDiscoverTotal(
     return total.toLocaleString();
   } catch (err) {
     Sentry.captureException(err);
+    return undefined;
   }
-  return undefined;
 }
 
 function WidgetViewerModal(props: Props) {
@@ -537,48 +537,57 @@ function WidgetViewerModal(props: Props) {
           {totalResults &&
             (widget.widgetType === WidgetType.ISSUE ? (
               <span>
-                <b>{t('Total Issues: ')}</b>
-                {totalResults === '1000' ? '1000+' : totalResults}
+                {tct('[description:Total Issues:] [total]', {
+                  description: <strong />,
+                  total: totalResults === '1000' ? '1000+' : totalResults,
+                })}
               </span>
             ) : (
               <span>
-                <b>{t('Total Events: ')}</b>
-                {totalResults}
+                {tct('[description:Total Events:] [total]', {
+                  description: <strong />,
+                  total: totalResults,
+                })}
               </span>
             ))}
         </TotalResultsContainer>
-        <ButtonBar gap={1}>
-          {onEdit && widget.id && (
+        <ButtonBarContainer>
+          <StyledButtonBar gap={1}>
+            {onEdit && widget.id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  });
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
             <Button
+              to={path}
+              priority="primary"
               type="button"
               onClick={() => {
-                closeModal();
-                onEdit();
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.open_source',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             >
-              {t('Edit Widget')}
+              {openLabel}
             </Button>
-          )}
-          <Button
-            to={path}
-            priority="primary"
-            type="button"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
-                organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          >
-            {openLabel}
-          </Button>
-        </ButtonBar>
+          </StyledButtonBar>
+        </ButtonBarContainer>
       </StyledFooter>
     </React.Fragment>
   );
@@ -596,6 +605,7 @@ const headerCss = css`
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
+  flex-wrap: wrap;
 `;
 
 const Container = styled('div')`
@@ -642,8 +652,20 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const TotalResultsContainer = styled('span')`
+  margin-top: auto;
+  margin-bottom: ${space(1)};
+  font-size: 0.875rem;
+  text-align: right;
+`;
+
+const ButtonBarContainer = styled('span')`
+  display: flex;
   flex-grow: 1;
-  margin: auto;
+  flex-direction: row-reverse;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  width: fit-content;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
