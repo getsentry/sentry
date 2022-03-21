@@ -12,6 +12,7 @@ export function generateMetricsWidgetFieldOptions(
   const fieldNames: string[] = [];
   const operations = new Set<MetricsOperation>();
   const knownOperations = Object.keys(METRICS_OPERATIONS);
+  const numericFields: MetricsMeta[] = [];
 
   // If there are no fields, we do not want to render aggregations, nor tags
   // Metrics API needs at least one field to be able to return data
@@ -24,6 +25,10 @@ export function generateMetricsWidgetFieldOptions(
     .forEach(field => {
       field.operations.forEach(operation => operations.add(operation));
       fieldNames.push(field.name);
+      if (field.type === 'numeric') {
+        numericFields.push(field);
+        return;
+      }
 
       fieldOptions[`field:${field.name}`] = {
         label: field.name,
@@ -64,6 +69,19 @@ export function generateMetricsWidgetFieldOptions(
         },
       };
     });
+
+  numericFields.forEach(field => {
+    fieldOptions[`field:${field.name}`] = {
+      label: field.name,
+      value: {
+        kind: FieldValueKind.NUMERIC_METRICS,
+        meta: {
+          name: field.name,
+          dataType: 'numeric',
+        },
+      },
+    };
+  });
 
   if (defined(tagKeys)) {
     tagKeys

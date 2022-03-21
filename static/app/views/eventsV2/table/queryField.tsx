@@ -163,6 +163,7 @@ class QueryField extends React.Component<Props> {
       case FieldValueKind.MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
+      case FieldValueKind.NUMERIC_METRICS:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
       case FieldValueKind.FUNCTION:
@@ -536,7 +537,9 @@ class QueryField extends React.Component<Props> {
         tagType = 'warning';
         break;
       case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
+      case FieldValueKind.METRICS:
+      case FieldValueKind.NUMERIC_METRICS:
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
       default:

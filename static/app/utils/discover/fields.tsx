@@ -993,11 +993,28 @@ export function isAggregateField(field: string): boolean {
 }
 
 export function isAggregateFieldOrEquation(field: string): boolean {
-  return isAggregateField(field) || isAggregateEquation(field);
+  return isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field);
+}
+
+/**
+ * Temporary hardcoded hack to enable testing derived metrics.
+ * Can be removed after we get rid of getAggregateFields
+ */
+export function isNumericMetrics(field: string): boolean {
+  return [
+    'session.crash_free_rate',
+    'session.crashed',
+    'session.errored_preaggregated',
+    'session.errored_set',
+    'session.init',
+  ].includes(field);
 }
 
 export function getAggregateFields(fields: string[]): string[] {
-  return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
+  return fields.filter(
+    field =>
+      isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
+  );
 }
 
 export function getColumnsAndAggregates(fields: string[]): {
@@ -1013,6 +1030,7 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
   aggregates: string[];
   columns: string[];
 } {
+  // TODO(dam): distinguish between metrics, derived metrics and tags
   const aggregateFields: string[] = [];
   const nonAggregateFields: string[] = [];
 
@@ -1177,7 +1195,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType) {
+export function isLegalYAxisType(match: ColumnType | MetricsType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
