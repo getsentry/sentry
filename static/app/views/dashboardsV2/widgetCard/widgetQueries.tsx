@@ -210,7 +210,7 @@ class WidgetQueries extends React.Component<Props, State> {
       );
 
     if (
-      !isEqual(widget.limit, prevProps.widget.limit) ||
+      widget.limit !== prevProps.widget.limit ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
