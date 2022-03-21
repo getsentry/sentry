@@ -11,7 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules import EventState, RuleFuture
+from sentry.rules import EventState
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.shared_integrations.exceptions import (
@@ -19,6 +19,7 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     DuplicateDisplayNameError,
 )
+from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
 
 from .client import SlackClient

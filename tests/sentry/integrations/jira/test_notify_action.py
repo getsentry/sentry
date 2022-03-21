@@ -1,14 +1,11 @@
-from collections import namedtuple
-
 import responses
 
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
+from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from tests.fixtures.integrations.mock_service import StubService
-
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class JiraCreateTicketActionTest(RuleTestCase):
