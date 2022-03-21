@@ -180,8 +180,8 @@ def _fetch_tags_or_values_per_ids(
     projects: Sequence[Project],
     metric_names: Optional[Sequence[str]],
     referrer: str,
-    column: str = "tags.key",
-) -> Tuple[Sequence[Union[Tag, TagValue]], Optional[str]]:
+    column: str,
+) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
     Function that takes as input projects, metric_names, and a column, and based on the column
     selection, either returns tags or tag values for the combination of projects and metric_names
@@ -227,7 +227,8 @@ def _fetch_tags_or_values_per_ids(
                 tag_or_value_ids_per_metric_id[metric_id].extend(row[column])
             supported_metric_ids_in_entities.setdefault(metric_type, []).append(row["metric_id"])
 
-    # If we get not results back from snuba, then just return an empty set
+    # If we get not results back from snuba, then raise an InvalidParams with an appropriate
+    # error message
     if not tag_or_value_ids_per_metric_id:
         if metric_names:
             error_str = f"The following metrics {metric_names} do not exist in the dataset"
@@ -283,6 +284,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
     tags, metric_type = _fetch_tags_or_values_per_ids(
         projects=projects,
         metric_names=[metric_name],
+        column="tags.key",
         referrer="snuba.metrics.meta.get_single_metric",
     )
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
@@ -314,7 +316,10 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
 
     try:
         tags, _ = _fetch_tags_or_values_per_ids(
-            projects=projects, metric_names=metric_names, referrer="snuba.metrics.meta.get_tags"
+            projects=projects,
+            metric_names=metric_names,
+            column="tags.key",
+            referrer="snuba.metrics.meta.get_tags",
         )
     except InvalidParams:
         return []
