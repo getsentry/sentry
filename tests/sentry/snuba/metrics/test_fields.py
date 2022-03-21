@@ -4,6 +4,7 @@ import pytest
 from snuba_sdk import Direction, OrderBy
 
 from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
     DerivedMetricParseException,
@@ -19,19 +20,11 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.testutils import TestCase
 
 
-def get_single_metric_info_mocked(_, metric_name):
+def get_entity_of_metric_mocked(_, metric_name):
     return {
-        "type": {
-            "sentry.sessions.session": "counter",
-            "sentry.sessions.session.error": "set",
-        }[metric_name]
-    }
-
-
-def clear_derived_metrics_entity_state():
-    """Clears Derived Metrics state"""
-    for _, derived_metric_obj in DERIVED_METRICS.items():
-        derived_metric_obj._entity = None
+        "sentry.sessions.session": EntityKey.MetricsCounters,
+        "sentry.sessions.session.error": EntityKey.MetricsSets,
+    }[metric_name]
 
 
 class SingleEntityDerivedMetricTestCase(TestCase):
@@ -46,17 +39,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         )
         DERIVED_METRICS.update({"crash_free_fake": self.crash_free_fake})
 
-    def tearDown(self):
-        clear_derived_metrics_entity_state()
-
-    def __call_get_entity_on_supported_derived_metrics(self):
-        for derived_metric_name in DERIVED_METRICS.keys():
-            if derived_metric_name == self.crash_free_fake.metric_name:
-                continue
-            DERIVED_METRICS[derived_metric_name].get_entity(projects=[self.project])
-
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(self):
         """
@@ -82,7 +66,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             self.crash_free_fake.get_entity(projects=[self.project])
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_select_snql_of_derived_metric(self):
         """
@@ -92,8 +76,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         for status in ("init", "crashed"):
             indexer.record(status)
         session_ids = [indexer.record("sentry.sessions.session")]
-
-        self.__call_get_entity_on_supported_derived_metrics()
 
         derived_name_snql = {
             "session.init": (init_sessions, session_ids),
@@ -105,15 +87,16 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             ),
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
-            assert DERIVED_METRICS[metric_name].generate_select_statements() == [
+            assert DERIVED_METRICS[metric_name].generate_select_statements([self.project]) == [
                 func(metric_ids=metric_ids_list, alias=metric_name),
             ]
 
-        assert DERIVED_METRICS["session.crash_free_rate"].generate_select_statements() == [
+        assert DERIVED_METRICS["session.crash_free_rate"].generate_select_statements(
+            [self.project]
+        ) == [
             percentage(
                 crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
                 init_sessions(metric_ids=session_ids, alias="session.init"),
-                metric_ids=session_ids,
                 alias="session.crash_free_rate",
             )
         ]
@@ -121,24 +104,14 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         # Test that ensures that even if `generate_select_statements` is called before
         # `get_entity` is called, and thereby the entity validation logic, we throw an exception
         with pytest.raises(DerivedMetricParseException):
-            self.crash_free_fake.generate_select_statements()
+            self.crash_free_fake.generate_select_statements([self.project])
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_metric_ids(self):
         session_metric_id = indexer.record("sentry.sessions.session")
         session_error_metric_id = indexer.record("sentry.sessions.session.error")
-
-        # Test that ensures that if `generate_select_statements` is called before
-        # `get_entity` is called, and thereby bypassing the entity validation and setting logic
-        # for both correctly and incorrectly defined derived metrics, we throw an exception
-        with pytest.raises(DerivedMetricParseException):
-            self.crash_free_fake.generate_select_statements()
-        with pytest.raises(DerivedMetricParseException):
-            DERIVED_METRICS["session.errored_set"].generate_metric_ids()
-
-        self.__call_get_entity_on_supported_derived_metrics()
 
         for derived_metric_name in [
             "session.init",
@@ -150,20 +123,22 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         assert DERIVED_METRICS["session.errored_set"].generate_metric_ids() == {
             session_error_metric_id
         }
-        clear_derived_metrics_entity_state()
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_order_by_clause(self):
-        self.__call_get_entity_on_supported_derived_metrics()
         for derived_metric_name in DERIVED_METRICS.keys():
             if derived_metric_name == self.crash_free_fake.metric_name:
                 continue
             derived_metric_obj = DERIVED_METRICS[derived_metric_name]
             assert derived_metric_obj.generate_orderby_clause(
                 projects=[self.project], direction=Direction.ASC
-            ) == [OrderBy(derived_metric_obj.generate_select_statements()[0], Direction.ASC)]
+            ) == [
+                OrderBy(
+                    derived_metric_obj.generate_select_statements([self.project])[0], Direction.ASC
+                )
+            ]
 
         with pytest.raises(DerivedMetricParseException):
             self.crash_free_fake.generate_orderby_clause(

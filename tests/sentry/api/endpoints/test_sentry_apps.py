@@ -431,18 +431,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
-    def test_create_alert_rule_action_without_feature_flag(self):
-        data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
-        response = self.get_error_response(**data, status_code=400)
-        assert response.data == {
-            "schema": [
-                "Element has type 'alert-rule-action'. Type must be one of the"
-                " following: ['issue-link', 'issue-media', 'stacktrace-link']"
-            ]
-        }
-
-    @with_feature("organizations:alert-rule-ui-component")
-    def test_create_alert_rule_action_with_feature_flag(self):
+    def test_create_alert_rule_action(self):
         expected = {**EXPECTED, "schema": {"elements": [self.create_alert_rule_action_schema()]}}
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
@@ -450,7 +439,6 @@ class PostSentryAppsTest(SentryAppsTest):
         assert expected.items() <= json.loads(response.content).items()
 
     @patch("sentry.analytics.record")
-    @with_feature("organizations:alert-rule-ui-component")
     def test_wrong_schema_format(self, record):
         kwargs = {
             "schema": {

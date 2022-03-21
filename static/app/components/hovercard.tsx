@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
 import space from 'sentry/styles/space';
-import {domId} from 'sentry/utils/domId';
+import domId from 'sentry/utils/domId';
 
 export const HOVERCARD_PORTAL_ID = 'hovercard-portal';
 
@@ -127,10 +127,10 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   // If show is not set, then visibility state is uncontrolled
   const isVisible = props.show === undefined ? visible : props.show;
 
-  const hoverProps = useMemo((): Pick<
-    React.HTMLProps<HTMLDivElement>,
-    'onMouseEnter' | 'onMouseLeave'
-  > => {
+  const hoverProps = useMemo((): {
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  } => {
     // If show is not set, then visibility state is controlled by mouse events
     if (props.show === undefined) {
       return {

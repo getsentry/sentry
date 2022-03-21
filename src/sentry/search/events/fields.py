@@ -9,7 +9,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -439,7 +439,9 @@ def parse_arguments(function: str, columns: str) -> List[str]:
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if") or len(columns) == 0:
+    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
+        columns
+    ) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []
@@ -1015,6 +1017,7 @@ class StringArg(FunctionArg):
         unquote: Optional[bool] = False,
         unescape_quotes: Optional[bool] = False,
         optional_unquote: Optional[bool] = False,
+        allowed_strings: Optional[List[str]] = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -1026,6 +1029,7 @@ class StringArg(FunctionArg):
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
         self.optional_unquote = optional_unquote
+        self.allowed_strings = allowed_strings
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.unquote:
@@ -1036,6 +1040,9 @@ class StringArg(FunctionArg):
                 value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
+        if self.allowed_strings:
+            if value not in self.allowed_strings:
+                raise InvalidFunctionArgument(f"string must be one of {self.allowed_strings}")
         return f"'{value}'"
 
 
@@ -2279,6 +2286,36 @@ class SnQLFunction(DiscoverFunction):
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)
+
+
+class MetricArg(FunctionArg):
+    def __init__(
+        self,
+        name: str,
+        allowed_columns: Optional[Sequence[str]] = None,
+        validate_only: Optional[bool] = True,
+    ):
+        """
+        :param name: The name of the function, this refers to the name to invoke.
+        :param allowed_columns: Optional list of columns to allowlist, an empty sequence
+        or None means allow all columns
+        :param validate_only: Run normalize, and raise any errors involved but don't change
+        the value in any way and return it as-is
+        """
+        super().__init__(name)
+        # make sure to map the allowed columns to their snuba names
+        self.allowed_columns = allowed_columns
+        # Normalize the value to check if it is valid, but return the value as-is
+        self.validate_only = validate_only
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if self.allowed_columns is not None and len(self.allowed_columns) > 0:
+            if value in self.allowed_columns:
+                return value
+            else:
+                raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
+
+        return value
 
 
 class MetricsFunction(SnQLFunction):
