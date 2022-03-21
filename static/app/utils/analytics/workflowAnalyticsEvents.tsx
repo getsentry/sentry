@@ -5,6 +5,17 @@ type RuleViewed = {
   project_id: string;
 };
 
+type IssueDetailsWithAlert = {
+  group_id: number;
+  project_id: number;
+  /** The time that the alert was initially fired. */
+  alert_date?: string;
+  /** Id of the rule that triggered the alert */
+  alert_rule_id?: string;
+  /**  The type of alert notification - email/slack */
+  alert_type?: string;
+};
+
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
   'alert_details.viewed': {alert_id: number};
@@ -21,7 +32,7 @@ export type TeamInsightsEventParameters = {
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
   'issue_alert_rule_details.viewed': {rule_id: number};
-  'issue_details.action_clicked': {
+  'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
       | 'mark_reviewed'
@@ -30,15 +41,8 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | ResolutionStatus;
-    group_id: string;
-    project_id: string;
-    /** If the user came to the page from an alert, the time that the alert was initially fired. */
-    alert_date?: string;
-    /** If the user came to the page from an alert, id of the rule that triggered the alert */
-    alert_rule_id?: string;
-    /**  If the user came to the page from an alert, the type of alert that brought them here. */
-    alert_type?: string;
   };
+  'issue_details.viewed': IssueDetailsWithAlert;
   'new_alert_rule.viewed': RuleViewed & {
     session_id: string;
   };
@@ -59,6 +63,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
+  'issue_details.viewed': 'Issue Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',

@@ -109,16 +109,16 @@ class Actions extends React.Component<Props, State> {
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = query;
     trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
       organization,
-      project_id: project.id,
-      group_id: group.id,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
-      alert_date: typeof query.alert_date === 'string' ? query.alert_date : undefined,
-      alert_rule_id:
-        typeof query.alert_rule_id === 'string' ? query.alert_rule_id : undefined,
-      alert_type: typeof query.alert_type === 'string' ? query.alert_type : undefined,
+      alert_date: typeof alert_date === 'string' ? alert_date : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
   }
 
