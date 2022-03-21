@@ -1,12 +1,4 @@
-import {
-  cloneElement,
-  Fragment,
-  isValidElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {cloneElement, Fragment, isValidElement, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
@@ -111,12 +103,6 @@ function isOverflown(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
 }
 
-function createTooltipPortal(): HTMLElement {
-  const portal = document.createElement('div');
-  document.body.appendChild(portal);
-  return portal;
-}
-
 // Warning: This component is conditionally exported end-of-file based on IS_ACCEPTANCE_TEST env variable
 export function DO_NOT_USE_TOOLTIP({
   children,
@@ -144,10 +130,6 @@ export function DO_NOT_USE_TOOLTIP({
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  const tooltipPortal = useMemo(() => {
-    return createTooltipPortal();
-  }, []);
-
   const modifiers: PopperJS.Modifiers = useMemo(() => {
     return {
       hide: {enabled: false},
@@ -161,12 +143,6 @@ export function DO_NOT_USE_TOOLTIP({
       },
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      tooltipPortal.remove();
-    };
-  }, [tooltipPortal]);
 
   function handleOpen() {
     if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
@@ -292,7 +268,7 @@ export function DO_NOT_USE_TOOLTIP({
             </Popper>
           ) : null}
         </AnimatePresence>,
-        tooltipPortal
+        document.body
       )}
     </Manager>
   );
