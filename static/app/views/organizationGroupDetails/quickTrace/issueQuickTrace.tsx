@@ -24,9 +24,9 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  organization: Organization;
   event: Event;
   location: Location;
+  organization: Organization;
 };
 
 type State = {
@@ -127,6 +127,7 @@ class IssueQuickTrace extends Component<Props, State> {
             })}
             <Button
               priority="link"
+              size="zero"
               title={t('Dismiss for a month')}
               onClick={this.snoozePrompt}
             >

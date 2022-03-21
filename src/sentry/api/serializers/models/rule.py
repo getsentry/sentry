@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from django.db.models import Max
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
     ACTOR_TYPES,
@@ -7,6 +9,8 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
+    RuleFireHistory,
+    SentryAppInstallation,
     actor_type_to_class,
     actor_type_to_string,
 )
@@ -33,6 +37,10 @@ def _is_filter(data):
 
 @register(Rule)
 class RuleSerializer(Serializer):
+    def __init__(self, expand=None):
+        super().__init__()
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user, **kwargs):
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]
@@ -56,6 +64,28 @@ class RuleSerializer(Serializer):
         rules = {item.id: item for item in item_list}
         resolved_actors = {}
         owners_by_type = defaultdict(list)
+
+        sentry_app_uuids = {
+            action.get("sentryAppInstallationUuid")
+            for rule in rules.values()
+            for action in rule.data.get("actions", [])
+        }
+
+        sentry_app_ids = (
+            SentryAppInstallation.objects.filter(uuid__in=sentry_app_uuids)
+            .distinct("sentry_app_id")
+            .values_list("sentry_app_id", flat=True)
+        )
+
+        sentry_app_installations_by_uuid = (
+            SentryAppInstallation.objects.get_related_sentry_app_components(
+                organization_ids={rule.project.organization_id for rule in rules.values()},
+                sentry_app_ids=sentry_app_ids,
+                type="alert-rule-action",
+                group_by="uuid",
+            )
+        )
+
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
@@ -71,9 +101,27 @@ class RuleSerializer(Serializer):
                 if rule.owner_id in resolved_actors[type]:
                     result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
 
+            for action in rule.data.get("actions", []):
+                install = sentry_app_installations_by_uuid.get(
+                    action.get("sentryAppInstallationUuid")
+                )
+                if install:
+                    action["_sentry_app_component"] = install.get("sentry_app_component")
+                    action["_sentry_app_installation"] = install.get("sentry_app_installation")
+
+        if "lastTriggered" in self.expand:
+            last_triggered_lookup = {
+                rfh["rule_id"]: rfh["date_added"]
+                for rfh in RuleFireHistory.objects.filter(rule__in=item_list)
+                .values("rule_id")
+                .annotate(date_added=Max("date_added"))
+            }
+            for rule in item_list:
+                result[rule]["last_triggered"] = last_triggered_lookup.get(rule.id, None)
+
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         environment = attrs["environment"]
         all_conditions = [
             dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
@@ -102,4 +150,6 @@ class RuleSerializer(Serializer):
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],
         }
+        if "last_triggered" in attrs:
+            d["lastTriggered"] = attrs["last_triggered"]
         return d

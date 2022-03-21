@@ -10,8 +10,8 @@ import {IntegrationType, Organization} from 'sentry/types';
 import RequestIntegrationModal from './RequestIntegrationModal';
 
 type Props = {
-  organization: Organization;
   name: string;
+  organization: Organization;
   slug: string;
   type: IntegrationType;
 };

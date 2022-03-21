@@ -29,24 +29,24 @@ const PlatformList = styled('div')`
 
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
-type Props = {
+interface PlatformPickerProps {
   setPlatform: (key: PlatformKey | null) => void;
+  defaultCategory?: Category;
+  listClassName?: string;
+  listProps?: React.HTMLAttributes<HTMLDivElement>;
+  noAutoFilter?: boolean;
+  organization?: Organization;
   platform?: string | null;
   showOther?: boolean;
-  listClassName?: string;
-  listProps?: React.ComponentProps<typeof PlatformList>;
-  noAutoFilter?: boolean;
-  defaultCategory?: Category;
-  organization?: Organization;
   source?: string;
-};
+}
 
 type State = {
   category: Category;
   filter: string;
 };
 
-class PlatformPicker extends React.Component<Props, State> {
+class PlatformPicker extends React.Component<PlatformPickerProps, State> {
   static defaultProps = {
     showOther: true,
   };
@@ -251,7 +251,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     />
 
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} />}
+    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
   </div>
 ))`
   position: relative;

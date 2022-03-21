@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -44,9 +44,9 @@ const ANALYTICS_VALUES = {
 };
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
   projectId: string;
   setError: SetStateAction<string | undefined>;
   transactionName: string;
@@ -60,7 +60,7 @@ function SpansContent(props: Props) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = getParams({
+      const queryParams = normalizeDateTimeParams({
         ...(location.query || {}),
         [key]: value,
       });
@@ -132,6 +132,7 @@ function SpansContent(props: Props) {
               location={location}
               orgSlug={organization.slug}
               eventView={spansView}
+              limit={10}
               perSuspect={0}
               spanOps={defined(spanOp) ? [spanOp] : []}
               spanGroups={defined(spanGroup) ? [spanGroup] : []}

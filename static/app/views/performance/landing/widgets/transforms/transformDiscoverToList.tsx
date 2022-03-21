@@ -1,4 +1,4 @@
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -11,9 +11,12 @@ export function transformDiscoverToList<T extends WidgetDataConstraint>(
   results: GenericChildrenProps<TableData>,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query, {
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD,
-  });
+  const {start, end, utc, interval, statsPeriod} = normalizeDateTimeParams(
+    widgetProps.location.query,
+    {
+      defaultStatsPeriod: DEFAULT_STATS_PERIOD,
+    }
+  );
 
   const data = results.tableData?.data ?? [];
 

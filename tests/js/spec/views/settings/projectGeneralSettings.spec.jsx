@@ -6,13 +6,13 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/utils';
+import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/components/organizations/pageFilters/utils');
+jest.mock('sentry/components/organizations/pageFilters/persistence');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -83,8 +83,7 @@ describe('projectGeneralSettings', function () {
 
   it('renders form fields', function () {
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
@@ -123,8 +122,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-remove-project').first();
@@ -150,8 +148,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-transfer-project').first();
@@ -191,8 +188,7 @@ describe('projectGeneralSettings', function () {
     });
 
     wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext()
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
     const removeBtn = wrapper.find('.ref-transfer-project').first();

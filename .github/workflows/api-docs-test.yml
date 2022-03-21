@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: api docs test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         python-version: [3.8.12]
@@ -37,12 +37,10 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
-      - name: Install Javascript Dependencies
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          cd api-docs && yarn install --frozen-lockfile
-
       - name: Run API docs tests
         if: steps.changes.outputs.api_docs == 'true'
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
-          make test-api-docs
+          yarn add ts-node && make test-api-docs

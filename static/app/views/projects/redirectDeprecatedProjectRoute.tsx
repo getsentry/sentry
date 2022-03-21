@@ -17,21 +17,21 @@ import withApi from 'sentry/utils/withApi';
 
 type DetailsProps = {
   api: Client;
+  children: (props: ChildProps) => React.ReactNode;
   orgId: string;
   projectSlug: string;
-  children: (props: ChildProps) => React.ReactNode;
 };
 
 type DetailsState = {
-  loading: boolean;
   error: null | ResponseMeta;
+  loading: boolean;
   project: null | Project;
 };
 
 type ChildProps = DetailsState & {
-  projectId: null | string;
-  organizationId: null | string;
   hasProjectId: boolean;
+  organizationId: null | string;
+  projectId: null | string;
 };
 
 class ProjectDetailsInner extends React.Component<DetailsProps, DetailsState> {

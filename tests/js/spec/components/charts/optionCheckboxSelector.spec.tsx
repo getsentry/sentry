@@ -17,7 +17,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
 
   beforeEach(() => {
     organization = TestStubs.Organization({
-      features: [...features, 'connect-discover-and-dashboards'],
+      features: [...features],
     });
 
     // Start off with an invalid view (empty is invalid)

@@ -18,9 +18,9 @@ import {SourceMapsArchive} from 'sentry/types';
 
 type Props = {
   archive: SourceMapsArchive;
+  onDelete: (name: string) => void;
   orgId: string;
   projectId: string;
-  onDelete: (name: string) => void;
 };
 
 const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
@@ -63,7 +63,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={t('Remove All Artifacts')}
-                    label={t('Remove All Artifacts')}
+                    aria-label={t('Remove All Artifacts')}
                     disabled={!hasAccess}
                   />
                 </Confirm>

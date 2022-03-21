@@ -3,25 +3,35 @@ import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {doMetricsRequest, DoMetricsRequestOptions} from 'sentry/actionCreators/metrics';
+import {Client, ResponseMeta} from 'sentry/api';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {DateString, MetricsApiResponse, Organization} from 'sentry/types';
+import {MetricsApiResponse} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 
-import {getMetricsDataSource} from './getMetricsDataSource';
+import {TableData} from '../discover/discoverQuery';
+
+import {transformMetricsResponseToSeries} from './transformMetricsResponseToSeries';
+import {transformMetricsResponseToTable} from './transformMetricsResponseToTable';
 
 const propNamesToIgnore = ['api', 'children'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 export type MetricsRequestRenderProps = {
-  loading: boolean;
-  reloading: boolean;
+  error: string | null;
   errored: boolean;
+  loading: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
+  seriesData?: Series[];
+  seriesDataPrevious?: Series[];
+  tableData?: TableData;
 };
 
 type DefaultProps = {
@@ -29,29 +39,34 @@ type DefaultProps = {
    * Include data for previous period
    */
   includePrevious: boolean;
-};
-
-type Props = DefaultProps & {
-  api: Client;
-  organization: Organization;
-  field: string[];
-  children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
-  project?: Readonly<number[]>;
-  environment?: Readonly<string[]>;
-  statsPeriod?: string;
-  start?: DateString;
-  end?: DateString;
-  query?: string;
-  groupBy?: string[];
-  orderBy?: string;
-  limit?: number;
-  interval?: string;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeSeriesData: boolean;
+  /**
+   * Transform the response data to be something ingestible by GridEditable table
+   */
+  includeTabularData: boolean;
+  /**
+   * If true, no request will be made
+   */
   isDisabled?: boolean;
 };
 
+type Props = DefaultProps &
+  Omit<
+    DoMetricsRequestOptions,
+    'includeAllArgs' | 'statsPeriodStart' | 'statsPeriodEnd'
+  > & {
+    api: Client;
+    children?: (renderProps: MetricsRequestRenderProps) => React.ReactNode;
+  };
+
 type State = {
-  reloading: boolean;
+  error: string | null;
   errored: boolean;
+  pageLinks: string | null;
+  reloading: boolean;
   response: MetricsApiResponse | null;
   responsePrevious: MetricsApiResponse | null;
 };
@@ -59,13 +74,18 @@ type State = {
 class MetricsRequest extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     includePrevious: false,
+    includeSeriesData: false,
+    includeTabularData: false,
+    isDisabled: false,
   };
 
   state: State = {
     reloading: false,
     errored: false,
+    error: null,
     response: null,
     responsePrevious: null,
+    pageLinks: null,
   };
 
   componentDidMount() {
@@ -86,32 +106,34 @@ class MetricsRequest extends React.Component<Props, State> {
 
   private unmounting: boolean = false;
 
-  get path() {
-    const {organization} = this.props;
-
-    return `/organizations/${organization.slug}/metrics/data/`;
-  }
-
-  baseQueryParams({previousPeriod = false} = {}) {
-    const {project, environment, field, query, groupBy, orderBy, limit, interval} =
-      this.props;
-
-    const {start, end, statsPeriod} = getPeriod({
-      period: this.props.statsPeriod,
-      start: this.props.start,
-      end: this.props.end,
-    });
-
-    const commonQuery = {
+  getQueryParams({previousPeriod = false} = {}) {
+    const {
       project,
       environment,
       field,
-      query: query || undefined,
+      query,
       groupBy,
       orderBy,
       limit,
-      interval: interval ? interval : getInterval({start, end, period: statsPeriod}),
-      datasource: getMetricsDataSource(),
+      interval,
+      cursor,
+      statsPeriod,
+      start,
+      end,
+      orgSlug,
+    } = this.props;
+
+    const commonQuery = {
+      field,
+      cursor,
+      environment,
+      groupBy,
+      interval,
+      query,
+      limit,
+      project,
+      orderBy,
+      orgSlug,
     };
 
     if (!previousPeriod) {
@@ -145,21 +167,24 @@ class MetricsRequest extends React.Component<Props, State> {
     this.setState(state => ({
       reloading: state.response !== null,
       errored: false,
+      error: null,
+      pageLinks: null,
     }));
 
-    const promises = [api.requestPromise(this.path, {query: this.baseQueryParams()})];
+    const promises = [
+      doMetricsRequest(api, {includeAllArgs: true, ...this.getQueryParams()}),
+    ];
 
+    // TODO(metrics): this could be merged into one request by doubling the statsPeriod and then splitting the response in half
     if (shouldFetchPreviousPeriod({start, end, period: statsPeriod, includePrevious})) {
-      promises.push(
-        api.requestPromise(this.path, {
-          query: this.baseQueryParams({previousPeriod: true}),
-        })
-      );
+      promises.push(doMetricsRequest(api, this.getQueryParams({previousPeriod: true})));
     }
 
     try {
-      const [response, responsePrevious] = (await Promise.all(promises)) as [
-        MetricsApiResponse,
+      const [[response, _, responseMeta], responsePrevious] = (await Promise.all(
+        promises
+      )) as [
+        [MetricsApiResponse, string | undefined, ResponseMeta | undefined],
         MetricsApiResponse | undefined
       ];
 
@@ -171,28 +196,44 @@ class MetricsRequest extends React.Component<Props, State> {
         reloading: false,
         response,
         responsePrevious: responsePrevious ?? null,
+        pageLinks: responseMeta?.getResponseHeader('Link') ?? null,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading metrics data'));
       this.setState({
         reloading: false,
         errored: true,
+        error: error.responseJSON?.detail ?? null,
+        pageLinks: null,
       });
     }
   };
 
   render() {
-    const {reloading, errored, response, responsePrevious} = this.state;
-    const {children, isDisabled} = this.props;
+    const {reloading, errored, error, response, responsePrevious, pageLinks} = this.state;
+    const {children, isDisabled, includeTabularData, includeSeriesData, includePrevious} =
+      this.props;
 
-    const loading = response === null && !isDisabled;
+    const loading = response === null && !isDisabled && !error;
 
     return children?.({
       loading,
       reloading,
       errored,
+      error,
       response,
       responsePrevious,
+      pageLinks,
+      tableData: includeTabularData
+        ? transformMetricsResponseToTable(response)
+        : undefined,
+      seriesData: includeSeriesData
+        ? transformMetricsResponseToSeries(response)
+        : undefined,
+      seriesDataPrevious:
+        includeSeriesData && includePrevious
+          ? transformMetricsResponseToSeries(responsePrevious)
+          : undefined,
     });
   }
 }

@@ -3,12 +3,12 @@ import IssueActions from 'sentry/plugins/components/issueActions';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Props = {
-  plugin: Plugin;
-  group: Group;
-  project: Project;
-  organization: Organization;
   actionType: 'create' | 'link';
+  group: Group;
   onSuccess: (data: any) => void;
+  organization: Organization;
+  plugin: Plugin;
+  project: Project;
 };
 
 export class DefaultIssuePlugin extends BasePlugin {

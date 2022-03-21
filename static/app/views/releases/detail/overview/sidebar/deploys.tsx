@@ -9,10 +9,10 @@ import space from 'sentry/styles/space';
 import {Deploy} from 'sentry/types';
 
 type Props = {
-  version: string;
-  orgSlug: string;
   deploys: Deploy[];
+  orgSlug: string;
   projectId: number;
+  version: string;
 };
 
 const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {

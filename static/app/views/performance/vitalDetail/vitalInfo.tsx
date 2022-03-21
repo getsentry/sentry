@@ -1,43 +1,55 @@
+import React from 'react';
 import {Location} from 'history';
 
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
 import {VitalBar} from '../landing/vitalsCards';
 
-type Props = {
+type ViewProps = Pick<
+  EventView,
+  'environment' | 'project' | 'start' | 'end' | 'statsPeriod'
+>;
+
+type Props = ViewProps & {
   location: Location;
+  orgSlug: Organization['slug'];
   vital: WebVital | WebVital[];
   hideBar?: boolean;
+  hideDurationDetail?: boolean;
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
-  hideDurationDetail?: boolean;
+  isLoading?: boolean;
+  p75AllTransactions?: number;
 };
 
-function VitalInfo(props: Props) {
-  const {
+function VitalInfo({
+  vital,
+  location,
+  isLoading,
+  hideBar,
+  hideStates,
+  hideVitalPercentNames,
+  hideDurationDetail,
+}: Props) {
+  const vitals = Array.isArray(vital) ? vital : [vital];
+  const contentCommonProps = {
     vital,
-    location,
-    hideBar,
-    hideStates,
-    hideVitalPercentNames,
-    hideDurationDetail,
-  } = props;
+    showBar: !hideBar,
+    showStates: !hideStates,
+    showVitalPercentNames: !hideVitalPercentNames,
+    showDurationDetail: !hideDurationDetail,
+  };
 
   return (
-    <VitalsCardDiscoverQuery
-      location={location}
-      vitals={Array.isArray(vital) ? vital : [vital]}
-    >
-      {({isLoading, vitalsData}) => (
+    <VitalsCardDiscoverQuery location={location} vitals={vitals}>
+      {({isLoading: loading, vitalsData}) => (
         <VitalBar
-          isLoading={isLoading}
+          {...contentCommonProps}
+          isLoading={isLoading || loading}
           data={vitalsData}
-          vital={vital}
-          showBar={!hideBar}
-          showStates={!hideStates}
-          showVitalPercentNames={!hideVitalPercentNames}
-          showDurationDetail={!hideDurationDetail}
         />
       )}
     </VitalsCardDiscoverQuery>

@@ -2,8 +2,8 @@ import * as React from 'react';
 import classnames from 'classnames';
 
 type Props = {
-  underlined?: boolean;
   className?: string;
+  underlined?: boolean;
 };
 
 type NavProps = Omit<React.HTMLProps<HTMLUListElement>, keyof Props> & Props;

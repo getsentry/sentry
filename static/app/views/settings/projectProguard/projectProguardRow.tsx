@@ -2,26 +2,34 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Role from 'sentry/components/acl/role';
+import {Role} from 'sentry/components/acl/role';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
+import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
 type Props = {
+  downloadRole: string;
+  downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
-  downloadUrl: string;
-  downloadRole: string;
+  orgSlug: string;
 };
 
-const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Props) => {
+const ProjectProguardRow = ({
+  mapping,
+  onDelete,
+  downloadUrl,
+  downloadRole,
+  orgSlug,
+}: Props) => {
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -45,8 +53,16 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
           <Role role={downloadRole}>
             {({hasRole}) => (
               <Tooltip
-                title={t('You do not have permission to download mappings.')}
+                title={tct(
+                  'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+                  {
+                    downloadRole,
+                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+                  }
+                )}
                 disabled={hasRole}
+                isHoverable
               >
                 <Button
                   size="small"
@@ -54,6 +70,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                   disabled={!hasRole}
                   href={downloadUrl}
                   title={hasRole ? t('Download Mapping') : undefined}
+                  aria-label={t('Download Mapping')}
                 />
               </Tooltip>
             )}
@@ -74,7 +91,7 @@ const ProjectProguardRow = ({mapping, onDelete, downloadUrl, downloadRole}: Prop
                     size="small"
                     icon={<IconDelete size="sm" />}
                     title={hasAccess ? t('Remove Mapping') : undefined}
-                    label={t('Remove Mapping')}
+                    aria-label={t('Remove Mapping')}
                     disabled={!hasAccess}
                   />
                 </Confirm>

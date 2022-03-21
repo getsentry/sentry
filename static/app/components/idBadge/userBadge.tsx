@@ -8,11 +8,11 @@ import {AvatarUser} from 'sentry/types';
 
 type Props = {
   avatarSize?: UserAvatar['props']['size'];
-  displayName?: React.ReactNode;
-  displayEmail?: string;
-  user?: AvatarUser;
-  hideEmail?: boolean;
   className?: string;
+  displayEmail?: string;
+  displayName?: React.ReactNode;
+  hideEmail?: boolean;
+  user?: AvatarUser;
 };
 
 const UserBadge = ({

@@ -58,14 +58,14 @@ type ImageFeatures = {
 type CandidateFeatures = ImageFeatures;
 
 type CandidateDownloadOkStatus = {
-  status: CandidateDownloadStatus.OK;
   features: CandidateFeatures;
+  status: CandidateDownloadStatus.OK;
   details?: string;
 };
 
 type CandidateDownloadDeletedStatus = {
-  status: CandidateDownloadStatus.DELETED;
   features: CandidateFeatures;
+  status: CandidateDownloadStatus.DELETED;
   details?: string;
 };
 
@@ -75,8 +75,8 @@ type CandidateDownloadNotFoundStatus = {
 };
 
 type CandidateDownloadUnAppliedStatus = {
-  status: CandidateDownloadStatus.UNAPPLIED;
   features: CandidateFeatures;
+  status: CandidateDownloadStatus.UNAPPLIED;
 };
 
 type CandidateDownloadOtherStatus = {
@@ -96,31 +96,31 @@ export type CandidateDownload =
 
 type ImageCandidateBase = {
   source: string;
-  source_name?: string;
   location?: string;
+  source_name?: string;
 };
 
 type InternalSource = {
-  symbolType: SymbolType;
-  fileType: string | null;
   cpuName: string;
-  size: number;
   dateCreated: string;
-  location: string;
+  fileType: string | null;
   filename: string;
+  location: string;
+  size: number;
+  symbolType: SymbolType;
 };
 
 export type ImageCandidateOk = ImageCandidateBase & {
   download: CandidateDownloadOkStatus;
-  unwind?: CandidateProcessingInfo;
   debug?: CandidateProcessingInfo;
+  unwind?: CandidateProcessingInfo;
 };
 
 export type ImageCandidateInternalOk = ImageCandidateBase &
   InternalSource & {
     download: CandidateDownloadOkStatus;
-    unwind?: CandidateProcessingInfo;
     debug?: CandidateProcessingInfo;
+    unwind?: CandidateProcessingInfo;
   };
 
 export type ImageCandidateUnApplied = ImageCandidateBase &
@@ -136,8 +136,8 @@ type ImageCandidateOthers = ImageCandidateBase & {
     | CandidateDownloadDeletedStatus
     | CandidateDownloadOtherStatus;
   source: string;
-  source_name?: string;
   location?: string;
+  source_name?: string;
 };
 
 export type ImageCandidate =
@@ -158,17 +158,17 @@ export enum ImageStatus {
 }
 
 export type Image = {
-  type: string;
-  features: ImageFeatures;
   candidates: Array<ImageCandidate>;
-  image_size?: number;
-  debug_file?: string;
+  features: ImageFeatures;
+  type: string;
+  arch?: string;
   code_file?: string | null;
   code_id?: string;
+  debug_file?: string;
   debug_id?: string;
   debug_status?: ImageStatus | null;
-  unwind_status?: ImageStatus | null;
-  arch?: string;
   image_addr?: string;
+  image_size?: number;
+  unwind_status?: ImageStatus | null;
   uuid?: string;
 };

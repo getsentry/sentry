@@ -2,9 +2,9 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
-  hasImage?: boolean;
-  centered?: boolean;
   children: React.ReactNode;
+  centered?: boolean;
+  hasImage?: boolean;
   theme?: any;
 };
 

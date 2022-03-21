@@ -12,7 +12,11 @@ from sentry.incidents.action_handlers import (
     EmailActionHandler,
     generate_incident_trigger_email_context,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
@@ -57,7 +61,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 threshold_period=1,
                 resolve_threshold=10,
             )
-            trigger = create_alert_rule_trigger(rule, "hi", 100)
+            trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
             create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
@@ -143,6 +147,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 handler.incident,
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
+                IncidentStatus.CRITICAL,
             ),
             TriggerStatus.ACTIVE,
             self.user.id,

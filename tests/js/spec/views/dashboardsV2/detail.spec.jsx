@@ -1,10 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -52,6 +54,11 @@ describe('Dashboards > Detail', function () {
         method: 'POST',
         body: [],
         statusCode: 200,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
       });
     });
 
@@ -191,7 +198,15 @@ describe('Dashboards > Detail', function () {
       types.MAX_WIDGETS = 30;
       widgets = [
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Errors',
             interval: '1d',
@@ -199,7 +214,15 @@ describe('Dashboards > Detail', function () {
           }
         ),
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Transactions',
             interval: '1d',
@@ -212,6 +235,8 @@ describe('Dashboards > Detail', function () {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
+              aggregates: ['p50()'],
+              columns: [],
             },
           ],
           {
@@ -281,6 +306,11 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
       });
@@ -389,6 +419,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],
@@ -606,7 +638,7 @@ describe('Dashboards > Detail', function () {
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
-          location={initialData.router.location}
+          location={{...initialData.router.location, pathname: '/mockpath'}}
         />,
         initialData.routerContext
       );
@@ -678,7 +710,7 @@ describe('Dashboards > Detail', function () {
     });
 
     it('disables add library widgets when max widgets reached', async function () {
-      types.MAX_WIDGETS = 4;
+      types.MAX_WIDGETS = 3;
 
       initialData = initializeOrg({
         organization: TestStubs.Organization({
@@ -709,73 +741,19 @@ describe('Dashboards > Detail', function () {
       expect(
         wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
           .disabled
-      ).toEqual(false);
-      expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(true);
-
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
-        .simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('WidgetCard')).toHaveLength(4);
-      expect(
-        wrapper.find('Controls Button[data-test-id="add-widget-library"]').props()
-          .disabled
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
 
-      const card2 = wrapper.find('WidgetCard').first();
-      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.first().find('MenuControlWrap Button').first());
 
-      card2.update();
-      wrapper.update();
+        await tick();
+        wrapper.update();
+      });
 
       expect(
-        wrapper
-          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
-          .props().disabled
+        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props().isDisabled
       ).toEqual(true);
-    });
-
-    it('duplicates widgets', async function () {
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('WidgetCard')).toHaveLength(3);
-
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
-        .simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('WidgetCard')).toHaveLength(4);
-      const newCard = wrapper.find('WidgetCard').at(1);
-      expect(newCard.props().title).toEqual(card.props().title);
     });
 
     it('opens edit modal when editing widget from context menu', async function () {
@@ -793,15 +771,11 @@ describe('Dashboards > Detail', function () {
 
       expect(wrapper.find('WidgetCard')).toHaveLength(3);
 
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu MenuItem[data-test-id="edit-widget"] MenuTarget`)
-        .simulate('click');
+      await selectDropdownMenuItem({
+        wrapper,
+        specifiers: {prefix: 'WidgetCard', first: true},
+        itemKey: 'edit-widget',
+      });
 
       expect(openEditModal).toHaveBeenCalledTimes(1);
       expect(openEditModal).toHaveBeenCalledWith(
@@ -813,6 +787,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],
@@ -821,40 +797,6 @@ describe('Dashboards > Detail', function () {
           },
         })
       );
-    });
-
-    it('deletes widget', async function () {
-      wrapper = mountWithTheme(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('WidgetCard')).toHaveLength(3);
-
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu Confirm[data-test-id="delete-widget"]`)
-        .simulate('click');
-
-      const modal = await mountGlobalModal();
-      modal.find(`button[data-test-id="confirm-button"]`).simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('WidgetCard')).toHaveLength(2);
     });
   });
 });

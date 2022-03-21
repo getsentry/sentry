@@ -8,16 +8,16 @@ import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
-  org: Organization;
   app: SentryApp;
-
-  showPublish: boolean;
-  showDelete: boolean;
-  onPublish?: () => void;
   onDelete: (app: SentryApp) => void;
+
+  org: Organization;
+  showDelete: boolean;
+  showPublish: boolean;
+  disableDeleteReason?: string;
   // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
   disablePublishReason?: string;
-  disableDeleteReason?: string;
+  onPublish?: () => void;
 };
 
 const ActionButtons = ({
@@ -63,7 +63,7 @@ const ActionButtons = ({
         title={disableDeleteReason}
         size="small"
         icon={<IconDelete />}
-        label="Delete"
+        aria-label="Delete"
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon={<IconDelete />} label="Delete" />
+          <StyledButton size="small" icon={<IconDelete />} aria-label="Delete" />
         </ConfirmDelete>
       )
     )

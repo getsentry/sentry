@@ -19,12 +19,12 @@ import ColumnEditCollection from './columnEditCollection';
 
 type Props = {
   columns: Column[];
-  organization: Organization;
-  tagKeys: null | string[];
   measurementKeys: null | string[];
-  spanOperationBreakdownKeys?: string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
+  organization: Organization;
+  tagKeys: null | string[];
+  spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
 type State = {
@@ -85,7 +85,7 @@ class ColumnEditModal extends Component<Props, State> {
                   <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
                 ),
                 tagFieldLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#event-properties" />
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
             )}
@@ -102,7 +102,7 @@ class ColumnEditModal extends Component<Props, State> {
             <Button priority="default" href={DISCOVER2_DOCS_URL} external>
               {t('Read the Docs')}
             </Button>
-            <Button label={t('Apply')} priority="primary" onClick={this.handleApply}>
+            <Button aria-label={t('Apply')} priority="primary" onClick={this.handleApply}>
               {t('Apply')}
             </Button>
           </ButtonBar>

@@ -1,5 +1,5 @@
 ---
-created: '2021-12-15T15:04:19.291385Z'
+created: '2022-02-28T13:20:49.143037Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -16,6 +16,7 @@ transactionMetrics:
   extractCustomTags: []
   extractMetrics:
   - sentry.transactions.transaction.duration
+  - sentry.transactions.user
   - sentry.transactions.measurements.app_start_cold
   - sentry.transactions.measurements.app_start_warm
   - sentry.transactions.measurements.cls
@@ -38,3 +39,8 @@ transactionMetrics:
   - sentry.transactions.breakdowns.span_ops.db
   - sentry.transactions.breakdowns.span_ops.browser
   - sentry.transactions.breakdowns.span_ops.resource
+  satisfactionThresholds:
+    projectThreshold:
+      metric: duration
+      threshold: 300.0
+    transactionThresholds: {}

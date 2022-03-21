@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 
 import pytz
 import requests
@@ -12,6 +13,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.models import Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -856,7 +858,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
-        assert response.status_code == 400
+        assert response.status_code == 403
 
     def test_name_filter(self):
         self.setup_project_and_rules()
@@ -1107,3 +1109,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert response.data[0]["id"] == str(alert_rule.id)
         assert response.data[0]["owner"] is None
+
+    @freeze_time()
+    def test_last_triggered(self):
+        self.login_as(user=self.user)
+        rule = Rule.objects.filter(project=self.project).first()
+        resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
+        assert resp.data[0]["lastTriggered"] is None
+        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
+        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=pytz.UTC)

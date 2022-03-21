@@ -35,8 +35,8 @@ import {
   VITAL_GROUPS,
 } from '../transactionVitals/constants';
 
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent from './content';
-import {ZOOM_END, ZOOM_START} from './latencyChart';
 
 // Used to cast the totals request to numbers
 // as React.ReactText
@@ -44,9 +44,9 @@ type TotalValues = Record<string, number>;
 
 type Props = {
   location: Location;
-  selection: PageFilters;
   organization: Organization;
   projects: Project[];
+  selection: PageFilters;
 };
 
 function TransactionOverview(props: Props) {
@@ -103,6 +103,7 @@ function OverviewContentWrapper(props: ChildProps) {
     if (newFilter === SpanOperationBreakdownFilter.None) {
       delete nextQuery.breakdown;
     }
+
     browserHistory.push({
       pathname: location.pathname,
       query: nextQuery,
@@ -150,14 +151,20 @@ function getDocumentTitle(transactionName: string): string {
   return [t('Summary'), t('Performance')].join(' - ');
 }
 
-function generateEventView(location: Location, transactionName: string): EventView {
+function generateEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
     if (isAggregateField(field)) {

@@ -1,7 +1,7 @@
 import range from 'lodash/range';
 
 import {
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -74,18 +74,17 @@ describe('TeamMisery', () => {
       },
       match: [MockApiClient.matchQuery({statsPeriod: '8w'})],
     });
-    const routerContext = TestStubs.routerContext();
-    mountWithTheme(
+
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[project]}
         period="8w"
-        location={routerContext.context}
-      />,
-      {context: routerContext}
+        location={location}
+      />
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(weekMisery).toHaveBeenCalledTimes(1);
     expect(periodMisery).toHaveBeenCalledTimes(1);
@@ -103,15 +102,13 @@ describe('TeamMisery', () => {
   });
 
   it('should render empty state', async () => {
-    const routerContext = TestStubs.routerContext();
-    mountWithTheme(
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[]}
         period="8w"
-        location={routerContext.context}
-      />,
-      {context: routerContext}
+        location={location}
+      />
     );
 
     expect(
@@ -126,18 +123,16 @@ describe('TeamMisery', () => {
       body: {},
     });
 
-    const routerContext = TestStubs.routerContext();
-    mountWithTheme(
+    render(
       <TeamMisery
         organization={TestStubs.Organization()}
         projects={[TestStubs.Project()]}
         period="8w"
-        location={routerContext.context}
-      />,
-      {context: routerContext}
+        location={location}
+      />
     );
 
-    await waitForElementToBeRemoved(screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });

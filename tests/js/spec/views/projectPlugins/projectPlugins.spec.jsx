@@ -4,7 +4,6 @@ import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins'
 
 describe('ProjectPlugins', function () {
   let wrapper;
-  const routerContext = TestStubs.routerContext();
   const plugins = TestStubs.Plugins();
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
@@ -14,19 +13,13 @@ describe('ProjectPlugins', function () {
   };
 
   it('renders', function () {
-    wrapper = mountWithTheme(
-      <ProjectPlugins params={params} plugins={plugins} />,
-      routerContext
-    );
+    wrapper = mountWithTheme(<ProjectPlugins params={params} plugins={plugins} />);
 
     expect(wrapper).toSnapshot();
   });
 
   it('has loading state', function () {
-    wrapper = mountWithTheme(
-      <ProjectPlugins params={params} loading plugins={[]} />,
-      routerContext
-    );
+    wrapper = mountWithTheme(<ProjectPlugins params={params} loading plugins={[]} />);
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
@@ -38,8 +31,7 @@ describe('ProjectPlugins', function () {
         plugins={null}
         loading
         error={new Error('An error')}
-      />,
-      routerContext
+      />
     );
 
     expect(wrapper.find('RouteError')).toHaveLength(1);
@@ -52,8 +44,7 @@ describe('ProjectPlugins', function () {
         plugins={[]}
         loading
         error={new Error('An error')}
-      />,
-      routerContext
+      />
     );
     expect(wrapper.find('RouteError')).toHaveLength(1);
   });

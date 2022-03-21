@@ -2797,7 +2797,7 @@ describe('EventView.getPageFilters()', function () {
       datetime: {
         start: null,
         end: null,
-        period: '',
+        period: null,
 
         // event views currently do not support the utc option,
         // see comment in EventView.getPageFilters

@@ -1,30 +1,35 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
 type Params = {
   /**
-   * If this is true, will make a single corner blended with actor (depends on anchor orientation)
-   */
-  blendCorner: boolean;
-  /**
    * Menu alignment
    */
   alignMenu: 'left' | 'right';
   /**
-   * The width of the menu
+   * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
-  width?: string;
+  blendCorner: boolean;
+  /**
+   * If this is true, will make corners blend with its opener (so no border radius)
+   */
+  blendWithActor?: boolean;
+  /**
+   * If true, the menu will be visually detached from actor.
+   */
+  detached?: boolean;
   /**
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
   /**
-   * If this is true, will make corners blend with its opener (so no border radius)
+   * The width of the menu
    */
-  blendWithActor?: boolean;
+  width?: string;
 };
 
 /**
@@ -35,12 +40,13 @@ type Params = {
 const getMenuBorderRadius = ({
   blendWithActor,
   blendCorner,
+  detached,
   alignMenu,
   width,
   theme,
 }: Params & {theme: Theme}) => {
   const radius = theme.borderRadius;
-  if (!blendCorner) {
+  if (!blendCorner || detached) {
     return css`
       border-radius: ${radius};
     `;
@@ -107,15 +113,25 @@ const DropdownBubble = styled('div')<Params>`
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
   position: absolute;
-  top: calc(100% - 1px);
-  ${p => (p.width ? `width: ${p.width}` : '')};
   right: 0;
-  box-shadow: ${p => p.theme.dropShadowLight};
   overflow: hidden;
 
-  ${getMenuBorderRadius};
+  ${({width}) => (width ? `width: ${width}` : '')};
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
 
+  ${p =>
+    p.detached
+      ? `
+    top: 100%;
+    margin-top: ${space(1)};
+    box-shadow: ${p.theme.dropShadowHeavy};
+  `
+      : `
+    top: calc(100% - 1px);
+    box-shadow: ${p.theme.dropShadowLight};
+  `};
+
+  ${getMenuBorderRadius};
   ${getMenuArrow};
 
   /* This is needed to be able to cover e.g. pagination buttons, but also be

@@ -5,6 +5,7 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
+import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,9 +18,6 @@ import {BaseGroup, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withApi from 'sentry/utils/withApi';
-import RangeSlider, {
-  Slider,
-} from 'sentry/views/settings/components/forms/controls/rangeSlider';
 
 import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
@@ -28,11 +26,11 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   api: Client;
-  organization: Organization;
   groupId: Group['id'];
+  location: Location<{cursor?: string; level?: number}>;
+  organization: Organization;
   projSlug: Project['slug'];
   router: InjectedRouter;
-  location: Location<{level?: number; cursor?: string}>;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -95,7 +93,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, cursor]);
 
-  function handleRouteLeave(newLocation: Location<{level?: number; cursor?: string}>) {
+  function handleRouteLeave(newLocation: Location<{cursor?: string; level?: number}>) {
     if (
       newLocation.pathname === location.pathname ||
       (newLocation.pathname !== location.pathname &&

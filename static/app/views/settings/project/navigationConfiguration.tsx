@@ -3,9 +3,9 @@ import {Organization, Project} from 'sentry/types';
 import {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
+  debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-  debugFilesNeedsReview?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -33,8 +33,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/alerts/`,
-          title: t('Alerts'),
-          description: t('Manage alert rules for a project'),
+          title: t('Alert Settings'),
+          description: t('Project alert settings'),
         },
         {
           path: `${pathPrefix}/tags/`,

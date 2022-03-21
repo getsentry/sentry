@@ -13,8 +13,8 @@ import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
 type Props = {
-  renderNavigation?: () => React.ReactNode;
   children: React.ReactNode;
+  renderNavigation?: () => React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
 function SettingsLayout(props: Props) {
@@ -58,7 +58,7 @@ function SettingsLayout(props: Props) {
           {shouldRenderNavigation && (
             <NavMenuToggle
               priority="link"
-              label={navVisible ? t('Close the menu') : t('Open the menu')}
+              aria-label={navVisible ? t('Close the menu') : t('Open the menu')}
               icon={navVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
               onClick={() => toggleNav(!navVisible)}
             />

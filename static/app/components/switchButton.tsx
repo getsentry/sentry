@@ -2,19 +2,19 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
-  forwardRef?: React.Ref<HTMLButtonElement>;
+  toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
   className?: string;
-  id?: string;
-  name?: string;
-  size?: 'sm' | 'lg';
-  isActive?: boolean;
   /**
    * Toggle color is always active.
    */
   forceActiveColor?: boolean;
-  isLoading?: boolean;
+  forwardRef?: React.Ref<HTMLButtonElement>;
+  id?: string;
+  isActive?: boolean;
   isDisabled?: boolean;
-  toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
+  isLoading?: boolean;
+  name?: string;
+  size?: 'sm' | 'lg';
 };
 
 const Switch = ({

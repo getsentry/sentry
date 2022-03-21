@@ -11,8 +11,8 @@ import {SuspectSpans} from './types';
 
 type SuspectSpansProps = {
   perSuspect?: number;
-  spanOps?: string[];
   spanGroups?: string[];
+  spanOps?: string[];
 };
 
 type RequestProps = DiscoverQueryProps & SuspectSpansProps;
@@ -46,7 +46,6 @@ function SuspectSpansQuery(props: Props) {
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"
       getRequestPayload={getSuspectSpanPayload}
-      limit={4}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import Count from 'sentry/components/count';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t, tn} from 'sentry/locale';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -20,27 +20,27 @@ import SpanExamplesQuery, {
 import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import {SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
+import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
-import {PerformanceDuration} from '../../../utils';
 import Tab from '../../tabs';
-import {SpanSlug} from '../types';
+import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 
+import SpanChart from './chart';
 import SpanTable from './spanDetailsTable';
 
 type Props = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  eventView: EventView;
-  projectId: string;
-  transactionName: string;
+  project: Project | undefined;
   spanSlug: SpanSlug;
+  transactionName: string;
 };
 
 export default function SpanDetailsContentWrapper(props: Props) {
-  const {location, organization, eventView, projectId, transactionName, spanSlug} = props;
+  const {location, organization, eventView, project, transactionName, spanSlug} = props;
 
   return (
     <Fragment>
@@ -50,10 +50,11 @@ export default function SpanDetailsContentWrapper(props: Props) {
             organization={organization}
             location={location}
             transaction={{
-              project: projectId,
+              project: project?.id ?? '',
               name: transactionName,
             }}
             tab={Tab.Spans}
+            spanSlug={spanSlug}
           />
           <Layout.Title>{transactionName}</Layout.Title>
         </Layout.HeaderContent>
@@ -81,30 +82,30 @@ export default function SpanDetailsContentWrapper(props: Props) {
                   spanGroups={[spanSlug.group]}
                   cursor="0:0:1"
                 >
-                  {suspectSpansResults => {
-                    return (
-                      <SpanExamplesQuery
-                        location={location}
-                        orgSlug={organization.slug}
-                        eventView={eventView}
-                        spanOp={spanSlug.op}
-                        spanGroup={spanSlug.group}
-                        limit={10}
-                      >
-                        {spanExamplesResults => (
-                          <SpanDetailsContent
-                            location={location}
-                            organization={organization}
-                            spanSlug={spanSlug}
-                            transactionName={transactionName}
-                            totalCount={totalCount}
-                            suspectSpansResults={suspectSpansResults}
-                            spanExamplesResults={spanExamplesResults}
-                          />
-                        )}
-                      </SpanExamplesQuery>
-                    );
-                  }}
+                  {suspectSpansResults => (
+                    <SpanExamplesQuery
+                      location={location}
+                      orgSlug={organization.slug}
+                      eventView={eventView}
+                      spanOp={spanSlug.op}
+                      spanGroup={spanSlug.group}
+                      limit={10}
+                    >
+                      {spanExamplesResults => (
+                        <SpanDetailsContent
+                          location={location}
+                          organization={organization}
+                          project={project}
+                          eventView={eventView}
+                          spanSlug={spanSlug}
+                          transactionName={transactionName}
+                          totalCount={totalCount}
+                          suspectSpansResults={suspectSpansResults}
+                          spanExamplesResults={spanExamplesResults}
+                        />
+                      )}
+                    </SpanExamplesQuery>
+                  )}
                 </SuspectSpansQuery>
               );
             }}
@@ -116,19 +117,23 @@ export default function SpanDetailsContentWrapper(props: Props) {
 }
 
 type ContentProps = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  spanSlug: SpanSlug;
-  transactionName: string;
-  totalCount: number;
-  suspectSpansResults: SuspectSpansProps;
+  project: Project | undefined;
   spanExamplesResults: SpanExamplesProps;
+  spanSlug: SpanSlug;
+  suspectSpansResults: SuspectSpansProps;
+  totalCount: number;
+  transactionName: string;
 };
 
 function SpanDetailsContent(props: ContentProps) {
   const {
     location,
     organization,
+    project,
+    eventView,
     spanSlug,
     transactionName,
     totalCount,
@@ -136,34 +141,22 @@ function SpanDetailsContent(props: ContentProps) {
     spanExamplesResults,
   } = props;
 
-  if (suspectSpansResults.isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (!suspectSpansResults.suspectSpans?.length) {
-    return (
-      <EmptyStateWarning>
-        <p>{t('No span data found')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
   // There should always be exactly 1 result
-  const suspectSpan = suspectSpansResults.suspectSpans[0];
+  const suspectSpan = suspectSpansResults.suspectSpans?.[0];
   const examples = spanExamplesResults.examples?.[0]?.examples;
-  const description = examples?.[0]?.description ?? null;
 
   return (
     <Fragment>
       <SpanDetailsHeader
         spanSlug={spanSlug}
-        description={description}
-        suspectSpan={suspectSpan}
         totalCount={totalCount}
+        suspectSpan={suspectSpan}
       />
+      <SpanChart organization={organization} eventView={eventView} spanSlug={spanSlug} />
       <SpanTable
         location={location}
         organization={organization}
+        project={project}
         suspectSpan={suspectSpan}
         transactionName={transactionName}
         isLoading={spanExamplesResults.isLoading}
@@ -176,21 +169,22 @@ function SpanDetailsContent(props: ContentProps) {
 
 type HeaderProps = {
   spanSlug: SpanSlug;
-  description: string | null;
-  suspectSpan: SuspectSpan;
   totalCount: number | null;
+  suspectSpan?: SuspectSpan;
 };
 
 function SpanDetailsHeader(props: HeaderProps) {
-  const {spanSlug, description, suspectSpan, totalCount} = props;
+  const {spanSlug, suspectSpan, totalCount} = props;
 
   const {
+    description,
     frequency,
+    avgOccurrences,
     p75ExclusiveTime,
     p95ExclusiveTime,
     p99ExclusiveTime,
     sumExclusiveTime,
-  } = suspectSpan;
+  } = suspectSpan ?? {};
 
   return (
     <ContentHeader>
@@ -202,7 +196,7 @@ function SpanDetailsHeader(props: HeaderProps) {
         <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
-        <SectionHeading>{t('Exclusive Time Percentiles')}</SectionHeading>
+        <SectionHeading>{t('Self Time Percentiles')}</SectionHeading>
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
@@ -243,10 +237,14 @@ function SpanDetailsHeader(props: HeaderProps) {
             ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
             : '\u2014'}
         </SectionBody>
-        <SectionSubtext>{tn('%s event', '%s events', frequency)}</SectionSubtext>
+        <SectionSubtext>
+          {defined(avgOccurrences)
+            ? tct('[times] times per event', {times: avgOccurrences.toFixed(2)})
+            : '\u2014'}
+        </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <SectionHeading>{t('Total Exclusive Time')}</SectionHeading>
+        <SectionHeading>{t('Total Self Time')}</SectionHeading>
         <SectionBody>
           {defined(sumExclusiveTime) ? (
             <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
@@ -254,17 +252,24 @@ function SpanDetailsHeader(props: HeaderProps) {
             '\u2014'
           )}
         </SectionBody>
-        <SectionSubtext>TBD</SectionSubtext>
+        <SectionSubtext>
+          {defined(frequency)
+            ? tct('[events] events', {events: <Count value={frequency} />})
+            : '\u2014'}
+        </SectionSubtext>
       </HeaderInfo>
     </ContentHeader>
   );
 }
 
 function getSpansEventView(eventView: EventView): EventView {
-  eventView = eventView.clone();
+  // TODO: There is a bug where if the sort is not avg occurrence,
+  // then the avg occurrence will never be added to the fields
+  eventView = eventView.withSorts([{field: SpanSortOthers.AVG_OCCURRENCE, kind: 'desc'}]);
   eventView.fields = [
     {field: 'count()'},
     {field: 'count_unique(id)'},
+    {field: 'equation|count() / count_unique(id)'},
     {field: 'sumArray(spans_exclusive_time)'},
     {field: 'percentileArray(spans_exclusive_time, 0.75)'},
     {field: 'percentileArray(spans_exclusive_time, 0.95)'},
@@ -319,4 +324,4 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-export const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;

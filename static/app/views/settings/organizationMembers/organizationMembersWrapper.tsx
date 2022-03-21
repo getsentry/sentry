@@ -12,8 +12,8 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
-  children?: any;
   organization: Organization;
+  children?: any;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {

@@ -21,6 +21,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -29,11 +30,15 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
         self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
             name=self.anon_users_query["name"],
             fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -41,6 +46,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_1,
             name=self.known_users_query["name"],
             fields=self.known_users_query["fields"],
+            columns=self.known_users_query["columns"],
+            aggregates=self.known_users_query["aggregates"],
             conditions=self.known_users_query["conditions"],
             order=1,
         )
@@ -48,6 +55,8 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             widget=self.widget_2,
             name=self.geo_errors_query["name"],
             fields=self.geo_errors_query["fields"],
+            columns=self.geo_errors_query["columns"],
+            aggregates=self.geo_errors_query["aggregates"],
             conditions=self.geo_errors_query["conditions"],
             order=0,
         )
@@ -72,6 +81,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_dashboard(response.data, self.dashboard)
         assert len(response.data["widgets"]) == 2
         widgets = response.data["widgets"]
+        assert "layout" in widgets[0]
+        assert "layout" in widgets[1]
         self.assert_serialized_widget(widgets[0], self.widget_1)
         self.assert_serialized_widget(widgets[1], self.widget_2)
 
@@ -106,6 +117,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         with self.feature({"organizations:dashboards-basic": False}):
             response = self.do_request("get", self.url("default-overview"))
             assert response.status_code == 404
+
+    def test_dashboard_widget_returns_limit(self):
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["limit"] is None
+        assert response.data["widgets"][1]["limit"] == 5
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -271,6 +288,56 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
 
+    def test_add_widget_with_aggregates_and_columns(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
+                {"id": str(self.widget_3.id)},
+                {"id": str(self.widget_4.id)},
+                {
+                    "title": "Error Counts by Country",
+                    "displayType": "world_map",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "columns": ["project"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 6
+
+        last = list(widgets).pop()
+        self.assert_serialized_widget(data["widgets"][5], last)
+
+        queries = last.dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+
     def test_add_widget_missing_title(self):
         data = {
             "title": "First dashboard",
@@ -286,6 +353,102 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Title is required during creation" in response.content
+
+    def test_add_widget_with_limit(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Custom Widget",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "limit": None,
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                },
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 10,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        self.assert_serialized_widget(data["widgets"][1], widgets[1])
+
+    def test_add_widget_with_invalid_limit_above_maximum(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 11,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Ensure this value is less than or equal to 10" in response.content
+
+    def test_add_widget_with_invalid_limit_below_minimum(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Duration Distribution",
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "limit": 0,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Ensure this value is greater than or equal to 1" in response.content
 
     def test_add_widget_display_type(self):
         data = {
@@ -615,6 +778,99 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_dashboard_and_widgets(
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )
+
+    def test_update_widget_layouts(self):
+        layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 2, "h": 5, "minH": 2},
+            self.widget_2.id: {"x": 2, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_3.id: {"x": 3, "y": 0, "w": 2, "h": 2, "minH": 2},
+            self.widget_4.id: {"x": 0, "y": 5, "w": 2, "h": 5, "minH": 2},
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id, "layout": layouts[widget.id]}
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == layouts[int(widget["id"])]
+
+    def test_update_layout_with_invalid_data_fails(self):
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "layout": {
+                            "x": "this type is unexpected",
+                            "y": 0,
+                            "w": 2,
+                            "h": 5,
+                            "minH": 2,
+                        },
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 400, response.data
+
+    def test_update_without_specifying_layout_does_not_change_saved_layout(self):
+        expected_layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_3.id: None,
+            self.widget_4.id: None,
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {"id": widget.id}  # Not specifying layout for any widget
+                    for widget in [self.widget_1, self.widget_2, self.widget_3, self.widget_4]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == expected_layouts[int(widget["id"])]
+
+    def test_ignores_certain_keys_in_layout(self):
+        expected_layouts = {
+            self.widget_1.id: {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            self.widget_2.id: {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
+        }
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "widgets": [
+                    {
+                        "id": widget.id,
+                        "layout": {
+                            **expected_layouts[widget.id],
+                            "i": "this-should-be-ignored",
+                            "static": "don't want this",
+                            "moved": False,
+                        },
+                    }
+                    for widget in [self.widget_1, self.widget_2]
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        for widget in widgets:
+            assert widget["layout"] == expected_layouts[int(widget["id"])]
 
     def test_update_prebuilt_dashboard(self):
         data = {

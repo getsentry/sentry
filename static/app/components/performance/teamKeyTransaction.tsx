@@ -18,20 +18,20 @@ import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   isOpen: boolean;
   keyedTeams: Team[] | null;
-  initialValue?: number;
   disabled?: boolean;
+  initialValue?: number;
 };
 
 type Props = {
-  isLoading: boolean;
-  error: string | null;
-  title: React.ComponentClass<TitleProps>;
-  handleToggleKeyTransaction: (selection: TeamSelection) => void;
-  teams: Team[];
-  project: Project;
-  transactionName: string;
-  keyedTeams: Set<string> | null;
   counts: Map<string, number> | null;
+  error: string | null;
+  handleToggleKeyTransaction: (selection: TeamSelection) => void;
+  isLoading: boolean;
+  keyedTeams: Set<string> | null;
+  project: Project;
+  teams: Team[];
+  title: React.ComponentClass<TitleProps>;
+  transactionName: string;
   initialValue?: number;
 };
 
@@ -268,8 +268,8 @@ class TeamKeyTransaction extends Component<Props, State> {
 }
 
 type ItemProps = {
-  team: Team;
   disabled: boolean;
+  team: Team;
   isKeyed?: boolean;
   onSelect?: () => void;
 };

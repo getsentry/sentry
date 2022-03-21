@@ -39,8 +39,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={memberOrg}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     wrapper.update();
@@ -65,8 +64,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     await tick();
     wrapper.update();
@@ -88,8 +86,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.state('match').sourceUrl).toEqual('https://something.io');
     expect(wrapper.find('OpenInName').text()).toEqual('GitHub');
@@ -114,8 +111,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
@@ -142,8 +138,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
@@ -168,8 +163,7 @@ describe('StacktraceLink', function () {
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(

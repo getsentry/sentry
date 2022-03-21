@@ -6,7 +6,7 @@ import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -16,11 +16,11 @@ import {Group} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 
 type Props = {
-  orgId: string;
-  issue: Group;
-  to: string;
   card: boolean;
   children: React.ReactNode;
+  issue: Group;
+  orgId: string;
+  to: string;
 };
 
 const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {

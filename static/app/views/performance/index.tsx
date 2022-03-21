@@ -3,13 +3,12 @@ import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {MetricsSwitchContextContainer} from './metricsSwitch';
-
 type Props = {
-  organization: Organization;
   children: React.ReactChildren;
+  organization: Organization;
 };
 
 function PerformanceContainer({organization, children}: Props) {
@@ -28,7 +27,7 @@ function PerformanceContainer({organization, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <MetricsSwitchContextContainer>{children}</MetricsSwitchContextContainer>
+      <MEPSettingProvider>{children}</MEPSettingProvider>
     </Feature>
   );
 }

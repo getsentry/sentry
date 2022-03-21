@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -26,29 +26,29 @@ import Tab from './tabs';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 
 export type ChildProps = {
+  eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
-  eventView: EventView;
   projectId: string;
-  transactionName: string;
+  projects: Project[];
   setError: React.Dispatch<React.SetStateAction<string | undefined>>;
+  transactionName: string;
   // These are used to trigger a reload when the threshold/metric changes.
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
 type Props = {
+  childComponent: (props: ChildProps) => JSX.Element;
+  generateEventView: (props: {location: Location; transactionName: string}) => EventView;
+  getDocumentTitle: (name: string) => string;
   location: Location;
   organization: Organization;
   projects: Project[];
   tab: Tab;
-  getDocumentTitle: (name: string) => string;
-  generateEventView: (location: Location, transactionName: string) => EventView;
-  childComponent: (props: ChildProps) => JSX.Element;
-  relativeDateOptions?: Record<string, React.ReactNode>;
-  maxPickableDays?: number;
   features?: string[];
+  maxPickableDays?: number;
+  relativeDateOptions?: Record<string, React.ReactNode>;
 };
 
 function PageLayout(props: Props) {
@@ -69,13 +69,7 @@ function PageLayout(props: Props) {
   const transactionName = getTransactionName(location);
 
   if (!defined(projectId) || !defined(transactionName)) {
-    // If there is no transaction name, redirect to the Performance landing page
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/performance/`,
-      query: {
-        ...location.query,
-      },
-    });
+    redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
@@ -96,7 +90,7 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
-  const eventView = generateEventView(location, transactionName);
+  const eventView = generateEventView({location, transactionName});
 
   return (
     <SentryDocumentTitle
@@ -182,13 +176,22 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   }
 `;
 
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
-
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
   margin: 0;
 `;
+
+export function redirectToPerformanceHomepage(
+  organization: Organization,
+  location: Location
+) {
+  // If there is no transaction name, redirect to the Performance landing page
+  browserHistory.replace({
+    pathname: `/organizations/${organization.slug}/performance/`,
+    query: {
+      ...location.query,
+    },
+  });
+}
 
 export default PageLayout;

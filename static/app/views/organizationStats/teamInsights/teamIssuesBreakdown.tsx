@@ -5,7 +5,8 @@ import isEqual from 'lodash/isEqual';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -15,20 +16,16 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  convertDayValueObjectToSeries,
-} from './utils';
+import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type StatusCounts = {
-  resolved?: number;
-  ignored?: number;
+  total: number;
   deleted?: number;
+  ignored?: number;
   new?: number;
   regressed?: number;
+  resolved?: number;
   unignored?: number;
-  total: number;
 };
 
 type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
@@ -38,8 +35,9 @@ type Statuses = keyof Omit<StatusCounts, 'total'>;
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
-  teamSlug: string;
   statuses: Statuses[];
+  teamSlug: string;
+  environment?: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
@@ -59,7 +57,8 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug, statuses} = this.props;
+    const {organization, start, end, period, utc, teamSlug, statuses, environment} =
+      this.props;
     const datetime = {start, end, period, utc};
 
     return [
@@ -68,8 +67,9 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
             statuses,
+            environment,
           },
         },
       ],
@@ -77,7 +77,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug, projects} = this.props;
+    const {start, end, period, utc, teamSlug, projects, environment} = this.props;
 
     if (
       prevProps.start !== start ||
@@ -85,6 +85,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
       prevProps.period !== period ||
       prevProps.utc !== utc ||
       prevProps.teamSlug !== teamSlug ||
+      prevProps.environment !== environment ||
       !isEqual(prevProps.projects, projects)
     ) {
       this.remountComponent();
@@ -143,12 +144,11 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
     const allSeries = Object.keys(allReviewedByDay).map(
       (projectId, idx): BarChartSeries => ({
         seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-        data: convertDaySeriesToWeeks(
-          convertDayValueObjectToSeries(allReviewedByDay[projectId])
-        ),
+        data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
         animationDuration: 500,
         animationDelay: idx * 500,
         silent: true,
+        barCategoryGap: '5%',
       })
     );
 
@@ -169,32 +169,49 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
             />
           )}
         </IssuesChartWrapper>
-        <StyledPanelTable
-          numActions={statuses.length}
-          headers={[
-            t('Project'),
-            ...statuses.map(action => <AlignRight key={action}>{t(action)}</AlignRight>),
-            <AlignRight key="total">
-              {t('total')} <IconArrow direction="down" size="12px" color="gray300" />
-            </AlignRight>,
-          ]}
-          isLoading={loading}
-        >
-          {sortedProjectIds.map(({projectId}) => {
-            const project = projects.find(p => p.id === projectId);
-            return (
-              <Fragment key={projectId}>
-                <ProjectBadgeContainer>
-                  {project && <ProjectBadge avatarSize={18} project={project} />}
-                </ProjectBadgeContainer>
-                {statuses.map(action => (
-                  <AlignRight key={action}>{projectTotals[projectId][action]}</AlignRight>
-                ))}
-                <AlignRight>{projectTotals[projectId].total}</AlignRight>
-              </Fragment>
-            );
-          })}
-        </StyledPanelTable>
+        <CollapsePanel items={sortedProjectIds.length}>
+          {({isExpanded, showMoreButton}) => (
+            <Fragment>
+              <StyledPanelTable
+                numActions={statuses.length}
+                headers={[
+                  t('Project'),
+                  ...statuses.map(action => (
+                    <AlignRight key={action}>{t(action)}</AlignRight>
+                  )),
+                  <AlignRight key="total">
+                    {t('total')}{' '}
+                    <IconArrow direction="down" size="12px" color="gray300" />
+                  </AlignRight>,
+                ]}
+                isLoading={loading}
+              >
+                {sortedProjectIds.map(({projectId}, idx) => {
+                  const project = projects.find(p => p.id === projectId);
+
+                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                    return null;
+                  }
+
+                  return (
+                    <Fragment key={projectId}>
+                      <ProjectBadgeContainer>
+                        {project && <ProjectBadge avatarSize={18} project={project} />}
+                      </ProjectBadgeContainer>
+                      {statuses.map(action => (
+                        <AlignRight key={action}>
+                          {projectTotals[projectId][action]}
+                        </AlignRight>
+                      ))}
+                      <AlignRight>{projectTotals[projectId].total}</AlignRight>
+                    </Fragment>
+                  );
+                })}
+              </StyledPanelTable>
+              {!loading && showMoreButton}
+            </Fragment>
+          )}
+        </CollapsePanel>
       </Fragment>
     );
   }

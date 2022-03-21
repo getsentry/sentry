@@ -14,9 +14,9 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 type Props = {
-  router: InjectedRouter;
-  organization: Organization;
   activeTab: 'stream' | 'rules';
+  organization: Organization;
+  router: InjectedRouter;
 };
 
 const AlertHeader = ({router, organization, activeTab}: Props) => {
@@ -57,7 +57,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             onClick={handleNavigateToSettings}
             href="#"
             icon={<IconSettings size="sm" />}
-            label={t('Settings')}
+            aria-label={t('Settings')}
           />
         </Actions>
       </Layout.HeaderActions>

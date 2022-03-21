@@ -7,9 +7,9 @@ import EventDataSection from '../../events/eventDataSection';
 import Line from './frame/line';
 
 type Props = {
-  type: string;
   data: Frame;
   event: Event;
+  type: string;
 };
 
 const TemplateInterface = ({type, data, event}: Props) => (

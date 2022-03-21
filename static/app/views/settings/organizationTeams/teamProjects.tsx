@@ -30,10 +30,10 @@ type Props = {
 
 type State = {
   error: boolean;
+  linkedProjects: Project[];
   loading: boolean;
   pageLinks: null | string;
   unlinkedProjects: Project[];
-  linkedProjects: Project[];
 };
 
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
@@ -162,6 +162,7 @@ class TeamProjects extends React.Component<Props, State> {
               size="small"
               disabled={!canWrite}
               icon={<IconSubtract isCircled size="xs" />}
+              aria-label={t('Remove')}
               onClick={() => {
                 this.handleLinkProject(project, 'remove');
               }}

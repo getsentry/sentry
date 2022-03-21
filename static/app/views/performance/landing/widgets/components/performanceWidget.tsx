@@ -8,6 +8,8 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
 import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 
@@ -65,16 +67,18 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 
   return (
     <Fragment>
-      <QueryHandler
-        eventView={props.eventView}
-        widgetData={widgetData}
-        setWidgetDataForKey={setWidgetDataForKey}
-        removeWidgetDataForKey={removeWidgetDataForKey}
-        queryProps={props}
-        queries={queries}
-        api={api}
-      />
-      <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+      <MEPDataProvider>
+        <QueryHandler
+          eventView={props.eventView}
+          widgetData={widgetData}
+          setWidgetDataForKey={setWidgetDataForKey}
+          removeWidgetDataForKey={removeWidgetDataForKey}
+          queryProps={props}
+          queries={queries}
+          api={api}
+        />
+        <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
+      </MEPDataProvider>
     </Fragment>
   );
 }
@@ -126,20 +130,25 @@ function _DataDisplay<T extends WidgetDataConstraint>(
               trackDataComponentClicks(props.chartSetting, props.organization)
             }
           >
-            <Visualization.component
-              grid={defaultGrid}
-              queryFields={Visualization.fields}
-              widgetData={props.widgetData}
-              height={chartHeight}
-            />
+            {getDynamicText({
+              value: (
+                <Visualization.component
+                  grid={defaultGrid}
+                  queryFields={Visualization.fields}
+                  widgetData={props.widgetData}
+                  height={chartHeight}
+                />
+              ),
+              fixed: <Placeholder height={`${chartHeight}px`} />,
+            })}
           </ContentContainer>
         ))}
-        loadingComponent={<Placeholder height={`${totalHeight}px`} />}
+        loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
           ) : (
-            <Placeholder height={`${totalHeight}px`} />
+            <PerformanceWidgetPlaceholder height={`${totalHeight}px`} />
           )
         }
       />
@@ -161,14 +170,21 @@ const defaultGrid = {
   left: space(0),
   right: space(0),
   top: space(2),
-  bottom: space(0),
+  bottom: space(1),
 };
 
-const ContentContainer = styled('div')<{noPadding?: boolean; bottomPadding?: boolean}>`
+const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
   padding-left: ${p => (p.noPadding ? space(0) : space(2))};
   padding-right: ${p => (p.noPadding ? space(0) : space(2))};
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
 `;
+
+const PerformanceWidgetPlaceholder = styled(Placeholder)`
+  border-color: transparent;
+  border-bottom-right-radius: inherit;
+  border-bottom-left-radius: inherit;
+`;
+
 GenericPerformanceWidget.defaultProps = {
   containerType: 'panel',
   chartHeight: 200,

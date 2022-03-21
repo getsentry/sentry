@@ -3,19 +3,22 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 
-MAX_RAW_LENGTH = 100000
+MAX_RAW_LENGTH = 100_000
+HIGHER_MAX_RAW_LENGTH = 200_000
 
 
 class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()
     autoAssignment = serializers.BooleanField()
+    codeownersAutoSync = serializers.BooleanField(default=True)
 
     @staticmethod
     def _validate_no_codeowners(rules):
@@ -29,6 +32,13 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                     {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
                 )
 
+    def get_max_length(self):
+        if features.has(
+            "organizations:higher-ownership-limit", self.context["ownership"].project.organization
+        ):
+            return HIGHER_MAX_RAW_LENGTH
+        return MAX_RAW_LENGTH
+
     def validate(self, attrs):
         if "raw" not in attrs:
             return attrs
@@ -37,9 +47,10 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         # that are several megabytes large. To not break this functionality for existing customers
         # we temporarily allow rows that already exceed this limit to still be updated.
         existing_raw = self.context["ownership"].raw or ""
-        if len(attrs["raw"]) > MAX_RAW_LENGTH and len(existing_raw) <= MAX_RAW_LENGTH:
+        max_length = self.get_max_length()
+        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
             raise serializers.ValidationError(
-                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
+                {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
         schema = create_schema_from_issue_owners(attrs["raw"], self.context["ownership"].project_id)
@@ -69,6 +80,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 ownership.fallthrough = fallthrough
                 changed = True
 
+        if "codeownersAutoSync" in self.validated_data:
+            codeowners_auto_sync = self.validated_data["codeownersAutoSync"]
+            if ownership.codeowners_auto_sync != codeowners_auto_sync:
+                ownership.codeowners_auto_sync = codeowners_auto_sync
+                changed = True
+
         changed = self.__modify_auto_assignment(ownership) or changed
 
         if changed:
@@ -94,7 +111,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         return changed
 
 
-class ProjectOwnershipMixin:
+class ProjectOwnershipEndpoint(ProjectEndpoint):
     def get_ownership(self, project):
         try:
             return ProjectOwnership.objects.get(project=project)
@@ -105,8 +122,6 @@ class ProjectOwnershipMixin:
                 last_updated=None,
             )
 
-
-class ProjectOwnershipEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project's Ownership configuration

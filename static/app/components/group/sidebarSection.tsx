@@ -24,19 +24,20 @@ const Subheading = styled('h6')`
   display: flex;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  margin-bottom: ${space(1)};
+  margin-bottom: 0;
 `;
 
-type Props = {
-  title: React.ReactNode;
+interface SidebarSectionProps
+  extends Omit<React.HTMLAttributes<HTMLHeadingElement>, 'title'> {
   children: React.ReactNode;
+  title: React.ReactNode;
   secondary?: boolean;
-} & Omit<React.ComponentProps<typeof Heading>, 'title'>;
+}
 
 /**
  * Used to add a new section in Issue Details' sidebar.
  */
-function SidebarSection({title, children, secondary, ...props}: Props) {
+function SidebarSection({title, children, secondary, ...props}: SidebarSectionProps) {
   const HeaderComponent = secondary ? Subheading : Heading;
 
   return (
@@ -48,7 +49,7 @@ function SidebarSection({title, children, secondary, ...props}: Props) {
 }
 
 const SectionContent = styled('div')<{secondary?: boolean}>`
-  margin-bottom: ${p => (p.secondary ? space(2) : space(3))};
+  margin-bottom: ${p => (p.secondary ? space(4) : space(4))};
 `;
 
 export default SidebarSection;

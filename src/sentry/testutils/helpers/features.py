@@ -1,5 +1,6 @@
-__all__ = ["Feature", "with_feature"]
+__all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
+import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -55,9 +56,19 @@ def Feature(names):
                 logger.info("Flag defaulting to %s: %s", default_value, repr(name))
             return default_value
 
+    def batch_features_override(_feature_names, projects=None, organization=None, *args, **kwargs):
+        if projects:
+            feature_names = {name: True for name in names if name.startswith("project")}
+            return {f"project:{project.id}": feature_names for project in projects}
+        elif organization:
+            feature_names = {name: True for name in names if name.startswith("organization")}
+            return {f"organization:{organization.id}": feature_names}
+
     with patch("sentry.features.has") as features_has:
         features_has.side_effect = features_override
-        yield
+        with patch("sentry.features.batch_has") as features_batch_has:
+            features_batch_has.side_effect = batch_features_override
+            yield
 
 
 def with_feature(feature):
@@ -69,3 +80,12 @@ def with_feature(feature):
         return wrapped
 
     return decorator
+
+
+def apply_feature_flag_on_cls(feature_flag):
+    def decorate(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isfunction):
+            setattr(cls, name, with_feature(feature_flag)(fn))
+        return cls
+
+    return decorate

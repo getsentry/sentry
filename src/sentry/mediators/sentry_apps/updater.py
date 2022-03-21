@@ -9,9 +9,15 @@ from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import ApiToken, SentryAppComponent, SentryAppInstallation, ServiceHook
-from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
-from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
+from sentry.models import (
+    ApiToken,
+    IntegrationFeature,
+    SentryAppComponent,
+    SentryAppInstallation,
+    ServiceHook,
+)
+from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.sentry_app import REQUIRED_EVENT_PERMISSIONS
 
 from .mixin import SentryAppMixin
 

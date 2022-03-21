@@ -16,25 +16,27 @@ import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatch
 
 type Options = {
   organization: OrganizationSummary;
-  project?: Readonly<number[]>;
-  environment?: Readonly<string[]>;
-  team?: Readonly<string | string[]>;
-  period?: string;
-  start?: DateString;
-  end?: DateString;
-  interval?: string;
-  comparisonDelta?: number;
-  includePrevious?: boolean;
-  limit?: number;
-  query?: string;
-  yAxis?: string | string[];
-  field?: string[];
-  topEvents?: number;
-  orderby?: string;
   partial: boolean;
-  withoutZerofill?: boolean;
-  referrer?: string;
+  comparisonDelta?: number;
+  end?: DateString;
+  environment?: Readonly<string[]>;
+  field?: string[];
+  generatePathname?: (org: OrganizationSummary) => string;
+  includePrevious?: boolean;
+  interval?: string;
+  limit?: number;
+  orderby?: string;
+  period?: string | null;
+  project?: Readonly<number[]>;
+  query?: string;
   queryBatching?: QueryBatching;
+  queryExtras?: Record<string, string>;
+  referrer?: string;
+  start?: DateString;
+  team?: Readonly<string | string[]>;
+  topEvents?: number;
+  withoutZerofill?: boolean;
+  yAxis?: string | string[];
 };
 
 /**
@@ -53,6 +55,8 @@ type Options = {
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
  * @param {QueryBatching} options.queryBatching A container for batching functions from a provider
+ * @param {Record<string, string>} options.queryExtras A list of extra query parameters
+ * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
 export const doEventsRequest = (
   api: Client,
@@ -76,6 +80,8 @@ export const doEventsRequest = (
     withoutZerofill,
     referrer,
     queryBatching,
+    generatePathname,
+    queryExtras,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -106,10 +112,13 @@ export const doEventsRequest = (
     query: {
       ...urlQuery,
       ...periodObj,
+      ...queryExtras,
     },
   };
 
-  const pathname = `/organizations/${organization.slug}/events-stats/`;
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);
@@ -120,22 +129,22 @@ export const doEventsRequest = (
 
 export type EventQuery = {
   field: string[];
-  equation?: string[];
-  team?: string | string[];
-  project?: string | string[];
-  sort?: string | string[];
   query: string;
-  per_page?: number;
-  referrer?: string;
   environment?: string[];
+  equation?: string[];
   noPagination?: boolean;
+  per_page?: number;
+  project?: string | string[];
+  referrer?: string;
+  sort?: string | string[];
+  team?: string | string[];
 };
 
 export type TagSegment = {
   count: number;
   name: string;
-  value: string;
   url: LocationDescriptor;
+  value: string;
   isOther?: boolean;
   key?: string;
 };

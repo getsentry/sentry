@@ -1,34 +1,43 @@
-import {DateString} from './core';
+export type MetricsType = 'set' | 'counter' | 'distribution';
+
+export type MetricsOperation =
+  | 'sum'
+  | 'count_unique'
+  | 'avg'
+  | 'count'
+  | 'max'
+  | 'p50'
+  | 'p75'
+  | 'p95'
+  | 'p99';
 
 export type MetricsApiResponse = {
-  intervals: string[];
+  end: string;
   groups: {
     by: Record<string, string>;
-    totals: Record<string, number | null>;
     series: Record<string, Array<number | null>>;
+    totals: Record<string, number | null>;
   }[];
-  start: DateString;
-  end: DateString;
+  intervals: string[];
   query: string;
+  start: string;
 };
 
-export type MetricTag = {
+export type MetricsTagCollection = Record<string, MetricsTag>;
+
+export type MetricsTag = {
   key: string;
 };
 
-export type MetricTagValue = {
+export type MetricsTagValue = {
   key: string;
   value: string;
 };
 
-export type MetricMeta = {
+export type MetricsMeta = {
   name: string;
-  operations: string[];
+  operations: MetricsOperation[];
+  type: MetricsType;
 };
 
-export type MetricQuery = {
-  legend?: string;
-  aggregation?: string;
-  groupBy?: string[];
-  metricMeta?: MetricMeta;
-};
+export type MetricsMetaCollection = Record<string, MetricsMeta>;

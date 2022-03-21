@@ -10,6 +10,7 @@ import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import google from 'sentry-logos/logo-google.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
+import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import okta from 'sentry-logos/logo-okta.svg';
 import onelogin from 'sentry-logos/logo-onelogin.svg';
@@ -20,7 +21,8 @@ import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
 export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
+
+export const ICON_PATHS: Record<string, string> = {
   _default: DEFAULT_ICON,
 
   'active-directory': vsts,
@@ -33,6 +35,7 @@ export const ICON_PATHS = {
   gitlab,
   google,
   jira_server: jiraserver,
+  jumpcloud,
   msteams,
   okta,
   onelogin,
@@ -58,8 +61,8 @@ const IdentityIcon = styled('div')<Props>`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({providerId}) =>
-    (providerId !== undefined && ICON_PATHS[providerId]) || DEFAULT_ICON});
+  background-image: url(${p =>
+    (p.providerId !== undefined && ICON_PATHS[p.providerId]) || DEFAULT_ICON});
 `;
 
 IdentityIcon.defaultProps = {

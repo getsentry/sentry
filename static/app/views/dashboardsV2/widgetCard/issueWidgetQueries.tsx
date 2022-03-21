@@ -1,58 +1,75 @@
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
-import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {IssueDisplayOptions, IssueSortOptions} from 'sentry/views/issueList/utils';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import {queryToObj} from 'sentry/utils/stream';
+import {
+  DISCOVER_EXCLUSION_FIELDS,
+  IssueDisplayOptions,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
-import {Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
-const MAX_ITEMS = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
-const DEFAULT_COLLAPSE = ['stats', 'filtered', 'lifetime'];
+const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
-  project: number[];
   environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  display?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  limit?: number;
+  page?: number | string;
   query?: string;
   sort?: string;
-  statsPeriod?: string;
-  groupStatsPeriod?: string;
-  cursor?: string;
-  page?: number | string;
-  display?: string;
-  collapse?: string[];
+  statsPeriod?: string | null;
 };
 
 type Props = {
   api: Client;
-  organization: OrganizationSummary;
-  widget: Widget;
-  selection: PageFilters;
   children: (props: {
-    loading: boolean;
     errorMessage: undefined | string;
+    loading: boolean;
     transformedResults: TableDataRow[];
+    pageLinks?: null | string;
   }) => React.ReactNode;
+  organization: OrganizationSummary;
+  selection: PageFilters;
+  widget: Widget;
+  cursor?: string;
+  limit?: number;
 };
 
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
+  memberListStoreLoaded: boolean;
+  pageLinks: null | string;
   tableResults: Group[];
+  totalCount: null | string;
 };
 
-class WidgetQueries extends React.Component<Props, State> {
+class IssueWidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
     tableResults: [],
+    memberListStoreLoaded: MemberListStore.isLoaded(),
+    totalCount: null,
+    pageLinks: null,
   };
 
   componentDidMount() {
@@ -60,7 +77,7 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, widget} = this.props;
+    const {selection, widget, cursor} = this.props;
     // We do not fetch data whenever the query name changes.
     const [prevWidgetQueries] = prevProps.widget.queries.reduce(
       ([queries, names]: [Omit<WidgetQuery, 'name'>[], string[]], {name, ...rest}) => {
@@ -85,39 +102,110 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isSelectionEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection) ||
+      cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
     }
   }
 
-  transformTableResults(tableResults: Group[]): TableDataRow[] {
-    return tableResults.map(({id, shortId, title, assignedTo, ...resultProps}) => {
-      const transformedResultProps = {};
-      Object.keys(resultProps).map(key => {
-        const value = resultProps[key];
-        transformedResultProps[key] = ['number', 'string'].includes(typeof value)
-          ? value
-          : String(value);
-      });
-      const transformedTableResults = {
-        ...transformedResultProps,
-        id,
-        'issue.id': id,
-        issue: shortId,
-        title,
-        'assignee.type': assignedTo?.type,
-        'assignee.name': assignedTo?.name ?? '',
-        'assignee.id': assignedTo?.id,
-        'assignee.email': assignedTo?.email ?? '',
-      };
-      return transformedTableResults;
-    });
+  componentWillUnmount() {
+    this.unlisteners.forEach(unlistener => unlistener?.());
   }
 
-  fetchEventData() {
-    const {selection, api, organization, widget} = this.props;
+  unlisteners = [
+    MemberListStore.listen(() => {
+      this.setState({
+        memberListStoreLoaded: MemberListStore.isLoaded(),
+      });
+    }, undefined),
+  ];
+
+  transformTableResults(): TableDataRow[] {
+    const {selection, widget} = this.props;
+    const {tableResults} = this.state;
+    GroupStore.add(tableResults);
+    const transformedTableResults: TableDataRow[] = [];
+    tableResults.forEach(
+      ({
+        id,
+        shortId,
+        title,
+        lifetime,
+        filtered,
+        count,
+        userCount,
+        project,
+        annotations,
+        ...resultProps
+      }) => {
+        const transformedResultProps: Omit<TableDataRow, 'id'> = {};
+        Object.keys(resultProps)
+          .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
+          .forEach(key => {
+            transformedResultProps[key] = resultProps[key];
+          });
+
+        const transformedTableResult: TableDataRow = {
+          ...transformedResultProps,
+          events: count,
+          users: userCount,
+          id,
+          'issue.id': id,
+          issue: shortId,
+          title,
+          project: project.slug,
+          links: annotations?.join(', '),
+        };
+
+        // Get lifetime stats
+        if (lifetime) {
+          transformedTableResult.lifetimeEvents = lifetime?.count;
+          transformedTableResult.lifetimeUsers = lifetime?.userCount;
+        }
+        // Get filtered stats
+        if (filtered) {
+          transformedTableResult.filteredEvents = filtered?.count;
+          transformedTableResult.filteredUsers = filtered?.userCount;
+        }
+
+        // Discover Url properties
+        const query = widget.queries[0].conditions;
+        const queryTerms: string[] = [];
+        if (typeof query === 'string') {
+          const queryObj = queryToObj(query);
+          for (const queryTag in queryObj) {
+            if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
+              const queryVal = queryObj[queryTag].includes(' ')
+                ? `"${queryObj[queryTag]}"`
+                : queryObj[queryTag];
+              queryTerms.push(`${queryTag}:${queryVal}`);
+            }
+          }
+
+          if (queryObj.__text) {
+            queryTerms.push(queryObj.__text);
+          }
+        }
+        transformedTableResult.discoverSearchQuery =
+          (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+        transformedTableResult.projectId = project.id;
+
+        const {period, start, end} = selection.datetime || {};
+        if (start && end) {
+          transformedTableResult.start = getUtcDateString(start);
+          transformedTableResult.end = getUtcDateString(end);
+        }
+        transformedTableResult.period = period ?? '';
+        transformedTableResults.push(transformedTableResult);
+      }
+    );
+    return transformedTableResults;
+  }
+
+  async fetchIssuesData() {
+    const {selection, api, organization, widget, limit, cursor} = this.props;
     this.setState({tableResults: []});
     // Issue Widgets only support single queries
     const query = widget.queries[0];
@@ -128,7 +216,9 @@ class WidgetQueries extends React.Component<Props, State> {
       query: query.conditions,
       sort: query.orderby || DEFAULT_SORT,
       display: DEFAULT_DISPLAY,
-      collapse: DEFAULT_COLLAPSE,
+      expand: DEFAULT_EXPAND,
+      limit: limit ?? DEFAULT_TABLE_LIMIT,
+      cursor,
     };
 
     if (selection.datetime.period) {
@@ -144,39 +234,50 @@ class WidgetQueries extends React.Component<Props, State> {
       params.utc = selection.datetime.utc;
     }
 
-    const groupListPromise = api.requestPromise(groupListUrl, {
-      method: 'GET',
-      data: qs.stringify({
-        ...params,
-        limit: MAX_ITEMS,
-      }),
-    });
-    groupListPromise
-      .then(data => {
-        this.setState({loading: false, errorMessage: undefined, tableResults: data});
-      })
-      .catch(response => {
-        const errorResponse = response?.responseJSON?.detail ?? null;
-        this.setState({
-          loading: false,
-          errorMessage: errorResponse ?? t('Unable to load Widget'),
-          tableResults: [],
-        });
+    try {
+      const [data, _, resp] = await api.requestPromise(groupListUrl, {
+        includeAllArgs: true,
+        method: 'GET',
+        data: {
+          ...params,
+        },
       });
+      this.setState({
+        loading: false,
+        errorMessage: undefined,
+        tableResults: data,
+        totalCount: resp?.getResponseHeader('X-Hits') ?? null,
+        pageLinks: resp?.getResponseHeader('Link') ?? null,
+      });
+    } catch (response) {
+      const errorResponse = response?.responseJSON?.detail ?? null;
+      this.setState({
+        loading: false,
+        errorMessage: errorResponse ?? t('Unable to load Widget'),
+        tableResults: [],
+      });
+    }
   }
 
   fetchData() {
     this.setState({loading: true, errorMessage: undefined});
-    this.fetchEventData();
+    this.fetchIssuesData();
   }
 
   render() {
     const {children} = this.props;
-    const {loading, tableResults, errorMessage} = this.state;
-    const transformedResults = this.transformTableResults(tableResults);
-
-    return children({loading, transformedResults, errorMessage});
+    const {loading, errorMessage, memberListStoreLoaded, pageLinks} = this.state;
+    const transformedResults = this.transformTableResults();
+    return getDynamicText({
+      value: children({
+        loading: loading || !memberListStoreLoaded,
+        transformedResults,
+        errorMessage,
+        pageLinks,
+      }),
+      fixed: <div />,
+    });
   }
 }
 
-export default WidgetQueries;
+export default IssueWidgetQueries;

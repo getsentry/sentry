@@ -7,17 +7,15 @@ import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-type Props = {
-  type?: keyof Theme['alert'];
-  icon?: React.ReactNode;
-  system?: boolean;
+export interface AlertProps extends React.HTMLProps<HTMLDivElement> {
   expand?: React.ReactNode[];
   expandIcon?: React.ReactNode;
-  opaque?: boolean;
+  icon?: React.ReactNode;
   onExpandIconClick?: () => void;
-};
-
-type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+  opaque?: boolean;
+  system?: boolean;
+  type?: keyof Theme['alert'];
+}
 
 const DEFAULT_TYPE = 'info';
 
@@ -36,13 +34,13 @@ const alertStyles = ({
   type = DEFAULT_TYPE,
   system,
   opaque,
-}: Props & {theme: Theme}) => {
+}: AlertProps & {theme: Theme}) => {
   const alertColors = theme.alert[type] ?? theme.alert[DEFAULT_TYPE];
 
   return css`
     display: flex;
     flex-direction: column;
-    margin: 0 0 ${space(3)};
+    margin: 0 0 ${space(2)};
     padding: ${space(1.5)} ${space(2)};
     font-size: ${theme.fontSizeLarge};
     box-shadow: ${theme.dropShadowLight};

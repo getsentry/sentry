@@ -2,10 +2,11 @@ import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 
 type Props = {
+  children?: React.ReactChild;
   /**
-   * This string will be shown at the very front of the title
+   * Should the ` - Sentry` suffix be excluded?
    */
-  title?: string;
+  noSuffix?: boolean;
   /**
    * The organization slug to show in the title
    */
@@ -14,12 +15,11 @@ type Props = {
    * The project slug to show in the title.
    */
   projectSlug?: string;
-  /**
-   * Should the ` - Sentry` suffix be excluded?
-   */
-  noSuffix?: boolean;
 
-  children?: React.ReactChild;
+  /**
+   * This string will be shown at the very front of the title
+   */
+  title?: string;
 };
 
 /**

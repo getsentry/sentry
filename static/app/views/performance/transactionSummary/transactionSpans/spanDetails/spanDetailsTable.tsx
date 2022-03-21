@@ -11,8 +11,9 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -24,7 +25,6 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-import {PerformanceDuration} from '../../../utils';
 import {generateTransactionLink} from '../../utils';
 
 type TableColumnKeys =
@@ -41,14 +41,14 @@ type TableColumn = GridColumnOrder<TableColumnKeys>;
 type TableDataRow = Record<TableColumnKeys, any>;
 
 type Props = {
+  examples: ExampleTransaction[];
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  suspectSpan: SuspectSpan;
   transactionName: string;
-  isLoading: boolean;
-  examples: ExampleTransaction[];
-  project?: Project;
   pageLinks?: string | null;
+  project?: Project;
+  suspectSpan?: SuspectSpan;
 };
 
 export default function SpanTable(props: Props) {
@@ -67,20 +67,25 @@ export default function SpanTable(props: Props) {
     return null;
   }
 
-  const data = examples.map(example => ({
-    id: example.id,
-    project: project?.slug,
-    // timestamps are in seconds but want them in milliseconds
-    timestamp: example.finishTimestamp * 1000,
-    transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
-    spanDuration: example.nonOverlappingExclusiveTime,
-    occurrences: example.spans.length,
-    cumulativeDuration: example.spans.reduce(
-      (duration, span) => duration + span.exclusiveTime,
-      0
-    ),
-    spans: example.spans,
-  }));
+  const data = examples
+    // we assume that the span appears in each example at least once,
+    // if this assumption is broken, nothing onwards will work so
+    // filter out such examples
+    .filter(example => example.spans.length > 0)
+    .map(example => ({
+      id: example.id,
+      project: project?.slug,
+      // timestamps are in seconds but want them in milliseconds
+      timestamp: example.finishTimestamp * 1000,
+      transactionDuration: (example.finishTimestamp - example.startTimestamp) * 1000,
+      spanDuration: example.nonOverlappingExclusiveTime,
+      occurrences: example.spans.length,
+      cumulativeDuration: example.spans.reduce(
+        (duration, span) => duration + span.exclusiveTime,
+        0
+      ),
+      spans: example.spans,
+    }));
 
   return (
     <Fragment>
@@ -122,14 +127,14 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
-  suspectSpan: SuspectSpan
+  suspectSpan?: SuspectSpan
 ) {
   return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
         <SpanDurationBar
-          spanOp={suspectSpan.op}
+          spanOp={suspectSpan?.op ?? ''}
           spanDuration={dataRow.spanDuration}
           transactionDuration={dataRow.transactionDuration}
         />
@@ -173,7 +178,7 @@ const COLUMN_TYPE: Omit<
 const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
   {
     key: 'id',
-    name: t('Example Transaction'),
+    name: t('Event ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -212,8 +217,8 @@ const DurationBarSection = styled(RowRectangle)`
 `;
 
 type SpanDurationBarProps = {
-  spanOp: string;
   spanDuration: number;
+  spanOp: string;
   transactionDuration: number;
 };
 
@@ -225,7 +230,12 @@ function SpanDurationBar(props: SpanDurationBarProps) {
   return (
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
-        <Tooltip title={formatPercentage(widthPercentage)} containerDisplayMode="block">
+        <Tooltip
+          title={tct('[percentage] of the transaction', {
+            percentage: formatPercentage(widthPercentage),
+          })}
+          containerDisplayMode="block"
+        >
           <DurationBarSection
             spanBarHatch={false}
             style={{backgroundColor: pickBarColor(spanOp)}}

@@ -17,13 +17,13 @@ import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/pro
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
+  access: Set<Scope>;
   api: Client;
+  data: ProjectKey;
+  onRemove: (data: ProjectKey) => void;
+  onToggle: (isActive: boolean, data: ProjectKey) => void;
   orgId: string;
   projectId: string;
-  data: ProjectKey;
-  access: Set<Scope>;
-  onToggle: (isActive: boolean, data: ProjectKey) => void;
-  onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
 class KeyRow extends Component<Props> {
@@ -69,7 +69,12 @@ class KeyRow extends Component<Props> {
           'Are you sure you want to remove this key? This action is irreversible.'
         )}
       >
-        <Button size="small" disabled={!controlActive} icon={<IconDelete />} />
+        <Button
+          size="small"
+          disabled={!controlActive}
+          icon={<IconDelete />}
+          aria-label={t('Delete')}
+        />
       </Confirm>,
     ];
 

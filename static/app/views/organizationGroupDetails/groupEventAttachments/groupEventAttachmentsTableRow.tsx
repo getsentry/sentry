@@ -10,12 +10,12 @@ import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import {types} from 'sentry/views/organizationGroupDetails/groupEventAttachments/types';
 
 type Props = {
+  attachment: IssueAttachment;
+  groupId: string;
+  isDeleted: boolean;
+  onDelete: (attachmentId: string) => void;
   orgId: string;
   projectId: string;
-  groupId: string;
-  attachment: IssueAttachment;
-  onDelete: (attachmentId: string) => void;
-  isDeleted: boolean;
 };
 
 const GroupEventAttachmentsTableRow = ({
@@ -56,13 +56,13 @@ const GroupEventAttachmentsTableRow = ({
           attachment={attachment}
         >
           {url =>
-            !isDeleted && (
+            !isDeleted ? (
               <EventAttachmentActions
                 url={url}
                 onDelete={onDelete}
                 attachmentId={attachment.id}
               />
-            )
+            ) : null
           }
         </AttachmentUrl>
       </ActionsWrapper>

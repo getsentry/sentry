@@ -17,8 +17,8 @@ export function vitalsRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateVitalsRoute({

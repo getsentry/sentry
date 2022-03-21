@@ -13,17 +13,17 @@ export enum Outcome {
  * Raw response from API endpoint
  */
 export type UsageSeries = SeriesApi & {
-  start: string;
   end: string;
+  start: string;
 };
 
 export type UsageStat = {
-  date: string;
-  total: number;
   accepted: number;
-  filtered: number;
+  date: string;
   dropped: {
     total: number;
     other?: number;
   };
+  filtered: number;
+  total: number;
 };

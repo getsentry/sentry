@@ -18,19 +18,19 @@ import {ReprocessingStatus} from '../utils';
 import GroupEventDetails from './groupEventDetails';
 
 type Props = RouteComponentProps<
-  {orgId: string; groupId: string; eventId?: string},
+  {groupId: string; orgId: string; eventId?: string},
   {}
 > & {
   api: Client;
-  organization: Organization;
-  selection: PageFilters;
-  project: Project;
-  group: Group;
   event: Event;
-  loadingEvent: boolean;
-  groupReprocessingStatus: ReprocessingStatus;
   eventError: boolean;
+  group: Group;
+  groupReprocessingStatus: ReprocessingStatus;
+  loadingEvent: boolean;
   onRetry: () => void;
+  organization: Organization;
+  project: Project;
+  selection: PageFilters;
 };
 
 type State = typeof OrganizationEnvironmentsStore['state'];

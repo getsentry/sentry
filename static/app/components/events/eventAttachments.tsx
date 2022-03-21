@@ -22,12 +22,12 @@ import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNo
 
 type Props = {
   api: Client;
+  attachments: IssueAttachment[];
   event: Event;
+  location: Location;
+  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
   orgId: string;
   projectId: string;
-  location: Location;
-  attachments: IssueAttachment[];
-  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
 };
 
 type State = {
@@ -48,7 +48,7 @@ class EventAttachments extends React.Component<Props, State> {
       case 'text/json':
       case 'text/x-json':
       case 'application/json':
-        if (attachment.name === 'rrweb.json') {
+        if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
           return RRWebJsonViewer;
         }
         return JsonViewer;

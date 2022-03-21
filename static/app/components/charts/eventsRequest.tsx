@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
+  getPreviousSeriesName,
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -19,64 +20,59 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
-  // timeseries data
-  timeseriesData?: Series[];
-  comparisonTimeseriesData?: Series[];
   allTimeseriesData?: EventsStatsData;
-  originalTimeseriesData?: EventsStatsData;
-  timeseriesTotals?: {count: number};
+  comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
+  originalTimeseriesData?: EventsStatsData;
   previousTimeseriesData?: Series[] | null;
   timeAggregatedData?: Series | {};
-  timeframe?: {start: number; end: number};
+  timeframe?: {end: number; start: number};
+  // timeseries data
+  timeseriesData?: Series[];
+  timeseriesTotals?: {count: number};
 };
 
 type LoadingStatus = {
-  loading: boolean;
-  reloading: boolean;
   /**
    * Whether there was an error retrieving data
    */
   errored: boolean;
+  loading: boolean;
+  reloading: boolean;
   errorMessage?: string;
 };
+
+// Can hold additional data from the root an events stat object (eg. start, end, order, isMetricsData).
+interface AdditionalSeriesInfo {
+  isMetricsData?: boolean;
+}
 
 export type RenderProps = LoadingStatus &
   TimeSeriesData & {
     results?: Series[]; // Chart with multiple series.
+    seriesAdditionalInfo?: Record<string, AdditionalSeriesInfo>;
   };
 
 type DefaultProps = {
   /**
-   * Relative time period for query.
-   *
-   * Use `start` and `end` for absolute dates.
-   *
-   * e.g. 24h, 7d, 30d
+   * Include data for previous period
    */
-  period?: string;
+  includePrevious: boolean;
   /**
-   * Absolute start date for query
+   * Transform the response data to be something ingestible by charts
    */
-  start?: DateString;
-  /**
-   * Absolute end date for query
-   */
-  end?: DateString;
+  includeTransformedData: boolean;
   /**
    * Interval to group results in
    *
    * e.g. 1d, 1h, 1m, 1s
    */
   interval: string;
-  /**
-   * Time delta for comparing intervals of alert metrics, in seconds
-   */
-  comparisonDelta?: number;
   /**
    * number of rows to return
    */
@@ -86,13 +82,25 @@ type DefaultProps = {
    */
   query: string;
   /**
-   * Include data for previous period
+   * Time delta for comparing intervals of alert metrics, in seconds
    */
-  includePrevious: boolean;
+  comparisonDelta?: number;
   /**
-   * Transform the response data to be something ingestible by charts
+   * Absolute end date for query
    */
-  includeTransformedData: boolean;
+  end?: DateString;
+  /**
+   * Relative time period for query.
+   *
+   * Use `start` and `end` for absolute dates.
+   *
+   * e.g. 24h, 7d, 30d
+   */
+  period?: string | null;
+  /**
+   * Absolute start date for query
+   */
+  start?: DateString;
 };
 
 type EventsRequestPartialProps = {
@@ -100,64 +108,8 @@ type EventsRequestPartialProps = {
    * API client instance
    */
   api: Client;
-  organization: OrganizationSummary;
-  /**
-   * List of project ids to query
-   */
-  project?: Readonly<number[]>;
-  /**
-   * List of environments to query
-   */
-  environment?: Readonly<string[]>;
-  /**
-   * List of team ids to query
-   */
-  team?: Readonly<string | string[]>;
-  /**
-   * List of fields to group with when doing a topEvents request.
-   */
-  field?: string[];
-  /**
-   * Initial loading state
-   */
-  loading?: boolean;
-  /**
-   * Should loading be shown.
-   */
-  showLoading?: boolean;
-  /**
-   * The yAxis being plotted. If multiple yAxis are requested,
-   * the child render function will be called with `results`
-   */
-  yAxis?: string | string[];
-  /**
-   * Name used for display current series data set tooltip
-   */
-  currentSeriesNames?: string[];
-  previousSeriesNames?: string[];
   children: (renderProps: RenderProps) => React.ReactNode;
-  /**
-   * The number of top results to get. When set a multi-series result will be returned
-   * in the `results` child render function.
-   */
-  topEvents?: number;
-  /**
-   * How to order results when getting top events.
-   */
-  orderby?: string;
-  /**
-   * Discover needs confirmation to run >30 day >10 project queries,
-   * optional and when not passed confirmation is not required.
-   */
-  confirmedQuery?: boolean;
-  /**
-   * Is query out of retention
-   */
-  expired?: boolean;
-  /**
-   * Query name used for displaying error toast if it is out of retention
-   */
-  name?: string;
+  organization: OrganizationSummary;
   /**
    * Whether or not to include the last partial bucket. This happens for example when the
    * current time is 11:26 and the last bucket ranges from 11:25-11:30. This means that
@@ -167,21 +119,89 @@ type EventsRequestPartialProps = {
    */
   partial: boolean;
   /**
-   * Hide error toast (used for pages which also query eventsV2)
+   * Discover needs confirmation to run >30 day >10 project queries,
+   * optional and when not passed confirmation is not required.
+   */
+  confirmedQuery?: boolean;
+  /**
+   * Name used for display current series data set tooltip
+   */
+  currentSeriesNames?: string[];
+  /**
+   * List of environments to query
+   */
+  environment?: Readonly<string[]>;
+  /**
+   * Is query out of retention
+   */
+  expired?: boolean;
+  /**
+   * List of fields to group with when doing a topEvents request.
+   */
+  field?: string[];
+  /**
+   * Allows overridding the pathname.
+   */
+  generatePathname?: (org: OrganizationSummary) => string;
+  /**
+   * Hide error toast (used for pages which also query eventsV2). Stops error appearing as a toast.
    */
   hideError?: boolean;
   /**
-   * Whether or not to zerofill results
+   * Initial loading state
    */
-  withoutZerofill?: boolean;
+  loading?: boolean;
+  /**
+   * Query name used for displaying error toast if it is out of retention
+   */
+  name?: string;
+  /**
+   * A way to control error if error handling is not owned by the toast.
+   */
+  onError?: (error: string) => void;
+  /**
+   * How to order results when getting top events.
+   */
+  orderby?: string;
+  previousSeriesNames?: string[];
+  /**
+   * List of project ids to query
+   */
+  project?: Readonly<number[]>;
+  /**
+   * A container for query batching data and functions.
+   */
+  queryBatching?: QueryBatching;
+  /**
+   * Extra query parameters to be added.
+   */
+  queryExtras?: Record<string, string>;
   /**
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
   referrer?: string;
   /**
-   * A container for query batching data and functions.
+   * Should loading be shown.
    */
-  queryBatching?: QueryBatching;
+  showLoading?: boolean;
+  /**
+   * List of team ids to query
+   */
+  team?: Readonly<string | string[]>;
+  /**
+   * The number of top results to get. When set a multi-series result will be returned
+   * in the `results` child render function.
+   */
+  topEvents?: number;
+  /**
+   * Whether or not to zerofill results
+   */
+  withoutZerofill?: boolean;
+  /**
+   * The yAxis being plotted. If multiple yAxis are requested,
+   * the child render function will be called with `results`
+   */
+  yAxis?: string | string[];
 };
 
 type TimeAggregationProps =
@@ -193,14 +213,21 @@ export type EventsRequestProps = DefaultProps &
   EventsRequestPartialProps;
 
 type EventsRequestState = {
-  reloading: boolean;
   errored: boolean;
-  errorMessage?: string;
-  timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   fetchedWithPrevious: boolean;
+  reloading: boolean;
+  timeseriesData: null | EventsStats | MultiSeriesEventsStats;
+  errorMessage?: string;
 };
 
-const propNamesToIgnore = ['api', 'children', 'organization', 'loading', 'queryBatching'];
+const propNamesToIgnore = [
+  'api',
+  'children',
+  'organization',
+  'loading',
+  'queryBatching',
+  'generatePathname',
+];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
@@ -242,7 +269,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, expired, name, hideError, ...props} = this.props;
+    const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     if (confirmedQuery === false) {
@@ -280,6 +307,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         if (!hideError) {
           addErrorMessage(errorMessage);
         }
+        if (onError) {
+          onError(errorMessage);
+        }
         this.setState({
           errored: true,
           errorMessage,
@@ -307,7 +337,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
    */
   getData = (
     data: EventsStatsData
-  ): {previous: EventsStatsData | null; current: EventsStatsData} => {
+  ): {current: EventsStatsData; previous: EventsStatsData | null} => {
     const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
 
@@ -405,7 +435,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   }
 
   processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
-    const {data, totals} = response;
+    const {data, isMetricsData, totals} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
@@ -429,7 +459,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       ? this.transformPreviousPeriodData(
           current,
           previous,
-          (seriesName ? `previous ${seriesName}` : undefined) ??
+          (seriesName ? getPreviousSeriesName(seriesName) : undefined) ??
             previousSeriesNames?.[seriesIndex]
         )
       : null;
@@ -455,6 +485,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       allData: data,
       originalData: current,
       totals,
+      isMetricsData,
       originalPreviousData: previous,
       previousData,
       timeAggregatedData,
@@ -464,6 +495,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
+    const {topEvents} = this.props;
     const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
@@ -471,30 +503,42 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
-    if (isMultiSeriesStats(timeseriesData)) {
+    if (isMultiSeriesStats(timeseriesData, defined(topEvents))) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      let timeframe: {start: number; end: number} | undefined = undefined;
+      let timeframe: {end: number; start: number} | undefined = undefined;
+      const seriesAdditionalInfo: Record<string, AdditionalSeriesInfo> = {};
       const sortedTimeseriesData = Object.keys(timeseriesData)
-        .map((seriesName: string, index: number): [number, Series, Series | null] => {
-          const seriesData: EventsStats = timeseriesData[seriesName];
-          const processedData = this.processData(
-            seriesData,
-            index,
-            stripEquationPrefix(seriesName)
-          );
-          if (!timeframe) {
-            timeframe = processedData.timeframe;
+        .map(
+          (
+            seriesName: string,
+            index: number
+          ): [number, Series, Series | null, AdditionalSeriesInfo] => {
+            const seriesData: EventsStats = timeseriesData[seriesName];
+            const processedData = this.processData(
+              seriesData,
+              index,
+              stripEquationPrefix(seriesName)
+            );
+            if (!timeframe) {
+              timeframe = processedData.timeframe;
+            }
+            if (processedData.isMetricsData) {
+              seriesAdditionalInfo[seriesName] = {
+                isMetricsData: processedData.isMetricsData,
+              };
+            }
+            return [
+              seriesData.order || 0,
+              processedData.data[0],
+              processedData.previousData,
+              {isMetricsData: processedData.isMetricsData},
+            ];
           }
-          return [
-            seriesData.order || 0,
-            processedData.data[0],
-            processedData.previousData,
-          ];
-        })
+        )
         .sort((a, b) => a[0] - b[0]);
       const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
@@ -515,6 +559,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         results,
         timeframe,
         previousTimeseriesData,
+        seriesAdditionalInfo,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -530,13 +575,20 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         previousData: previousTimeseriesData,
         timeAggregatedData,
         timeframe,
+        isMetricsData,
       } = this.processData(timeseriesData);
+
+      const seriesAdditionalInfo = {
+        [this.props.currentSeriesNames?.[0] ?? 'current']: {isMetricsData},
+      };
 
       return children({
         loading,
         reloading,
         errored,
         errorMessage,
+        // meta data,
+        seriesAdditionalInfo,
         // timeseries data
         timeseriesData: transformedTimeseriesData,
         comparisonTimeseriesData: transformedComparisonTimeseriesData,

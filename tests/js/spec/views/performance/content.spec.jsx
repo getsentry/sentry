@@ -8,18 +8,20 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
-import {vitalAbbreviations} from 'sentry/views/performance/vitalDetail/utils';
 
-const FEATURES = ['transaction-event', 'performance-view'];
+const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, location}) {
+function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <PerformanceContent organization={organization} location={location} />
-    </OrganizationContext.Provider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <OrganizationContext.Provider value={organization}>
+        <PerformanceContent organization={organization} location={location} />
+      </OrganizationContext.Provider>
+    </MEPSettingProvider>
   );
 }
 
@@ -276,18 +278,23 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
 
-    // Check number of rendered tab buttons
-    expect(wrapper.find('PageHeader Button')).toHaveLength(1);
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
+
+    // performance landing container
+    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
+      true
+    );
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
 
-    // Chart and Table should render.
-    expect(wrapper.find('ChartFooter')).toHaveLength(1);
+    // Table should render.
     expect(wrapper.find('Table')).toHaveLength(1);
+
     wrapper.unmount();
   });
 
@@ -305,41 +312,16 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     // onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(1);
 
-    // Chart and table should not show.
-    expect(wrapper.find('ChartFooter')).toHaveLength(0);
-    expect(wrapper.find('Table')).toHaveLength(0);
-    wrapper.unmount();
-  });
-
-  it('renders onboarding state for new landing when the selected project has no events', async function () {
-    const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
-    ];
-    const data = initializeData(projects, {project: [1]}, [
-      ...FEATURES,
-      'performance-landing-widgets',
-    ]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-
-    // onboarding should show.
-    expect(wrapper.find('Onboarding')).toHaveLength(1);
-
-    // Chart and table should not show.
-    expect(wrapper.find('ChartFooter')).toHaveLength(0);
+    // Table should not show.
     expect(wrapper.find('Table')).toHaveLength(0);
     wrapper.unmount();
   });
@@ -358,7 +340,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
     wrapper.unmount();
@@ -375,8 +361,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const link = wrapper.find('[data-test-id="grid-editable"] GridBody Link').at(0);
     link.simulate('click', {button: 0});
@@ -385,7 +374,7 @@ describe('Performance > Content', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
-          query: 'sentry:yes transaction.duration:<15m event.type:transaction',
+          query: 'sentry:yes',
         }),
       })
     );
@@ -401,8 +390,12 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
+
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
     wrapper.unmount();
   });
@@ -420,7 +413,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -453,7 +450,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -469,7 +470,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
     wrapper.unmount();
@@ -485,7 +490,11 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
@@ -501,63 +510,7 @@ describe('Performance > Content', function () {
     wrapper.unmount();
   });
 
-  it('Vitals cards are not shown with overview feature without frontend platform', async function () {
-    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
-    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'}, [
-      ...FEATURES,
-    ]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-
-    const vitalsContainer = wrapper.find('VitalsContainer');
-    expect(vitalsContainer).toHaveLength(0);
-    wrapper.unmount();
-  });
-
-  it('Vitals cards are shown with overview feature with frontend platform project', async function () {
-    const projects = [
-      TestStubs.Project({
-        id: '1',
-        firstTransactionEvent: true,
-        platform: 'javascript-react',
-      }),
-    ];
-    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'}, [
-      ...FEATURES,
-    ]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-
-    const vitalsContainer = wrapper.find('VitalsContainer');
-    expect(vitalsContainer).toHaveLength(1);
-
-    const vitalTestIds = Object.values(vitalAbbreviations).map(
-      abbr => `vitals-linked-card-${abbr}`
-    );
-
-    for (const testId of vitalTestIds) {
-      const selector = `a[data-test-id="${testId}"]`;
-      const link = wrapper.find(selector);
-      expect(link).toHaveLength(1);
-    }
-    wrapper.unmount();
-  });
-
-  it('Display Create Sample Transaction Button with feature flag on', async function () {
+  it('Display Create Sample Transaction Button', async function () {
     const projects = [
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: false}),
@@ -571,33 +524,15 @@ describe('Performance > Content', function () {
       />,
       data.routerContext
     );
-    await tick();
-    wrapper.update();
+
+    await act(async () => {
+      await tick();
+      wrapper.update();
+    });
 
     expect(
       wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
     ).toBe(true);
-    wrapper.unmount();
-  });
-
-  it('Displays new landing component with feature flag on', async function () {
-    const projects = [TestStubs.Project({id: 1, firstTransactionEvent: false})];
-    const data = initializeData(projects, {view: undefined}, [
-      'performance-landing-widgets',
-    ]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-
-    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
-      true
-    );
     wrapper.unmount();
   });
 });

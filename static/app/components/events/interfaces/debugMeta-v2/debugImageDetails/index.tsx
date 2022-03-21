@@ -30,9 +30,9 @@ type ImageCandidates = Image['candidates'];
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
-    projSlug: Project['slug'];
-    organization: Organization;
     event: Event;
+    organization: Organization;
+    projSlug: Project['slug'];
     image?: Image & {status: ImageStatus};
     onReprocessEvent?: () => void;
   };

@@ -1,3 +1,5 @@
+from unittest import TestCase
+
 from sentry.models import User
 from sentry.notifications.helpers import (
     get_highest_notification_setting_value,
@@ -8,13 +10,12 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
 class GetMostSpecificNotificationSettingValueTestCase(TestCase):
     def setUp(self) -> None:
-        super().setUp()
+        self.user = User(id=1)
 
     def test_get_most_specific_notification_setting_value_empty_workflow(self):
         value = get_most_specific_notification_setting_value(

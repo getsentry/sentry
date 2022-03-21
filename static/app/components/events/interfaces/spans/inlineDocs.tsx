@@ -15,15 +15,15 @@ import withApi from 'sentry/utils/withApi';
 type Props = {
   api: Client;
 
+  orgSlug: string;
   platform: string;
   projectSlug: string;
-  orgSlug: string;
 };
 
 type State = {
-  loading: boolean;
   html: string | undefined;
   link: string | undefined;
+  loading: boolean;
 };
 
 class InlineDocs extends Component<Props, State> {

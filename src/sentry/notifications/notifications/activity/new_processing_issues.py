@@ -32,7 +32,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             for provider, participants in participants_by_provider.items()
         }
 
-    def get_message_description(self) -> str:
+    def get_message_description(self, recipient: Team | User) -> str:
         return f"Some events failed to process in your project {self.project.slug}"
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -64,8 +64,8 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         )
         return f"Processing issues on <{self.project.slug}|{project_url}"
 
-    def build_attachment_title(self) -> str:
+    def build_attachment_title(self, recipient: Team | User) -> str:
         return self.get_subject()
 
-    def get_title_link(self) -> str | None:
+    def get_title_link(self, recipient: Team | User) -> str | None:
         return None

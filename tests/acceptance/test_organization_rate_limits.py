@@ -20,7 +20,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
     def test_with_rate_limits(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("rate-limit-editor")
         self.browser.snapshot("organization rate limits with quota")
         assert self.browser.element_exists_by_test_id("rate-limit-editor")
@@ -29,7 +29,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
     def test_without_rate_limits(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("rate-limit-editor")
         self.browser.snapshot("organization rate limits without quota")
         assert self.browser.element_exists_by_test_id("rate-limit-editor")

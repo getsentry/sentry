@@ -6,16 +6,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {
-  SpanSlug,
-  SpanSort,
-  SpanSortOption,
-  SpanSortOthers,
-  SpanSortPercentiles,
-} from './types';
+import {SpanSort, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
 
 export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
@@ -28,8 +23,8 @@ export function spansRouteWithQuery({
   query,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateSpansRoute({
@@ -63,7 +58,7 @@ export const SPAN_RELATIVE_PERIODS = pick(DEFAULT_RELATIVE_PERIODS, [
 export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   {
     prefix: t('Sort By'),
-    label: t('Total Exclusive Time'),
+    label: t('Total Self Time'),
     field: SpanSortOthers.SUM_EXCLUSIVE_TIME,
   },
   {
@@ -78,22 +73,22 @@ export const SPAN_SORT_OPTIONS: SpanSortOption[] = [
   },
   {
     prefix: t('Sort By'),
-    label: t('p50 Exclusive Time'),
+    label: t('p50 Self Time'),
     field: SpanSortPercentiles.P50_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p75 Exclusive Time'),
+    label: t('p75 Self Time'),
     field: SpanSortPercentiles.P75_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p95 Exclusive Time'),
+    label: t('p95 Self Time'),
     field: SpanSortPercentiles.P95_EXCLUSIVE_TIME,
   },
   {
     prefix: t('Sort By'),
-    label: t('p99 Exclusive Time'),
+    label: t('p99 Self Time'),
     field: SpanSortPercentiles.P99_EXCLUSIVE_TIME,
   },
 ];
@@ -137,15 +132,18 @@ export function parseSpanSlug(spanSlug: string | undefined): SpanSlug | undefine
   return {op, group};
 }
 
-export function generateSpansEventView(
-  location: Location,
-  transactionName: string
-): EventView {
+export function generateSpansEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-  conditions
-    .setFilterValues('event.type', ['transaction'])
-    .setFilterValues('transaction', [transactionName]);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -191,38 +189,48 @@ export const SPAN_SORT_TO_FIELDS: Record<SpanSort, string[]> = {
   [SpanSortOthers.SUM_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.AVG_OCCURRENCE]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
     'count_unique(id)',
-    'equation|count()/count_unique(id)',
+    'equation|count() / count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortOthers.COUNT]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P50_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.5)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P75_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.75)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P95_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.95)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
   [SpanSortPercentiles.P99_EXCLUSIVE_TIME]: [
     'percentileArray(spans_exclusive_time, 0.99)',
     'count()',
+    'count_unique(id)',
     'sumArray(spans_exclusive_time)',
   ],
 };
+
+export function getExclusiveTimeDisplayedValue(value: string): string {
+  return value.replace('exclusive', 'self');
+}

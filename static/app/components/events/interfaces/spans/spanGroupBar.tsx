@@ -56,14 +56,14 @@ import {
 const MARGIN_LEFT = 0;
 
 type Props = {
-  event: Readonly<EventTransaction>;
-  treeDepth: number;
-  span: Readonly<ProcessedSpanType>;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  spanNumber: number;
   continuingTreeDepths: Array<TreeDepthType>;
+  event: Readonly<EventTransaction>;
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
+  spanNumber: number;
   toggleSpanGroup: () => void;
+  treeDepth: number;
 };
 
 class SpanGroupBar extends React.Component<Props> {
@@ -79,7 +79,7 @@ class SpanGroupBar extends React.Component<Props> {
           newStartTimestamp = start_timestamp;
         }
 
-        if (newEndTimestamp > timestamp) {
+        if (newEndTimestamp < timestamp) {
           newEndTimestamp = timestamp;
         }
 
@@ -329,7 +329,11 @@ class SpanGroupBar extends React.Component<Props> {
               const durationString = getHumanDuration(duration);
 
               return (
-                <Row visible={isSpanVisible} showBorder={false} data-test-id="span-row">
+                <Row
+                  visible={isSpanVisible}
+                  showBorder={false}
+                  data-test-id={`span-row-${spanNumber}`}
+                >
                   <RowCellContainer>
                     <RowCell
                       data-type="span-row-cell"

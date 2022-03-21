@@ -22,11 +22,11 @@ import {getAxisOptions, TooltipOption} from '../data';
 type Props = {
   api: Client;
   eventView: EventView;
-  organization: Organization;
-  options?: TooltipOption[];
-  location: Location;
-  rightAxis: string;
   leftAxis: string;
+  location: Location;
+  organization: Organization;
+  rightAxis: string;
+  options?: TooltipOption[];
 };
 
 type State = {

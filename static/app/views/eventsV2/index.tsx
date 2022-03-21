@@ -6,8 +6,8 @@ import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  organization: Organization;
   children: React.ReactChildren;
+  organization: Organization;
 };
 
 function DiscoverContainer({organization, children}: Props) {

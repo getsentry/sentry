@@ -12,13 +12,13 @@ import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  url: string | null;
   attachmentId: string;
-  withPreviewButton?: boolean;
-  hasPreview?: boolean;
-  previewIsOpen?: boolean;
   onDelete: (attachmentId: string) => void;
+  url: string | null;
+  hasPreview?: boolean;
   onPreview?: (attachmentId: string) => void;
+  previewIsOpen?: boolean;
+  withPreviewButton?: boolean;
 };
 
 class EventAttachmentActions extends Component<Props> {
@@ -45,7 +45,7 @@ class EventAttachmentActions extends Component<Props> {
           <Button
             size="xsmall"
             icon={<IconDelete size="xs" />}
-            label={t('Delete')}
+            aria-label={t('Delete')}
             disabled={!url}
             title={!url ? t('Insufficient permissions to delete attachments') : undefined}
           />
@@ -57,7 +57,7 @@ class EventAttachmentActions extends Component<Props> {
           href={url ? `${url}?download=1` : ''}
           disabled={!url}
           title={!url ? t('Insufficient permissions to download attachments') : undefined}
-          label={t('Download')}
+          aria-label={t('Download')}
         />
 
         {withPreviewButton && (

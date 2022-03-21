@@ -14,12 +14,12 @@ import {DashboardState, Widget} from './types';
 import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; templateId?: string}, {}> & {
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function CreateDashboard(props: Props) {
-  const {organization, location} = props;
+  const {location} = props;
   const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
@@ -34,13 +34,14 @@ function CreateDashboard(props: Props) {
     ? DASHBOARDS_TEMPLATES.find(dashboardTemplate => dashboardTemplate.id === templateId)
     : undefined;
   const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
+  const initialState = template ? DashboardState.PREVIEW : DashboardState.CREATE;
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
     setNewWidget(constructedWidget);
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
-  }, [organization.slug]);
+  }, [location.pathname]);
   return (
     <Feature
       features={['dashboards-edit']}
@@ -49,7 +50,7 @@ function CreateDashboard(props: Props) {
     >
       <DashboardDetail
         {...props}
-        initialState={DashboardState.CREATE}
+        initialState={initialState}
         dashboard={dashboard}
         dashboards={[]}
         newWidget={newWidget}

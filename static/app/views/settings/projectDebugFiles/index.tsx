@@ -28,8 +28,8 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 type State = AsyncView['state'] & {
   debugFiles: DebugFile[] | null;
-  showDetails: boolean;
   project: Project;
+  showDetails: boolean;
   builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
@@ -157,6 +157,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={debugFile.id}
+          orgSlug={organization.slug}
         />
       );
     });

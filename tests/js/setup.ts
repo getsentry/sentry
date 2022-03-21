@@ -3,7 +3,7 @@
 import {TextDecoder, TextEncoder} from 'util';
 
 import {InjectedRouter} from 'react-router';
-import {configure} from '@testing-library/react';
+import {configure} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
@@ -72,7 +72,6 @@ ConfigStore.loadInitialData(fixtures.Config());
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/domId');
 jest.mock('sentry/utils/withOrganization');
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {

@@ -10,24 +10,44 @@ import {Color} from 'sentry/utils/theme';
 import {Grid, GridCell} from './styles';
 
 type Props = {
-  id: number;
   details: ThreadInfo;
+  id: number;
+  crashed?: boolean;
   crashedInfo?: EntryData;
   name?: string | null;
-  crashed?: boolean;
 };
 
 type ThreadInfo = {
-  label?: string;
   filename?: string;
+  label?: string;
 };
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
-  const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;
+  const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
   return (
     <Grid>
+      <GridCell>
+        {crashed && (
+          <InnerCell isCentered>
+            {crashedInfo ? (
+              <Tooltip
+                skipWrapper
+                title={tct('Errored with [crashedInfo]', {
+                  crashedInfo: crashedInfo.values[0].type,
+                })}
+                disabled={!crashedInfo}
+                position="top"
+              >
+                <IconFire color="red300" />
+              </Tooltip>
+            ) : (
+              <IconFire color="red300" />
+            )}
+          </InnerCell>
+        )}
+      </GridCell>
       <GridCell>
         <InnerCell>
           <Tooltip title={`#${id}`} position="top">
@@ -49,39 +69,13 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
           </Tooltip>
         </InnerCell>
       </GridCell>
-      <GridCell>
-        <InnerCell color="purple300">
-          <Tooltip title={filename} position="top">
-            <TextOverflow>{filename}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
-      </GridCell>
-      <GridCell>
-        {crashed && (
-          <InnerCell isCentered>
-            {crashedInfo ? (
-              <Tooltip
-                skipWrapper
-                title={tct('Errored with [crashedInfo]', {
-                  crashedInfo: crashedInfo.values[0].type,
-                })}
-                position="top"
-              >
-                <IconFire color="red300" />
-              </Tooltip>
-            ) : (
-              <IconFire color="red300" />
-            )}
-          </InnerCell>
-        )}
-      </GridCell>
     </Grid>
   );
 };
 
 export default Option;
 
-const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
+const InnerCell = styled('div')<{color?: Color; isBold?: boolean; isCentered?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

@@ -8,8 +8,8 @@ import {Outcome, UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
-  organization: Organization;
   dataCategory: DataCategory;
+  organization: Organization;
 } & AsyncComponent['props'];
 
 type State = {

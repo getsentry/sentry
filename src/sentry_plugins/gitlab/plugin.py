@@ -55,36 +55,32 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         fields = super().get_new_issue_fields(request, group, event, **kwargs)
-        return (
-            [
-                {
-                    "name": "repo",
-                    "label": "Repository",
-                    "default": self.get_option("gitlab_repo", group.project),
-                    "type": "text",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "assignee",
-                    "label": "Assignee",
-                    "default": "",
-                    "type": "select",
-                    "required": False,
-                    "choices": self.get_allowed_assignees(request, group),
-                },
-                {
-                    "name": "labels",
-                    "label": "Labels",
-                    "default": self.get_option("gitlab_labels", group.project),
-                    "type": "text",
-                    "placeholder": "e.g. high, bug",
-                    "required": False,
-                },
-            ]
-        )
+        return [
+            {
+                "name": "repo",
+                "label": "Repository",
+                "default": self.get_option("gitlab_repo", group.project),
+                "type": "text",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "assignee",
+                "label": "Assignee",
+                "default": "",
+                "type": "select",
+                "required": False,
+                "choices": self.get_allowed_assignees(request, group),
+            },
+            {
+                "name": "labels",
+                "label": "Labels",
+                "default": self.get_option("gitlab_labels", group.project),
+                "type": "text",
+                "placeholder": "e.g. high, bug",
+                "required": False,
+            },
+        ]
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return [

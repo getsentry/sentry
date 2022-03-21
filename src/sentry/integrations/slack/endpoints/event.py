@@ -71,6 +71,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
+        if not slack_request.channel_name:
+            return
 
         payload = {
             "token": self._get_access_token(slack_request.integration),
@@ -199,7 +201,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         if slack_request.is_challenge():
             return self.on_url_verification(request, slack_request.data)
-
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):
                 return self.respond()

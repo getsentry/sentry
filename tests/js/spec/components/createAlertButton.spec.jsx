@@ -17,11 +17,10 @@ function generateWrappedComponent(organization, eventView) {
       location={location}
       organization={organization}
       eventView={eventView}
-      projects={[]}
+      projects={[TestStubs.Project()]}
       onIncompatibleQuery={onIncompatibleQueryMock}
       onSuccess={onSuccessMock}
-    />,
-    TestStubs.routerContext()
+    />
   );
 }
 
@@ -243,6 +242,24 @@ describe('CreateAlertFromViewButton', () => {
 
     expect(wrapper.find('Button').props().to).toBe(
       `/organizations/org-slug/alerts/proj-slug/wizard/`
+    );
+  });
+
+  it('removes a duplicate project filter', async () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:error project:project-slug',
+      projects: [2],
+    });
+    const wrapper = generateWrappedComponent(organization, eventView);
+
+    expect(wrapper.find('Button').props().to).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/org-slug/alerts/project-slug/new/`,
+        query: expect.objectContaining({
+          query: 'event.type:error ',
+        }),
+      })
     );
   });
 });

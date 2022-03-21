@@ -42,11 +42,11 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  loading: boolean;
-  error: boolean;
   dropdownBusy: boolean;
-  teamMemberList: Member[];
+  error: boolean;
+  loading: boolean;
   orgMemberList: Member[];
+  teamMemberList: Member[];
 };
 
 class TeamMembers extends React.Component<Props, State> {
@@ -273,7 +273,7 @@ class TeamMembers extends React.Component<Props, State> {
         size="small"
         icon={<IconSubtract size="xs" isCircled />}
         onClick={() => this.removeMember(member)}
-        label={t('Remove')}
+        aria-label={t('Remove')}
       >
         {t('Remove')}
       </Button>

@@ -13,9 +13,9 @@ type KeyTransaction = {
 };
 
 type TeamKeyTransaction = {
-  team: string;
   count: number;
   keyed: KeyTransaction[];
+  team: string;
 };
 
 export type TeamKeyTransactions = TeamKeyTransaction[];

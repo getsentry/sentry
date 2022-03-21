@@ -17,10 +17,10 @@ type DefaultProps = Readonly<typeof defaultProps>;
 type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
-  className?: string;
-  users: AvatarUser[];
-  renderTooltip?: UserAvatar['props']['renderTooltip'];
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
+  users: AvatarUser[];
+  className?: string;
+  renderTooltip?: UserAvatar['props']['renderTooltip'];
 } & DefaultProps;
 
 export default class AvatarList extends Component<Props> {

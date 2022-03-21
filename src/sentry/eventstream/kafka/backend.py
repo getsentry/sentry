@@ -69,6 +69,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
+        # transaction_forwarder header is not sent if option "eventstream:kafka-headers"
+        # is not set to avoid increasing consumer lag on shared events topic.
         transaction_forwarder = True if event.group_id is None else False
 
         send_new_headers = options.get("eventstream:kafka-headers")
@@ -100,7 +102,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     received_timestamp,
                     skip_consume,
                 ),
-                "transaction_forwarder": encode_bool(transaction_forwarder),
             }
 
     def _send(

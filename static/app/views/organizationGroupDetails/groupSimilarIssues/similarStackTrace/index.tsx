@@ -22,21 +22,21 @@ type ListProps = React.ComponentProps<typeof List>;
 
 type SimilarItems = ListProps['items'];
 type RouteParams = {
-  orgId: string;
   groupId: string;
+  orgId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  project: Project;
   location: Location;
+  project: Project;
 };
 
 type State = {
-  similarItems: SimilarItems;
-  filteredSimilarItems: SimilarItems;
-  similarLinks: string | null;
-  loading: boolean;
   error: boolean;
+  filteredSimilarItems: SimilarItems;
+  loading: boolean;
+  similarItems: SimilarItems;
+  similarLinks: string | null;
   v2: boolean;
 };
 

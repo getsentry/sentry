@@ -14,8 +14,8 @@ import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 type Props = {
   app: SentryApp;
-  organization: Organization;
   onRemoveApp: (app: SentryApp) => void;
+  organization: Organization;
 };
 
 export default class SentryApplicationRow extends PureComponent<Props> {

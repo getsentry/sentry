@@ -9,6 +9,7 @@ type TestStubFixtures = {
   AccountAppearance: OverridableStub;
   AccountEmails: OverridableStubList;
   ActivityFeed: OverridableStub;
+  AllAuthenticators: SimpleStub;
   ApiApplication: OverridableStub;
   ApiKey: OverridableStub;
   ApiToken: OverridableStub;
@@ -18,13 +19,12 @@ type TestStubFixtures = {
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;
-  AllAuthenticators: SimpleStub;
-  BuiltInSymbolSources: OverridableStubList;
   BitbucketIntegrationConfig: SimpleStub;
   Broadcast: OverridableStub;
+  BuiltInSymbolSources: OverridableStubList;
   Commit: OverridableStub;
-  Config: OverridableStub;
   CommitAuthor: OverridableStub;
+  Config: OverridableStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
@@ -62,6 +62,12 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricsField: OverridableStub;
+  MetricsFieldByMeasurementRating: OverridableStub;
+  MetricsFieldByTransactionStatus: OverridableStub;
+  MetricsFieldsByMeasurementRating: OverridableStub;
+  MetricsMeta: OverridableStub;
+  MetricsSessionUserCountByStatusByRelease: SimpleStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
@@ -82,6 +88,7 @@ type TestStubFixtures = {
   ProviderList: SimpleStub;
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
+  Release: (params?: any, healthParams?: any) => any;
   Repository: OverridableStub;
   Search: OverridableStub;
   Searches: OverridableStubList;
@@ -99,6 +106,7 @@ type TestStubFixtures = {
   SessionTotalCountByProjectIn24h: SimpleStub;
   SessionUserCountByStatus: SimpleStub;
   SessionUserCountByStatus2: SimpleStub;
+  SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
@@ -110,8 +118,8 @@ type TestStubFixtures = {
   Tags: OverridableStubList;
   Team: OverridableStub;
   TeamAlertsTriggered: SimpleStub;
-  TeamIssuesReviewed: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
+  TeamIssuesReviewed: SimpleStub;
   TeamResolutionTime: SimpleStub;
   Tombstones: OverridableStubList;
   UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;
@@ -124,9 +132,8 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
-  VstsPlugin: SimpleStub;
 
-  Release: (params?: any, healthParams?: any) => any;
+  VstsPlugin: SimpleStub;
 
   // TODO: These need propertly typed still
 

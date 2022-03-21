@@ -1,16 +1,13 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  act,
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {constructGridItemKey} from 'sentry/views/dashboardsV2/dashboard';
-import * as gridUtils from 'sentry/views/dashboardsV2/gridLayout/utils';
+import CreateDashboard from 'sentry/views/dashboardsV2/create';
+import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
+import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 
@@ -60,6 +57,11 @@ describe('Dashboards > Detail', function () {
         body: [],
         statusCode: 200,
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -79,14 +81,30 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Default Widget 1',
                 interval: '1d',
               }
             ),
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:transaction',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Default Widget 2',
                 interval: '1d',
@@ -129,14 +147,23 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let wrapper, initialData, widgets, mockVisit;
+    let wrapper, initialData, widgets, mockVisit, mockPut;
 
     const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
+      window.confirm = jest.fn();
       initialData = initializeOrg({organization});
       widgets = [
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+            },
+          ],
           {
             title: 'Errors',
             interval: '1d',
@@ -144,7 +171,15 @@ describe('Dashboards > Detail', function () {
           }
         ),
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction',
+              fields: ['count()'],
+              columns: [],
+              aggregates: ['count()'],
+            },
+          ],
           {
             title: 'Transactions',
             interval: '1d',
@@ -157,6 +192,8 @@ describe('Dashboards > Detail', function () {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
+              columns: [],
+              aggregates: ['p50()'],
             },
           ],
           {
@@ -199,7 +236,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
-      MockApiClient.addMockResponse({
+      mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
@@ -225,6 +262,11 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
       });
@@ -285,7 +327,7 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Custom Errors',
-            widgets: [widgets[0]],
+            widgets: [expect.objectContaining(widgets[0])],
           }),
         })
       );
@@ -309,6 +351,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
       card.find('StyledPanel').simulate('mouseOver');
@@ -320,11 +363,27 @@ describe('Dashboards > Detail', function () {
         .find('IconClick[data-test-id="widget-edit"]')
         .simulate('click');
 
-      await tick();
-      await wrapper.update();
-      const modal = await mountGlobalModal();
-
-      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+      expect(openEditModal).toHaveBeenCalledTimes(1);
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            id: '1',
+            interval: '1d',
+            layout: {h: 2, minH: 2, w: 2, x: 0, y: 0},
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: '',
+              },
+            ],
+            title: 'Errors',
+            type: 'line',
+          },
+        })
+      );
     });
 
     it('shows add widget option', async function () {
@@ -432,15 +491,32 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'Second Widget',
                 interval: '1d',
@@ -451,10 +527,7 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      jest
-        .spyOn(gridUtils, 'getDashboardLayout')
-        .mockReturnValueOnce([{i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6}]);
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -469,29 +542,33 @@ describe('Dashboards > Detail', function () {
       await screen.findByText('Second Widget');
     });
 
-    it('renders successfully if more layouts than stored widgets', async function () {
-      // A case where someone has async removed widgets from a dashboard
+    it('does not trigger request if layout not updated', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: TestStubs.Dashboard(
           [
             TestStubs.Widget(
-              [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
               {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      jest.spyOn(gridUtils, 'getDashboardLayout').mockReturnValueOnce([
-        {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-        {i: 'grid-item-2', x: 2, y: 0, w: 2, h: 2},
-      ]);
-      rtlMountWithTheme(
+      render(
         <ViewEditDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -502,7 +579,249 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
 
-      await screen.findByText('First Widget');
+      userEvent.click(screen.getByText('Edit Dashboard'));
+      userEvent.click(screen.getByText('Save and Finish'));
+      await tick();
+
+      expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
+      expect(mockPut).not.toHaveBeenCalled();
+    });
+
+    it('renders the custom resize handler for a widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      const widget = screen.getByText('First Widget').closest('.react-grid-item');
+      const resizeHandle = within(widget).getByTestId('custom-resize-handle');
+
+      expect(resizeHandle).toBeVisible();
+    });
+
+    it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(
+          [
+            TestStubs.Widget(
+              [
+                {
+                  name: '',
+                  conditions: 'event.type:error',
+                  fields: ['count()'],
+                  aggregates: ['count()'],
+                  columns: [],
+                },
+              ],
+              {
+                title: 'First Widget',
+                interval: '1d',
+                id: '1',
+                layout: null,
+              }
+            ),
+          ],
+          {id: '1', title: 'Custom Errors'}
+        ),
+      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        {context: initialData.routerContext}
+      );
+      await tick();
+
+      userEvent.click(await screen.findByText('Edit Dashboard'));
+      userEvent.click(await screen.findByText('Cancel'));
+
+      expect(window.confirm).not.toHaveBeenCalled();
+    });
+
+    it('opens the widget viewer modal using the widget id specified in the url', () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      const widget = TestStubs.Widget(
+        [
+          {
+            name: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+          },
+        ],
+        {
+          title: 'First Widget',
+          interval: '1d',
+          id: '1',
+          layout: null,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+      });
+
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      expect(openWidgetViewerModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization: initialData.organization,
+          widget,
+          onClose: expect.anything(),
+        })
+      );
+    });
+
+    it('redirects user to dashboard url if widget is not found', () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+      });
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '123'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {},
+        })
+      );
+    });
+
+    it('opens the edit widget modal when clicking the edit button', async () => {
+      const widget = TestStubs.Widget(
+        [
+          {
+            name: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            columns: [],
+            aggregates: ['count()'],
+          },
+        ],
+        {
+          title: 'First Widget',
+          interval: '1d',
+          id: '1',
+          layout: null,
+        }
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+      });
+
+      render(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/123/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      await mountGlobalModal(initialData.routerContext);
+
+      userEvent.click(screen.getByRole('button', {name: 'Edit Widget'}));
+      expect(openEditModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget,
+          organization: initialData.organization,
+          source: DashboardWidgetSource.DASHBOARDS,
+        })
+      );
+    });
+
+    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+
+      render(
+        <CreateDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/2/'}}
+        />,
+        {context: initialData.routerContext}
+      );
+
+      expect(openWidgetViewerModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organization: initialData.organization,
+          widget: expect.objectContaining({
+            displayType: 'line',
+            interval: '5m',
+            queries: [
+              {
+                aggregates: ['count()'],
+                columns: [],
+                conditions: '!event.type:transaction',
+                fields: ['count()'],
+                name: 'Events',
+                orderby: 'count()',
+              },
+            ],
+            title: 'Events',
+            widgetType: 'discover',
+          }),
+          onClose: expect.anything(),
+        })
+      );
     });
   });
 });

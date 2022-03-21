@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -25,25 +26,24 @@ import SentryAppRuleModal from 'sentry/views/alerts/issueRuleEditor/sentryAppRul
 import TicketRuleModal from 'sentry/views/alerts/issueRuleEditor/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 export type FormField = {
-  // Type of form fields
-  type: string;
   // The rest is configuration for the form field
   [key: string]: any;
+  // Type of form fields
+  type: string;
 };
 
 type Props = {
-  index: number;
-  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data: IssueAlertRuleAction | IssueAlertRuleCondition;
-  project: Project;
-  organization: Organization;
   disabled: boolean;
+  index: number;
   onDelete: (rowIndex: number) => void;
-  onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
+  onReset: (rowIndex: number, name: string, value: string) => void;
+  organization: Organization;
+  project: Project;
+  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
 };
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {
@@ -109,12 +109,15 @@ class RuleNode extends React.Component<Props> {
 
   getTextField = (name: string, fieldConfig: FormField) => {
     const {data, index, onPropertyChange, disabled} = this.props;
-
+    const value =
+      data && data[name] && typeof data[name] !== 'boolean'
+        ? (data[name] as string | number)
+        : '';
     return (
       <InlineInput
         type="text"
         name={name}
-        value={(data && data[name]) ?? ''}
+        value={value}
         placeholder={`${fieldConfig.placeholder}`}
         disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -126,12 +129,15 @@ class RuleNode extends React.Component<Props> {
 
   getNumberField = (name: string, fieldConfig: FormField) => {
     const {data, index, onPropertyChange, disabled} = this.props;
-
+    const value =
+      data && data[name] && typeof data[name] !== 'boolean'
+        ? (data[name] as string | number)
+        : '';
     return (
       <InlineNumberInput
         type="number"
         name={name}
-        value={(data && data[name]) ?? ''}
+        value={value}
         placeholder={`${fieldConfig.placeholder}`}
         disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -425,6 +431,7 @@ class RuleNode extends React.Component<Props> {
                 size="small"
                 icon={<IconSettings size="xs" />}
                 type="button"
+                disabled={Boolean(data?.disabled) || disabled}
                 onClick={() => {
                   openModal(
                     deps => (
@@ -447,7 +454,7 @@ class RuleNode extends React.Component<Props> {
           </Rule>
           <DeleteButton
             disabled={disabled}
-            label={t('Delete Node')}
+            aria-label={t('Delete Node')}
             onClick={this.handleDelete}
             type="button"
             size="small"

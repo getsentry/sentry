@@ -27,7 +27,7 @@ class SearchResult extends Component<Props> {
     if (matches) {
       // TODO(ts) Type this better.
       const HighlightedMarker = (p: any) => (
-        <HighlightMarker highlighted={highlighted} {...p} />
+        <HighlightMarker data-test-id="highlight" highlighted={highlighted} {...p} />
       );
 
       const matchedTitle = matches && matches.find(({key}) => key === 'title');

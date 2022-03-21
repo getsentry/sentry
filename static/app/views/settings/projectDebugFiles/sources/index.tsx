@@ -11,14 +11,14 @@ import CustomRepositories from './customRepositories';
 
 type Props = {
   api: Client;
+  builtinSymbolSourceOptions: BuiltinSymbolSource[];
+  builtinSymbolSources: string[];
+  customRepositories: CustomRepo[];
+  isLoading: boolean;
+  location: Location;
   organization: Organization;
   projSlug: Project['slug'];
-  builtinSymbolSourceOptions: BuiltinSymbolSource[];
-  customRepositories: CustomRepo[];
-  builtinSymbolSources: string[];
   router: InjectedRouter;
-  location: Location;
-  isLoading: boolean;
 };
 
 function Sources({

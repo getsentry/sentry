@@ -27,11 +27,11 @@ import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  theme: Theme;
-  organization: Organization;
-  eventView: EventView;
   api: Client;
+  eventView: EventView;
   location: Location;
+  organization: Organization;
+  theme: Theme;
   referrer?: string;
   yAxis?: string[];
 };
@@ -93,8 +93,8 @@ class MiniGraph extends React.Component<Props> {
     showDaily,
   }: {
     showDaily: boolean;
-    yAxis: string;
     timeseriesData: Series[];
+    yAxis: string;
   }): PlotType {
     if (showDaily) {
       return 'bar';

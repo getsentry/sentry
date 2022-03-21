@@ -10,8 +10,8 @@ import withApi from 'sentry/utils/withApi';
 import {SpanExample} from './types';
 
 type SpanExamplesProps = {
-  spanOp: string;
   spanGroup: string;
+  spanOp: string;
 };
 
 type RequestProps = DiscoverQueryProps & SpanExamplesProps;

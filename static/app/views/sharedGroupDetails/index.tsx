@@ -23,9 +23,9 @@ type Props = RouteComponentProps<{shareId: string}, {}> & {
 };
 
 type State = {
+  error: boolean;
   group: Group | null;
   loading: boolean;
-  error: boolean;
 };
 
 class SharedGroupDetails extends Component<Props, State> {

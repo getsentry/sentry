@@ -17,7 +17,7 @@ from sentry.integrations import (
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
@@ -29,7 +29,7 @@ from .client import GitHubEnterpriseAppsClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
-Connect your Sentry organization into your on-premise GitHub Enterprise
+Connect your Sentry organization into your on-premises GitHub Enterprise
 instances. Take a step towards augmenting your sentry issues with commits from
 your repositories ([using releases](https://docs.sentry.io/learn/releases/))
 and linking up your GitHub issues and pull requests directly to issues in

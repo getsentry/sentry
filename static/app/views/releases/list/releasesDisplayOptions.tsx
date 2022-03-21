@@ -15,8 +15,8 @@ const displayOptions = {
 };
 
 type Props = {
-  selected: ReleasesDisplayOption;
   onSelect: (key: string) => void;
+  selected: ReleasesDisplayOption;
 };
 
 function ReleasesDisplayOptions({selected, onSelect}: Props) {

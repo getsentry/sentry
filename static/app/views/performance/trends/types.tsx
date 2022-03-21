@@ -1,34 +1,34 @@
 import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
-import {EventsStatsData} from 'sentry/types';
+import {EventsStatsData, Project} from 'sentry/types';
 import EventView, {LocationQuery} from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {
+  middle?: string;
   orderby?: string;
   trendFunction?: string;
   trendType?: TrendChangeType;
-  middle?: string;
 };
 
 export type TrendsQuery = EventQuery &
   LocationQuery & {
+    interval?: string;
+    middle?: string;
     trendFunction?: string;
     trendType?: TrendChangeType;
-    middle?: string;
-    interval?: string;
   };
 
 export type TrendFunction = {
-  label: string;
-  field: TrendFunctionField;
   alias: string;
+  field: TrendFunctionField;
+  label: string;
   legendLabel: string;
 };
 
 export type TrendParameter = {
-  label: string;
   column: string;
+  label: string;
 };
 
 export enum TrendChangeType {
@@ -66,17 +66,17 @@ export type TrendsStats = {
 };
 
 export type TrendsTransaction = {
-  transaction: string;
-  project: string;
-  count: number;
-
   aggregate_range_1: number;
   aggregate_range_2: number;
+  count: number;
+
+  count_percentage: number;
   count_range_1: number;
   count_range_2: number;
-  trend_percentage: number;
+  project: string;
+  transaction: string;
   trend_difference: number;
-  count_percentage: number;
+  trend_percentage: number;
 };
 
 export type TrendsDataEvents = {
@@ -86,6 +86,7 @@ export type TrendsDataEvents = {
 
 export type TrendsData = {
   events: TrendsDataEvents;
+  projects: Project[];
   stats: TrendsStats;
 };
 

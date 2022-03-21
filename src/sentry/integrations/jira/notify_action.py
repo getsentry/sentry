@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models.integration import Integration
+from sentry.models import Integration
 from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -12,13 +15,14 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
+    id = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
     label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/project-mgmt/jira/#issue-sync"
     provider = "jira"
     integration_key = "integration"
 
-    def clean(self):
+    def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
 
         integration = cleaned_data.get(self.integration_key)
@@ -52,4 +56,4 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         self.fix_data_for_issue()
-        yield super().after(event, state)
+        yield super().after(event, state)  # type: ignore

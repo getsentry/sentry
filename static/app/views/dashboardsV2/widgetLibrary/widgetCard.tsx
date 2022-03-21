@@ -13,12 +13,32 @@ import {DisplayType} from '../types';
 import {WidgetTemplate} from './data';
 
 type Props = {
+  selectedWidgets: WidgetTemplate[];
+  setErrored: (errored: boolean) => void;
+  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
   widget: WidgetTemplate;
   ['data-test-id']?: string;
-  setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
-  setErrored: (errored: boolean) => void;
-  selectedWidgets: WidgetTemplate[];
 };
+
+export function getWidgetIcon(displayType: DisplayType) {
+  switch (displayType) {
+    case DisplayType.TABLE:
+      return IconMenu;
+    case DisplayType.WORLD_MAP:
+      return IconGlobe;
+    case DisplayType.BIG_NUMBER:
+      return IconNumber;
+    case DisplayType.BAR:
+      return IconGraphBar;
+    case DisplayType.TOP_N:
+      return IconArrow;
+    case DisplayType.AREA:
+      return IconGraphArea;
+    case DisplayType.LINE:
+    default:
+      return IconGraph;
+  }
+}
 
 function WidgetLibraryCard({
   selectedWidgets,
@@ -27,26 +47,7 @@ function WidgetLibraryCard({
   ['data-test-id']: dataTestId,
 }: Props) {
   const [selected, setSelected] = useState(selectedWidgets.includes(widget));
-
-  function getWidgetIcon(displayType: DisplayType) {
-    switch (displayType) {
-      case DisplayType.TABLE:
-        return <IconMenu size="xs" />;
-      case DisplayType.WORLD_MAP:
-        return <IconGlobe size="xs" />;
-      case DisplayType.BIG_NUMBER:
-        return <IconNumber size="xs" />;
-      case DisplayType.BAR:
-        return <IconGraphBar size="xs" />;
-      case DisplayType.TOP_N:
-        return <IconArrow size="xs" />;
-      case DisplayType.AREA:
-        return <IconGraphArea size="xs" />;
-      case DisplayType.LINE:
-      default:
-        return <IconGraph size="xs" />;
-    }
-  }
+  const Icon = getWidgetIcon(widget.displayType);
 
   return (
     <StyledPanel
@@ -67,7 +68,7 @@ function WidgetLibraryCard({
     >
       <PanelBody>
         <TitleContainer>
-          {getWidgetIcon(widget.displayType)}
+          <Icon size="xs" />
           <Title>{widget.title}</Title>
         </TitleContainer>
         <Description>{widget.description}</Description>
@@ -102,9 +103,9 @@ type PanelProps = {
 };
 
 const StyledPanel = styled(Panel)<PanelProps>`
-  margin-bottom: 0;
-  border: ${p => '1px solid ' + p.theme.border};
-  outline: ${p => (p.selected ? '2px solid' + p.theme.purple400 : undefined)};
+  border: ${p =>
+    p.selected ? `2px solid ${p.theme.active}` : `1px solid ${p.theme.border}`};
+  margin: ${p => (p.selected ? '-1px' : 0)};
   box-sizing: border-box;
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   cursor: pointer;

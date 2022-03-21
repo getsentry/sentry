@@ -9,8 +9,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 
@@ -25,8 +24,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
 
     wrapper.find('button').simulate('click');
@@ -42,8 +40,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 
@@ -58,8 +55,7 @@ describe('ConfirmDelete', function () {
     const wrapper = mountWithTheme(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
         <button>Confirm?</button>
-      </ConfirmDelete>,
-      TestStubs.routerContext()
+      </ConfirmDelete>
     );
     wrapper.find('button').simulate('click');
 

@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from typing import DefaultDict, Dict, Optional
+from typing import DefaultDict, Dict, List, Optional
 
 from sentry.sentry_metrics.sessions import SessionMetricKey
 
@@ -32,6 +32,9 @@ class SimpleIndexer(StringIndexer):
         self._counter = itertools.count(start=1)
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
+
+    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
+        return {string: self._record(string) for string in strings}
 
     def record(self, string: str) -> int:
         return self._record(string)

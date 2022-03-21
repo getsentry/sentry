@@ -30,7 +30,8 @@ _DEFAULT_DAEMONS = {
         "--force-offset-reset",
         "latest",
     ],
-    "metrics": ["sentry", "run", "ingest-metrics-consumer"],
+    "metrics": ["sentry", "run", "ingest-metrics-consumer-2"],
+    "profiles": ["sentry", "run", "ingest-profiles"],
 }
 
 
@@ -57,6 +58,7 @@ def _get_daemon(name, *args, **kwargs):
     "--watchers/--no-watchers", default=True, help="Watch static files and recompile on changes."
 )
 @click.option("--workers/--no-workers", default=False, help="Run asynchronous workers.")
+@click.option("--ingest/--no-ingest", default=None, help="Run ingest services (including Relay).")
 @click.option(
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
@@ -80,6 +82,11 @@ def _get_daemon(name, *args, **kwargs):
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
+@click.option(
+    "--ingest-profiles/--no-ingest-profiles",
+    default=False,
+    help="This enables ingesting profiles with the profiles consumer",
+)
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
@@ -89,6 +96,7 @@ def devserver(
     reload,
     watchers,
     workers,
+    ingest,
     experimental_spa,
     styleguide,
     prefix,
@@ -96,6 +104,7 @@ def devserver(
     environment,
     debug_server,
     bind,
+    ingest_profiles,
 ):
     "Starts a lightweight web server for development."
 
@@ -208,6 +217,11 @@ def devserver(
             }
         )
 
+    if ingest in (True, False):
+        settings.SENTRY_USE_RELAY = ingest
+
+    os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
+
     if workers:
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
@@ -245,6 +259,9 @@ def devserver(
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
+
+        if ingest_profiles:
+            daemons += [_get_daemon("profiles")]
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

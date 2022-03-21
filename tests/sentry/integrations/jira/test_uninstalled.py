@@ -2,7 +2,7 @@ import jwt
 import responses
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.atlassian_connect import get_query_hash
+from sentry.integrations.utils import get_query_hash
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri

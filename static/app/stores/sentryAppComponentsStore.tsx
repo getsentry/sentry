@@ -4,11 +4,11 @@ import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions
 import {SentryAppComponent} from 'sentry/types';
 
 type SentryAppComponentsStoreInterface = {
-  onLoadComponents: (items: SentryAppComponent[]) => void;
-  getComponentByType: (type: string | undefined) => SentryAppComponent[];
-  getAll: () => SentryAppComponent[];
-  getInitialState: () => SentryAppComponent[];
   get: (uuid: string) => SentryAppComponent | undefined;
+  getAll: () => SentryAppComponent[];
+  getComponentByType: (type: string | undefined) => SentryAppComponent[];
+  getInitialState: () => SentryAppComponent[];
+  onLoadComponents: (items: SentryAppComponent[]) => void;
 };
 
 const storeConfig: Reflux.StoreDefinition & SentryAppComponentsStoreInterface = {

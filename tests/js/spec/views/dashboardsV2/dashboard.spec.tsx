@@ -24,6 +24,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
         orderby: '',
       },
     ],
@@ -36,6 +38,11 @@ describe('Dashboards > Dashboard', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
       body: [],
     });
   });
@@ -55,8 +62,6 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
-        layout={[]}
-        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -80,8 +85,6 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
-        layout={[]}
-        onLayoutChange={() => undefined}
       />,
       initialData.routerContext
     );
@@ -106,8 +109,6 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
-        layout={[]}
-        onLayoutChange={() => undefined}
         isEditing
       />,
       initialData.routerContext

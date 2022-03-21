@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 
@@ -13,34 +13,17 @@ const routes = [
 ];
 
 describe('OrganizationApiKeysList', function () {
-  beforeEach(function () {});
-
-  it('renders', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationApiKeysList
-        params={{orgId: 'org-slug'}}
-        routes={routes}
-        keys={[TestStubs.ApiKey()]}
-      />,
-      TestStubs.routerContext()
-    );
-    expect(wrapper).toSnapshot();
-  });
-
   it('opens a modal when trying to delete a key', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
         keys={[TestStubs.ApiKey()]}
-      />,
-      TestStubs.routerContext()
+      />
     );
 
-    wrapper.update();
     // Click remove button
-    wrapper.find('ForwardRef(IconDelete)').simulate('click');
-    wrapper.update();
+    (await screen.findByTitle('Remove API Key?')).click();
 
     // expect a modal
     const modal = await mountGlobalModal();

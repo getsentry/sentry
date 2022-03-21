@@ -31,11 +31,11 @@ type Props = Pick<
   'errorDest' | 'transactionDest'
 > & {
   event: Event;
+  location: Location;
+  meta: TraceMeta | null;
   organization: OrganizationSummary;
   projectId: string;
-  location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
-  meta: TraceMeta | null;
 };
 
 type State = {

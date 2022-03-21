@@ -9,15 +9,15 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
 type Percent = {
-  vitalState: VitalState;
   percent: number;
+  vitalState: VitalState;
 };
 
 type Props = {
-  vital: WebVital | WebVital[];
   percents: Percent[];
-  showVitalPercentNames?: boolean;
+  vital: WebVital | WebVital[];
   hideTooltips?: boolean;
+  showVitalPercentNames?: boolean;
 };
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
@@ -43,23 +43,21 @@ function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
 export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
-      {props.percents.map(pct => {
-        return (
-          <Tooltip
-            key={pct.vitalState}
-            title={getVitalStateText(props.vital, pct.vitalState)}
-            disabled={props.hideTooltips}
-          >
-            <VitalStatus>
-              {vitalStateIcons[pct.vitalState]}
-              <span>
-                {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
-                {formatPercentage(pct.percent, 0)}
-              </span>
-            </VitalStatus>
-          </Tooltip>
-        );
-      })}
+      {props.percents.map(pct => (
+        <Tooltip
+          key={pct.vitalState}
+          title={getVitalStateText(props.vital, pct.vitalState)}
+          disabled={props.hideTooltips}
+        >
+          <VitalStatus data-test-id="vital-status">
+            {vitalStateIcons[pct.vitalState]}
+            <span>
+              {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
+              {formatPercentage(pct.percent, 0)}
+            </span>
+          </VitalStatus>
+        </Tooltip>
+      ))}
     </VitalSet>
   );
 }

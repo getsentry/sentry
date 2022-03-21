@@ -16,14 +16,14 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   actor: Actor;
-  default?: string;
-  title?: string;
-  gravatar?: boolean;
   className?: string;
+  default?: string;
+  gravatar?: boolean;
   onClick?: () => void;
   suggested?: boolean;
+  title?: string;
   tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
+  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
 };
 
 class ActorAvatar extends React.Component<Props> {

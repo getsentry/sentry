@@ -5,19 +5,20 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
-import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
-import {getInterval} from 'sentry/components/charts/utils';
+import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -31,11 +32,11 @@ import ChartFooter from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
-  router: InjectedRouter;
-  organization: Organization;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  confirmedQuery: boolean;
+  organization: Organization;
+  router: InjectedRouter;
   yAxisValue: string[];
 };
 
@@ -58,9 +59,6 @@ class ResultsChart extends Component<ResultsChartProps> {
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
     );
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
-    );
 
     const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
@@ -71,7 +69,7 @@ class ResultsChart extends Component<ResultsChartProps> {
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : null;
 
-    const {utc} = getParams(location.query);
+    const {utc} = normalizeDateTimeParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -86,8 +84,6 @@ class ResultsChart extends Component<ResultsChartProps> {
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
-        : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
-        ? AreaChart
         : undefined;
     const interval =
       display === DisplayModes.BAR
@@ -102,6 +98,11 @@ class ResultsChart extends Component<ResultsChartProps> {
           )
         : eventView.interval;
 
+    const seriesLabels = yAxisValue.map(stripEquationPrefix);
+    const disableableSeries = [
+      ...seriesLabels,
+      ...seriesLabels.map(getPreviousSeriesName),
+    ];
     return (
       <Fragment>
         {getDynamicText({
@@ -131,6 +132,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               chartComponent={chartComponent}
               referrer={referrer}
               fromDiscover
+              disableableSeries={disableableSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -142,21 +144,25 @@ class ResultsChart extends Component<ResultsChartProps> {
 
 type ContainerProps = {
   api: Client;
-  router: InjectedRouter;
+  confirmedQuery: boolean;
   eventView: EventView;
   location: Location;
-  organization: Organization;
-  confirmedQuery: boolean;
-  yAxis: string[];
-
-  // chart footer props
-  total: number | null;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
+
+  organization: Organization;
+  router: InjectedRouter;
+  // chart footer props
+  total: number | null;
+  yAxis: string[];
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
+  componentDidMount() {
+    this.trackQueryConditions();
+  }
+
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -169,6 +175,26 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
 
     return !isEqual(restProps, restNextProps);
+  }
+
+  componentDidUpdate(prevProps: ContainerProps) {
+    if (this.props.eventView.query !== prevProps.eventView.query) {
+      this.trackQueryConditions();
+    }
+  }
+
+  trackQueryConditions() {
+    const {organization, eventView} = this.props;
+    const parsedSearch = parseSearch(eventView.query);
+    if (parsedSearch) {
+      const conditions = parsedSearch
+        .filter(({text}) => text.trim() !== '')
+        .map(({text}) => text);
+      trackAdvancedAnalyticsEvent('discover_views.query', {
+        organization,
+        conditions,
+      });
+    }
   }
 
   render() {
@@ -187,9 +213,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
-    const hasConnectDiscoverAndDashboards = organization.features.includes(
-      'connect-discover-and-dashboards'
-    );
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -202,9 +225,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
           ) &&
           !hasQueryFeature
         ) {
-          return false;
-        }
-        if (!hasConnectDiscoverAndDashboards && opt.value === DisplayModes.WORLDMAP) {
           return false;
         }
         return true;
@@ -231,7 +251,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
         return opt;
       });
 
-    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
     let yAxisOptions = eventView.getYAxisOptions();
     // Hide multi y axis checkbox when in an unsupported Display Mode
     if (
@@ -256,7 +275,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     return (
       <StyledPanel>
-        {(yAxisValue.length > 0 && (
+        {(yAxis.length > 0 && (
           <ResultsChart
             api={api}
             eventView={eventView}
@@ -264,13 +283,13 @@ class ResultsChartContainer extends Component<ContainerProps> {
             organization={organization}
             router={router}
             confirmedQuery={confirmedQuery}
-            yAxisValue={yAxisValue}
+            yAxisValue={yAxis}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}
-          yAxisValue={yAxisValue}
+          yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
@@ -287,7 +306,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     margin: 0;
   }
 `;

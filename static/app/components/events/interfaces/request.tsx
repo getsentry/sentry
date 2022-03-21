@@ -15,9 +15,9 @@ import {EntryRequest, Event} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
 
 type Props = {
+  data: EntryRequest['data'];
   event: Event;
   type: string;
-  data: EntryRequest['data'];
 };
 
 type State = {

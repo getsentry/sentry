@@ -23,9 +23,9 @@ import AddIntegrationButton from 'sentry/views/organizationIntegrations/addInteg
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
 type Props = {
-  organization: Organization;
   integrationSlug: string;
-} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}> &
+  organization: Organization;
+} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}> &
   AsyncComponent['props'];
 
 type State = {
@@ -143,6 +143,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   size="small"
                   analyticsParams={{view: 'project_creation', already_installed: false}}
                   modalParams={{projectId: project.id}}
+                  aria-label={t('Add integration')}
                 />
                 <Button
                   size="small"

@@ -6,8 +6,8 @@ import {t, tct} from 'sentry/locale';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
-  onRefresh: () => void;
   disabled: boolean;
+  onRefresh: () => void;
 };
 
 const WaitingActivity = ({onRefresh, disabled}: Props) => (

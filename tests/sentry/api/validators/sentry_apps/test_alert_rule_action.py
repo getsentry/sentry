@@ -11,6 +11,7 @@ class TestAlertRuleActionSchemaValidation(TestCase):
             "title": "Create Task",
             "settings": {
                 "type": "alert-rule-settings",
+                "description": "This integration allows you to create a task.",
                 "uri": "/sentry/alert-rule",
                 "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
                 "optional_fields": [{"type": "text", "name": "prefix", "label": "Prefix"}],

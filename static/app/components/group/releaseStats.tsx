@@ -14,12 +14,12 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import SidebarSection from './sidebarSection';
 
 type Props = {
+  allEnvironments: Group | undefined;
+  currentRelease: CurrentRelease | undefined;
+  environments: Environment[];
+  group: Group | undefined;
   organization: Organization;
   project: Project;
-  environments: Environment[];
-  allEnvironments: Group | undefined;
-  group: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
 };
 
 const GroupReleaseStats = ({
@@ -53,29 +53,33 @@ const GroupReleaseStats = ({
         <Placeholder height="288px" />
       ) : (
         <Fragment>
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="24h"
-            title={t('Last 24 Hours')}
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="30d"
-            title={t('Last 30 Days')}
-            className="bar-chart-small"
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="24h"
+              title={t('Last 24 Hours')}
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="30d"
+              title={t('Last 30 Days')}
+              className="bar-chart-small"
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
 
           <SidebarSection
             secondary
@@ -156,4 +160,8 @@ export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
+`;
+
+const GraphContainer = styled('div')`
+  margin-bottom: ${space(3)};
 `;

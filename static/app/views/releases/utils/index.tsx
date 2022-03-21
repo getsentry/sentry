@@ -5,11 +5,12 @@ import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {Release, ReleaseStatus} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -127,41 +128,45 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.Archived;
 
-export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
+export type ReleaseBounds = {
+  type: 'normal' | 'clamped' | 'ancient';
+  releaseEnd?: string | null;
+  releaseStart?: string | null;
+};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
+  const retentionBound = moment().subtract(90, 'days');
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
   const {sessionsUpperBound} = currentProjectMeta || {};
 
-  const releaseStart = moment(dateCreated).startOf('minute').utc().format();
-  const releaseEnd = moment(
+  let type: ReleaseBounds['type'] = 'normal';
+  let releaseStart = moment(dateCreated).startOf('minute');
+  let releaseEnd = moment(
     (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       undefined
-  )
-    .endOf('minute')
-    .utc()
-    .format();
+  ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    return {
-      releaseStart,
-      releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
-    };
+    releaseEnd = moment(releaseEnd).add(1, 'minutes');
   }
 
-  const thousandDaysAfterReleaseStart = moment(releaseStart).add('999', 'days');
-  if (thousandDaysAfterReleaseStart.isBefore(releaseEnd)) {
-    // if the release spans for more than thousand days, we need to clamp it
-    // (otherwise we would hit the backend limit for the amount of data buckets)
-    return {
-      releaseStart,
-      releaseEnd: thousandDaysAfterReleaseStart.utc().format(),
-    };
+  if (releaseStart.isBefore(retentionBound)) {
+    releaseStart = retentionBound;
+    type = 'clamped';
+
+    if (
+      releaseEnd.isBefore(releaseStart) ||
+      (!defined(sessionsUpperBound) && !defined(lastEvent))
+    ) {
+      releaseEnd = moment();
+      type = 'ancient';
+    }
   }
 
   return {
-    releaseStart,
-    releaseEnd,
+    type,
+    releaseStart: releaseStart.utc().format(),
+    releaseEnd: releaseEnd.utc().format(),
   };
 }
 
@@ -171,7 +176,7 @@ type GetReleaseParams = {
 };
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
-  const params = getParams(
+  const params = normalizeDateTimeParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
       ...Object.values(PAGE_URL_PARAM),
@@ -200,7 +205,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: React.ReactNode; type: keyof Theme['tag']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),

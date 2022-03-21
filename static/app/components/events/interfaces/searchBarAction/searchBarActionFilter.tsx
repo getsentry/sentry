@@ -11,16 +11,16 @@ import DropDownButton from './dropDownButton';
 
 type Option = {
   id: string;
-  symbol: React.ReactElement;
   isChecked: boolean;
+  symbol: React.ReactElement;
   description?: string;
 };
 
 type Options = Record<string, Array<Option>>;
 
 type Props = {
-  options: Options;
   onChange: (options: Options) => void;
+  options: Options;
 };
 
 function SearchBarActionFilter({options, onChange}: Props) {
@@ -131,7 +131,7 @@ const StyledList = styled(List)`
   gap: 0;
 `;
 
-const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boolean}>`
+const StyledListItem = styled(ListItem)<{hasDescription: boolean; isChecked: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     p.hasDescription ? 'max-content 1fr max-content' : '1fr max-content'};
@@ -148,10 +148,6 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boo
     background-color: ${p => p.theme.backgroundSecondary};
     ${CheckboxFancy} {
       opacity: 1;
-    }
-    span {
-      color: ${p => p.theme.blue300};
-      text-decoration: underline;
     }
   }
 `;

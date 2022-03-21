@@ -2,31 +2,23 @@ import * as React from 'react';
 import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 
-import sentryLoader from 'sentry-images/sentry-loader.svg';
-
 type Props = {
-  overlay?: boolean;
+  children?: React.ReactNode;
+  className?: string;
   dark?: boolean;
-  mini?: boolean;
-  triangle?: boolean;
-  relative?: boolean;
   hideMessage?: boolean;
   hideSpinner?: boolean;
+  mini?: boolean;
+  overlay?: boolean;
+  relative?: boolean;
   size?: number;
-  className?: string;
   style?: React.CSSProperties;
-  children?: React.ReactNode;
 };
-
-function renderLogoSpinner() {
-  return <img src={sentryLoader} />;
-}
 
 function LoadingIndicator(props: Props) {
   const {
     hideMessage,
     mini,
-    triangle,
     overlay,
     dark,
     children,
@@ -41,7 +33,6 @@ function LoadingIndicator(props: Props) {
     dark,
     loading: true,
     mini,
-    triangle,
   });
 
   const loadingCx = classNames({
@@ -59,11 +50,7 @@ function LoadingIndicator(props: Props) {
 
   return (
     <div className={cx} style={style} data-test-id="loading-indicator">
-      {!hideSpinner && (
-        <div className={loadingCx} style={loadingStyle}>
-          {triangle && renderLogoSpinner()}
-        </div>
-      )}
+      {!hideSpinner && <div className={loadingCx} style={loadingStyle} />}
       {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
   );

@@ -38,21 +38,17 @@ function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
 
 type Props = {
   /**
-   * Number of selected rows
-   */
-  selectedRowsCount: number;
-  /**
    * Number of columns to stretch the notice (used in grid-column)
    */
   columnsCount: number;
   /**
-   * Are all rows on current page selected?
-   */
-  isPageSelected: boolean;
-  /**
    * Are all rows across all pages selected?
    */
   isAllSelected: boolean;
+  /**
+   * Are all rows on current page selected?
+   */
+  isPageSelected: boolean;
   /**
    * Callback to select all rows across all pages
    */
@@ -62,13 +58,17 @@ type Props = {
    */
   onUnselectAllRows: () => void;
   /**
-   * Number of max items we can perform bulk operations on
+   * Number of selected rows
    */
-  bulkLimit?: number;
+  selectedRowsCount: number;
   /**
    * Number of all rows across all pages
    */
   allRowsCount?: number;
+  /**
+   * Number of max items we can perform bulk operations on
+   */
+  bulkLimit?: number;
   className?: string;
 };
 

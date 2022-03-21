@@ -421,7 +421,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
         use_snql = self.has_snql_feature(organization, request)
-        sentry_sdk.set_tag("discover.use-snql", use_snql)
+        sentry_sdk.set_tag("discover.use_snql", use_snql)
 
         try:
             params = self.get_snuba_params(request, organization)
@@ -484,6 +484,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 )
                 # Both orderby and conditions need to be resolved after the columns because of aliasing
                 trend_query.orderby = trend_query.resolve_orderby(orderby)
+                trend_query.groupby = trend_query.resolve_groupby()
                 where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
                 trend_query.where += where
                 trend_query.having += having

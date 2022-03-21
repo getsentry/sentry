@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -32,22 +32,21 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      const {container} = mountWithTheme(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />,
-        {context: routerContext}
+      const {container} = render(
+        <EventOrGroupHeader organization={organization} data={group} {...router} />
       );
 
       expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -55,15 +54,14 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -75,15 +73,14 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(container).toSnapshot();
     });
 
     it('renders metadata values in message for error events', function () {
-      mountWithTheme(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -91,15 +88,14 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
     });
 
     it('renders location', function () {
-      mountWithTheme(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -111,8 +107,7 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(
@@ -123,7 +118,7 @@ describe('EventOrGroupHeader', function () {
 
   describe('Event', function () {
     it('renders with `type = error`', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -131,14 +126,13 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -146,14 +140,13 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -165,14 +158,13 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('hides level tag', function () {
-      const {container} = mountWithTheme(
+      const {container} = render(
         <EventOrGroupHeader
           projectId="projectId"
           hideLevel
@@ -186,14 +178,13 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />,
-        {context: routerContext}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {
-      mountWithTheme(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -218,7 +209,7 @@ describe('EventOrGroupHeader', function () {
     });
 
     it('lack of project adds allp parameter', function () {
-      mountWithTheme(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{

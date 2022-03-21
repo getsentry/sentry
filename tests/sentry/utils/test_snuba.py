@@ -276,6 +276,25 @@ class PrepareQueryParamsTest(TestCase):
         with pytest.raises(UnqualifiedQueryError):
             _prepare_query_params(query_params)
 
+    def test_original_query_params_does_not_get_mutated(self):
+        snuba_params = SnubaQueryParams(
+            dataset=Dataset.Sessions,
+            start=datetime.now() - timedelta(hours=1),
+            end=datetime.now(),
+            groupby=[],
+            conditions=[[["environment", "IN", {"development", "abc"}]]],
+            filter_keys={"release": [self.create_release(version="1.0.0").id]},
+            aggregations=[],
+            rollup=86400,
+            is_grouprelease=False,
+            **{"selected_columns": ["sessions"]},
+        )
+        conditions = [[["environment", "IN", {"development", "abc"}]]]
+        kwargs = {"selected_columns": ["sessions"]}
+        _prepare_query_params(snuba_params)
+        assert conditions == snuba_params.conditions
+        assert kwargs == snuba_params.kwargs
+
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
@@ -341,6 +360,7 @@ class QuantizeTimeTest(unittest.TestCase):
 
         While starting_key and other_key might begin as the same values they should change at different times
         """
+        i = j = None
         starting_key = quantize_time(self.now, 0, duration=10)
         for i in range(11):
             current_key = quantize_time(self.now + timedelta(seconds=i), 0, duration=10)

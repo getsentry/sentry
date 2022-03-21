@@ -385,12 +385,8 @@ def reset_snuba(call_snuba):
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/sessions/drop",
+        "/tests/metrics/drop",
     ]
-
-    from sentry.testutils.skips import snuba_metrics_available
-
-    if snuba_metrics_available():
-        init_endpoints.append("/tests/metrics/drop")
 
     assert all(
         response.status_code == 200

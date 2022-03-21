@@ -13,7 +13,10 @@ SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEv
 
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
-    schema_data = {"title": "Squid Game", "summary": "circle triangle square"}
+    schema_data = [
+        {"name": "title", "value": "Squid Game"},
+        {"name": "summary", "value": "circle triangle square"},
+    ]
 
     @before
     def create_schema(self):
@@ -143,7 +146,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
             data={
                 "hasSchemaFormConfig": True,
                 "sentryAppInstallationUuid": self.install.uuid,
-                "settings": {"title": "Lamy"},
+                "settings": [{"name": "title", "value": "Lamy"}],
             }
         )
         with self.assertRaises(ValidationError):
@@ -154,7 +157,11 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
             data={
                 "hasSchemaFormConfig": True,
                 "sentryAppInstallationUuid": self.install.uuid,
-                "settings": {"title": "Lamy", "summary": "Safari", "invalidField": "Invalid Value"},
+                "settings": [
+                    {"name": "title", "value": "Lamy"},
+                    {"name": "summary", "value": "Safari"},
+                    {"name": "invalidField", "value": "Invalid Value"},
+                ],
             }
         )
         with self.assertRaises(ValidationError):
@@ -165,11 +172,11 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
             data={
                 "hasSchemaFormConfig": True,
                 "sentryAppInstallationUuid": self.install.uuid,
-                "settings": {
-                    "title": "Lamy",
-                    "summary": "Safari",
-                    "points": "Invalid Select Value",
-                },
+                "settings": [
+                    {"name": "title", "value": "Lamy"},
+                    {"name": "summary", "value": "Safari"},
+                    {"name": "points", "value": "Invalid Select Value"},
+                ],
             }
         )
         with self.assertRaises(ValidationError):

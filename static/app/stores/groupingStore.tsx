@@ -22,27 +22,27 @@ const checkBelowThreshold = (scores = {}) => {
 };
 
 type State = {
+  // "Compare" button state
+  enableFingerprintCompare: boolean;
+  error: boolean;
+  filteredSimilarItems: [];
+  loading: boolean;
+  mergeDisabled: boolean;
+  mergeList: Array<string>;
+  mergeState: Map<any, any>;
   // List of fingerprints that belong to issue
   mergedItems: [];
-  // Map of {[fingerprint]: Array<fingerprint, event id>} that is selected to be unmerged
-  unmergeList: Map<any, any>;
-  // Map of state for each fingerprint (i.e. "collapsed")
-  unmergeState: Map<any, any>;
+  mergedLinks: string;
+  similarItems: [];
+  similarLinks: string;
   // Disabled state of "Unmerge" button in "Merged" tab (for Issues)
   unmergeDisabled: boolean;
   // If "Collapse All" was just used, this will be true
   unmergeLastCollapsed: boolean;
-  // "Compare" button state
-  enableFingerprintCompare: boolean;
-  similarItems: [];
-  filteredSimilarItems: [];
-  similarLinks: string;
-  mergeState: Map<any, any>;
-  mergeList: Array<string>;
-  mergedLinks: string;
-  mergeDisabled: boolean;
-  loading: boolean;
-  error: boolean;
+  // Map of {[fingerprint]: Array<fingerprint, event id>} that is selected to be unmerged
+  unmergeList: Map<any, any>;
+  // Map of state for each fingerprint (i.e. "collapsed")
+  unmergeState: Map<any, any>;
 };
 
 type ScoreMap = Record<string, number | null>;
@@ -50,14 +50,14 @@ type ScoreMap = Record<string, number | null>;
 type ApiFingerprint = {
   id: string;
   latestEvent: Event;
-  state?: string;
-  lastSeen?: string;
-  eventCount?: number;
-  parentId?: string;
-  label?: string;
-  parentLabel?: string;
   childId?: string;
   childLabel?: string;
+  eventCount?: number;
+  label?: string;
+  lastSeen?: string;
+  parentId?: string;
+  parentLabel?: string;
+  state?: string;
 };
 
 type ChildFingerprint = {
@@ -69,25 +69,25 @@ type ChildFingerprint = {
 };
 
 export type Fingerprint = {
+  children: Array<ChildFingerprint>;
+  eventCount: number;
   id: string;
   latestEvent: Event;
-  eventCount: number;
-  children: Array<ChildFingerprint>;
-  state?: string;
+  label?: string;
   lastSeen?: string;
   parentId?: string;
-  label?: string;
   parentLabel?: string;
+  state?: string;
 };
 
 type ResponseProcessors = {
   merged: (item: ApiFingerprint[]) => Fingerprint[];
   similar: (data: [Group, ScoreMap]) => {
+    aggregate: Record<string, number>;
+    isBelowThreshold: boolean;
     issue: Group;
     score: ScoreMap;
     scoresByInterface: Record<string, Array<[string, number | null]>>;
-    aggregate: Record<string, number>;
-    isBelowThreshold: boolean;
   };
 };
 
@@ -98,8 +98,8 @@ type ResultsAsArrayDataMerged = Parameters<ResponseProcessors['merged']>[0];
 type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
 
 type ResultsAsArray = Array<{
-  dataKey: DataKey;
   data: ResultsAsArrayDataMerged | ResultsAsArrayDataSimilar;
+  dataKey: DataKey;
   links: string | null;
 }>;
 
@@ -110,13 +110,8 @@ type IdState = {
 };
 
 type GroupingStoreInterface = Reflux.StoreDefinition & {
-  init(): void;
   getInitialState(): State;
-  setStateForId(
-    map: Map<string, IdState>,
-    idOrIds: Array<string> | string,
-    newState: IdState
-  ): Array<IdState>;
+  init(): void;
   isAllUnmergedSelected(): boolean;
   onFetch(
     toFetchArray?: Array<{
@@ -125,25 +120,30 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
       queryParams?: Record<string, any>;
     }>
   ): Promise<any>;
-  onToggleMerge(id: string): void;
-  onToggleUnmerge(props: [string, string] | string): void;
-  onUnmerge(props: {
-    groupId: Group['id'];
-    loadingMessage?: string;
-    successMessage?: string;
-    errorMessage?: string;
-  }): void;
   onMerge(props: {
     params?: {
+      groupId: Group['id'];
       orgId: Organization['id'];
       projectId: Project['id'];
-      groupId: Group['id'];
     };
     projectId?: Project['id'];
     query?: string;
   }): undefined | Promise<any>;
-  onToggleCollapseFingerprints(): void;
   onToggleCollapseFingerprint(fingerprint: string): void;
+  onToggleCollapseFingerprints(): void;
+  onToggleMerge(id: string): void;
+  onToggleUnmerge(props: [string, string] | string): void;
+  onUnmerge(props: {
+    groupId: Group['id'];
+    errorMessage?: string;
+    loadingMessage?: string;
+    successMessage?: string;
+  }): void;
+  setStateForId(
+    map: Map<string, IdState>,
+    idOrIds: Array<string> | string,
+    newState: IdState
+  ): Array<IdState>;
   triggerFetchState(): Pick<
     State,
     | 'similarItems'
@@ -156,6 +156,7 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'loading'
     | 'error'
   >;
+  triggerMergeState(): Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
   triggerUnmergeState(): Pick<
     State,
     | 'unmergeDisabled'
@@ -164,7 +165,6 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'enableFingerprintCompare'
     | 'unmergeLastCollapsed'
   >;
-  triggerMergeState(): Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
 };
 
 type Internals = {

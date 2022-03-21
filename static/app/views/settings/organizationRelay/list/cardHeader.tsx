@@ -12,9 +12,9 @@ import space from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
 
 type Props = Relay & {
-  onEdit: (publicKey: Relay['publicKey']) => () => void;
-  onDelete: (publicKey: Relay['publicKey']) => () => void;
   disabled: boolean;
+  onDelete: (publicKey: Relay['publicKey']) => () => void;
+  onEdit: (publicKey: Relay['publicKey']) => () => void;
 };
 
 const CardHeader = ({
@@ -30,7 +30,7 @@ const CardHeader = ({
     <Button
       size="small"
       icon={<IconDelete />}
-      label={t('Delete Key')}
+      aria-label={t('Delete Key')}
       disabled={disabled}
       title={disabled ? t('You do not have permission to delete keys') : undefined}
     />
@@ -54,7 +54,7 @@ const CardHeader = ({
           size="small"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
-          label={t('Edit Key')}
+          aria-label={t('Edit Key')}
           disabled={disabled}
           title={disabled ? t('You do not have permission to edit keys') : undefined}
         />

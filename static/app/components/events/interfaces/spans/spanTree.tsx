@@ -21,12 +21,12 @@ import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
-  organization: Organization;
   dragProps: DragManagerChildrenProps;
-  traceViewRef: React.RefObject<HTMLDivElement>;
   filterSpans: FilterSpans | undefined;
-  waterfallModel: WaterfallModel;
+  organization: Organization;
   spans: EnhancedProcessedSpanType[];
+  traceViewRef: React.RefObject<HTMLDivElement>;
+  waterfallModel: WaterfallModel;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -62,10 +62,10 @@ class SpanTree extends React.Component<PropType> {
   }
 
   generateInfoMessage(input: {
-    isCurrentSpanHidden: boolean;
-    numOfSpansOutOfViewAbove: number;
     isCurrentSpanFilteredOut: boolean;
+    isCurrentSpanHidden: boolean;
     numOfFilteredSpansAbove: number;
+    numOfSpansOutOfViewAbove: number;
   }): React.ReactNode {
     const {
       isCurrentSpanHidden,
@@ -136,7 +136,7 @@ class SpanTree extends React.Component<PropType> {
   }
 
   toggleSpanTree = (spanID: string) => () => {
-    this.props.waterfallModel.toggleSpanGroup(spanID);
+    this.props.waterfallModel.toggleSpanSubTree(spanID);
     // Update horizontal scroll states after this subtree was either hidden or
     // revealed.
     this.props.updateScrollState();
@@ -150,10 +150,10 @@ class SpanTree extends React.Component<PropType> {
     });
 
     type AccType = {
-      numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
-      spanTree: React.ReactNode[];
+      numOfSpansOutOfViewAbove: number;
       spanNumber: number;
+      spanTree: React.ReactNode[];
     };
 
     const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
@@ -214,8 +214,8 @@ class SpanTree extends React.Component<PropType> {
               treeDepth={treeDepth}
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
-              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+              spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -233,7 +233,7 @@ class SpanTree extends React.Component<PropType> {
 
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
-          toggleSpanGroup = payload.toggleSpanGroup;
+          toggleSpanGroup = payload.toggleNestedSpanGroup;
         }
 
         acc.spanTree.push(
@@ -244,7 +244,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
-            showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
+            showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
             trace={waterfallModel.parsedTrace}
             generateBounds={generateBounds}

@@ -5,10 +5,10 @@ import {Organization, SentryApp} from 'sentry/types';
 import ActionButtons from './actionButtons';
 
 type Props = {
-  organization: Organization;
   app: SentryApp;
-
   onClickRemove: (app: SentryApp) => void;
+
+  organization: Organization;
   onClickPublish?: () => void;
 };
 

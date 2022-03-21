@@ -1,10 +1,11 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ReturnButton from 'sentry/views/settings/components/forms/returnButton';
+import ReturnButton from 'sentry/components/forms/returnButton';
 
 describe('returnButton', function () {
-  it('renders', function () {
-    const {container} = mountWithTheme(<ReturnButton />);
+  it('renders', async function () {
+    const {container} = render(<ReturnButton data-test-id="returnButton" />);
+    expect(await screen.findByTestId('returnButton')).toBeInTheDocument();
     expect(container).toSnapshot();
   });
 });

@@ -6,8 +6,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {MetricTag, MetricTagValue, Organization, Tag} from 'sentry/types';
-import {getMetricsDataSource} from 'sentry/utils/metrics/getMetricsDataSource';
+import {MetricsTag, MetricsTagValue, Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -35,7 +34,7 @@ function MetricsSearchBar({
   ...props
 }: Props) {
   const api = useApi();
-  const [tags, setTags] = useState<MetricTag[]>([]);
+  const [tags, setTags] = useState<MetricsTag[]>([]);
 
   useEffect(() => {
     fetchTags();
@@ -48,7 +47,6 @@ function MetricsSearchBar({
         {
           query: {
             project: !projectIds.length ? undefined : projectIds,
-            datasource: getMetricsDataSource(),
           },
         }
       );
@@ -68,13 +66,13 @@ function MetricsSearchBar({
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(`/organizations/${orgSlug}/metrics/tags/${tagKey}/`, {
-      query: {project: projectIds, datasource: getMetricsDataSource()},
+      query: {project: projectIds},
     });
   }
 
   function getTagValues(tag: Tag, _query: string): Promise<string[]> {
     return fetchTagValues(tag.key).then(
-      tagValues => (tagValues as MetricTagValue[]).map(({value}) => value),
+      tagValues => (tagValues as MetricsTagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
       }

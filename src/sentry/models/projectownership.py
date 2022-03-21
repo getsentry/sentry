@@ -25,6 +25,7 @@ class ProjectOwnership(Model):
     date_created = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
+    codeowners_auto_sync = models.BooleanField(default=True, null=True)
 
     # An object to indicate ownership is implicitly everyone
     Everyone = object()

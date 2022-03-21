@@ -1,53 +1,58 @@
-import * as React from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
+import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
 
-import {Client} from 'sentry/api';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'sentry/components/dropdownAutoComplete/menu';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import Highlight from 'sentry/components/highlight';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
 import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
-import withApi from 'sentry/utils/withApi';
 
-type DefaultProps = {
+type Props = WithRouterProps & {
+  loadingProjects: boolean;
+  /**
+   * When menu is closed
+   */
+  onUpdate: (environments: string[]) => void;
+  organization: Organization;
+  projects: Project[];
+  selectedProjects: number[];
   /**
    * This component must be controlled using a value array
    */
   value: string[];
-};
-
-type Props = WithRouterProps & {
-  api: Client;
-  organization: Organization;
-  projects: Project[];
-  loadingProjects: boolean;
-  selectedProjects: number[];
   /**
-   * Handler whenever selector values are changed
+   * Aligns dropdown menu to left or right of button
    */
-  onChange: (environments: string[]) => void;
+  alignDropdown?: 'left' | 'right';
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    isOpen: boolean;
+    summary: string;
+  }) => React.ReactElement;
+  customLoadingIndicator?: React.ReactNode;
+  detached?: boolean;
+  forceEnvironment?: string;
   /**
-   * When menu is closed
+   * Show the pin button in the dropdown's header actions
    */
-  onUpdate: () => void;
-} & DefaultProps;
-
-type State = {
-  hasChanges: boolean;
-  selectedEnvs: Set<string>;
+  showPin?: boolean;
 };
 
 /**
@@ -55,175 +60,161 @@ type State = {
  *
  * Note we only fetch environments when this component is mounted
  */
-class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    value: [],
-  };
+function MultipleEnvironmentSelector({
+  loadingProjects,
+  onUpdate,
+  organization,
+  projects,
+  selectedProjects,
+  value,
+  alignDropdown,
+  customDropdownButton,
+  customLoadingIndicator,
+  detached,
+  forceEnvironment,
+  router,
+  showPin,
+}: Props) {
+  const [selectedEnvs, setSelectedEnvs] = useState(value);
+  const hasChanges = !isEqual(selectedEnvs, value);
 
-  state: State = {
-    selectedEnvs: new Set(this.props.value),
-    hasChanges: false,
-  };
+  // Update selected envs value on change
+  useEffect(() => {
+    setSelectedEnvs(value);
+    lastSelectedEnvs.current = selectedEnvs;
+  }, [value]);
 
-  componentDidUpdate(prevProps: Props) {
-    // Need to sync state
-    if (this.props.value !== prevProps.value) {
-      this.syncSelectedStateFromProps();
-    }
-  }
+  // We keep a separate list of selected environments to use for sorting. This
+  // allows us to only update it after the list is closed, to avoid the list
+  // jumping around while selecting projects.
+  const lastSelectedEnvs = useRef(value);
 
-  syncSelectedStateFromProps = () =>
-    this.setState({selectedEnvs: new Set(this.props.value)});
-
-  /**
-   * If value in state is different than value from props, propagate changes
-   */
-  doChange = (environments: string[]) => {
-    this.props.onChange(environments);
-  };
-
-  /**
-   * Checks if "onUpdate" is callable. Only calls if there are changes
-   */
-  doUpdate = () => {
-    this.setState({hasChanges: false}, this.props.onUpdate);
-  };
+  // Ref to help avoid updating stale selected values
+  const didQuickSelect = useRef(false);
 
   /**
    * Toggle selected state of an environment
    */
-  toggleSelected = (environment: string) => {
-    this.setState(state => {
-      const selectedEnvs = new Set(state.selectedEnvs);
+  const toggleCheckbox = (environment: string) => {
+    const willRemove = selectedEnvs.includes(environment);
 
-      if (selectedEnvs.has(environment)) {
-        selectedEnvs.delete(environment);
-      } else {
-        selectedEnvs.add(environment);
-      }
+    const updatedSelectedEnvs = willRemove
+      ? selectedEnvs.filter(env => env !== environment)
+      : [...selectedEnvs, environment];
 
-      analytics('environmentselector.toggle', {
-        action: selectedEnvs.has(environment) ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(this.props.router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
-      });
-
-      this.doChange(Array.from(selectedEnvs.values()));
-
-      return {
-        selectedEnvs,
-        hasChanges: true,
-      };
+    analytics('environmentselector.toggle', {
+      action: willRemove ? 'removed' : 'added',
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
+
+    setSelectedEnvs(updatedSelectedEnvs);
   };
 
-  /**
-   * Calls "onUpdate" callback and closes the dropdown menu
-   */
-  handleUpdate = (actions: MenuFooterChildProps['actions']) => {
+  const handleSave = (actions: MenuFooterChildProps['actions']) => {
     actions.close();
-    this.doUpdate();
+    onUpdate(selectedEnvs);
   };
 
-  handleClose = () => {
+  const handleMenuClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) {
+    if (!hasChanges || didQuickSelect.current) {
+      didQuickSelect.current = false;
       return;
     }
 
     analytics('environmentselector.update', {
-      count: this.state.selectedEnvs.size,
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      count: selectedEnvs.length,
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
-    this.doUpdate();
+    onUpdate(selectedEnvs);
   };
 
   /**
    * Clears all selected environments and updates
    */
-  handleClear = () => {
+  const handleClear = () => {
     analytics('environmentselector.clear', {
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
-    this.setState(
-      {
-        hasChanges: false,
-        selectedEnvs: new Set(),
-      },
-      () => {
-        this.doChange([]);
-        this.doUpdate();
-      }
-    );
+    setSelectedEnvs([]);
+    onUpdate([]);
   };
 
-  /**
-   * Selects an environment, should close menu and initiate an update
-   */
-  handleSelect = (item: Item) => {
-    const {value: environment} = item;
+  const handleQuickSelect = (item: Item) => {
     analytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      org_id: parseInt(this.props.organization.id, 10),
+      path: getRouteStringFromRoutes(router.routes),
+      org_id: parseInt(organization.id, 10),
     });
 
-    this.setState(() => {
-      this.doChange([environment]);
+    const selectedEnvironments = [item.value];
 
-      return {
-        selectedEnvs: new Set([environment]),
-      };
-    }, this.doUpdate);
+    setSelectedEnvs(selectedEnvironments);
+    onUpdate(selectedEnvironments);
+
+    // Track that we just did a click select so we don't trigger an update in
+    // the close handler.
+    didQuickSelect.current = true;
   };
 
-  /**
-   * Handler for when an environment is selected by the multiple select component
-   * Does not initiate an "update"
-   */
-  handleMultiSelect = (environment: string) => {
-    this.toggleSelected(environment);
-  };
+  const config = ConfigStore.getConfig();
 
-  getEnvironments() {
-    const {projects, selectedProjects} = this.props;
-    const config = ConfigStore.getConfig();
-    let environments: Project['environments'] = [];
-    projects.forEach(function (project) {
-      const projectId = parseInt(project.id, 10);
-      // Include environments from:
-      // - all projects if the user is a superuser
-      // - the requested projects
-      // - all member projects if 'my projects' (empty list) is selected.
-      // - all projects if -1 is the only selected project.
-      if (
-        (selectedProjects.length === 1 &&
-          selectedProjects[0] === ALL_ACCESS_PROJECTS &&
-          project.hasAccess) ||
-        (selectedProjects.length === 0 &&
-          (project.isMember || config.user.isSuperuser)) ||
-        selectedProjects.includes(projectId)
-      ) {
-        environments = environments.concat(project.environments);
-      }
-    });
+  const unsortedEnvironments = projects.flatMap(project => {
+    const projectId = parseInt(project.id, 10);
+    // Include environments from:
+    // - all projects if the user is a superuser
+    // - the requested projects
+    // - all member projects if 'my projects' (empty list) is selected.
+    // - all projects if -1 is the only selected project.
+    if (
+      (selectedProjects.length === 1 &&
+        selectedProjects[0] === ALL_ACCESS_PROJECTS &&
+        project.hasAccess) ||
+      (selectedProjects.length === 0 && (project.isMember || config.user.isSuperuser)) ||
+      selectedProjects.includes(projectId)
+    ) {
+      return project.environments;
+    }
 
-    return uniq(environments);
+    return [];
+  });
+
+  const uniqueEnvironments = Array.from(new Set(unsortedEnvironments));
+
+  // Sort with the last selected environments at the top
+  const environments = sortBy(uniqueEnvironments, env => [
+    !lastSelectedEnvs.current.find(e => e === env),
+    env,
+  ]);
+
+  const validatedValue = value.filter(env => environments.includes(env));
+  const summary = validatedValue.length
+    ? `${validatedValue.join(', ')}`
+    : t('All Environments');
+
+  if (forceEnvironment !== undefined) {
+    return (
+      <StyledHeaderItem
+        data-test-id="global-header-environment-selector"
+        icon={<IconWindow />}
+        isOpen={false}
+        locked
+      >
+        {forceEnvironment ? forceEnvironment : t('All Environments')}
+      </StyledHeaderItem>
+    );
   }
 
-  render() {
-    const {value, loadingProjects} = this.props;
-    const environments = this.getEnvironments();
+  if (loadingProjects && customLoadingIndicator) {
+    return <Fragment>{customLoadingIndicator}</Fragment>;
+  }
 
-    const validatedValue = value.filter(env => environments.includes(env));
-    const summary = validatedValue.length
-      ? `${validatedValue.join(', ')}`
-      : t('All Environments');
-
-    return loadingProjects ? (
+  if (loadingProjects) {
+    return (
       <StyledHeaderItem
         data-test-id="global-header-environment-selector"
         icon={<IconWindow />}
@@ -235,53 +226,66 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
       >
         {t('Loading\u2026')}
       </StyledHeaderItem>
-    ) : (
-      <ClassNames>
-        {({css}) => (
-          <StyledDropdownAutoComplete
-            alignMenu="left"
-            allowActorToggle
-            closeOnSelect
-            blendCorner={false}
-            searchPlaceholder={t('Filter environments')}
-            onSelect={this.handleSelect}
-            onClose={this.handleClose}
-            maxHeight={500}
-            rootClassName={css`
-              position: relative;
-              display: flex;
-              left: -1px;
-            `}
-            inputProps={{style: {padding: 8, paddingLeft: 14}}}
-            emptyMessage={t('You have no environments')}
-            noResultsMessage={t('No environments found')}
-            virtualizedHeight={theme.headerSelectorRowHeight}
-            emptyHidesInput
-            menuFooter={({actions}) =>
-              this.state.hasChanges ? (
-                <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
-              ) : null
-            }
-            items={environments.map(env => ({
-              value: env,
-              searchKey: env,
-              label: ({inputValue}) => (
-                <EnvironmentSelectorItem
-                  environment={env}
-                  inputValue={inputValue}
-                  isChecked={this.state.selectedEnvs.has(env)}
-                  onMultiSelect={this.handleMultiSelect}
-                />
-              ),
-            }))}
-          >
-            {({isOpen, getActorProps}) => (
+    );
+  }
+
+  return (
+    <ClassNames>
+      {({css}) => (
+        <StyledDropdownAutoComplete
+          alignMenu={alignDropdown}
+          allowActorToggle
+          closeOnSelect
+          blendCorner={false}
+          detached={detached}
+          searchPlaceholder={t('Filter environments')}
+          onSelect={handleQuickSelect}
+          onClose={handleMenuClose}
+          maxHeight={500}
+          rootClassName={css`
+            position: relative;
+            display: flex;
+          `}
+          inputProps={{style: {padding: 8, paddingLeft: 14}}}
+          emptyMessage={t('You have no environments')}
+          noResultsMessage={t('No environments found')}
+          virtualizedHeight={theme.headerSelectorRowHeight}
+          emptyHidesInput
+          inputActions={
+            showPin ? <StyledPinButton size="xsmall" filter="environments" /> : undefined
+          }
+          menuFooter={({actions}) =>
+            hasChanges ? (
+              <MultipleSelectorSubmitRow onSubmit={() => handleSave(actions)} />
+            ) : null
+          }
+          items={environments.map(env => ({
+            value: env,
+            searchKey: env,
+            label: ({inputValue}) => (
+              <PageFilterRow
+                data-test-id={`environment-${env}`}
+                checked={selectedEnvs.includes(env)}
+                onCheckClick={e => {
+                  e.stopPropagation();
+                  toggleCheckbox(env);
+                }}
+              >
+                <Highlight text={inputValue}>{env}</Highlight>
+              </PageFilterRow>
+            ),
+          }))}
+        >
+          {({isOpen, getActorProps}) =>
+            customDropdownButton ? (
+              customDropdownButton({isOpen, getActorProps, summary})
+            ) : (
               <StyledHeaderItem
                 data-test-id="global-header-environment-selector"
                 icon={<IconWindow />}
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
-                onClear={this.handleClear}
+                onClear={handleClear}
                 hasChanges={false}
                 locked={false}
                 loading={false}
@@ -289,18 +293,19 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
               >
                 {summary}
               </StyledHeaderItem>
-            )}
-          </StyledDropdownAutoComplete>
-        )}
-      </ClassNames>
-    );
-  }
+            )
+          }
+        </StyledDropdownAutoComplete>
+      )}
+    </ClassNames>
+  );
 }
 
-export default withApi(withRouter(MultipleEnvironmentSelector));
+export default withRouter(MultipleEnvironmentSelector);
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+  width: 100%;
 `;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
@@ -308,40 +313,15 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  margin-top: 0;
-  min-width: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin-top: 0;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `};
 `;
 
-type EnvironmentSelectorItemProps = {
-  environment: string;
-  inputValue: string;
-  isChecked: boolean;
-  onMultiSelect: (environment: string) => void;
-};
-
-class EnvironmentSelectorItem extends React.PureComponent<EnvironmentSelectorItemProps> {
-  handleMultiSelect = () => {
-    const {environment, onMultiSelect} = this.props;
-    onMultiSelect(environment);
-  };
-
-  handleClick = (e: React.MouseEvent<Element, MouseEvent>) => {
-    e.stopPropagation();
-    this.handleMultiSelect();
-  };
-
-  render() {
-    const {environment, inputValue, isChecked} = this.props;
-    return (
-      <PageFilterRow
-        data-test-id={`environment-${environment}`}
-        checked={isChecked}
-        onCheckClick={this.handleClick}
-      >
-        <Highlight text={inputValue}>{environment}</Highlight>
-      </PageFilterRow>
-    );
-  }
-}
+const StyledPinButton = styled(PageFilterPinButton)`
+  margin: 0 ${space(1)};
+`;

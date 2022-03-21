@@ -64,8 +64,8 @@ class SpansInterface extends PureComponent<Props, State> {
     errors,
     parsedTrace,
   }: {
-    isLoading: boolean;
     errors: TraceError[] | undefined;
+    isLoading: boolean;
     parsedTrace: ParsedTraceType;
   }) {
     if (isLoading) {
@@ -88,7 +88,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     // mapping from span ids to the span op and the number of errors in that span
     const errorsMap: {
-      [spanId: string]: {operation: string; errorsCount: number};
+      [spanId: string]: {errorsCount: number; operation: string};
     } = {};
 
     errors.forEach(error => {
@@ -126,7 +126,7 @@ class SpansInterface extends PureComponent<Props, State> {
               <List symbol="bullet">
                 {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
                   <ListItem key={spanId}>
-                    {tct('[errors] in [link]', {
+                    {tct('[errors] [link]', {
                       errors: tn('%s error in ', '%s errors in ', errorsCount),
                       link: (
                         <ErrorLink

@@ -10,8 +10,8 @@ import {IconInfo} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 type Props = {
-  buttonTo: React.ComponentProps<typeof Link>['to'];
   buttonText: string;
+  buttonTo: React.ComponentProps<typeof Link>['to'];
 };
 
 export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =

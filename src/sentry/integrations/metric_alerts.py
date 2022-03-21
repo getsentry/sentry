@@ -1,9 +1,10 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from django.utils.translation import ugettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
+from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -16,28 +17,11 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-def incident_status_info(incident, metric_value, action, method):
-    if action and method:
-        # Get status from trigger
-        incident_status = (
-            IncidentStatus.CLOSED
-            if method == "resolve"
-            else (
-                IncidentStatus.CRITICAL
-                if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-                else IncidentStatus.WARNING
-            )
-        )
-    else:
-        incident_status = incident.status
-    return IncidentStatus(incident_status)
-
-
-def incident_attachment_info(incident, metric_value=None, action=None, method=None):
+def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
-    status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
+    status = INCIDENT_STATUS[new_status]
 
     agg_display_key = alert_rule.snuba_query.aggregate
 
@@ -74,7 +58,12 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
     else:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
-    text = f"{metric_and_agg_text} in the last {time_window} minutes"
+    interval = "minute" if time_window == 1 else "minutes"
+    text = _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
+        "metric_and_agg_text": metric_and_agg_text,
+        "time_window": time_window,
+        "interval": interval,
+    }
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 

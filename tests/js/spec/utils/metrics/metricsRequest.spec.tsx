@@ -1,6 +1,11 @@
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
+import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
+
+jest.mock('sentry/utils/metrics/transformMetricsResponseToSeries', () => ({
+  transformMetricsResponseToSeries: jest.fn().mockReturnValue([]),
+}));
 
 describe('MetricsRequest', () => {
   const project = TestStubs.Project();
@@ -8,7 +13,7 @@ describe('MetricsRequest', () => {
   const childrenMock = jest.fn(() => null);
   const props = {
     api: new MockApiClient(),
-    organization,
+    orgSlug: organization.slug,
     field: ['fieldA'],
     project: [project.id],
     environment: ['prod'],
@@ -30,14 +35,17 @@ describe('MetricsRequest', () => {
   });
 
   it('makes request and passes correct render props', async () => {
-    mountWithTheme(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
+    render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
@@ -45,16 +53,14 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -63,16 +69,19 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: null,
+        tableData: undefined,
+        pageLinks: null,
       })
     );
   });
 
   it('does not make request if isDisabled', () => {
-    mountWithTheme(
+    render(
       <MetricsRequest {...props} isDisabled>
         {childrenMock}
       </MetricsRequest>
@@ -83,17 +92,18 @@ describe('MetricsRequest', () => {
     expect(childrenMock).toHaveBeenCalledTimes(1);
     expect(childrenMock).toHaveBeenCalledWith({
       errored: false,
+      error: null,
       loading: false,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
   });
 
   it('refetches when props change', () => {
-    const {rerender} = mountWithTheme(
-      <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
-    );
+    const {rerender} = render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     expect(metricsMock).toHaveBeenCalledTimes(1);
 
@@ -113,9 +123,7 @@ describe('MetricsRequest', () => {
   });
 
   it('does not refetch when ignored props change', () => {
-    const {rerender} = mountWithTheme(
-      <MetricsRequest {...props}>{childrenMock}</MetricsRequest>
-    );
+    const {rerender} = render(<MetricsRequest {...props}>{childrenMock}</MetricsRequest>);
 
     const differentChildrenMock = jest.fn(() => 'lorem ipsum');
     rerender(<MetricsRequest {...props}>{differentChildrenMock}</MetricsRequest>);
@@ -124,7 +132,7 @@ describe('MetricsRequest', () => {
   });
 
   it('make two requests if includePrevious is enabled', async () => {
-    mountWithTheme(
+    render(
       <MetricsRequest {...props} includePrevious>
         {childrenMock}
       </MetricsRequest>
@@ -132,10 +140,13 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     expect(metricsMock).toHaveBeenCalledTimes(2);
@@ -145,16 +156,14 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: undefined,
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: undefined,
           statsPeriod: '14d',
         },
       })
@@ -170,7 +179,7 @@ describe('MetricsRequest', () => {
           query: 'abc',
           groupBy: ['status'],
           orderBy: 'fieldA',
-          limit: 3,
+          per_page: 3,
           interval: '1h',
           statsPeriodStart: '28d',
           statsPeriodEnd: '14d',
@@ -181,16 +190,19 @@ describe('MetricsRequest', () => {
     await waitFor(() =>
       expect(childrenMock).toHaveBeenLastCalledWith({
         errored: false,
+        error: null,
         loading: false,
         reloading: false,
         response: {groups: [], intervals: []},
         responsePrevious: {groups: [], intervals: []},
+        tableData: undefined,
+        pageLinks: null,
       })
     );
   });
 
   it('make one request with absolute date', () => {
-    mountWithTheme(
+    render(
       <MetricsRequest
         {...props}
         statsPeriod=""
@@ -204,10 +216,13 @@ describe('MetricsRequest', () => {
 
     expect(childrenMock).toHaveBeenNthCalledWith(1, {
       errored: false,
+      error: null,
       loading: true,
       reloading: false,
       response: null,
       responsePrevious: null,
+      tableData: undefined,
+      pageLinks: null,
     });
 
     // if start and end are provided, it will not perform a request to fetch previous data
@@ -217,19 +232,43 @@ describe('MetricsRequest', () => {
       expect.anything(),
       expect.objectContaining({
         query: {
-          end: '2021-12-17T00:59:59',
+          end: '2021-12-17T00:59:59.000',
           environment: ['prod'],
           field: ['fieldA'],
           groupBy: ['status'],
           interval: '1h',
-          limit: 3,
+          per_page: 3,
           orderBy: 'fieldA',
           project: ['2'],
           query: 'abc',
-          start: '2021-12-01T01:00:00',
-          statsPeriod: undefined,
+          start: '2021-12-01T01:00:00.000',
         },
       })
     );
+  });
+
+  it('includes series data', () => {
+    render(
+      <MetricsRequest {...props} includeSeriesData includePrevious>
+        {childrenMock}
+      </MetricsRequest>
+    );
+
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+
+    expect(childrenMock).toHaveBeenLastCalledWith({
+      error: null,
+      errored: false,
+      loading: true,
+      pageLinks: null,
+      reloading: false,
+      response: null,
+      responsePrevious: null,
+      seriesData: [],
+      seriesDataPrevious: [],
+      tableData: undefined,
+    });
+
+    expect(transformMetricsResponseToSeries).toHaveBeenCalledWith(null);
   });
 });

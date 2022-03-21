@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
 
-from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.models import Team, User
 
 # Shortcut so that types don't explode.
 Notifiable = Callable[

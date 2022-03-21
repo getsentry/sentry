@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 
+import Form from 'sentry/components/forms/form';
+import TextField from 'sentry/components/forms/textField';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
-import Form from 'sentry/views/settings/components/forms/form';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 type Payload = {
   slug: string;
@@ -12,9 +12,9 @@ type Payload = {
 
 type Props = {
   organization: Organization;
+  formProps?: Partial<typeof Form>;
   onSubmit?: (data: Payload, onSuccess: Function, onError: Function) => void;
   onSuccess?: (data: Payload) => void;
-  formProps?: Partial<typeof Form>;
 };
 
 function CreateTeamForm({organization, formProps, ...props}: Props) {

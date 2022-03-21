@@ -25,9 +25,9 @@ import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import SplitInstallationIdModal from './SplitInstallationIdModal';
 
 type State = {
-  sentryApp: SentryApp;
-  featureData: IntegrationFeature[];
   appInstalls: SentryAppInstallation[];
+  featureData: IntegrationFeature[];
+  sentryApp: SentryApp;
 };
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];

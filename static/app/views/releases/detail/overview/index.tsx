@@ -15,7 +15,7 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import {Body, Main, Side} from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
@@ -78,9 +78,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  api: Client;
   organization: Organization;
   selection: PageFilters;
-  api: Client;
 };
 
 class ReleaseOverview extends AsyncView<Props> {
@@ -293,7 +293,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {start, end, statsPeriod} = getParams(query, {
+    const {start, end, statsPeriod} = normalizeDateTimeParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -459,22 +459,36 @@ class ReleaseOverview extends AsyncView<Props> {
                             end={end ?? null}
                             utc={utc ?? null}
                             onUpdate={this.handleDateChange}
-                            relativeOptions={{
-                              [RELEASE_PERIOD_KEY]: (
-                                <Fragment>
-                                  {t('Entire Release Period')} (
-                                  <DateTime
-                                    date={releaseBounds.releaseStart}
-                                    timeAndDate
-                                  />{' '}
-                                  -{' '}
-                                  <DateTime date={releaseBounds.releaseEnd} timeAndDate />
-                                  )
-                                </Fragment>
-                              ),
-                              ...DEFAULT_RELATIVE_PERIODS,
-                            }}
-                            defaultPeriod={RELEASE_PERIOD_KEY}
+                            relativeOptions={
+                              releaseBounds.type !== 'ancient'
+                                ? {
+                                    [RELEASE_PERIOD_KEY]: (
+                                      <Fragment>
+                                        {releaseBounds.type === 'clamped'
+                                          ? t('Clamped Release Period')
+                                          : t('Entire Release Period')}{' '}
+                                        (
+                                        <DateTime
+                                          date={releaseBounds.releaseStart}
+                                          timeAndDate
+                                        />{' '}
+                                        -{' '}
+                                        <DateTime
+                                          date={releaseBounds.releaseEnd}
+                                          timeAndDate
+                                        />
+                                        )
+                                      </Fragment>
+                                    ),
+                                    ...DEFAULT_RELATIVE_PERIODS,
+                                  }
+                                : DEFAULT_RELATIVE_PERIODS
+                            }
+                            defaultPeriod={
+                              releaseBounds.type !== 'ancient'
+                                ? RELEASE_PERIOD_KEY
+                                : '90d'
+                            }
                             defaultAbsolute={{
                               start: moment(releaseBounds.releaseStart)
                                 .subtract(1, 'hour')

@@ -4,7 +4,7 @@ import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
@@ -18,12 +18,12 @@ import withCommitters from 'sentry/utils/withCommitters';
 type Props = {
   // injected by HoC
   api: Client;
-  committers?: Committer[];
+  event: Event;
 
   // needed by HoC
   organization: Organization;
   project: AvatarProject;
-  event: Event;
+  committers?: Committer[];
   group?: Group;
 };
 

@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 import {AvatarUser, CommitAuthor} from 'sentry/types';
 
 type Props = {
-  filename: string;
   authors: CommitAuthor[];
+  filename: string;
   className?: string;
 };
 

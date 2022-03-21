@@ -2,8 +2,10 @@ import * as React from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import AreaChart from 'sentry/components/charts/areaChart';
 import BarChart from 'sentry/components/charts/barChart';
@@ -17,21 +19,25 @@ import {getSeriesSelection, processTableResults} from 'sentry/components/charts/
 import WorldMapChart from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
+  getEquation,
   getMeasurementSlug,
+  isEquation,
   maybeEquationAlias,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
-import {Widget} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
@@ -44,19 +50,45 @@ type WidgetCardChartProps = Pick<
   WidgetQueries['state'],
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
-  theme: Theme;
-  organization: Organization;
   location: Location;
-  widget: Widget;
-  selection: PageFilters;
+  organization: Organization;
   router: InjectedRouter;
+  selection: PageFilters;
+  theme: Theme;
+  widget: Widget;
+  isMobile?: boolean;
+  legendOptions?: LegendComponentOption;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
+  onZoom?: EChartDataZoomHandler;
+  windowWidth?: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps> {
-  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
+type State = {
+  // For tracking height of the container wrapping BigNumber widgets
+  // so we can dynamically scale font-size
+  containerHeight: number;
+};
+
+class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+  state = {containerHeight: 0};
+
+  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
+    if (
+      this.props.widget.displayType === DisplayType.BIG_NUMBER &&
+      nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
+      (this.props.windowWidth !== nextProps.windowWidth ||
+        !isEqual(this.props.widget?.layout, nextProps.widget?.layout))
+    ) {
+      return true;
+    }
+
     // Widget title changes should not update the WidgetCardChart component tree
     const currentProps = {
-      ...this.props,
+      ...omit(this.props, ['windowWidth']),
       widget: {
         ...this.props.widget,
         title: '',
@@ -64,14 +96,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     };
 
     nextProps = {
-      ...nextProps,
+      ...omit(nextProps, ['windowWidth']),
       widget: {
         ...nextProps.widget,
         title: '',
       },
     };
 
-    return !isEqual(currentProps, nextProps);
+    return !isEqual(currentProps, nextProps) || !isEqual(this.state, nextState);
   }
 
   tableResultComponent({
@@ -95,6 +127,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
+
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
@@ -105,6 +138,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           metadata={result.meta}
           data={result.data}
           organization={organization}
+          stickyHeaders
+          getCustomFieldRenderer={(field, meta) =>
+            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
+          }
         />
       );
     });
@@ -127,6 +164,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
+    const {containerHeight} = this.state;
+    const {organization, widget, isMobile} = this.props;
+
     return tableResults.map(result => {
       const tableMeta = result.meta ?? {};
       const fields = Object.keys(tableMeta ?? {});
@@ -138,20 +178,45 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta);
+      const fieldRenderer = getFieldFormatter(
+        field,
+        tableMeta,
+        widget.widgetType !== WidgetType.METRICS
+      );
 
       const rendered = fieldRenderer(dataRow);
 
-      return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      const isModalWidget = !!!(widget.id || widget.tempId);
+      if (
+        !!!organization.features.includes('dashboard-grid-layout') ||
+        isModalWidget ||
+        isMobile
+      ) {
+        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+      }
+
+      // The font size is the container height, minus the top and bottom padding
+      const fontSize = containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10);
+
+      return (
+        <BigNumber key={`big_number:${result.title}`} style={{fontSize}}>
+          <Tooltip title={rendered} showOnlyOnOverflow>
+            {rendered}
+          </Tooltip>
+        </BigNumber>
+      );
     });
   }
 
   chartComponent(chartProps): React.ReactNode {
-    const {widget} = this.props;
+    const {organization, widget} = this.props;
+    const stacked =
+      organization.features.includes('new-widget-builder-experience-design') &&
+      widget.queries[0].columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':
-        return <BarChart {...chartProps} />;
+        return <BarChart {...chartProps} stacked={stacked} />;
       case 'area':
       case 'top_n':
         return <AreaChart stacked {...chartProps} />;
@@ -172,22 +237,36 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       loading,
       widget,
       organization,
+      onZoom,
+      legendOptions,
     } = this.props;
 
     if (widget.displayType === 'table') {
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
-          {this.tableResultComponent({tableResults, loading, errorMessage})}
-        </TransitionChart>
-      );
+      return getDynamicText({
+        value: (
+          <TransitionChart loading={loading} reloading={loading}>
+            <LoadingScreen loading={loading} />
+            {this.tableResultComponent({tableResults, loading, errorMessage})}
+          </TransitionChart>
+        ),
+        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+      });
     }
 
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          <BigNumberResizeWrapper
+            ref={el => {
+              if (el !== null) {
+                const {height} = el.getBoundingClientRect();
+                this.setState({containerHeight: height});
+              }
+            }}
+          >
+            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+          </BigNumberResizeWrapper>
         </TransitionChart>
       );
     }
@@ -200,7 +279,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       );
     }
 
-    const {location, router, selection} = this.props;
+    const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
 
     // Only allow height resizing for widgets that are on a dashboard
@@ -251,9 +330,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
         }
         return seriesName;
       },
+      ...legendOptions,
     };
 
-    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
+    const axisField = widget.queries[0]?.aggregates?.[0] ?? 'count()';
+    const axisLabel = isEquation(axisField) ? getEquation(axisField) : axisField;
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -272,7 +353,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, axisField),
+          formatter: (value: number) => axisLabelFormatter(value, axisLabel),
         },
       },
     };
@@ -302,10 +383,19 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => ({
-                ...values,
-                color: colors[i],
-              }))
+            ? timeseriesResults.map((values, i: number) => {
+                let seriesName = '';
+                if (values.seriesName !== undefined) {
+                  seriesName = isEquation(values.seriesName)
+                    ? getEquation(values.seriesName)
+                    : values.seriesName;
+                }
+                return {
+                  ...values,
+                  seriesName,
+                  color: colors[i],
+                };
+              })
             : [];
 
           return (
@@ -316,8 +406,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
                   value: this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
+                    // Override default datazoom behaviour for updating Global Selection Header
+                    ...(onZoom ? {onDataZoom: onZoom} : {}),
                     legend,
                     series,
+                    onLegendSelectChanged,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}
@@ -352,9 +445,22 @@ const LoadingPlaceholder = styled(Placeholder)`
   background-color: ${p => p.theme.surface200};
 `;
 
+const BigNumberResizeWrapper = styled('div')`
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
 const BigNumber = styled('div')`
+  line-height: 1;
+  display: inline-flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
   font-size: 32px;
+  color: ${p => p.theme.headingColor};
   padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+
   * {
     text-align: left !important;
   }

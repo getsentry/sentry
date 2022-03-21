@@ -16,16 +16,16 @@ type DefaultProps = {
 
 type Props = {
   icon: React.ReactNode;
+  forwardRef?: React.Ref<HTMLDivElement>;
   hasChanges?: boolean;
   hasSelected?: boolean;
-  isOpen?: boolean;
-  locked?: boolean;
-  loading?: boolean;
   hint?: string;
-  settingsLink?: string;
+  isOpen?: boolean;
+  loading?: boolean;
+  locked?: boolean;
   lockedMessage?: React.ReactNode;
-  forwardRef?: React.Ref<HTMLDivElement>;
   onClear?: () => void;
+  settingsLink?: string;
 } & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLDivElement>;
 
@@ -89,7 +89,7 @@ function HeaderItem({
       )}
       {locked && (
         <Tooltip title={lockedMessage || t('This selection is locked')} position="bottom">
-          <StyledLock color="gray300" />
+          <StyledLock color="gray300" isSolid />
         </Tooltip>
       )}
     </StyledHeaderItem>
@@ -105,9 +105,9 @@ const getColor = (p: ColorProps & {theme: Theme}) => {
 };
 
 type ColorProps = {
-  locked?: boolean;
-  isOpen?: boolean;
   hasSelected?: boolean;
+  isOpen?: boolean;
+  locked?: boolean;
 };
 
 const StyledHeaderItem = styled('div', {

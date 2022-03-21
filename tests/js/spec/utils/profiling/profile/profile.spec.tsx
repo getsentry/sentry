@@ -7,6 +7,7 @@ export const f = (name: string, key: number) =>
   new Frame({name, key, is_application: false});
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
 export const firstCallee = (node: CallTreeNode) => node.children[0];
+export const nthCallee = (node: CallTreeNode, n: number) => node.children[n];
 
 export const makeTestingBoilerplate = () => {
   const timings: [Frame['name'], string][] = [];
@@ -31,7 +32,7 @@ export const makeTestingBoilerplate = () => {
 // Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
 // will format the stack samples as a tree string so it's more human friendly.
 // @ts-ignore this is a helper fn
-const _logExpectedStack = (samples: Profile['samples']): string => {
+export const _logExpectedStack = (samples: Profile['samples']): string => {
   const head = `
 Samples follow a top-down chronological order\n\n`;
 
@@ -60,6 +61,12 @@ stack top -> stack bottom`;
 };
 
 describe('Profile', () => {
+  it('Empty profile duration is not infinity', () => {
+    const profile = Profile.Empty();
+    expect(profile.duration).toEqual(1000);
+    expect(profile.minFrameDuration).toEqual(1000);
+  });
+
   it('forEach - iterates over a single sample', () => {
     const profile = new Profile(1000, 0, 1000, 'profile', 'ms');
 

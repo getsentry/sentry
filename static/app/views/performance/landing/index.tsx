@@ -3,15 +3,18 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageHeading from 'sentry/components/pageHeading';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -19,10 +22,13 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  PageErrorAlert,
+  PageErrorProvider,
+} from 'sentry/utils/performance/contexts/pageError';
 import useTeams from 'sentry/utils/useTeams';
 
-import MetricsSearchBar from '../metricsSearchBar';
-import {MetricsSwitch, useMetricsSwitch} from '../metricsSwitch';
 import Onboarding from '../onboarding';
 import {getTransactionSearchQuery} from '../utils';
 
@@ -31,24 +37,25 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import SamplingModal, {modalCss} from './samplingModal';
 import {
   getDefaultDisplayForPlatform,
   getLandingDisplayFromParam,
   handleLandingDisplayChange,
-  LANDING_V3_DISPLAYS,
+  LANDING_DISPLAYS,
   LandingDisplayField,
 } from './utils';
 
 type Props = {
-  organization: Organization;
   eventView: EventView;
-  location: Location;
-  projects: Project[];
-  selection: PageFilters;
-  shouldShowOnboarding: boolean;
-  setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  selection: PageFilters;
+  setError: (msg: string | undefined) => void;
+  shouldShowOnboarding: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -97,88 +104,102 @@ export function PerformanceLanding(props: Props) {
   }, []);
 
   const filterString = getTransactionSearchQuery(location, eventView.query);
-  const {isMetricsData} = useMetricsSwitch();
 
   const showOnboarding = shouldShowOnboarding;
 
-  const shownLandingDisplays = LANDING_V3_DISPLAYS.filter(
-    ({isShown}) => !isShown || isShown(organization)
-  );
-
   const ViewComponent = fieldToViewMap[landingDisplay.field];
+
+  const {isMEPEnabled, setMEPEnabled} = useMEPSettingContext();
+
+  const fnOpenModal = () => {
+    openModal(
+      modalProps => (
+        <SamplingModal
+          {...modalProps}
+          organization={organization}
+          eventView={eventView}
+          projects={projects}
+          isMEPEnabled={isMEPEnabled}
+          onApply={value => {
+            setMEPEnabled(value);
+          }}
+        />
+      ),
+      {modalCss, backdrop: 'static'}
+    );
+  };
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <StyledHeading>{t('Performance')}</StyledHeading>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          {!showOnboarding && (
-            <ButtonBar gap={3}>
-              <MetricsSwitch onSwitch={() => handleSearch('')} />
-              <Button
-                priority="primary"
-                data-test-id="landing-header-trends"
-                onClick={() => handleTrendsClick()}
-              >
-                {t('View Trends')}
-              </Button>
-            </ButtonBar>
-          )}
-        </Layout.HeaderActions>
-
-        <Layout.HeaderNavTabs>
-          {shownLandingDisplays.map(({label, field}) => (
-            <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
-              <a
-                href="#"
-                data-test-id={`landing-tab-${field}`}
-                onClick={() =>
-                  handleLandingDisplayChange(
-                    field,
-                    location,
-                    projects,
-                    organization,
-                    eventView
-                  )
-                }
-              >
-                {t(label)}
-              </a>
-            </li>
-          ))}
-        </Layout.HeaderNavTabs>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GlobalSdkUpdateAlert />
-          {showOnboarding ? (
-            <Onboarding
-              organization={organization}
-              project={
-                props.selection.projects.length > 0
-                  ? // If some projects selected, use the first selection
-                    projects.find(
-                      project => props.selection.projects[0].toString() === project.id
-                    ) || projects[0]
-                  : // Otherwise, use the first project in the org
-                    projects[0]
-              }
-            />
-          ) : (
-            <Fragment>
-              <SearchContainerWithFilter>
-                {isMetricsData ? (
-                  <MetricsSearchBar
-                    searchSource="performance_landing_metrics"
-                    orgSlug={organization.slug}
-                    query={filterString}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                    projectIds={eventView.project}
+      <PageErrorProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <StyledHeading>{t('Performance')}</StyledHeading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            {!showOnboarding && (
+              <ButtonBar gap={3}>
+                <Button
+                  priority="primary"
+                  data-test-id="landing-header-trends"
+                  onClick={() => handleTrendsClick()}
+                >
+                  {t('View Trends')}
+                </Button>
+                <Feature features={['organizations:performance-use-metrics']}>
+                  <Button
+                    onClick={() => fnOpenModal()}
+                    icon={<IconSettings />}
+                    aria-label={t('Settings')}
+                    data-test-id="open-meps-settings"
                   />
-                ) : (
+                </Feature>
+              </ButtonBar>
+            )}
+          </Layout.HeaderActions>
+
+          <Layout.HeaderNavTabs>
+            {LANDING_DISPLAYS.map(({label, field}) => (
+              <li key={label} className={landingDisplay.field === field ? 'active' : ''}>
+                <a
+                  href="#"
+                  data-test-id={`landing-tab-${field}`}
+                  onClick={() =>
+                    handleLandingDisplayChange(
+                      field,
+                      location,
+                      projects,
+                      organization,
+                      eventView
+                    )
+                  }
+                >
+                  {t(label)}
+                </a>
+              </li>
+            ))}
+          </Layout.HeaderNavTabs>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <GlobalSdkUpdateAlert />
+            <PageErrorAlert />
+            {showOnboarding ? (
+              <Onboarding
+                organization={organization}
+                project={
+                  props.selection.projects.length > 0
+                    ? // If some projects selected, use the first selection
+                      projects.find(
+                        project => props.selection.projects[0].toString() === project.id
+                      ) || projects[0]
+                    : // Otherwise, use the first project in the org
+                      projects[0]
+                }
+              />
+            ) : (
+              <Fragment>
+                <SearchContainerWithFilter>
                   <SearchBar
                     searchSource="performance_landing"
                     organization={organization}
@@ -192,26 +213,26 @@ export function PerformanceLanding(props: Props) {
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
+                </SearchContainerWithFilter>
+                {initiallyLoaded ? (
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <GenericQueryBatcher>
+                      <ViewComponent {...props} />
+                    </GenericQueryBatcher>
+                  </TeamKeyTransactionManager.Provider>
+                ) : (
+                  <LoadingIndicator />
                 )}
-              </SearchContainerWithFilter>
-              {initiallyLoaded ? (
-                <TeamKeyTransactionManager.Provider
-                  organization={organization}
-                  teams={teams}
-                  selectedTeams={['myteams']}
-                  selectedProjects={eventView.project.map(String)}
-                >
-                  <GenericQueryBatcher>
-                    <ViewComponent {...props} />
-                  </GenericQueryBatcher>
-                </TeamKeyTransactionManager.Provider>
-              ) : (
-                <LoadingIndicator />
-              )}
-            </Fragment>
-          )}
-        </Layout.Main>
-      </Layout.Body>
+              </Fragment>
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </PageErrorProvider>
     </StyledPageContent>
   );
 }

@@ -19,13 +19,13 @@ import {spanDetailsRouteWithQuery} from './spanDetails/utils';
 import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
 
 type Props = {
+  isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
-  isLoading: boolean;
+  sort: SpanSort;
   suspectSpans: SuspectSpans;
   totals: SpansTotalValues | null;
-  sort: SpanSort;
+  transactionName: string;
   project?: Project;
 };
 
@@ -44,12 +44,13 @@ export default function SuspectSpansTable(props: Props) {
   const data: TableDataRowWithExtras[] = suspectSpans.map(suspectSpan => ({
     operation: suspectSpan.op,
     group: suspectSpan.group,
-    // TODO: currently the descriptions are only retrieved with examples
-    description: suspectSpan.group,
+    description: suspectSpan.description,
     totalCount: suspectSpan.count,
     frequency:
+      // Frequency is computed using the `uniq` function in ClickHouse.
+      // Because it is an approximation, it can occasionally exceed the number of events.
       defined(suspectSpan.frequency) && defined(totals?.count)
-        ? suspectSpan.frequency / totals!.count
+        ? Math.min(1, suspectSpan.frequency / totals!.count)
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,
@@ -111,7 +112,7 @@ function renderBodyCellWithMeta(
       });
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key]}</Link>
+          <Link to={target}>{dataRow[column.key] ?? t('(unnamed span)')}</Link>
         </TableCellContainer>
       );
     }
@@ -202,12 +203,12 @@ const COLUMN_ORDER: Record<SpanSort, TableColumnKey[]> = {
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
   operation: {
     key: 'operation',
-    name: t('Operation'),
+    name: t('Span Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   description: {
     key: 'description',
-    name: t('Description'),
+    name: t('Span Name'),
     width: COL_WIDTH_UNDEFINED,
   },
   totalCount: {
@@ -227,27 +228,27 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   p50ExclusiveTime: {
     key: 'p50ExclusiveTime',
-    name: t('P50 Exclusive Time'),
+    name: t('P50 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p75ExclusiveTime: {
     key: 'p75ExclusiveTime',
-    name: t('P75 Exclusive Time'),
+    name: t('P75 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p95ExclusiveTime: {
     key: 'p95ExclusiveTime',
-    name: t('P95 Exclusive Time'),
+    name: t('P95 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   p99ExclusiveTime: {
     key: 'p99ExclusiveTime',
-    name: t('P99 Exclusive Time'),
+    name: t('P99 Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
   sumExclusiveTime: {
     key: 'sumExclusiveTime',
-    name: t('Total Exclusive Time'),
+    name: t('Total Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
 };

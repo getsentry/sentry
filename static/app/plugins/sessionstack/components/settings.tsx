@@ -1,12 +1,16 @@
 import isEqual from 'lodash/isEqual';
 
-import {Form, FormState} from 'sentry/components/forms';
+import {Form, FormState} from 'sentry/components/deprecatedforms';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
+  // NB: "On-premises" here refers to on-premises SessionStack, not Sentry.
+  // That said, we only support connecting to an on-premises SessionStack from
+  // a self-hosted Sentry: https://docs.sessionstack.com/docs/sentry.
+
   showOnPremisesConfiguration?: boolean;
 };
 

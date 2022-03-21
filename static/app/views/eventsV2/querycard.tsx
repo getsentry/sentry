@@ -12,15 +12,15 @@ import {User} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
-  title?: string;
-  subtitle?: string;
-  queryDetail?: string;
+  renderGraph: () => React.ReactNode;
   to: object;
   createdBy?: User | undefined;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderGraph: () => React.ReactNode;
+  queryDetail?: string;
   renderContextMenu?: () => React.ReactNode;
+  subtitle?: string;
+  title?: string;
 };
 
 class QueryCard extends React.PureComponent<Props> {
@@ -103,8 +103,10 @@ const QueryCardHeader = styled('div')`
 `;
 
 const QueryTitle = styled('div')`
-  color: ${p => p.theme.textColor};
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
   ${overflowEllipsis};
+  font-weight: initial;
 `;
 
 const QueryDetail = styled('div')`

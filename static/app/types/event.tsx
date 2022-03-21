@@ -48,11 +48,11 @@ export type EventGroupVariant = {
   hashMismatch: boolean;
   key: EventGroupVariantKey;
   type: EventGroupVariantType;
-  values?: Array<string>;
   client_values?: Array<string>;
-  matched_rule?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
+  matched_rule?: string;
+  values?: Array<string>;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -61,24 +61,24 @@ export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
  * SDK Update metadata
  */
 type EnableIntegrationSuggestion = {
-  type: 'enableIntegration';
-  integrationName: string;
   enables: Array<SDKUpdatesSuggestion>;
+  integrationName: string;
+  type: 'enableIntegration';
   integrationUrl?: string | null;
 };
 
 export type UpdateSdkSuggestion = {
-  type: 'updateSdk';
-  sdkName: string;
-  newSdkVersion: string;
   enables: Array<SDKUpdatesSuggestion>;
+  newSdkVersion: string;
+  sdkName: string;
+  type: 'updateSdk';
   sdkUrl?: string | null;
 };
 
 type ChangeSdkSuggestion = {
-  type: 'changeSdk';
-  newSdkName: string;
   enables: Array<SDKUpdatesSuggestion>;
+  newSdkName: string;
+  type: 'changeSdk';
   sdkUrl?: string | null;
 };
 
@@ -91,9 +91,9 @@ export type SDKUpdatesSuggestion =
  * Frames, Threads and Event interfaces.
  */
 export interface Thread {
-  id: number;
   crashed: boolean;
   current: boolean;
+  id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
   name?: string | null;
@@ -117,14 +117,14 @@ export type Frame = {
   symbolAddr: string | null;
   trust: any | null;
   vars: Record<string, any> | null;
-  symbolicatorStatus?: SymbolicatorStatus;
   addrMode?: string;
-  origAbsPath?: string | null;
-  mapUrl?: string | null;
-  map?: string | null;
-  isSentinel?: boolean;
   isPrefix?: boolean;
+  isSentinel?: boolean;
+  map?: string | null;
+  mapUrl?: string | null;
   minGroupingLevel?: number;
+  origAbsPath?: string | null;
+  symbolicatorStatus?: SymbolicatorStatus;
 };
 
 export enum FrameBadge {
@@ -134,13 +134,13 @@ export enum FrameBadge {
 }
 
 export type ExceptionValue = {
-  type: string;
-  value: string;
-  threadId: number | null;
-  stacktrace: StacktraceType | null;
-  rawStacktrace: RawStacktrace;
   mechanism: StackTraceMechanism | null;
   module: string | null;
+  rawStacktrace: RawStacktrace;
+  stacktrace: StacktraceType | null;
+  threadId: number | null;
+  type: string;
+  value: string;
   frames?: Frame[] | null;
 };
 
@@ -153,34 +153,34 @@ export type ExceptionType = {
 export type TreeLabelPart =
   | string
   | {
-      function?: string;
-      package?: string;
-      type?: string;
       classbase?: string;
-      filebase?: string;
       datapath?: (string | number)[];
+      filebase?: string;
+      function?: string;
+      is_prefix?: boolean;
       // is_sentinel is no longer being used,
       // but we will still assess whether we will use this property in the near future.
       is_sentinel?: boolean;
-      is_prefix?: boolean;
+      package?: string;
+      type?: string;
     };
 
 // This type is incomplete
 export type EventMetadata = {
-  value?: string;
-  message?: string;
-  directive?: string;
-  type?: string;
-  title?: string;
-  uri?: string;
-  filename?: string;
-  origin?: string;
-  function?: string;
-  stripped_crash?: boolean;
-  current_tree_label?: TreeLabelPart[];
-  finest_tree_label?: TreeLabelPart[];
   current_level?: number;
+  current_tree_label?: TreeLabelPart[];
+  directive?: string;
   display_title_with_tree_label?: boolean;
+  filename?: string;
+  finest_tree_label?: TreeLabelPart[];
+  function?: string;
+  message?: string;
+  origin?: string;
+  stripped_crash?: boolean;
+  title?: string;
+  type?: string;
+  uri?: string;
+  value?: string;
 };
 
 export enum EventOrGroupType {
@@ -213,81 +213,81 @@ export enum EntryType {
 }
 
 type EntryDebugMeta = {
-  type: EntryType.DEBUGMETA;
   data: {
     images: Array<DebugImage>;
   };
+  type: EntryType.DEBUGMETA;
 };
 
 type EntryBreadcrumbs = {
-  type: EntryType.BREADCRUMBS;
   data: {
     values: Array<RawCrumb>;
   };
+  type: EntryType.BREADCRUMBS;
 };
 
 export type EntryThreads = {
-  type: EntryType.THREADS;
   data: {
     values?: Array<Thread>;
   };
+  type: EntryType.THREADS;
 };
 
 export type EntryException = {
-  type: EntryType.EXCEPTION;
   data: ExceptionType;
+  type: EntryType.EXCEPTION;
 };
 
 type EntryStacktrace = {
-  type: EntryType.STACKTRACE;
   data: StacktraceType;
+  type: EntryType.STACKTRACE;
 };
 
 type EntrySpans = {
-  type: EntryType.SPANS;
-  data: any; // data is not used
+  data: any;
+  type: EntryType.SPANS; // data is not used
 };
 
 type EntryMessage = {
-  type: EntryType.MESSAGE;
   data: {
     formatted: string;
     params?: Record<string, any> | any[];
   };
+  type: EntryType.MESSAGE;
 };
 
 export type EntryRequest = {
-  type: EntryType.REQUEST;
   data: {
-    url: string;
     method: string;
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    query?: [key: string, value: string][];
-    fragment?: string;
+    url: string;
     cookies?: [key: string, value: string][];
-    headers?: [key: string, value: string][];
+    data?: string | null | Record<string, any> | [key: string, value: any][];
     env?: Record<string, string>;
+    fragment?: string;
+    headers?: [key: string, value: string][];
     inferredContentType?:
       | null
       | 'application/json'
       | 'application/x-www-form-urlencoded'
       | 'multipart/form-data';
+    query?: [key: string, value: string][];
   };
+  type: EntryType.REQUEST;
 };
 
 type EntryTemplate = {
-  type: EntryType.TEMPLATE;
   data: Frame;
+  type: EntryType.TEMPLATE;
 };
 
 type EntryCsp = {
-  type: EntryType.CSP;
   data: Record<string, any>;
+  type: EntryType.CSP;
 };
 
 type EntryGeneric = {
-  type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
   data: Record<string, any>;
+  type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
 };
 
 export type Entry =
@@ -319,19 +319,19 @@ type DeviceContext = {
 };
 
 type OSContext = {
-  kernel_version: string;
-  version: string;
-  type: string;
   build: string;
+  kernel_version: string;
   name: string;
+  type: string;
+  version: string;
 };
 
 type EventContexts = {
-  runtime?: RuntimeContext;
-  trace?: TraceContextType;
+  client_os?: OSContext;
   device?: DeviceContext;
   os?: OSContext;
-  client_os?: OSContext;
+  runtime?: RuntimeContext;
+  trace?: TraceContextType;
 };
 
 export type Measurement = {value: number};
@@ -339,74 +339,74 @@ export type Measurement = {value: number};
 export type EventTag = {key: string; value: string};
 
 export type EventUser = {
-  username?: string | null;
-  name?: string | null;
-  ip_address?: string;
+  data?: string | null;
   email?: string;
   id?: string;
-  data?: string | null;
+  ip_address?: string;
+  name?: string | null;
+  username?: string | null;
 };
 
 type EventBase = {
+  contexts: EventContexts;
+  crashFile: IssueAttachment | null;
+  culprit: string;
+  dateReceived: string;
+  dist: string | null;
+  entries: Entry[];
+  errors: any[];
+  eventID: string;
+  fingerprints: string[];
+  groupingConfig: {
+    enhancements: string;
+    id: string;
+  };
   id: string;
+  location: string | null;
+  message: string;
+  metadata: EventMetadata;
+  projectID: string;
+  size: number;
+  tags: EventTag[];
+  title: string;
   type:
     | EventOrGroupType.CSP
     | EventOrGroupType.DEFAULT
     | EventOrGroupType.EXPECTCT
     | EventOrGroupType.EXPECTSTAPLE
     | EventOrGroupType.HPKP;
-  eventID: string;
-  title: string;
-  culprit: string;
-  dist: string | null;
-  metadata: EventMetadata;
-  contexts: EventContexts;
   user: EventUser | null;
-  message: string;
-  entries: Entry[];
-  errors: any[];
-  projectID: string;
-  tags: EventTag[];
-  size: number;
-  location: string | null;
-  groupingConfig: {
-    id: string;
-    enhancements: string;
-  };
-  crashFile: IssueAttachment | null;
-  fingerprints: string[];
-  projectSlug?: string;
-  oldestEventID?: string | null;
-  latestEventID?: string | null;
-  previousEventID?: string | null;
-  nextEventID?: string | null;
-  groupID?: string;
   context?: Record<string, any>;
   dateCreated?: string;
   device?: Record<string, any>;
+  endTimestamp?: number;
+  groupID?: string;
+  latestEventID?: string | null;
+  measurements?: Record<string, Measurement>;
+  nextEventID?: string | null;
+  oldestEventID?: string | null;
   packages?: Record<string, string>;
   platform?: PlatformType;
-  dateReceived: string;
-  endTimestamp?: number;
-  userReport?: any;
+  previousEventID?: string | null;
+  projectSlug?: string;
+  release?: Release | null;
   sdk?: {
     name: string;
     version: string;
   } | null;
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
-  measurements?: Record<string, Measurement>;
-  release?: Release | null;
+  userReport?: any;
 };
 
 export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
+  endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
-  endTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  title?: string;
   contexts?: {
     trace?: TraceContextType;
   };
+  title?: string;
 };
 
 export type EventError = Omit<EventBase, 'entries' | 'type'> & {
@@ -425,9 +425,9 @@ export type Event = EventError | EventTransaction | EventBase;
 // Response from EventIdLookupEndpoint
 // /organizations/${orgSlug}/eventids/${eventId}/
 export type EventIdResponse = {
+  event: Event;
+  eventId: string;
+  groupId: string;
   organizationSlug: string;
   projectSlug: string;
-  groupId: string;
-  eventId: string;
-  event: Event;
 };

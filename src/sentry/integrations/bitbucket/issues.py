@@ -2,7 +2,7 @@ from typing import Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueBasicMixin
+from sentry.integrations.mixins import IssueBasicMixin
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 
 ISSUE_TYPES = (
@@ -39,38 +39,33 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
 
-        # TODO(mgaeta): inline these lists.
-        return (
-            [
-                {
-                    "name": "repo",
-                    "required": True,
-                    "updatesForm": True,
-                    "type": "select",
-                    "url": autocomplete_url,
-                    "choices": repo_choices,
-                    "default": default_repo,
-                    "label": "Bitbucket Repository",
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issue_type",
-                    "label": "Issue type",
-                    "default": ISSUE_TYPES[0][0],
-                    "type": "select",
-                    "choices": ISSUE_TYPES,
-                },
-                {
-                    "name": "priority",
-                    "label": "Priority",
-                    "default": PRIORITIES[0][0],
-                    "type": "select",
-                    "choices": PRIORITIES,
-                },
-            ]
-        )
+        return [
+            {
+                "name": "repo",
+                "required": True,
+                "updatesForm": True,
+                "type": "select",
+                "url": autocomplete_url,
+                "choices": repo_choices,
+                "default": default_repo,
+                "label": "Bitbucket Repository",
+            },
+            *fields,
+            {
+                "name": "issue_type",
+                "label": "Issue type",
+                "default": ISSUE_TYPES[0][0],
+                "type": "select",
+                "choices": ISSUE_TYPES,
+            },
+            {
+                "name": "priority",
+                "label": "Priority",
+                "default": PRIORITIES[0][0],
+                "type": "select",
+                "choices": PRIORITIES,
+            },
+        ]
 
     def get_link_issue_config(self, group, **kwargs):
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
@@ -163,4 +158,4 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                     repo=repo, issue_id=issue_num, data={"content": {"raw": comment}}
                 )
             except ApiError as e:
-                self.raise_error(e)
+                raise self.raise_error(e)

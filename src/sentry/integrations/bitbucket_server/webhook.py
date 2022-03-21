@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -52,7 +53,10 @@ class PushEventWebhook(Webhook):
         except Integration.DoesNotExist:
             raise Http404()
 
-        client = installation.get_client()
+        try:
+            client = installation.get_client()
+        except IntegrationError:
+            return HttpResponse(status=400)
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)

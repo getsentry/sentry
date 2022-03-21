@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
@@ -14,8 +14,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 function mountModal({initialData}, onApply, closeModal, widgets = []) {
-  const routerContext = TestStubs.routerContext();
-  return mountWithTheme(
+  return render(
     <DashboardWidgetLibraryModal
       Header={stubEl}
       Footer={stubEl}
@@ -30,8 +29,7 @@ function mountModal({initialData}, onApply, closeModal, widgets = []) {
       })}
       onAddWidget={onApply}
       closeModal={closeModal}
-    />,
-    {context: routerContext}
+    />
   );
 }
 
@@ -55,21 +53,17 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 
-    expect(screen.queryByText('Duration Distribution')).toBeInTheDocument();
-    expect(screen.queryByText('High Throughput Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('LCP by Country')).toBeInTheDocument();
-    expect(screen.queryByText('Miserable Users')).toBeInTheDocument();
-    expect(screen.queryByText('Slow vs Fast Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Latest Unresolved Issues')).toBeInTheDocument();
-    expect(screen.queryByText('Top Unhandled Error Types')).toBeInTheDocument();
-    expect(screen.queryByText('Users Affected by Errors')).toBeInTheDocument();
+    expect(screen.getByText('Duration Distribution')).toBeInTheDocument();
+    expect(screen.getByText('High Throughput Transactions')).toBeInTheDocument();
+    expect(screen.getByText('LCP by Country')).toBeInTheDocument();
+    expect(screen.getByText('Miserable Users')).toBeInTheDocument();
+    expect(screen.getByText('Slow vs. Fast Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Issues For Review')).toBeInTheDocument();
+    expect(screen.getByText('Top Unhandled Error Types')).toBeInTheDocument();
+    expect(screen.getByText('Users Affected by Errors')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: 'Widget Library beta', current: true})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Custom Widget', current: false})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Widget Library new'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Custom Widget'})).toBeInTheDocument();
 
     const button = screen.getByRole('button', {name: 'Custom Widget'});
     userEvent.click(button);
@@ -83,7 +77,16 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     const closeModal = jest.fn();
     container = mountModal({initialData}, mockApply, closeModal, [
       TestStubs.Widget(
-        [{name: '', orderby: '', conditions: 'event.type:error', fields: ['count()']}],
+        [
+          {
+            name: '',
+            orderby: '',
+            conditions: 'event.type:error',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+          },
+        ],
         {
           title: 'Errors',
           interval: '1d',
@@ -110,28 +113,32 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
           {
             conditions: 'event.type:error',
             fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
             name: '',
             orderby: '',
           },
         ],
         title: 'Errors',
       }),
-      {
+      expect.objectContaining({
         displayType: 'top_n',
         id: undefined,
         interval: '5m',
         description: 'Top 5 transactions with the largest volume.',
         queries: [
           {
-            conditions: '!event.type:error',
+            conditions: 'event.type:transaction',
             fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
             name: '',
             orderby: '-count',
           },
         ],
         title: 'High Throughput Transactions',
         widgetType: 'discover',
-      },
+      }),
     ]);
     expect(closeModal).toHaveBeenCalledTimes(1);
   });

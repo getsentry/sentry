@@ -1,9 +1,9 @@
 from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import patch
 
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.models import (
     Activity,
@@ -214,17 +214,15 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert "http://" in result
         assert f"{group.organization.slug}/issues/{group.id}" in result
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited",
-        autospec=True,
-        return_value=True,
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url, sort_by="date", limit=1)
-        assert response.status_code == 429
+        with freeze_time("2000-01-01"):
+            for i in range(5):
+                self.client.get(url, sort_by="date", limit=1)
+            response = self.client.get(url, sort_by="date", limit=1)
+            assert response.status_code == 429
 
 
 class GroupUpdateTest(APITestCase):
@@ -509,17 +507,15 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited",
-        autospec=True,
-        return_value=True,
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.put(url, sort_by="date", limit=1)
-        assert response.status_code == 429
+        with freeze_time("2000-01-01"):
+            for i in range(10):
+                self.client.put(url, sort_by="date", limit=1)
+            response = self.client.put(url, sort_by="date", limit=1)
+            assert response.status_code == 429
 
 
 class GroupDeleteTest(APITestCase):
@@ -553,17 +549,15 @@ class GroupDeleteTest(APITestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-    @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited",
-        autospec=True,
-        return_value=True,
-    )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.delete(url, sort_by="date", limit=1)
-        assert response.status_code == 429
+        with freeze_time("2000-01-01"):
+            for i in range(10):
+                self.client.delete(url, sort_by="date", limit=1)
+            response = self.client.delete(url, sort_by="date", limit=1)
+            assert response.status_code == 429
 
     def test_collapse_release(self):
         self.login_as(user=self.user)

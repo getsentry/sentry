@@ -7,7 +7,7 @@ import codesworth from 'sentry-images/spot/codesworth.svg';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import CommitRow from 'sentry/components/commitRow';
+import {CommitRow} from 'sentry/components/commitRow';
 import {DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -86,10 +86,10 @@ type ClickPayload = {
 };
 
 type Props = {
+  api: Client;
   event: Event;
   organization: Organization;
   project: Project;
-  api: Client;
 };
 
 type State = {

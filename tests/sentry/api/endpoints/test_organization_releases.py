@@ -818,26 +818,17 @@ class OrganizationReleasesStatsTest(APITestCase):
         release1.add_project(project1)
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
 
-        with self.feature({"organizations:release-adoption-stage": False}):
-            response = self.client.get(f"{url}?adoptionStages=1", format="json")
+        response = self.client.get(url, format="json")
 
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            # Not returned because we don't have the feature.
-            assert "adoptionStages" not in response.data[0]
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        # Not returned because we don't have `adoptionStages=1`.
+        assert "adoptionStages" not in response.data[0]
+        response = self.client.get(f"{url}?adoptionStages=1", format="json")
 
-        with self.feature("organizations:release-adoption-stage"):
-            response = self.client.get(url, format="json")
-
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            # Not returned because we don't have `adoptionStages=1`.
-            assert "adoptionStages" not in response.data[0]
-            response = self.client.get(f"{url}?adoptionStages=1", format="json")
-
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            assert "adoptionStages" in response.data[0]
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert "adoptionStages" in response.data[0]
 
     def test_semver_filter(self):
         self.login_as(user=self.user)

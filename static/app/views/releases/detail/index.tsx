@@ -10,7 +10,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo, IconWarning} from 'sentry/icons';
@@ -39,13 +39,13 @@ import {getReleaseBounds, ReleaseBounds} from '../utils';
 import ReleaseHeader from './header/releaseHeader';
 
 type ReleaseContextType = {
-  release: ReleaseWithHealth;
-  project: Required<ReleaseProject>;
   deploys: Deploy[];
-  releaseMeta: ReleaseMeta;
-  refetchData: () => void;
   hasHealthData: boolean;
+  project: Required<ReleaseProject>;
+  refetchData: () => void;
+  release: ReleaseWithHealth;
   releaseBounds: ReleaseBounds;
+  releaseMeta: ReleaseMeta;
 };
 const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
@@ -56,13 +56,13 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  selection: PageFilters;
   releaseMeta: ReleaseMeta;
+  selection: PageFilters;
 };
 
 type State = {
-  release: ReleaseWithHealth;
   deploys: Deploy[];
+  release: ReleaseWithHealth;
   sessions: SessionApiResponse | null;
 } & AsyncView['state'];
 
@@ -121,7 +121,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         {
           query: {
             adoptionStages: 1,
-            ...getParams(this.pickLocationQuery(location)),
+            ...normalizeDateTimeParams(this.pickLocationQuery(location)),
           },
         },
       ],

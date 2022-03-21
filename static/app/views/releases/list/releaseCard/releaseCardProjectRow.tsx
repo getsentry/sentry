@@ -44,16 +44,16 @@ import {
 } from '.';
 
 type Props = {
+  activeDisplay: ReleasesDisplayOption;
+  getHealthData: ReleasesRequestRenderProps['getHealthData'];
   index: number;
+  isTopRelease: boolean;
+  location: Location;
   organization: Organization;
   project: ReleaseProject;
-  location: Location;
-  getHealthData: ReleasesRequestRenderProps['getHealthData'];
   releaseVersion: string;
-  activeDisplay: ReleasesDisplayOption;
   showPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-  isTopRelease: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
 

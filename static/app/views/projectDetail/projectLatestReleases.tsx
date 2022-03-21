@@ -27,10 +27,10 @@ import {didProjectOrEnvironmentChange} from './utils';
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
+  location: Location;
   organization: Organization;
   projectSlug: string;
-  location: Location;
-  isProjectStabilized: boolean;
   projectId?: string;
 };
 

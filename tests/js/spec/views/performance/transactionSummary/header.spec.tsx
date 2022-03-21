@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -46,6 +47,32 @@ function initializeData(opts?: InitialOpts) {
   };
 }
 
+const WrappedComponent = ({
+  hasWebVitals,
+  platform,
+  features,
+}: {
+  hasWebVitals: 'yes' | 'no' | 'maybe';
+} & InitialOpts) => {
+  const {project, organization, router, eventView} = initializeData({features, platform});
+
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals={hasWebVitals}
+        handleIncompatibleQuery={() => {}}
+      />
+    </OrganizationContext.Provider>
+  );
+};
+
 describe('Performance > Transaction Summary Header', function () {
   let wrapper;
 
@@ -55,21 +82,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when yes', async function () {
-    const {project, organization, router, eventView} = initializeData();
-
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="yes"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="yes" />);
 
     await tick();
     wrapper.update();
@@ -78,21 +91,7 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should not render web vitals tab when no', async function () {
-    const {project, organization, router, eventView} = initializeData();
-
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="no"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="no" />);
 
     await tick();
     wrapper.update();
@@ -101,22 +100,8 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render web vitals tab when maybe and is frontend platform', async function () {
-    const {project, organization, router, eventView} = initializeData({
-      platform: 'javascript',
-    });
-
     wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
+      <WrappedComponent hasWebVitals="maybe" platform="javascript" />
     );
 
     await tick();
@@ -131,21 +116,7 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: true},
     });
 
-    const {project, organization, router, eventView} = initializeData();
-
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
     await tick();
     wrapper.update();
@@ -159,21 +130,7 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: false},
     });
 
-    const {project, organization, router, eventView} = initializeData();
-
-    wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={() => {}}
-      />
-    );
+    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
 
     await tick();
     wrapper.update();
@@ -182,21 +139,10 @@ describe('Performance > Transaction Summary Header', function () {
   });
 
   it('should render spans tab with feature', async function () {
-    const {project, organization, router, eventView} = initializeData({
-      features: ['performance-suspect-spans-view'],
-    });
-
     wrapper = mountWithTheme(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
+      <WrappedComponent
         hasWebVitals="yes"
-        handleIncompatibleQuery={() => {}}
+        features={['performance-suspect-spans-view']}
       />
     );
 

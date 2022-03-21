@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -51,6 +51,15 @@ describe('Dashboards > Create', function () {
         method: 'POST',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/users/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {data: []},
+      });
     });
 
     afterEach(function () {
@@ -61,13 +70,15 @@ describe('Dashboards > Create', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
-        // Dashboard detail requires the number of widgets returned to match
-        // the number of layouts, which is 1 in this case
         // @ts-ignore
-        body: TestStubs.Dashboard([{}], {id: '1', title: 'Custom Errors'}),
+        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
+
+      mountGlobalModal(initialData.routerContext);
+
       const widgetTitle = 'Widget Title';
-      mountWithTheme(
+
+      render(
         <CreateDashboard
           organization={initialData.organization}
           params={{orgId: 'org-slug'}}
@@ -77,16 +88,21 @@ describe('Dashboards > Create', function () {
         />,
         {context: initialData.routerContext}
       );
+
       await act(async () => {
         // Wrap with act because GlobalSelectionHeaderContainer triggers update
         await tick();
       });
-      screen.getByTestId('widget-add').click();
 
-      mountGlobalModal();
+      userEvent.click(screen.getByTestId('widget-add'));
+
+      await act(async () => {
+        // Flakeyness with global modal
+        await tick();
+      });
 
       // Add a custom widget to the dashboard
-      (await screen.findByText('Custom Widget')).click();
+      userEvent.click(await screen.findByText('Custom Widget'));
       userEvent.type(await screen.findByTestId('widget-title-input'), widgetTitle);
       screen.getByText('Save').click();
 

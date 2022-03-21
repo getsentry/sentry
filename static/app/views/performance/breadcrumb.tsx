@@ -4,6 +4,7 @@ import {Location, LocationDescriptor} from 'history';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';
@@ -16,23 +17,32 @@ import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
+  eventSlug?: string;
+  spanSlug?: SpanSlug;
+  tab?: Tab;
+  traceSlug?: string;
   transaction?: {
-    project: string;
     name: string;
+    project: string;
   };
   vitalName?: string;
-  eventSlug?: string;
-  traceSlug?: string;
-  tab?: Tab;
 };
 
 class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {organization, location, transaction, vitalName, eventSlug, traceSlug, tab} =
-      this.props;
+    const {
+      organization,
+      location,
+      transaction,
+      vitalName,
+      spanSlug,
+      eventSlug,
+      traceSlug,
+      tab,
+    } = this.props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -118,7 +128,12 @@ class Breadcrumb extends Component<Props> {
       }
     }
 
-    if (transaction && eventSlug) {
+    if (transaction && spanSlug) {
+      crumbs.push({
+        to: '',
+        label: t('Span Summary'),
+      });
+    } else if (transaction && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),

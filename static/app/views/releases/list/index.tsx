@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -16,7 +15,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -437,15 +435,13 @@ class ReleasesList extends AsyncView<Props, State> {
           return (
             <Fragment>
               {singleProjectSelected && this.projectHasSessions && isMobileProject && (
-                <Feature features={['organizations:release-adoption-chart']}>
-                  <ReleasesAdoptionChart
-                    organization={organization}
-                    selection={selection}
-                    location={location}
-                    router={router}
-                    activeDisplay={activeDisplay}
-                  />
-                </Feature>
+                <ReleasesAdoptionChart
+                  organization={organization}
+                  selection={selection}
+                  location={location}
+                  router={router}
+                  activeDisplay={activeDisplay}
+                />
               )}
 
               {releases.map((release, index) => (
@@ -479,14 +475,12 @@ class ReleasesList extends AsyncView<Props, State> {
     const activeStatus = this.getStatus();
     const activeDisplay = this.getDisplay();
 
-    const hasSemver = organization.features.includes('semver');
-    const hasReleaseStages = organization.features.includes('release-adoption-stage');
     const hasAnyMobileProject = selection.projects
       .map(id => `${id}`)
       .map(ProjectsStore.getById)
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
-      hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
+      hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
 
     return (
@@ -505,43 +499,35 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              {hasSemver ? (
+              <GuideAnchor
+                target="releases_search"
+                position="bottom"
+                disabled={!hasReleasesSetup}
+              >
                 <GuideAnchor
-                  target="releases_search"
+                  target="release_stages"
                   position="bottom"
-                  disabled={!hasReleasesSetup}
+                  disabled={!showReleaseAdoptionStages}
                 >
-                  <GuideAnchor
-                    target="release_stages"
-                    position="bottom"
-                    disabled={!showReleaseAdoptionStages}
-                  >
-                    <SmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      maxSearchItems={5}
-                      hasRecentSearches={false}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                    />
-                  </GuideAnchor>
+                  <SmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    maxSearchItems={5}
+                    hasRecentSearches={false}
+                    supportedTags={{
+                      ...SEMVER_TAGS,
+                      release: {
+                        key: 'release',
+                        name: 'release',
+                      },
+                    }}
+                    supportedTagType={ItemType.PROPERTY}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
                 </GuideAnchor>
-              ) : (
-                <SearchBar
-                  placeholder={t('Search')}
-                  onSearch={this.handleSearch}
-                  query={this.getQuery()}
-                />
-              )}
+              </GuideAnchor>
               <DropdownsWrapper>
                 <ReleasesStatusOptions
                   selected={activeStatus}
@@ -552,7 +538,6 @@ class ReleasesList extends AsyncView<Props, State> {
                   selectedDisplay={activeDisplay}
                   onSelect={this.handleSortBy}
                   environments={selection.environments}
-                  organization={organization}
                 />
                 <ReleasesDisplayOptions
                   selected={activeDisplay}

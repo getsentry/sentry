@@ -10,11 +10,11 @@ type UpdateData = {
 };
 
 type SettingsBreadcrumbStoreInterface = {
-  init(): void;
-  reset(): void;
-  onUpdateRouteMap(update: UpdateData): void;
-  onTrimMappings(routes: PlainRoute<any>[]): void;
   getPathMap(): Internals['pathMap'];
+  init(): void;
+  onTrimMappings(routes: PlainRoute<any>[]): void;
+  onUpdateRouteMap(update: UpdateData): void;
+  reset(): void;
 };
 
 type Internals = {

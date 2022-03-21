@@ -4,7 +4,7 @@ import round from 'lodash/round';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
 import {IconArrow} from 'sentry/icons';
@@ -19,9 +19,9 @@ import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
 type Props = AsyncComponent['props'] & {
+  isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
-  isProjectStabilized: boolean;
   hasTransactions?: boolean;
   query?: string;
 };
@@ -62,7 +62,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       [
         'currentApdex',
         `/organizations/${organization.slug}/eventsv2/`,
-        {query: {...commonQuery, ...getParams(datetime)}},
+        {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
       ],
     ];
 
@@ -116,7 +116,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW);
+    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');

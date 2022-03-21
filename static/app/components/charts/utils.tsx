@@ -156,7 +156,7 @@ const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
 
 export function canIncludePreviousPeriod(
   includePrevious: boolean | undefined,
-  period: string | undefined
+  period: string | null | undefined
 ) {
   if (!includePrevious) {
     return false;
@@ -185,20 +185,34 @@ export function shouldFetchPreviousPeriod({
  * Generates a series selection based on the query parameters defined by the location.
  */
 export function getSeriesSelection(
-  location: Location,
-  parameter = 'unselectedSeries'
+  location: Location
 ): LegendComponentOption['selected'] {
-  const unselectedSeries = decodeList(location?.query[parameter]);
+  const unselectedSeries = decodeList(location?.query.unselectedSeries);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
   }, {});
 }
 
+function isSingleSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats
+): data is EventsStats {
+  return (
+    (defined(data.data) || defined(data.totals)) &&
+    defined(data.start) &&
+    defined(data.end)
+  );
+}
+
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined
+  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  isTopN?: boolean
 ): data is MultiSeriesEventsStats {
-  return defined(data) && data.data === undefined && data.totals === undefined;
+  return (
+    defined(data) &&
+    ((data.data === undefined && data.totals === undefined) ||
+      (defined(isTopN) && isTopN && defined(data) && !!!isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
+  );
 }
 
 // If dimension is a number convert it to pixels, otherwise use dimension
@@ -262,15 +276,6 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   };
 };
 
-// This is not in a react store/context because the tooltips are rendered as plain html
-let tooltipArrowLeft = '50%';
-export function setTooltipPosition(arrowLeft: string) {
-  tooltipArrowLeft = arrowLeft;
-  return tooltipArrowLeft;
-}
-
-export function getTooltipArrow(): string {
-  return `<div class="tooltip-arrow" ${
-    tooltipArrowLeft ? `style="left: ${tooltipArrowLeft}"` : ''
-  }"></div>`;
-}
+export const getPreviousSeriesName = (seriesName: string) => {
+  return `previous ${seriesName}`;
+};

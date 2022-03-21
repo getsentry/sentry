@@ -1,9 +1,9 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 
 function renderComponent(avatarUsersSixUsers: AvatarList['props']['users']) {
-  return mountWithTheme(<AvatarList users={avatarUsersSixUsers} />);
+  return render(<AvatarList users={avatarUsersSixUsers} />);
 }
 
 describe('AvatarList', () => {

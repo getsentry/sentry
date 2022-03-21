@@ -4,7 +4,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models.sentryapp import VALID_EVENTS
+from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
 
 BUFFER_SIZE = 100

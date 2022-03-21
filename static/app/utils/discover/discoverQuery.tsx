@@ -10,8 +10,8 @@ import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  id: string;
   [key: string]: React.ReactText;
+  id: string;
 };
 
 /**

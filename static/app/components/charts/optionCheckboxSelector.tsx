@@ -20,9 +20,9 @@ const defaultProps = {
 };
 
 type Props = {
+  onChange: (value: string[]) => void;
   options: (SelectValue<string> & {checkboxHidden?: boolean})[];
   selected: string[];
-  onChange: (value: string[]) => void;
   title: string;
 } & typeof defaultProps;
 
@@ -196,7 +196,6 @@ const MenuContainer = styled('div')`
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
-  font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 

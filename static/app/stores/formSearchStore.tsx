@@ -1,26 +1,26 @@
 import Reflux from 'reflux';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/type';
 
 /**
  * Processed form field metadata.
  */
 export type FormSearchField = {
-  route: string;
-  title: React.ReactNode;
   description: React.ReactNode;
   field: FieldObject;
+  route: string;
+  title: React.ReactNode;
 };
 
 type StoreInterface = {
-  reset(): void;
   get(): Internals['searchMap'];
+  reset(): void;
 };
 
 type Internals = {
-  searchMap: null | FormSearchField[];
   onLoadSearchMap: (searchMap: null | FormSearchField[]) => void;
+  searchMap: null | FormSearchField[];
 };
 
 /**

@@ -86,8 +86,18 @@ class RedisBufferTest(TestCase):
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr", mock.Mock())
+    def test_get(self):
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        columns = ["times_seen"]
+        filters = {"pk": 1}
+        # If the value doesn't exist we just assume 0
+        assert self.buf.get(model, columns, filters=filters) == {"times_seen": 0}
+        self.buf.incr(model, {"times_seen": 1}, filters)
+        assert self.buf.get(model, columns, filters=filters) == {"times_seen": 1}
+        self.buf.incr(model, {"times_seen": 5}, filters)
+        assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
+
     def test_incr_saves_to_redis(self):
         now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
         client = self.buf.cluster.get_routing_client()
@@ -95,8 +105,9 @@ class RedisBufferTest(TestCase):
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
         filters = {"pk": 1, "datetime": now}
+        key = self.buf._make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-        result = client.hgetall("foo")
+        result = client.hgetall(key)
         # Force keys to strings
         result = {force_text(k): v for k, v in result.items()}
 
@@ -107,9 +118,9 @@ class RedisBufferTest(TestCase):
         assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == [b"foo"]
+        assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-        result = client.hgetall("foo")
+        result = client.hgetall(key)
         # Force keys to strings
         result = {force_text(k): v for k, v in result.items()}
         f = result.pop("f")
@@ -119,7 +130,7 @@ class RedisBufferTest(TestCase):
         assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == [b"foo"]
+        assert pending == [key.encode("utf-8")]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")

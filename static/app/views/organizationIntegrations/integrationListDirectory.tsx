@@ -29,7 +29,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
@@ -60,24 +60,24 @@ const fuseOptions = {
 };
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
-  organization: Organization;
   hideHeader: boolean;
+  organization: Organization;
 };
 
 type State = {
-  integrations: Integration[] | null;
-  plugins: PluginWithProjectList[] | null;
   appInstalls: SentryAppInstallation[] | null;
-  orgOwnedApps: SentryApp[] | null;
-  publishedApps: SentryApp[] | null;
-  docIntegrations: DocIntegration[] | null;
   config: {providers: IntegrationProvider[]} | null;
-  extraApp?: SentryApp;
-  searchInput: string;
-  list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
+  docIntegrations: DocIntegration[] | null;
+  integrations: Integration[] | null;
+  list: AppOrProviderOrPlugin[];
+  orgOwnedApps: SentryApp[] | null;
+  plugins: PluginWithProjectList[] | null;
+  publishedApps: SentryApp[] | null;
+  searchInput: string;
   selectedCategory: string;
-  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
+  extraApp?: SentryApp;
+  fuzzy?: Fuse<AppOrProviderOrPlugin>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;

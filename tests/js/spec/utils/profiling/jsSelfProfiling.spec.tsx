@@ -1,4 +1,5 @@
 import {resolveJSSelfProfilingStack} from 'sentry/utils/profiling/jsSelfProfiling';
+import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 const toStackNames = (stack: ReadonlyArray<JSSelfProfiling.Frame>): string[] => {
   return stack.map(f => f.name);
@@ -13,7 +14,7 @@ describe('jsSelfProfiling', () => {
         samples: [{stackId: undefined, timestamp: 0}],
         stacks: [],
       };
-      expect(resolveJSSelfProfilingStack(trace, undefined)).toEqual([]);
+      expect(resolveJSSelfProfilingStack(trace, undefined, {})).toEqual([]);
     });
 
     it('when stackId is set', () => {
@@ -37,12 +38,11 @@ describe('jsSelfProfiling', () => {
           {frameId: 5, parentId: 4},
         ],
       };
-      expect(toStackNames(resolveJSSelfProfilingStack(trace, 5))).toEqual([
-        'baz',
-        'foobar',
-        'foobarbaz',
-        'foobarbazfoo',
-      ]);
+      expect(
+        toStackNames(
+          resolveJSSelfProfilingStack(trace, 5, createFrameIndex(trace.frames))
+        )
+      ).toEqual(['baz', 'foobar', 'foobarbaz', 'foobarbazfoo']);
     });
 
     it('when marker is present on the stack', () => {
@@ -70,13 +70,11 @@ describe('jsSelfProfiling', () => {
       // I'm not sure I like passing the marker, the reason it's like this is that we usually loop through the samples and have the marker as
       // we execute resolveJSSelfProfilingStack, but I'm not sure we should do that and instead augment the resolved stack outside of the loop.
       // The nice thing about it is that it centralizes the stack logic and makes it easier to test.
-      expect(toStackNames(resolveJSSelfProfilingStack(trace, 5, 'gc'))).toEqual([
-        'baz',
-        'foobar',
-        'foobarbaz',
-        'foobarbazfoo',
-        'Garbage Collection',
-      ]);
+      expect(
+        toStackNames(
+          resolveJSSelfProfilingStack(trace, 5, createFrameIndex(trace.frames), 'gc')
+        )
+      ).toEqual(['baz', 'foobar', 'foobarbaz', 'foobarbazfoo', 'Garbage Collection']);
     });
 
     it('when stack is empty, but browser was performing other operations', () => {
@@ -87,9 +85,11 @@ describe('jsSelfProfiling', () => {
         stacks: [{frameId: 0, parentId: undefined}],
       };
 
-      expect(toStackNames(resolveJSSelfProfilingStack(trace, 0, 'paint'))).toEqual([
-        'Paint',
-      ]);
+      expect(
+        toStackNames(
+          resolveJSSelfProfilingStack(trace, 0, createFrameIndex(trace.frames), 'paint')
+        )
+      ).toEqual(['Paint']);
     });
   });
 });

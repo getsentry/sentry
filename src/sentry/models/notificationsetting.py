@@ -73,6 +73,11 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
             (NotificationSettingTypes.APPROVAL, "approval"),
+            (NotificationSettingTypes.QUOTA, "quota"),
+            (NotificationSettingTypes.QUOTA_ERRORS, "quotaErrors"),
+            (NotificationSettingTypes.QUOTA_TRANSACTIONS, "quotaTransactions"),
+            (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttacments"),
+            (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
         ),
         null=False,
     )

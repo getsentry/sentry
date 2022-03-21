@@ -14,10 +14,18 @@ export enum ExperimentType {
  */
 export type ExperimentConfig = {
   /**
+   * Possible assignment values of the experiment
+   */
+  assignments: ReadonlyArray<string | number | typeof unassignedValue>;
+  /**
    * The name of the organization. This maps to the key exposed by the
    * organization manager on the backend.
    */
   key: string;
+  /**
+   * The parameter used to access the assignment value
+   */
+  parameter: string | 'variant' | 'exposed';
   /**
    * The type of experiment. This configures what group the experiment is
    * performed on.
@@ -26,14 +34,6 @@ export type ExperimentConfig = {
    * A User experiment assigns a single user.
    */
   type: ExperimentType;
-  /**
-   * The parameter used to access the assignment value
-   */
-  parameter: string | 'variant' | 'exposed';
-  /**
-   * Possible assignment values of the experiment
-   */
-  assignments: ReadonlyArray<string | number | typeof unassignedValue>;
 };
 
 // NOTE: The code below is mostly type mechanics to provide utility types

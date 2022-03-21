@@ -85,7 +85,7 @@ describe('Events > SearchBar', function () {
     setQuery(wrapper, 'fcp');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('fcp');
     expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
@@ -94,18 +94,14 @@ describe('Events > SearchBar', function () {
   });
 
   it('autocompletes release semver queries', async function () {
-    const initializationObj = initializeOrg({
-      organization: {
-        features: ['semver'],
-      },
-    });
+    const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
     setQuery(wrapper, 'release.');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('release.');
     expect(wrapper.find('SearchDropdown Description').first().text()).toEqual(
@@ -119,13 +115,13 @@ describe('Events > SearchBar', function () {
     setQuery(wrapper, 'has:');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
     expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual('gpu');
 
     selectNthAutocompleteItem(wrapper, 2);
-    await wrapper.update();
+    wrapper.update();
     // the trailing space is important here as without it, autocomplete suggestions will
     // try to complete `has:gpu` thinking the token has not ended yet
     expect(wrapper.find('textarea').prop('value')).toBe('has:gpu ');
@@ -144,7 +140,7 @@ describe('Events > SearchBar', function () {
     );
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
     expect(wrapper.find('SearchDropdown Description').at(2).text()).toEqual(
@@ -152,7 +148,7 @@ describe('Events > SearchBar', function () {
     );
 
     selectNthAutocompleteItem(wrapper, 2);
-    await wrapper.update();
+    wrapper.update();
     expect(wrapper.find('textarea').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
   });
 
@@ -164,11 +160,11 @@ describe('Events > SearchBar', function () {
       options
     );
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, 'gpu:');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
@@ -191,12 +187,12 @@ describe('Events > SearchBar', function () {
   it('filters dropdown to accomodate for num characters left in query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
     wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
     expect(wrapper.find('SearchDropdown Description')).toEqual({});
@@ -208,12 +204,12 @@ describe('Events > SearchBar', function () {
   it('returns zero dropdown suggestions if out of characters', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={2} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
     wrapper.setState;
 
     setQuery(wrapper, 'g');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('g');
     expect(wrapper.find('SearchDropdown Description')).toEqual({});
@@ -231,11 +227,11 @@ describe('Events > SearchBar', function () {
   it('does not requery for event field values if query does not change', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, 'gpu:');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     // Click will fire "updateAutocompleteItems"
     wrapper.find('textarea').simulate('click');
@@ -248,19 +244,19 @@ describe('Events > SearchBar', function () {
   it('removes highlight when query is empty', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, 'gpu');
 
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('Description strong').text()).toBe('gpu');
 
     // Should have nothing highlighted
     setQuery(wrapper, '');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(wrapper.find('Description strong')).toHaveLength(0);
   });
@@ -268,11 +264,11 @@ describe('Events > SearchBar', function () {
   it('ignores negation ("!") at the beginning of search term', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, '!gp');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(
       wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
@@ -285,11 +281,11 @@ describe('Events > SearchBar', function () {
   it('ignores wildcard ("*") at the beginning of tag value query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, '!gpu:*');
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
@@ -309,7 +305,7 @@ describe('Events > SearchBar', function () {
 
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     // Do 3 searches, the first will find nothing, so no more requests should be made
     setQuery(wrapper, 'browser:Nothing');
@@ -332,7 +328,7 @@ describe('Events > SearchBar', function () {
 
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();
-    await wrapper.update();
+    wrapper.update();
 
     setQuery(wrapper, 'browser:Nothing');
     setQuery(wrapper, 'browser:Something');

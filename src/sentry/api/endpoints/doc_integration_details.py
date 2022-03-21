@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
-from sentry.models.integration import DocIntegration
-from sentry.models.integrationfeature import IntegrationFeature, IntegrationTypes
+from sentry.models import DocIntegration, IntegrationFeature
+from sentry.models.integrations.integration_feature import IntegrationTypes
 
 logger = logging.getLogger(__name__)
 

@@ -18,15 +18,19 @@ const installText = (features: string[], featureName: string): string =>
 
 type Props = {
   /**
+   * The English name of the feature. This is used in the comment that will
+   * be outputted above the example line of code to enable the feature.
+   */
+  featureName: string;
+  /**
    * The feature flag keys that should be displayed in the code example for
    * enabling the feature.
    */
   features: string[];
   /**
-   * The English name of the feature. This is used in the comment that will
-   * be outputted above the example line of code to enable the feature.
+   * A custom message to display. Defaults to a generic disabled message.
    */
-  featureName: string;
+  message: string;
   /**
    * Render the disabled message within a warning Alert. A custom Alert
    * component may be provided.
@@ -39,10 +43,6 @@ type Props = {
    * Do not show the help toggle. The description will always be rendered.
    */
   hideHelpToggle?: boolean;
-  /**
-   * A custom message to display. Defaults to a generic disabled message.
-   */
-  message: string;
 };
 
 type State = {
@@ -147,7 +147,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning" icon={<IconLock size="xs" />}>
+      <AlertComponent type="warning" icon={<IconLock size="xs" isSolid />}>
         <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
       </AlertComponent>
     );

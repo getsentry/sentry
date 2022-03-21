@@ -3,13 +3,13 @@ import Reflux from 'reflux';
 import {User} from 'sentry/types';
 
 type MemberListStoreInterface = {
-  state: User[];
-  loaded: boolean;
-  loadInitialData(items: User[]): void;
-  isLoaded(): boolean;
-  getById(id: string): User | undefined;
-  getByEmail(email: string): User | undefined;
   getAll(): User[];
+  getByEmail(email: string): User | undefined;
+  getById(id: string): User | undefined;
+  isLoaded(): boolean;
+  loadInitialData(items: User[]): void;
+  loaded: boolean;
+  state: User[];
 };
 
 const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {

@@ -11,6 +11,7 @@ import {
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
+import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -43,10 +44,10 @@ import SubscribeAction from './subscribeAction';
 
 type Props = {
   api: Client;
-  group: Group;
-  project: Project;
-  organization: Organization;
   disabled: boolean;
+  group: Group;
+  organization: Organization;
+  project: Project;
   event?: Event;
 };
 
@@ -267,13 +268,17 @@ class Actions extends React.Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <DeleteAction
-          disabled={disabled}
-          organization={organization}
-          project={project}
-          onDelete={this.onDelete}
-          onDiscard={this.onDiscard}
-        />
+        <Access organization={organization} access={['event:admin']}>
+          {({hasAccess}) => (
+            <DeleteAction
+              disabled={disabled || !hasAccess}
+              organization={organization}
+              project={project}
+              onDelete={this.onDelete}
+              onDiscard={this.onDiscard}
+            />
+          )}
+        </Access>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -308,7 +313,7 @@ class Actions extends React.Component<Props, State> {
           isActive={group.isBookmarked}
           title={bookmarkTitle}
           tooltipProps={{delay: 300}}
-          label={bookmarkTitle}
+          aria-label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
           icon={<IconStar isSolid size="xs" />}
         />
@@ -324,7 +329,7 @@ class Actions extends React.Component<Props, State> {
             disabled={disabled}
             icon={<IconRefresh size="xs" />}
             title={t('Reprocess this issue')}
-            label={t('Reprocess this issue')}
+            aria-label={t('Reprocess this issue')}
             onClick={this.handleClick(disabled, this.onReprocessEvent)}
           />
         )}

@@ -7,9 +7,11 @@ import * as globalActions from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -56,13 +58,13 @@ describe('GlobalSelectionHeader', function () {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
-    jest.spyOn(globalActions, 'updateParams');
-    jest.spyOn(globalActions, 'replaceParams');
   });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(organization.projects);
+    OrganizationActions.update(organization);
+    OrganizationsStore.add(organization);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -73,16 +75,7 @@ describe('GlobalSelectionHeader', function () {
 
   afterEach(function () {
     wrapper.unmount();
-    [
-      globalActions.updateDateTime,
-      globalActions.updateProjects,
-      globalActions.updateEnvironments,
-      globalActions.updateParams,
-      globalActions.replaceParams,
-      router.push,
-      router.replace,
-      getItem,
-    ].forEach(mock => mock.mockClear());
+    jest.clearAllMocks();
     PageFiltersStore.reset();
   });
 
@@ -144,6 +137,57 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
+  it('can change environments with a project selected', async function () {
+    wrapper = mountWithTheme(
+      <PageFiltersContainer
+        organization={organization}
+        projects={organization.projects}
+      />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    mockRouterPush(wrapper, router);
+
+    // Open dropdown and select one project
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('MultipleProjectSelector Content').text()).toBe('project-3');
+
+    // Select environment
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(0)
+      .simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    await tick();
+
+    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('prod');
+
+    expect(PageFiltersStore.getState().selection).toEqual({
+      datetime: {
+        period: '14d',
+        utc: null,
+        start: null,
+        end: null,
+      },
+      environments: ['prod'],
+      projects: [3],
+    });
+    const query = wrapper.prop('location').query;
+    expect(query).toEqual({
+      environment: 'prod',
+      project: '3',
+    });
+  });
+
   it('updates environments when switching projects', async function () {
     wrapper = mountWithTheme(
       <PageFiltersContainer
@@ -160,8 +204,8 @@ describe('GlobalSelectionHeader', function () {
 
     // Open dropdown and select both projects
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(0).simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -172,7 +216,10 @@ describe('GlobalSelectionHeader', function () {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(1).simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector MultiselectCheckbox')
+      .at(1)
+      .simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -196,7 +243,7 @@ describe('GlobalSelectionHeader', function () {
 
     // Now change projects, first project has no environments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
+    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
@@ -227,7 +274,7 @@ describe('GlobalSelectionHeader', function () {
         {id: 2, slug: 'prod-project', environments: ['prod']},
       ],
       router: {
-        location: {query: {project: [1]}},
+        location: {query: {project: ['1']}},
         params: {orgId: 'org-slug'},
       },
     });
@@ -263,8 +310,9 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -291,8 +339,9 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -318,8 +367,9 @@ describe('GlobalSelectionHeader', function () {
     await tick();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '14d',
@@ -364,8 +414,9 @@ describe('GlobalSelectionHeader', function () {
     expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
-      organization,
       isReady: true,
+      desyncedFilters: new Set(),
+      pinnedFilters: new Set(),
       selection: {
         datetime: {
           period: '7d',
@@ -408,7 +459,7 @@ describe('GlobalSelectionHeader', function () {
       expect.objectContaining({
         query: {
           environment: ['staging'],
-          project: [3],
+          project: ['3'],
         },
       })
     );
@@ -427,7 +478,7 @@ describe('GlobalSelectionHeader', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {query: {project: [1, 2]}},
+        location: {query: {project: ['1', '2']}},
       },
     });
 
@@ -453,7 +504,7 @@ describe('GlobalSelectionHeader', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {query: {project: [1, 2]}},
+        location: {query: {project: ['1', '2']}},
       },
     });
 
@@ -490,6 +541,56 @@ describe('GlobalSelectionHeader', function () {
 
     // Router does not update because params have not changed
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
+  });
+
+  it('updates store with desynced values when url params do not match local storage', async function () {
+    getItem.mockImplementation(() =>
+      JSON.stringify({
+        projects: [1],
+        pinnedFilters: ['projects'],
+      })
+    );
+
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['global-views', 'selection-filters-v2'],
+      },
+      router: {
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
+        location: {
+          query: {project: ['2']},
+          // TODO: This is only temporary while selection-filters-v2 is limited
+          // to certan pages
+          pathname: '/organizations/org-slug/issues/',
+        },
+      },
+    });
+
+    OrganizationActions.update(initializationObj.organization);
+
+    wrapper = mountWithTheme(
+      <OrganizationContext.Provider value={initializationObj.organization}>
+        <PageFiltersContainer
+          organization={initializationObj.organization}
+          hideGlobalHeader
+        />
+      </OrganizationContext.Provider>,
+
+      initializationObj.routerContext
+    );
+
+    // reflux tick
+    await tick();
+    expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
+
+    // Wait for desynced filters to update
+    await tick();
+    expect(PageFiltersStore.getState().desyncedFilters).toEqual(new Set(['projects']));
+
+    wrapper.update();
+    expect(wrapper.find('DesyncedFilterAlert')).toHaveLength(1);
   });
 
   /**
@@ -529,7 +630,7 @@ describe('GlobalSelectionHeader', function () {
           // we need this to be set to make sure org in context is same as
           // current org in URL
           params: {orgId: 'org-slug'},
-          location: {query: {project: [1]}},
+          location: {query: {project: ['1']}},
         },
       });
 
@@ -577,7 +678,7 @@ describe('GlobalSelectionHeader', function () {
 
       expect(initialData.router.replace).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          query: {environment: [], project: [123]},
+          query: {environment: [], project: ['123']},
         })
       );
     });
@@ -588,7 +689,7 @@ describe('GlobalSelectionHeader', function () {
           // we need this to be set to make sure org in context is same as
           // current org in URL
           params: {orgId: 'org-slug'},
-          location: {query: {project: [1, 2]}},
+          location: {query: {project: ['1', '2']}},
         },
       });
 
@@ -599,7 +700,7 @@ describe('GlobalSelectionHeader', function () {
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {environment: [], project: [1]},
+          query: {environment: [], project: ['1']},
         })
       );
     });
@@ -625,27 +726,28 @@ describe('GlobalSelectionHeader', function () {
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {environment: [], project: [3]},
+          query: {environment: [], project: ['3']},
         })
       );
     });
   });
 
   describe('forceProject selection mode', function () {
+    const initialData = initializeOrg({
+      organization: {features: ['global-views']},
+      projects: [
+        {id: 1, slug: 'staging-project', environments: ['staging']},
+        {id: 2, slug: 'prod-project', environments: ['prod']},
+      ],
+      router: {
+        location: {query: {}},
+      },
+    });
+
     beforeEach(async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
-      });
-      const initialData = initializeOrg({
-        organization: {features: ['global-views']},
-        projects: [
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
-        ],
-        router: {
-          location: {query: {}},
-        },
       });
 
       ProjectsStore.loadInitialData(initialData.projects);
@@ -673,9 +775,89 @@ describe('GlobalSelectionHeader', function () {
       wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector EnvironmentSelectorItem');
+      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
+    });
+
+    it('replaces URL with project', function () {
+      expect(initialData.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {environment: [], project: ['1']},
+        })
+      );
+    });
+  });
+
+  describe('skipInitializeUrlParams', function () {
+    const initialData = initializeOrg({
+      organization,
+      projects: [{id: 1, slug: 'staging-project', environments: ['staging']}],
+      router: {
+        location: {query: {}},
+      },
+    });
+
+    beforeEach(function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      ProjectsStore.loadInitialData(initialData.projects);
+    });
+
+    it('does not add forced project to URL', async function () {
+      wrapper = mountWithTheme(
+        <PageFiltersContainer
+          skipInitializeUrlParams
+          shouldForceProject
+          organization={initialData.organization}
+          forceProject={initialData.projects[0]}
+          showIssueStreamLink
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(router.replace).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forceProject + forceEnvironment selection mode', function () {
+    beforeEach(async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      const initialData = initializeOrg({
+        organization: {features: ['global-views']},
+        projects: [
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+      });
+
+      ProjectsStore.loadInitialData(initialData.projects);
+
+      wrapper = mountWithTheme(
+        <PageFiltersContainer
+          organization={initialData.organization}
+          shouldForceProject
+          forceProject={initialData.projects[0]}
+          forceEnvironment="test-env"
+        />,
+        initialData.routerContext
+      );
+
+      await tick();
+      wrapper.update();
+    });
+
+    it('renders the forced environment', function () {
+      expect(wrapper.find('MultipleEnvironmentSelector HeaderItem').text()).toBe(
+        'test-env'
+      );
     });
   });
 
@@ -719,7 +901,7 @@ describe('GlobalSelectionHeader', function () {
         // be the first project
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {cursor: undefined, environment: [], project: [2]},
+          query: {cursor: undefined, environment: [], project: ['2']},
         });
       });
 
@@ -740,7 +922,7 @@ describe('GlobalSelectionHeader', function () {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {environment: [], project: [1]},
+          query: {environment: [], project: ['1']},
         });
 
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
@@ -756,7 +938,7 @@ describe('GlobalSelectionHeader', function () {
             location: {
               ...initialData.router.location,
               query: {
-                project: 321,
+                project: '321',
               },
             },
           },
@@ -781,7 +963,7 @@ describe('GlobalSelectionHeader', function () {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {environment: [], project: [1]},
+          query: {environment: [], project: ['1']},
         });
       });
     });
@@ -828,7 +1010,7 @@ describe('GlobalSelectionHeader', function () {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {environment: [], project: [1], statsPeriod: '90d'},
+          query: {environment: [], project: ['1'], statsPeriod: '90d'},
         });
       });
     });
@@ -910,7 +1092,7 @@ describe('GlobalSelectionHeader', function () {
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
-          query: {environment: [], project: [1]},
+          query: {environment: [], project: ['1']},
         });
 
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
@@ -964,7 +1146,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets member projects', function () {
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
     });
@@ -984,7 +1166,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
+      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
 
@@ -1169,7 +1351,7 @@ describe('GlobalSelectionHeader', function () {
       const headerItem = wrapper.find('MultipleProjectSelector HeaderItem');
       headerItem.simulate('click');
       wrapper
-        .find('MultipleProjectSelector CheckboxFancy')
+        .find('MultipleProjectSelector MultiselectCheckbox')
         .forEach(project => project.simulate('click'));
       headerItem.simulate('click');
 

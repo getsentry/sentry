@@ -16,8 +16,8 @@ import ValueElement from './valueElement';
 
 type Props = {
   value: React.ReactNode;
-  meta?: Meta;
   className?: string;
+  meta?: Meta;
 };
 
 const AnnotatedText = ({value, meta, className, ...props}: Props) => {

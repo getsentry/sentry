@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   // waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
@@ -29,6 +29,7 @@ function initializeData({query} = {query: {}}) {
       },
     },
   });
+
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return {
     ...initialData,
@@ -49,7 +50,7 @@ describe('SuspectSpans', function () {
 
     it('renders basic UI elements', async function () {
       const initialData = initializeData();
-      mountWithTheme(
+      render(
         <SuspectSpans
           organization={initialData.organization}
           location={initialData.router.location}
@@ -57,18 +58,17 @@ describe('SuspectSpans', function () {
           projectId="1"
           transactionName="Test Transaction"
           totals={{count: 1}}
-        />,
-        {context: initialData.routerContext}
+        />
       );
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
       expect(await screen.findByText('View All Spans')).toBeInTheDocument();
-      expect(await screen.findByText('Operation')).toBeInTheDocument();
-      expect(await screen.findByText('Description')).toBeInTheDocument();
+      expect(await screen.findByText('Span Operation')).toBeInTheDocument();
+      expect(await screen.findByText('Span Name')).toBeInTheDocument();
       expect(await screen.findByText('Total Count')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
-      expect(await screen.findByText('P75 Exclusive Time')).toBeInTheDocument();
-      expect(await screen.findByText('Total Exclusive Time')).toBeInTheDocument();
+      expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
+      expect(await screen.findByText('Total Self Time')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),
@@ -79,7 +79,7 @@ describe('SuspectSpans', function () {
     //
     // it('allows sorting by some columns', async function () {
     //   const initialData = initializeData();
-    //   mountWithTheme(
+    //   render(
     //     <SuspectSpans
     //       organization={initialData.organization}
     //       location={initialData.router.location}
@@ -87,13 +87,12 @@ describe('SuspectSpans', function () {
     //       projectId="1"
     //       transactionName="Test Transaction"
     //     />,
-    //     {context: initialData.routerContext}
     //   );
 
     //   await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    //   expect(screen.getByText('P75 Exclusive Time')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('P75 Self Time')).toHaveAttribute('href', null);
     //   expect(screen.getByText('Total Occurrences')).toHaveAttribute('href', null);
-    //   expect(screen.getByText('Total Exclusive Time')).toHaveAttribute('href', null);
+    //   expect(screen.getByText('Total Self Time')).toHaveAttribute('href', null);
     // });
   });
 });

@@ -9,9 +9,8 @@ import U2fSign from './u2fsign';
 type Props = {
   api: Client;
   onTap: U2fSign['props']['onTap'];
-  displayMode?: U2fSign['props']['displayMode'];
   className?: string;
-  isWebauthnSigninFFEnabled: boolean;
+  displayMode?: U2fSign['props']['displayMode'];
 };
 type State = {
   authenticators: Array<Authenticator>;

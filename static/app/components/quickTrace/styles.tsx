@@ -102,9 +102,9 @@ const MenuItemContent = styled('div')`
 
 type DropdownItemProps = {
   children: React.ReactNode;
-  to?: string | LocationDescriptor;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
+  to?: string | LocationDescriptor;
   width?: 'small' | 'large';
 };
 

@@ -5,8 +5,10 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -16,6 +18,8 @@ import {
 } from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
+export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
+export const DEFAULT_PROJECT_THRESHOLD = 300;
 
 export const COLUMN_TITLES = [
   'transaction',
@@ -30,7 +34,6 @@ export const COLUMN_TITLES = [
 ];
 
 export enum PERFORMANCE_TERM {
-  APDEX = 'apdex',
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
   FAILURE_RATE = 'failureRate',
@@ -42,11 +45,10 @@ export enum PERFORMANCE_TERM {
   FCP = 'fcp',
   FID = 'fid',
   CLS = 'cls',
-  USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
-  USER_MISERY_NEW = 'userMiseryNew',
-  APDEX_NEW = 'apdexNew',
+  USER_MISERY = 'userMisery',
+  APDEX = 'apdex',
   APP_START_COLD = 'appStartCold',
   APP_START_WARM = 'appStartWarm',
   SLOW_FRAMES = 'slowFrames',
@@ -64,7 +66,7 @@ export type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: Organization): TooltipOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: 'apdex()',
       label: t('Apdex'),
     },
@@ -98,8 +100,8 @@ export function getAxisOptions(organization: Organization): TooltipOption[] {
 
 export type AxisOption = TooltipOption & {
   field: string;
-  backupOption?: AxisOption;
   label: string;
+  backupOption?: AxisOption;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
@@ -316,10 +318,6 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
 type TermFormatter = (organization: Organization) => string;
 
 export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
-  apdex: () =>
-    t(
-      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
-    ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
@@ -343,11 +341,6 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Cumulative layout shift (CLS) is a web vital measuring unexpected visual shifting a user experiences.'
     ),
-  userMisery: organization =>
-    t(
-      "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
-      organization.apdexThreshold
-    ),
   statusBreakdown: () =>
     t(
       'The breakdown of transaction statuses. This may indicate what type of failure it is.'
@@ -356,11 +349,11 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
-  userMiseryNew: () =>
+  userMisery: () =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x the project's configured threshold. Adjust project threshold in project performance settings."
     ),
-  apdexNew: () =>
+  apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to project performance settings.'
     ),
@@ -389,10 +382,14 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function generateGenericPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function shouldAddDefaultConditions(location: Location) {
+  const {query} = location;
+  const searchQuery = decodeScalar(query.query, '');
+  const isDefaultQuery = decodeScalar(query.isDefaultQuery);
+  return !searchQuery && isDefaultQuery !== 'false';
+}
+
+function generateGenericPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -432,7 +429,7 @@ function generateGenericPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -451,13 +448,20 @@ function generateGenericPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
+  if (query.trendParameter) {
+    // projects and projectIds are not necessary here since trendParameter will always
+    // be present in location and will not be determined based on the project type
+    const trendParameter = getCurrentTrendParameter(location, [], []);
+    if (Boolean(WEB_VITAL_DETAILS[trendParameter.column])) {
+      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
+    }
+  }
+
   return eventView;
 }
 
-function generateBackendPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function generateBackendPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -499,7 +503,7 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -517,15 +521,16 @@ function generateBackendPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
   return eventView;
 }
 
 function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
-  genericEventView: EventView,
-  isMetricsData: boolean
+  genericEventView: EventView
 ): EventView {
   const {query} = location;
 
@@ -584,7 +589,7 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -602,14 +607,13 @@ function generateMobilePerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+
   return eventView;
 }
 
-function generateFrontendPageloadPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function generateFrontendPageloadPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -649,7 +653,7 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -667,17 +671,14 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions
-    .addFilterValues('event.type', ['transaction'])
-    .addFilterValues('transaction.op', ['pageload']);
+
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
+
   return eventView;
 }
 
-function generateFrontendOtherPerformanceEventView(
-  location: Location,
-  organization: Organization,
-  isMetricsData: boolean
-): EventView {
+function generateFrontendOtherPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -717,7 +718,7 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -735,22 +736,18 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
-  if (!organization.features.includes('organizations:performance-landing-widgets')) {
-    // Original landing page still should use Frontend (other) with pageload excluded.
-    eventView.additionalConditions.addFilterValues('!transaction.op', ['pageload']);
-  }
   return eventView;
 }
 
 export function generatePerformanceEventView(
   location: Location,
-  organization: Organization,
   projects: Project[],
-  {isTrends = false, isMetricsData = false} = {}
+  {isTrends = false} = {}
 ) {
-  const eventView = generateGenericPerformanceEventView(location, isMetricsData);
+  const eventView = generateGenericPerformanceEventView(location);
 
   if (isTrends) {
     return eventView;
@@ -759,31 +756,19 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
+      return generateFrontendPageloadPerformanceEventView(location);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(
-        location,
-        organization, // TODO(k-fish): Remove with tag change
-        isMetricsData
-      );
+      return generateFrontendOtherPerformanceEventView(location);
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, isMetricsData);
+      return generateBackendPerformanceEventView(location);
     case LandingDisplayField.MOBILE:
-      return generateMobilePerformanceEventView(
-        location,
-        projects,
-        eventView,
-        isMetricsData
-      );
+      return generateMobilePerformanceEventView(location, projects, eventView);
     default:
       return eventView;
   }
 }
 
-export function generatePerformanceVitalDetailView(
-  _organization: Organization,
-  location: Location
-): EventView {
+export function generatePerformanceVitalDetailView(location: Location): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
@@ -831,8 +816,9 @@ export function generatePerformanceVitalDetailView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions
-    .addFilterValues('event.type', ['transaction'])
-    .addFilterValues('has', [vitalName]);
+
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('has', [vitalName]);
+
   return eventView;
 }

@@ -4,6 +4,7 @@ enum Tab {
   Tags,
   Events,
   Spans,
+  Anomalies,
 }
 
 export default Tab;

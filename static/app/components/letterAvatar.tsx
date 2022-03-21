@@ -54,10 +54,10 @@ function getInitials(displayName: string | undefined) {
 }
 
 type Props = {
-  identifier?: string;
   displayName?: string;
-  round?: boolean;
   forwardedRef?: React.Ref<SVGSVGElement>;
+  identifier?: string;
+  round?: boolean;
   suggested?: boolean;
 };
 

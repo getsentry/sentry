@@ -32,16 +32,16 @@ const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
-  location: Location;
-  organization: Organization;
   eventView: EventView;
   field: string;
+  location: Location;
+  onFilterChange: (minValue: number, maxValue: number) => void;
+  organization: Organization;
   title: string;
   titleTooltip: string;
-  onFilterChange: (minValue: number, maxValue: number) => void;
-  didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
-  backupField?: string;
   usingBackupAxis: boolean;
+  backupField?: string;
+  didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
 };
 
 export function HistogramChart(props: Props) {
@@ -113,18 +113,18 @@ export function HistogramChart(props: Props) {
 }
 
 type ChartProps = {
-  chartData?: HistogramData;
-  isLoading: boolean;
+  field: string;
   isErrored: boolean;
+  isLoading: boolean;
   location: Location;
   onFilterChange: Props['onFilterChange'];
-  field: string;
-  height?: number;
-  grid?: BarChart['props']['grid'];
+  chartData?: HistogramData;
+  colors?: string[];
+  disableChartPadding?: boolean;
   disableXAxis?: boolean;
   disableZoom?: boolean;
-  disableChartPadding?: boolean;
-  colors?: string[];
+  grid?: BarChart['props']['grid'];
+  height?: number;
 };
 
 export function Chart(props: ChartProps) {

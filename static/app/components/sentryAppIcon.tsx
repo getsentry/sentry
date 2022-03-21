@@ -4,8 +4,8 @@ import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import {AvatarSentryApp} from 'sentry/types';
 
 type Props = {
-  size: number;
   sentryApp: AvatarSentryApp;
+  size: number;
 };
 
 const SentryAppIcon = ({sentryApp, size}: Props) => {

@@ -37,8 +37,7 @@ describe('IntegrationOrganizationLink', () => {
 
     getMountedComponent = () =>
       mountWithTheme(
-        <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />,
-        TestStubs.routerContext()
+        <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />
       );
   });
 

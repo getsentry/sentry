@@ -32,6 +32,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
     border-top-color: ${theme.border};
   }
 
+  pre,
+  code {
+    color: ${theme.textColor};
+  }
+
+  pre {
+    background-color: ${theme.backgroundSecondary};
+  }
+
+  code {
+    background-color: transparent;
+  }
+
   /**
    * See https://web.dev/prefers-reduced-motion/
    */
@@ -163,11 +176,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header span.help-link a {
           color: ${theme.subText};
         }
-        pre,
-        code {
-          background-color: ${theme.backgroundSecondary};
-          color: ${theme.textColor};
-        }
         .search .search-input {
           background: ${theme.background};
           color: ${theme.formText};
@@ -220,7 +228,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 /**
  * Renders an emotion global styles injection component
  */
-const GlobalStyles = ({theme, isDark}: {theme: Theme; isDark: boolean}) => (
+const GlobalStyles = ({theme, isDark}: {isDark: boolean; theme: Theme}) => (
   <Global styles={styles(theme, isDark)} />
 );
 

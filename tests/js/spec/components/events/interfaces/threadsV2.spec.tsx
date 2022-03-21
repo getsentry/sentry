@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {EventOrGroupType} from 'sentry/types';
@@ -203,7 +203,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = mountWithTheme(<ThreadsV2 {...props} />, {
+        const {container} = render(<ThreadsV2 {...props} />, {
           organization: org,
         });
 
@@ -227,14 +227,14 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
-        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
       });
 
       it('toggle raw button', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
         userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
@@ -254,10 +254,10 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -279,7 +279,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -294,7 +294,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check options', async function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           screen.getByRole('button', {name: 'Options 0 Active'})
@@ -326,7 +326,7 @@ describe('ThreadsV2', function () {
           'false'
         );
 
-        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         // Check Full Stack Trace
@@ -861,7 +861,7 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        const {container} = render(<ThreadsV2 {...props} />, {organization: org});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -891,7 +891,7 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle raw button', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.getByRole('checkbox', {name: 'Raw'})).not.toBeChecked();
         userEvent.click(screen.getByRole('checkbox', {name: 'Raw'}));
@@ -911,10 +911,10 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -936,7 +936,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
+          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByRole('button', {name: 'Sort By Recent last'}));
@@ -949,7 +949,7 @@ describe('ThreadsV2', function () {
       });
 
       it('check options', function () {
-        mountWithTheme(<ThreadsV2 {...props} />, {organization: org});
+        render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
           screen.getByRole('button', {name: 'Options 0 Active'})
@@ -1003,7 +1003,7 @@ describe('ThreadsV2', function () {
 
         // Check Verbose Function Names
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
@@ -1012,14 +1012,14 @@ describe('ThreadsV2', function () {
         expect(within(displayOption3).getByRole('checkbox')).toBeChecked();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
         // Check Absolute Path Names
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         userEvent.click(screen.queryAllByLabelText('Display option')[1]);
@@ -1028,7 +1028,7 @@ describe('ThreadsV2', function () {
         ).toBeChecked();
 
         expect(
-          within(screen.queryAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         // Check Full Stack Trace

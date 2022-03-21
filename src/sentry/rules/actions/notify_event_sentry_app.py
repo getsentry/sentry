@@ -1,7 +1,6 @@
-"""
-Used for notifying a *specific* sentry app with a custom webhook payload (i.e. specified UI components)
-"""
-from typing import Any, Mapping, Optional, Sequence
+from __future__ import annotations
+
+from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 
@@ -9,16 +8,18 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
+from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 
 
-def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str):
+def validate_field(value: str | None, field: Mapping[str, Any], app_name: str) -> None:
     # Only validate synchronous select fields
     if field.get("type") == "select" and not field.get("uri"):
-        allowed_values = [option[0] for option in field.get("options")]
+        allowed_values = [option[0] for option in field.get("options", [])]
         # Reject None values and empty strings
         if value and value not in allowed_values:
             field_label = field.get("label")
@@ -28,7 +29,13 @@ def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str
             )
 
 
-class NotifyEventSentryAppAction(EventAction):  # type: ignore
+class NotifyEventSentryAppAction(EventAction):
+    """
+    Used for notifying a *specific* sentry app with a custom webhook payload
+    (i.e. specified UI components).
+    """
+
+    id = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
     actionType = "sentryapp"
     # Required field for EventAction, value is ignored
     label = ""
@@ -51,7 +58,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         return action_list
 
-    def get_sentry_app(self, event: Event) -> Optional[SentryApp]:
+    def get_sentry_app(self, event: Event) -> SentryApp | None:
         extra = {"event_id": event.event_id}
 
         sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
@@ -65,6 +72,13 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
             self.logger.info("rules.fail.no_app", extra=extra)
 
         return None
+
+    def get_setting_value(self, field_name: str) -> str | None:
+        incoming_settings = self.data.get("settings", [])
+        return next(
+            (setting["value"] for setting in incoming_settings if setting["name"] == field_name),
+            None,
+        )
 
     def self_validate(self) -> None:
         sentry_app_installation_uuid = self.data.get("sentryAppInstallationUuid")
@@ -99,10 +113,10 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         # Ensure required fields are provided and valid
         valid_fields = set()
-        schema = alert_rule_component.schema.get("settings")
+        schema = alert_rule_component.schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
-            field_value = incoming_settings.get(field_name)
+            field_value = self.get_setting_value(field_name)
             if not field_value:
                 raise ValidationError(
                     f"{sentry_app.name} is missing required settings field: '{field_name}'"
@@ -113,19 +127,19 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         # Ensure optional fields are valid
         for optional_field in schema.get("optional_fields", []):
             field_name = optional_field.get("name")
-            field_value = incoming_settings.get(field_name)
+            field_value = self.get_setting_value(field_name)
             validate_field(field_value, optional_field, sentry_app.name)
             valid_fields.add(field_name)
 
         # Ensure the payload we send matches the expectations set in the schema
-        extra_keys = incoming_settings.keys() - valid_fields
+        extra_keys = {setting["name"] for setting in incoming_settings} - valid_fields
         if extra_keys:
             extra_keys_string = ", ".join(extra_keys)
             raise ValidationError(
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: Event, state: str) -> Any:
+    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         sentry_app = self.get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

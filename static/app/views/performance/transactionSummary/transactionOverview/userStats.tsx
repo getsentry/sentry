@@ -10,6 +10,7 @@ import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
@@ -18,12 +19,13 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
-  isLoading: boolean;
-  hasWebVitals: boolean;
   error: string | null;
-  totals: Record<string, number> | null;
+  eventView: EventView;
+  hasWebVitals: boolean;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
+  totals: Record<string, number> | null;
   transactionName: string;
 };
 
@@ -35,6 +37,7 @@ function UserStats({
   location,
   organization,
   transactionName,
+  eventView,
 }: Props) {
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
@@ -55,8 +58,10 @@ function UserStats({
     );
   }
 
+  const orgSlug = organization.slug;
+
   const webVitalsTarget = vitalsRouteWithQuery({
-    orgSlug: organization.slug,
+    orgSlug,
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: location.query,
@@ -84,6 +89,12 @@ function UserStats({
           <VitalInfo
             location={location}
             vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
+            orgSlug={orgSlug}
+            environment={eventView.environment}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+            project={eventView.project}
             hideVitalPercentNames
             hideDurationDetail
           />
@@ -94,7 +105,7 @@ function UserStats({
         {t('User Misery')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY_NEW)}
+          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
           size="sm"
         />
       </SectionHeading>

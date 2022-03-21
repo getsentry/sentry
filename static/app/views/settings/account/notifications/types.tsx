@@ -1,14 +1,14 @@
 import {ObjectStatus} from 'sentry/types/core';
 
 type IdentityProvider = {
+  externalId: string;
   id: string;
   type: string;
-  externalId: string;
 };
 
 export type Identity = {
+  externalId: string;
   id: string;
   identityProvider: IdentityProvider;
-  externalId: string;
   status: ObjectStatus;
 };

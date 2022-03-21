@@ -31,12 +31,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 type Props = {
   api: Client;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}>;
+} & RouteComponentProps<{orgId: string; platform: string; projectId: string}, {}>;
 
 type State = {
-  loading: boolean;
   error: boolean;
   html: string;
+  loading: boolean;
 };
 
 class ProjectInstallPlatform extends Component<Props, State> {

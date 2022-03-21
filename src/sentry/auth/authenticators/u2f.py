@@ -12,7 +12,6 @@ from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import PublicKeyCredentialRpEntity
 from rest_framework.request import Request
-from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -50,7 +49,7 @@ class U2fInterface(AuthenticatorInterface):
     )
     allow_multi_enrollment = True
     # rp is a relying party for webauthn, this would be sentry.io for SAAS
-    # and the prefix for on-premise / dev environments
+    # and the prefix for self-hosted / dev environments
     rp_id = urlparse(options.get("system.url-prefix")).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
@@ -91,30 +90,30 @@ class U2fInterface(AuthenticatorInterface):
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self, user, has_webauthn_register):
-        if has_webauthn_register:
-            credentials = []
-            for registeredKey in self.get_u2f_devices():
-                if type(registeredKey) == AuthenticatorData:
-                    credentials.append(registeredKey.credential_data)
-                else:
-                    c = create_credential_object(registeredKey)
-                    credentials.append(c)
+    def start_enrollment(self, user):
+        credentials = []
+        # there are 2 types of registered keys from the registered devices, those with type
+        # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
+        # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
+        for registeredKey in self.get_u2f_devices():
+            if type(registeredKey) == AuthenticatorData:
+                credentials.append(registeredKey.credential_data)
+            else:
+                c = create_credential_object(registeredKey)
+                credentials.append(c)
 
-            registration_data, state = self.webauthn_registration_server.register_begin(
-                user={
-                    "id": user.id.to_bytes(64, byteorder="big"),
-                    "name": user.username,
-                    "displayName": user.username,
-                },
-                credentials=credentials,
-                # user_verification is where the authenticator verifies that the user is authorized
-                # to use the authenticator, this isn't needed for our usecase so set a discouraged
-                user_verification="discouraged",
-            )
-            return cbor.encode(registration_data), state
-
-        return u2f.begin_registration(self.u2f_app_id, self.get_u2f_devices()).data_for_client
+        registration_data, state = self.webauthn_registration_server.register_begin(
+            user={
+                "id": user.id.to_bytes(64, byteorder="big"),
+                "name": user.username,
+                "displayName": user.username,
+            },
+            credentials=credentials,
+            # user_verification is where the authenticator verifies that the user is authorized
+            # to use the authenticator, this isn't needed for our usecase so set a discouraged
+            user_verification="discouraged",
+        )
+        return cbor.encode(registration_data), state
 
     def get_u2f_devices(self):
         rv = []
@@ -172,45 +171,17 @@ class U2fInterface(AuthenticatorInterface):
         rv.sort(key=lambda x: x["name"])
         return rv
 
-    def try_enroll(
-        self, enrollment_data, response_data, has_webauthn_register, device_name=None, state=None
-    ):
-        if has_webauthn_register:
-            data = json.loads(response_data)
-            client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
-            att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
-            binding = self.webauthn_registration_server.register_complete(
-                state, client_data, att_obj
-            )
-        else:
-            data, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
-            binding = dict(data)
+    def try_enroll(self, enrollment_data, response_data, device_name=None, state=None):
+        data = json.loads(response_data)
+        client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
+        att_obj = base.AttestationObject(websafe_decode(data["response"]["attestationObject"]))
+        binding = self.webauthn_registration_server.register_complete(state, client_data, att_obj)
         devices = self.config.setdefault("devices", [])
         devices.append(
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
-    def activate(self, request: Request, is_webauthn_signin_ff_enabled):
-        if not is_webauthn_signin_ff_enabled:
-            challenge = dict(u2f.begin_authentication(self.u2f_app_id, self.get_u2f_devices()))
-            # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
-            # format. Our current js u2f library expects the old format, so
-            # massaging the data to include the old `authenticateRequests` key here.
-
-            authenticate_requests = []
-            for registered_key in challenge["registeredKeys"]:
-                authenticate_requests.append(
-                    {
-                        "challenge": challenge["challenge"],
-                        "version": registered_key["version"],
-                        "keyHandle": registered_key["keyHandle"],
-                        "appId": registered_key["appId"],
-                    }
-                )
-            challenge["authenticateRequests"] = authenticate_requests
-
-            return ActivationChallengeResult(challenge=challenge)
-
+    def activate(self, request: Request):
         credentials = []
 
         for device in self.get_u2f_devices():
@@ -225,11 +196,8 @@ class U2fInterface(AuthenticatorInterface):
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(self, request: Request, challenge, response, has_webauthn_register):
+    def validate_response(self, request: Request, challenge, response):
         try:
-            if not has_webauthn_register:
-                u2f.complete_authentication(challenge, response, self.u2f_facets)
-                return True
             credentials = []
             for device in self.get_u2f_devices():
                 if type(device) == AuthenticatorData:

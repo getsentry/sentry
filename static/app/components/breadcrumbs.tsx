@@ -8,7 +8,9 @@ import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
-import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import BreadcrumbDropdown, {
+  BreadcrumbDropdownProps,
+} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;
@@ -23,9 +25,10 @@ export type Crumb = {
   label: React.ReactNode;
 
   /**
-   * Link of the crumb
+   * Component will try to come up with unique key, but you can provide your own
+   * (used when mapping over crumbs)
    */
-  to?: React.ComponentProps<typeof Link>['to'] | null;
+  key?: string;
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
@@ -34,30 +37,29 @@ export type Crumb = {
   preservePageFilters?: boolean;
 
   /**
-   * Component will try to come up with unique key, but you can provide your own
-   * (used when mapping over crumbs)
+   * Link of the crumb
    */
-  key?: string;
+  to?: React.ComponentProps<typeof Link>['to'] | null;
 };
 
 export type CrumbDropdown = {
+  /**
+   * Items of the crumb dropdown
+   */
+  items: BreadcrumbDropdownProps['items'];
+
   /**
    * Name of the crumb
    */
   label: React.ReactNode;
 
   /**
-   * Items of the crumb dropdown
-   */
-  items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
-
-  /**
    * Callback function for when an item is selected
    */
-  onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
+  onSelect: BreadcrumbDropdownProps['onSelect'];
 };
 
-type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
@@ -70,7 +72,7 @@ type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
    * assign `to: null/undefined` when passing props to this component.
    */
   linkLastItem?: boolean;
-};
+}
 
 function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
   return (crumb as CrumbDropdown).items !== undefined;
@@ -143,8 +145,8 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
 
 type BreadcrumbLinkProps = {
   to: React.ComponentProps<typeof Link>['to'];
-  preservePageFilters?: boolean;
   children?: React.ReactNode;
+  preservePageFilters?: boolean;
 };
 
 const BreadcrumbLink = styled(

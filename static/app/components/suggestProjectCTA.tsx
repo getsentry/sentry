@@ -34,10 +34,10 @@ const MOBILE_USER_AGENTS = ['okhttp', 'CFNetwork', 'Alamofire', 'Dalvik'];
 type MobileEventResult = {browserName: string; clientOsName: string} | null;
 
 type Props = {
-  projects: Project[];
+  api: Client;
   event: Event;
   organization: Organization;
-  api: Client;
+  projects: Project[];
 };
 
 type State = {

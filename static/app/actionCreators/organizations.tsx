@@ -158,9 +158,9 @@ export async function fetchOrganizationByMember(
 
 type FetchOrganizationDetailsParams = {
   /**
-   * Should set as active organization?
+   * Should load projects in ProjectsStore
    */
-  setActive?: boolean;
+  loadProjects?: boolean;
 
   /**
    * Should load teams in TeamStore?
@@ -168,9 +168,9 @@ type FetchOrganizationDetailsParams = {
   loadTeam?: boolean;
 
   /**
-   * Should load projects in ProjectsStore
+   * Should set as active organization?
    */
-  loadProjects?: boolean;
+  setActive?: boolean;
 };
 export async function fetchOrganizationDetails(
   orgId: string,

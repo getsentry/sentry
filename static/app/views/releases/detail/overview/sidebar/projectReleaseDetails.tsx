@@ -12,10 +12,10 @@ import {t, tn} from 'sentry/locale';
 import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
 
 type Props = {
-  release: ReleaseWithHealth;
-  releaseMeta: ReleaseMeta;
   orgSlug: string;
   projectSlug: string;
+  release: ReleaseWithHealth;
+  releaseMeta: ReleaseMeta;
 };
 
 const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {

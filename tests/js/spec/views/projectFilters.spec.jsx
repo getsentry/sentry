@@ -25,8 +25,7 @@ describe('ProjectFilters', function () {
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
           project={project}
-        />,
-        TestStubs.routerContext()
+        />
       );
     }
 
@@ -205,13 +204,11 @@ describe('ProjectFilters', function () {
         />,
         {
           context: {
-            ...TestStubs.routerContext().context,
             project: {
               ...project,
               features: ['custom-inbound-filters'],
             },
           },
-          childContextTypes: TestStubs.routerContext().childContextTypes,
         }
       )
     );
@@ -272,6 +269,8 @@ describe('ProjectFilters', function () {
       />,
       {
         context: {
+          // removing TestStubs.routerContext causes our test to fail. Should be investigated because it does not
+          // seem clear the routerContext should impact the project that we are passing as props.
           ...TestStubs.routerContext().context,
           project: {
             ...project,

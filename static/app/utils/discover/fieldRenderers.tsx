@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,9 +14,8 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Actor, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -42,7 +40,6 @@ import {
 
 import ArrayValue from './arrayValue';
 import {
-  ActorContainer,
   BarContainer,
   Container,
   FieldDateTime,
@@ -59,8 +56,8 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
  * Types, functions and definitions for rendering fields in discover results.
  */
 type RenderFunctionBaggage = {
-  organization: Organization;
   location: Location;
+  organization: Organization;
   eventView?: EventView;
 };
 
@@ -77,6 +74,7 @@ type FieldFormatter = {
 };
 
 type FieldFormatters = {
+  array: FieldFormatter;
   boolean: FieldFormatter;
   date: FieldFormatter;
   duration: FieldFormatter;
@@ -84,7 +82,6 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
-  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -101,7 +98,7 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
  *
  * This mapping should match the output sentry.utils.snuba:get_json_type
  */
-const FIELD_FORMATTERS: FieldFormatters = {
+export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
@@ -194,26 +191,25 @@ type SpecialFieldRenderFunc = (
 ) => React.ReactNode;
 
 type SpecialField = {
-  sortField: string | null;
   renderFunc: SpecialFieldRenderFunc;
+  sortField: string | null;
 };
 
 type SpecialFields = {
-  id: SpecialField;
-  trace: SpecialField;
-  project: SpecialField;
-  user: SpecialField;
-  'user.display': SpecialField;
   'count_unique(user)': SpecialField;
-  'issue.id': SpecialField;
   'error.handled': SpecialField;
+  id: SpecialField;
   issue: SpecialField;
+  'issue.id': SpecialField;
+  project: SpecialField;
   release: SpecialField;
   team_key_transaction: SpecialField;
-  'trend_percentage()': SpecialField;
-  'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
-  assignee: SpecialField;
+  'timestamp.to_hour': SpecialField;
+  trace: SpecialField;
+  'trend_percentage()': SpecialField;
+  user: SpecialField;
+  'user.display': SpecialField;
 };
 
 /**
@@ -430,37 +426,6 @@ const SPECIAL_FIELDS: SpecialFields = {
         })}
       </Container>
     ),
-  },
-  assignee: {
-    sortField: 'assignee.name',
-    renderFunc: data => {
-      const assignedTo: Actor = {
-        type: data['assignee.type'],
-        id: data['assignee.id'],
-        name: data['assignee.name'],
-        email: data['assignee.email'],
-      };
-
-      return (
-        <ActorContainer>
-          {assignedTo.type && assignedTo.id && assignedTo.name ? (
-            <ActorAvatar
-              actor={assignedTo}
-              size={28}
-              tooltip={t(
-                `Assigned to ${
-                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
-                }`
-              )}
-            />
-          ) : (
-            <Tooltip isHoverable skipWrapper title={<div>{t('Unassigned')}</div>}>
-              <IconUser size="20px" color="gray400" />
-            </Tooltip>
-          )}
-        </ActorContainer>
-      );
-    },
   },
 };
 
@@ -696,11 +661,13 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
@@ -710,7 +677,7 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -733,13 +700,15 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldFormatter(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

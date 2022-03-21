@@ -15,24 +15,24 @@ type ProjectPlaceholder = AvatarProject;
 
 type State = {
   /**
-   * Reflects whether or not the initial fetch for the requested projects
-   * was fulfilled. This accounts for both the store and specifically loaded
-   * slugs.
+   * The error that occurred if fetching failed
    */
-  initiallyLoaded: boolean;
+  fetchError: null | RequestError;
   /**
    * This is state for when fetching data from API
    */
   fetching: boolean;
   /**
-   * The error that occurred if fetching failed
-   */
-  fetchError: null | RequestError;
-  /**
    * Indicates that Project results (from API) are paginated and there are more
    * projects that are not in the initial response
    */
   hasMore: null | boolean;
+  /**
+   * Reflects whether or not the initial fetch for the requested projects
+   * was fulfilled. This accounts for both the store and specifically loaded
+   * slugs.
+   */
+  initiallyLoaded: boolean;
   /**
    * The last query we searched. Used to validate the cursor
    */
@@ -45,23 +45,27 @@ type State = {
 
 type Result = {
   /**
-   * The loaded projects list
-   */
-  projects: Project[];
-  /**
-   * When loading specific slugs, placeholder objects will be returned
-   */
-  placeholders: ProjectPlaceholder[];
-  /**
    * This is an action provided to consumers for them to update the current
    * projects result set using a simple search query.
    *
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
+  /**
+   * When loading specific slugs, placeholder objects will be returned
+   */
+  placeholders: ProjectPlaceholder[];
+  /**
+   * The loaded projects list
+   */
+  projects: Project[];
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
+  /**
+   * Number of projects to return when not using `props.slugs`
+   */
+  limit?: number;
   /**
    * Specify an orgId, overriding the organization in the current context
    */
@@ -71,18 +75,14 @@ type Options = {
    * otherwise fetch from API
    */
   slugs?: string[];
-  /**
-   * Number of projects to return when not using `props.slugs`
-   */
-  limit?: number;
 };
 
 type FetchProjectsOptions = {
-  slugs?: string[];
-  limit?: Options['limit'];
   cursor?: State['nextCursor'];
-  search?: State['lastSearch'];
   lastSearch?: State['lastSearch'];
+  limit?: Options['limit'];
+  search?: State['lastSearch'];
+  slugs?: string[];
 };
 
 /**
@@ -95,10 +95,10 @@ async function fetchProjects(
 ) {
   const query: {
     collapse: string[];
-    query?: string;
+    all_projects?: number;
     cursor?: typeof cursor;
     per_page?: number;
-    all_projects?: number;
+    query?: string;
   } = {
     // Never return latestDeploys project property from api
     collapse: ['latestDeploys'],

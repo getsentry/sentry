@@ -16,6 +16,7 @@ import {Content} from 'sentry/components/dropdownControl';
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
@@ -32,27 +33,30 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {TableData as TagTableData} from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
+import {
+  TableData as TagTableData,
+  TableDataRow,
+} from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {getPerformanceDuration, PerformanceDuration} from '../../utils';
+import {getPerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
 type Props = {
+  aggregateColumn: string;
   eventView: EventView;
   location: Location;
-  aggregateColumn: string;
   organization: Organization;
   projects: Project[];
   transactionName: string;
   tagKey?: string;
 };
 
-const findRowKey = row => {
+const findRowKey = (row: TableDataRow) => {
   return Object.keys(row).find(key => key.includes('histogram'));
 };
 
@@ -62,6 +66,7 @@ class VirtualReference {
   constructor(element: HTMLElement) {
     this.boundingRect = element.getBoundingClientRect();
   }
+
   getBoundingClientRect() {
     return this.boundingRect;
   }
@@ -74,20 +79,25 @@ class VirtualReference {
     return this.getBoundingClientRect().height;
   }
 }
+
 const getPortal = memoize((): HTMLElement => {
   let portal = document.getElementById('heatmap-portal');
-  if (!portal) {
-    portal = document.createElement('div');
-    portal.setAttribute('id', 'heatmap-portal');
-    document.body.appendChild(portal);
+
+  if (portal) {
+    return portal;
   }
+
+  portal = document.createElement('div');
+  portal.setAttribute('id', 'heatmap-portal');
+  document.body.appendChild(portal);
+
   return portal;
 });
 
 const TagsHeatMap = (
   props: Props & {
-    tableData: TagTableData | null;
     isLoading: boolean;
+    tableData: TagTableData | null;
   }
 ) => {
   const {
@@ -144,13 +154,10 @@ const TagsHeatMap = (
         })
       : null;
 
-  _data &&
-    _data.sort((a, b) => {
-      if (a[0] === b[0]) {
-        return b[1] - a[1];
-      }
-      return b[0] - a[0];
-    });
+  _data?.sort((a, b) => {
+    const i = b[0] === a[0] ? 1 : 0;
+    return b[i] - a[i];
+  });
 
   // TODO(k-fish): Cleanup options
   const chartOptions = {
@@ -312,120 +319,104 @@ const TagsHeatMap = (
               }
             };
 
+            const portaledContent = !chartElement ? null : (
+              <Popper referenceElement={chartElement} placement="bottom">
+                {({ref, style, placement}) => {
+                  const transactionInfo = !transactionEventView ? null : (
+                    <TagTransactionsQuery
+                      query={transactionEventView.getQueryWithAdditionalConditions()}
+                      location={location}
+                      eventView={transactionEventView}
+                      orgSlug={organization.slug}
+                      limit={4}
+                      referrer="api.performance.tag-page"
+                    >
+                      {({
+                        isLoading: isTransactionsLoading,
+                        tableData: transactionTableData,
+                      }) => {
+                        if (isTransactionsLoading) {
+                          return (
+                            <LoadingContainer>
+                              <LoadingIndicator size={40} hideMessage />
+                            </LoadingContainer>
+                          );
+                        }
+
+                        const moreEventsTarget = eventsRouteWithQuery({
+                          orgSlug: organization.slug,
+                          transaction: transactionName,
+                          projectID: decodeScalar(location.query.project),
+                          query: {
+                            ...transactionEventView.generateQueryStringObject(),
+                            query:
+                              transactionEventView.getQueryWithAdditionalConditions(),
+                          },
+                        });
+
+                        return (
+                          <div>
+                            {!transactionTableData.data.length ? <Placeholder /> : null}
+                            {[...transactionTableData.data].slice(0, 3).map(row => {
+                              const target = generateTransactionLink(transactionName)(
+                                organization,
+                                row,
+                                location.query
+                              );
+
+                              return (
+                                <DropdownItem width="small" key={row.id} to={target}>
+                                  <DropdownItemContainer>
+                                    <Truncate value={row.id} maxLength={12} />
+                                    <SectionSubtext>
+                                      <PerformanceDuration
+                                        milliseconds={row[aggregateColumn]}
+                                        abbreviation
+                                      />
+                                    </SectionSubtext>
+                                  </DropdownItemContainer>
+                                </DropdownItem>
+                              );
+                            })}
+                            {moreEventsTarget && transactionTableData.data.length > 3 ? (
+                              <DropdownItem width="small" to={moreEventsTarget}>
+                                <DropdownItemContainer>
+                                  {t('View all events')}
+                                </DropdownItemContainer>
+                              </DropdownItem>
+                            ) : null}
+                          </div>
+                        );
+                      }}
+                    </TagTransactionsQuery>
+                  );
+
+                  return (
+                    <StyledDropdownContainer
+                      ref={ref}
+                      style={style}
+                      className="anchor-middle"
+                      data-placement={placement}
+                    >
+                      <StyledDropdownContent
+                        {...getMenuProps({
+                          className: classNames('dropdown-menu'),
+                        })}
+                        isOpen={isOpen}
+                        alignMenu="right"
+                        blendCorner={false}
+                      >
+                        {transactionInfo}
+                      </StyledDropdownContent>
+                    </StyledDropdownContainer>
+                  );
+                }}
+              </Popper>
+            );
+
             return (
               <Fragment>
-                {ReactDOM.createPortal(
-                  <div>
-                    {chartElement ? (
-                      <Popper referenceElement={chartElement} placement="bottom">
-                        {({ref, style, placement}) => (
-                          <StyledDropdownContainer
-                            ref={ref}
-                            style={style}
-                            className="anchor-middle"
-                            data-placement={placement}
-                          >
-                            <StyledDropdownContent
-                              {...getMenuProps({
-                                className: classNames('dropdown-menu'),
-                              })}
-                              isOpen={isOpen}
-                              alignMenu="right"
-                              blendCorner={false}
-                            >
-                              {transactionEventView ? (
-                                <TagTransactionsQuery
-                                  query={transactionEventView.getQueryWithAdditionalConditions()}
-                                  location={location}
-                                  eventView={transactionEventView}
-                                  orgSlug={organization.slug}
-                                  limit={4}
-                                  referrer="api.performance.tag-page"
-                                >
-                                  {({
-                                    isLoading: isTransactionsLoading,
-                                    tableData: transactionTableData,
-                                  }) => {
-                                    const moreEventsTarget = isTransactionsLoading
-                                      ? null
-                                      : eventsRouteWithQuery({
-                                          orgSlug: organization.slug,
-                                          transaction: transactionName,
-                                          projectID: decodeScalar(location.query.project),
-                                          query: {
-                                            ...transactionEventView.generateQueryStringObject(),
-                                            query:
-                                              transactionEventView.getQueryWithAdditionalConditions(),
-                                          },
-                                        });
-                                    return (
-                                      <Fragment>
-                                        {isTransactionsLoading ? (
-                                          <LoadingContainer>
-                                            <LoadingIndicator size={40} hideMessage />
-                                          </LoadingContainer>
-                                        ) : (
-                                          <div>
-                                            {!transactionTableData.data.length ? (
-                                              <Placeholder />
-                                            ) : null}
-                                            {[...transactionTableData.data]
-                                              .slice(0, 3)
-                                              .map(row => {
-                                                const target = generateTransactionLink(
-                                                  transactionName
-                                                )(organization, row, location.query);
-
-                                                return (
-                                                  <DropdownItem
-                                                    width="small"
-                                                    key={row.id}
-                                                    to={target}
-                                                  >
-                                                    <DropdownItemContainer>
-                                                      <Truncate
-                                                        value={row.id}
-                                                        maxLength={12}
-                                                      />
-                                                      <SectionSubtext>
-                                                        <PerformanceDuration
-                                                          milliseconds={
-                                                            row[aggregateColumn]
-                                                          }
-                                                          abbreviation
-                                                        />
-                                                      </SectionSubtext>
-                                                    </DropdownItemContainer>
-                                                  </DropdownItem>
-                                                );
-                                              })}
-                                            {moreEventsTarget &&
-                                            transactionTableData.data.length > 3 ? (
-                                              <DropdownItem
-                                                width="small"
-                                                to={moreEventsTarget}
-                                              >
-                                                <DropdownItemContainer>
-                                                  {t('View all events')}
-                                                </DropdownItemContainer>
-                                              </DropdownItem>
-                                            ) : null}
-                                          </div>
-                                        )}
-                                      </Fragment>
-                                    );
-                                  }}
-                                </TagTransactionsQuery>
-                              ) : null}
-                            </StyledDropdownContent>
-                          </StyledDropdownContainer>
-                        )}
-                      </Popper>
-                    ) : null}
-                  </div>,
-                  getPortal()
-                )}
-
+                {ReactDOM.createPortal(<div>{portaledContent}</div>, getPortal())}
                 {getDynamicText({
                   value: (
                     <HeatMapChart

@@ -6,14 +6,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.auth.access import from_user
-from sentry.incidents.endpoints.serializers import (
-    AlertRuleSerializer,
-    AlertRuleTriggerActionSerializer,
-    AlertRuleTriggerSerializer,
-    action_target_type_to_string,
-    string_to_action_target_type,
-    string_to_action_type,
-)
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION,
@@ -21,6 +13,14 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.serializers import (
+    ACTION_TARGET_TYPE_TO_STRING,
+    STRING_TO_ACTION_TARGET_TYPE,
+    STRING_TO_ACTION_TYPE,
+    AlertRuleSerializer,
+    AlertRuleTriggerActionSerializer,
+    AlertRuleTriggerSerializer,
+)
 from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
@@ -403,7 +403,7 @@ class TestAlertRuleSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
@@ -715,7 +715,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             "type": AlertRuleTriggerAction.get_registered_type(
                 AlertRuleTriggerAction.Type.EMAIL
             ).slug,
-            "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
             "target_identifier": "test@test.com",
         }
 
@@ -772,21 +772,21 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
     def test_type(self):
         invalid_values = [
-            "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
+            "Invalid type, valid values are [%s]" % ", ".join(STRING_TO_ACTION_TYPE.keys())
         ]
         self.run_fail_validation_test({"type": 50}, {"type": invalid_values})
 
     def test_target_type(self):
         invalid_values = [
             "Invalid targetType, valid values are [%s]"
-            % ", ".join(string_to_action_target_type.keys())
+            % ", ".join(STRING_TO_ACTION_TARGET_TYPE.keys())
         ]
         self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
 
     def test_user_perms(self):
         self.run_fail_validation_test(
             {
-                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
             {"nonFieldErrors": ["User does not exist"]},
@@ -794,7 +794,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         other_user = self.create_user()
         self.run_fail_validation_test(
             {
-                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
@@ -806,7 +806,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "123",
             },
             {"targetType": ["Invalid target type for slack. Valid types are [specific]"]},
@@ -816,7 +816,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
@@ -836,7 +836,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
@@ -866,7 +866,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "merp",
@@ -911,7 +911,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "merp",
@@ -954,7 +954,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": action_target_type_to_string[
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
@@ -986,14 +986,14 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
-                "target_type": action_target_type_to_string[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SENTRY_APP
                 ],
                 "target_identifier": "123",
                 "sentry_app": self.sentry_app.id,
                 "sentry_app_config": {"tag": "asdfasdfads"},
             },
-            {"sentryApp": ["Missing paramater: sentry_app_installation_uuid"]},
+            {"sentryApp": ["Missing parameter: sentry_app_installation_uuid"]},
         )
 
     @responses.activate
@@ -1009,7 +1009,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
-                "target_type": action_target_type_to_string[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SENTRY_APP
                 ],
                 "target_identifier": "1",
@@ -1035,7 +1035,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
-                "target_type": action_target_type_to_string[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SENTRY_APP
                 ],
                 "target_identifier": "1",
@@ -1062,7 +1062,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "type": AlertRuleTriggerAction.get_registered_type(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
-                "target_type": action_target_type_to_string[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SENTRY_APP
                 ],
                 "target_identifier": "1",

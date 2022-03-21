@@ -6,7 +6,7 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval} from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -23,12 +23,12 @@ import {getFieldOrBackup} from '../display/utils';
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   field: string;
+  organization: Organization;
   title: string;
   titleTooltip: string;
-  backupField?: string;
   usingBackupAxis: boolean;
+  backupField?: string;
 } & WithRouterProps;
 
 function DurationChart({
@@ -54,7 +54,7 @@ function DurationChart({
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : null;
 
-  const {utc} = getParams(location.query);
+  const {utc} = normalizeDateTimeParams(location.query);
 
   const _backupField = backupField ? [backupField] : [];
 

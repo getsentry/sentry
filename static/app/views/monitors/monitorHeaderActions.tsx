@@ -19,8 +19,8 @@ import {Monitor} from './types';
 
 type Props = {
   monitor: Monitor;
-  orgId: string;
   onUpdate: (data: Monitor) => void;
+  orgId: string;
 };
 
 const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {

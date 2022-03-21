@@ -14,7 +14,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {
@@ -82,33 +82,33 @@ export function sessionDisplayToField(display: ReleasesDisplayOption) {
 }
 
 export type ReleasesRequestRenderProps = {
-  isHealthLoading: boolean;
   errored: boolean;
   getHealthData: ReturnType<ReleasesRequest['getHealthData']>;
+  isHealthLoading: boolean;
 };
 
 type Props = {
   api: Client;
-  releases: string[];
-  organization: Organization;
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
-  selection: PageFilters;
-  location: Location;
   display: ReleasesDisplayOption[];
+  location: Location;
+  organization: Organization;
+  releases: string[];
+  selection: PageFilters;
   defaultStatsPeriod?: string;
-  releasesReloading?: boolean;
-  healthStatsPeriod?: HealthStatsPeriodOption;
   disable?: boolean;
+  healthStatsPeriod?: HealthStatsPeriodOption;
+  releasesReloading?: boolean;
 };
 type State = {
-  loading: boolean;
   errored: boolean;
-  statusCountByReleaseInPeriod: SessionApiResponse | null;
-  totalCountByReleaseIn24h: SessionApiResponse | null;
-  totalCountByProjectIn24h: SessionApiResponse | null;
+  loading: boolean;
   statusCountByProjectInPeriod: SessionApiResponse | null;
-  totalCountByReleaseInPeriod: SessionApiResponse | null;
+  statusCountByReleaseInPeriod: SessionApiResponse | null;
+  totalCountByProjectIn24h: SessionApiResponse | null;
   totalCountByProjectInPeriod: SessionApiResponse | null;
+  totalCountByReleaseIn24h: SessionApiResponse | null;
+  totalCountByReleaseInPeriod: SessionApiResponse | null;
 };
 
 class ReleasesRequest extends React.Component<Props, State> {
@@ -159,7 +159,7 @@ class ReleasesRequest extends React.Component<Props, State> {
         }, [] as string[])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...getParams(pick(location.query, Object.values(URL_PARAM)), {
+      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,
       }),
     };

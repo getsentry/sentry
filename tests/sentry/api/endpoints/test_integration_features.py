@@ -1,6 +1,7 @@
 from rest_framework import status
 
-from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.models import IntegrationFeature
+from sentry.models.integrations.integration_feature import Feature
 from sentry.testutils import APITestCase
 
 

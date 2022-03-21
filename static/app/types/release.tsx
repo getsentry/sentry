@@ -10,30 +10,30 @@ export enum ReleaseStatus {
 }
 
 export type SourceMapsArchive = {
-  id: number;
-  type: 'release';
-  name: string;
   date: string;
   fileCount: number;
+  id: number;
+  name: string;
+  type: 'release';
 };
 
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
+  headers: {'Content-Type': string};
   id: string;
   name: string;
   sha1: string;
   size: number;
-  headers: {'Content-Type': string};
 };
 
 export type Deploy = {
+  dateFinished: string;
+  dateStarted: string;
+  environment: string;
   id: string;
   name: string;
   url: string;
-  environment: string;
-  dateStarted: string;
-  dateFinished: string;
   version: string;
 };
 
@@ -45,13 +45,13 @@ export type VersionInfo = {
 };
 
 export type BaseRelease = {
-  dateReleased: string;
-  url: string;
   dateCreated: string;
-  version: string;
-  shortVersion: string;
+  dateReleased: string;
   ref: string;
+  shortVersion: string;
   status: ReleaseStatus;
+  url: string;
+  version: string;
 };
 
 export type Release = BaseRelease &
@@ -65,34 +65,35 @@ export type ReleaseWithHealth = BaseRelease &
   };
 
 type ReleaseData = {
-  commitCount: number;
-  data: {};
-  lastDeploy?: Deploy;
-  deployCount: number;
-  lastEvent: string;
-  firstEvent: string;
-  lastCommit?: Commit;
   authors: User[];
-  owner?: any; // TODO(ts)
-  newGroups: number;
-  versionInfo: VersionInfo;
-  fileCount: number | null;
+  commitCount: number;
   currentProjectMeta: {
+    firstReleaseVersion: string | null;
+    lastReleaseVersion: string | null;
     nextReleaseVersion: string | null;
     prevReleaseVersion: string | null;
     sessionsLowerBound: string | null;
     sessionsUpperBound: string | null;
-    firstReleaseVersion: string | null;
-    lastReleaseVersion: string | null;
   };
+  data: {};
+  deployCount: number;
+  fileCount: number | null;
+  firstEvent: string;
+  lastEvent: string;
+  // TODO(ts)
+  newGroups: number;
+  versionInfo: VersionInfo;
   adoptionStages?: Record<
     'string',
     {
-      stage: string | null;
       adopted: string | null;
+      stage: string | null;
       unadopted: string | null;
     }
   >;
+  lastCommit?: Commit;
+  lastDeploy?: Deploy;
+  owner?: any;
 };
 
 export type CurrentRelease = {
@@ -108,13 +109,13 @@ export type CurrentRelease = {
 };
 
 export type ReleaseProject = {
-  slug: string;
-  name: string;
+  hasHealthData: boolean;
   id: number;
+  name: string;
+  newGroups: number;
   platform: PlatformKey;
   platforms: PlatformKey[];
-  newGroups: number;
-  hasHealthData: boolean;
+  slug: string;
   healthData?: Health;
 };
 
@@ -122,33 +123,33 @@ export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
-  releaseFileCount: number;
-  version: string;
   projects: ReleaseProject[];
-  versionInfo: VersionInfo;
+  releaseFileCount: number;
   released: string;
+  version: string;
+  versionInfo: VersionInfo;
 };
 
 /**
  * Release health
  */
 export type Health = {
-  totalUsers: number;
-  totalUsers24h: number | null;
+  adoption: number | null;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  durationP50: number | null;
+  durationP90: number | null;
+  hasHealthData: boolean;
+  sessionsAdoption: number | null;
+  sessionsCrashed: number;
+  sessionsErrored: number;
+  stats: HealthGraphData;
+  totalProjectSessions24h: number | null;
   totalProjectUsers24h: number | null;
   totalSessions: number;
   totalSessions24h: number | null;
-  totalProjectSessions24h: number | null;
-  crashFreeUsers: number | null;
-  crashFreeSessions: number | null;
-  stats: HealthGraphData;
-  sessionsCrashed: number;
-  sessionsErrored: number;
-  adoption: number | null;
-  sessionsAdoption: number | null;
-  hasHealthData: boolean;
-  durationP50: number | null;
-  durationP90: number | null;
+  totalUsers: number;
+  totalUsers24h: number | null;
 };
 
 export type HealthGraphData = Record<string, TimeseriesValue[]>;
@@ -178,9 +179,9 @@ export enum HealthStatsPeriodOption {
 }
 
 export type CrashFreeTimeBreakdown = {
-  date: string;
-  totalSessions: number;
   crashFreeSessions: number | null;
   crashFreeUsers: number | null;
+  date: string;
+  totalSessions: number;
   totalUsers: number;
 }[];

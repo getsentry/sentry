@@ -5,15 +5,15 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
+import {JsonFormObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -74,8 +74,8 @@ const REMOVE_BUTTON_LABEL = {
 type DeleteType = 'disable' | 'delete';
 
 type RemoveModalProps = ModalRenderProps & {
-  user: User;
   onRemove: (type: DeleteType) => void;
+  user: User;
 };
 
 type RemoveModalState = {

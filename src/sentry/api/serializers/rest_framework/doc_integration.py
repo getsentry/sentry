@@ -9,8 +9,8 @@ from rest_framework.serializers import Serializer, ValidationError
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
-from sentry.models.integration import DocIntegration
-from sentry.models.integrationfeature import Feature, IntegrationFeature, IntegrationTypes
+from sentry.models import DocIntegration, IntegrationFeature
+from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 
 
 class MetadataField(serializers.JSONField):

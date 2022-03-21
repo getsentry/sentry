@@ -1,11 +1,11 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Project} from 'sentry/types';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -16,9 +16,10 @@ const teams = [
 function initializeData({
   features: additionalFeatures = [],
   query = {},
-}: {features?: string[]; query?: Record<string, any>} = {}) {
+  project: prj,
+}: {features?: string[]; project?: Project; query?: Record<string, any>} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = TestStubs.Project({teams});
+  const project = prj ?? TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
     projects: [project],
@@ -31,7 +32,7 @@ function initializeData({
       location: {
         query: {
           transaction: '/performance',
-          project: '2',
+          project: project.id,
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -45,10 +46,16 @@ function initializeData({
   return initialData;
 }
 
-describe('Performance > TransactionSummary', function () {
-  enforceActOnUseLegacyStoreHook();
+const TestComponent = ({...props}: React.ComponentProps<typeof TransactionSummary>) => {
+  return <TransactionSummary {...props} />;
+};
 
+describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -265,17 +272,19 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
+
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 
   it('renders basic UI elements', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     //  It shows the header
     await screen.findByText('Transaction Summary');
@@ -291,7 +300,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
 
     // Ensure open in discover button exists.
-    expect(screen.getByTestId('discover-open')).toBeInTheDocument();
+    expect(screen.getByTestId('transaction-events-open')).toBeInTheDocument();
 
     // Ensure open issues button exists.
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
@@ -311,15 +320,59 @@ describe('Performance > TransactionSummary', function () {
       features: ['incidents'],
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(screen.queryByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+  });
+
+  it('renders Web Vitals widget', async function () {
+    const {organization, router, routerContext} = initializeData({
+      project: TestStubs.Project({teams, platform: 'javascript'}),
+      query: {
+        query:
+          'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
+      },
+    });
+
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
+
+    // It renders the web vitals widget
+    await screen.findByRole('heading', {name: 'Web Vitals'});
+
+    const vitalStatues = screen.getAllByTestId('vital-status');
+    expect(vitalStatues).toHaveLength(3);
+
+    expect(vitalStatues[0]).toHaveTextContent('31%');
+    expect(vitalStatues[1]).toHaveTextContent('65%');
+    expect(vitalStatues[2]).toHaveTextContent('3%');
+  });
+
+  it('renders sidebar widgets', async function () {
+    const {organization, router, routerContext} = initializeData();
+
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Renders Apdex widget
+    await screen.findByRole('heading', {name: 'Apdex'});
+    expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+
+    // Renders Failure Rate widget
+    expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
+    expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
+
+    // Renders TPM widget
+    expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
+    expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
   });
 
   it('fetches transaction threshold', function () {
@@ -343,12 +396,10 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getProjectThresholdMock).not.toHaveBeenCalled();
@@ -372,12 +423,10 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Transaction Summary');
 
@@ -385,15 +434,13 @@ describe('Performance > TransactionSummary', function () {
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
   });
 
-  it('triggers a navigation on search', async function () {
+  it('triggers a navigation on search', function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     // Fill out the search box, and submit it.
     userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
@@ -415,12 +462,10 @@ describe('Performance > TransactionSummary', function () {
   it('can mark a transaction as key', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/key-transactions/`,
@@ -442,12 +487,10 @@ describe('Performance > TransactionSummary', function () {
   it('triggers a navigation on transaction filter', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Transaction Summary');
 
@@ -471,12 +514,10 @@ describe('Performance > TransactionSummary', function () {
   it('renders pagination buttons', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Transaction Summary');
 
@@ -506,12 +547,10 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value'},
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Transaction Summary');
 
@@ -534,12 +573,10 @@ describe('Performance > TransactionSummary', function () {
       query: {query: 'tag:value event.type:transaction'},
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Transaction Summary');
 
@@ -556,12 +593,10 @@ describe('Performance > TransactionSummary', function () {
       features: ['performance-suspect-spans-view'],
     });
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
   });
@@ -569,12 +604,10 @@ describe('Performance > TransactionSummary', function () {
   it('adds search condition on transaction status when clicking on status breakdown', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByTestId('status-ok');
 
@@ -593,12 +626,10 @@ describe('Performance > TransactionSummary', function () {
   it('appends tag value to existing query when clicked', async function () {
     const {organization, router, routerContext} = initializeData();
 
-    mountWithTheme(
-      <TransactionSummary organization={organization} location={router.location} />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<TestComponent location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
 
     await screen.findByText('Tag Summary');
 

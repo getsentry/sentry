@@ -11,11 +11,8 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.atlassian_connect import (
-    AtlassianConnectValidationError,
-    get_integration_from_request,
-)
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError
@@ -171,13 +168,16 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         if state.get("publicKey"):
             principal_data = state["principal"]
-
-            domain = principal_data["links"]["html"]["href"].replace("https://", "").rstrip("/")
+            base_url = state["baseUrl"].replace("https://", "")
+            # fall back to display name, user installations will use this primarily
+            username = principal_data.get("username", principal_data["display_name"])
+            account_type = principal_data["type"]
+            domain = f"{base_url}/{username}" if account_type == "team" else username
 
             return {
                 "provider": self.key,
                 "external_id": state["clientKey"],
-                "name": principal_data.get("username", principal_data["uuid"]),
+                "name": username,
                 "metadata": {
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
@@ -186,7 +186,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     "icon": principal_data["links"]["avatar"]["href"],
                     "scopes": self.scopes,
                     "uuid": principal_data["uuid"],
-                    "type": principal_data["type"],  # team or user account
+                    "type": account_type,  # team or user account
                 },
             }
         else:

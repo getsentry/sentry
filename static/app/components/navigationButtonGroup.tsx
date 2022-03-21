@@ -1,6 +1,6 @@
 import {LocationDescriptor} from 'history';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,14 +11,14 @@ type Props = {
    * [Oldest, Older, Newer, Newest]
    */
   links: [LocationDescriptor, LocationDescriptor, LocationDescriptor, LocationDescriptor];
+  className?: string;
   hasNext?: boolean;
   hasPrevious?: boolean;
-  className?: string;
-  size?: React.ComponentProps<typeof Button>['size'];
-  onOldestClick?: () => void;
-  onOlderClick?: () => void;
   onNewerClick?: () => void;
   onNewestClick?: () => void;
+  onOlderClick?: () => void;
+  onOldestClick?: () => void;
+  size?: ButtonProps['size'];
 };
 
 const NavigationButtonGroup = ({
@@ -37,7 +37,7 @@ const NavigationButtonGroup = ({
       size={size}
       to={links[0]}
       disabled={!hasPrevious}
-      label={t('Oldest')}
+      aria-label={t('Oldest')}
       icon={<IconPrevious size="xs" />}
       onClick={onOldestClick}
     />
@@ -51,7 +51,7 @@ const NavigationButtonGroup = ({
       size={size}
       to={links[3]}
       disabled={!hasNext}
-      label={t('Newest')}
+      aria-label={t('Newest')}
       icon={<IconNext size="xs" />}
       onClick={onNewestClick}
     />

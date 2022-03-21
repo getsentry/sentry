@@ -14,6 +14,8 @@ import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmailField from 'sentry/components/forms/emailField';
+import Form from 'sentry/components/forms/form';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
@@ -21,13 +23,11 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
-import EmailField from 'sentry/views/settings/components/forms/emailField';
-import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = ModalRenderProps & {
   api: Client;
-  organization: Organization;
   matchedUserAgentString: string;
+  organization: Organization;
 };
 
 type State = {

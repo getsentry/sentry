@@ -4,11 +4,9 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import IntegrationFeature, SentryApp
-from sentry.models.integrationfeature import IntegrationTypes
-from sentry.models.sentryapp import MASKED_VALUE
-from sentry.models.sentryappavatar import SentryAppAvatar
-from sentry.models.user import User
+from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
+from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.utils.compat import map
 
 
@@ -35,24 +33,24 @@ class SentryAppSerializer(Serializer):
         from sentry.mediators.service_hooks.creator import consolidate_events
 
         data = {
-            "name": obj.name,
-            "slug": obj.slug,
-            "author": obj.author,
-            "scopes": obj.get_scopes(),
-            "events": consolidate_events(obj.events),
-            "status": obj.get_status_display(),
-            "schema": obj.schema,
-            "uuid": obj.uuid,
-            "webhookUrl": obj.webhook_url,
-            "redirectUrl": obj.redirect_url,
-            "isAlertable": obj.is_alertable,
-            "verifyInstall": obj.verify_install,
-            "overview": obj.overview,
             "allowedOrigins": obj.application.get_allowed_origins(),
+            "author": obj.author,
+            "avatars": serialize(attrs.get("avatars"), user),
+            "events": consolidate_events(obj.events),
+            "featureData": [],
+            "isAlertable": obj.is_alertable,
+            "name": obj.name,
+            "overview": obj.overview,
             "popularity": obj.popularity,
+            "redirectUrl": obj.redirect_url,
+            "schema": obj.schema,
+            "scopes": obj.get_scopes(),
+            "slug": obj.slug,
+            "status": obj.get_status_display(),
+            "uuid": obj.uuid,
+            "verifyInstall": obj.verify_install,
+            "webhookUrl": obj.webhook_url,
         }
-
-        data["featureData"] = []
 
         if obj.status != SentryAppStatus.INTERNAL:
             data["featureData"] = map(lambda x: serialize(x, user), attrs.get("features"))
@@ -73,7 +71,5 @@ class SentryAppSerializer(Serializer):
                     "owner": {"id": obj.owner.id, "slug": obj.owner.slug},
                 }
             )
-
-        data.update({"avatars": serialize(attrs.get("avatars"), user)})
 
         return data

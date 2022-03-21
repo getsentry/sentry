@@ -394,7 +394,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
         self.login_as(self.user, organization_id=organization.id)
 
-        with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
+        with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
                 path,
                 {
@@ -412,7 +412,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert auth_provider.get_scim_token() is not None
         assert auth_provider.get_scim_url() is not None
 
-        with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
+        with self.feature({"organizations:sso-basic": True}):
             resp = self.client.post(
                 path,
                 {

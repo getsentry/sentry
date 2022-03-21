@@ -1,15 +1,21 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {mountGlobalModal} from 'sentry-test/modal';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
+import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
+
+jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
-  const initialData = initializeOrg({
+  const {router, organization, routerContext} = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
+      features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
     router: {orgId: 'orgId'},
@@ -24,12 +30,16 @@ describe('Dashboards > WidgetCard', function () {
       {
         conditions: 'event.type:error',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'errors',
         orderby: '',
       },
       {
         conditions: 'event.type:default',
         fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
         name: 'default',
         orderby: '',
       },
@@ -47,6 +57,7 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new Client();
+  let eventsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -57,6 +68,13 @@ describe('Dashboards > WidgetCard', function () {
       url: '/organizations/org-slug/events-geo/',
       body: [],
     });
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string'},
+        data: [{title: 'title'}],
+      },
+    });
   });
 
   afterEach(function () {
@@ -65,10 +83,10 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
         isEditing={false}
@@ -83,22 +101,20 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
     expect(spy).toHaveBeenCalledWith({
-      organization: initialData.organization,
+      organization,
       widget: multipleQueryWidget,
     });
   });
 
   it('renders with Open in Discover button and opens in Discover when clicked', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
         isEditing={false}
@@ -110,28 +126,34 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
   it('Opens in Discover with World Map', async function () {
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
         }}
         selection={selection}
         isEditing={false}
@@ -143,25 +165,105 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    expect(screen.getByText('Open in Discover').closest('a')).toHaveAttribute(
-      'href',
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
+    );
+  });
+
+  it('Opens in Discover with prepended fields pulled from equations', async function () {
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
+              columns: [],
+              aggregates: [
+                'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
+              ],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+    );
+  });
+
+  it('Opens in Discover with Top N', async function () {
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TOP_N,
+          queries: [
+            {
+              ...multipleQueryWidget.queries[0],
+              fields: ['transaction', 'count()'],
+              columns: ['transaction'],
+              aggregates: ['count()'],
+            },
+          ],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Widget actions'));
+    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    expect(router.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -180,9 +282,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -190,10 +290,10 @@ describe('Dashboards > WidgetCard', function () {
 
   it('does not add duplicate widgets if max widget is reached', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -212,9 +312,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Duplicate Widget'));
     expect(mock).toHaveBeenCalledTimes(0);
@@ -222,10 +320,10 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onEdit when Edit Widget is clicked', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -244,9 +342,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Edit Widget')).toBeInTheDocument();
     userEvent.click(screen.getByText('Edit Widget'));
     expect(mock).toHaveBeenCalledTimes(1);
@@ -254,10 +350,10 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders delete widget option', async function () {
     const mock = jest.fn();
-    mountWithTheme(
+    render(
       <WidgetCard
         api={api}
-        organization={initialData.organization}
+        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
@@ -276,9 +372,191 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await tick();
-
-    userEvent.click(screen.getByTestId('context-menu'));
+    userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Delete Widget')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Delete Widget'));
+    // Confirm Modal
+    await mountGlobalModal();
+    await screen.findByRole('dialog');
+
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    expect(mock).toHaveBeenCalled();
+  });
+
+  it('calls eventsV2 with a limit of 20 items', async function () {
+    const mock = jest.fn();
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+    await tick();
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 20,
+        }),
+      })
+    );
+  });
+
+  it('calls eventsV2 with a default limit of 5 items', async function () {
+    const mock = jest.fn();
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TABLE,
+          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+        }}
+        selection={selection}
+        isEditing={false}
+        onDelete={mock}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+      />
+    );
+    await tick();
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 5,
+        }),
+      })
+    );
+  });
+
+  it('has sticky table headers', async function () {
+    const tableWidget: Widget = {
+      title: 'Table Widget',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.DISCOVER,
+      queries: [
+        {
+          conditions: '',
+          fields: ['transaction', 'count()'],
+          columns: ['transaction'],
+          aggregates: ['count()'],
+          name: 'Table',
+          orderby: '',
+        },
+      ],
+    };
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={tableWidget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+    await tick();
+    expect(SimpleTableChart).toHaveBeenCalledWith(
+      expect.objectContaining({stickyHeaders: true}),
+      expect.anything()
+    );
+  });
+
+  it('calls metrics queries', function () {
+    const widget: Widget = {
+      title: 'Metrics Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.METRICS,
+      queries: [],
+    };
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        tableItemLimit={20}
+      />
+    );
+
+    expect(MetricsWidgetQueries).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the widget viewer modal when a widget has no id', async () => {
+    const widget: Widget = {
+      title: 'Widget',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.DISCOVER,
+      queries: [],
+    };
+    render(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+        widgetLimitReached={false}
+        showWidgetViewerButton
+        index="10"
+      />,
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
+    );
   });
 });

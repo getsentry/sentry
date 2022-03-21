@@ -13,12 +13,12 @@ export enum GPUKnownDataType {
 export type GPUData = {
   id: number;
   vendor_id: number;
-  name?: string;
-  version?: string;
-  vendor_name?: string;
+  api_type?: string;
   memory?: number;
   memory_size?: number;
-  npot_support?: string;
   multi_threaded_rendering?: boolean;
-  api_type?: string;
+  name?: string;
+  npot_support?: string;
+  vendor_name?: string;
+  version?: string;
 };

@@ -30,12 +30,12 @@ import {isStacktraceNewestFirst} from './utils';
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 
 type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGrouping'> & {
-  event: Event;
-  projectId: Project['id'];
-  type: string;
   data: {
     values?: Array<Thread>;
   };
+  event: Event;
+  projectId: Project['id'];
+  type: string;
 };
 
 type State = {

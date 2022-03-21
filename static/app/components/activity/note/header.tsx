@@ -12,9 +12,9 @@ import EditorTools from './editorTools';
 
 type Props = {
   authorName: string;
-  user?: User;
-  onEdit: () => void;
   onDelete: () => void;
+  onEdit: () => void;
+  user?: User;
 };
 
 const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {

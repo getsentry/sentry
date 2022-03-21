@@ -3,10 +3,12 @@ from typing import Dict, List, Optional
 from sentry.utils.services import Service
 
 
-class StringIndexer(Service):  # type: ignore
+class StringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
+
+    Check `sentry.snuba.metrics` for convenience functions.
     """
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")

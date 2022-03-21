@@ -2,7 +2,9 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import TableView from 'sentry/views/eventsV2/table/tableView';
 
@@ -14,7 +16,14 @@ describe('TableView > CellActions', function () {
     query: {
       id: '42',
       name: 'best query',
-      field: ['title', 'transaction', 'count()', 'timestamp', 'release'],
+      field: [
+        'title',
+        'transaction',
+        'count()',
+        'timestamp',
+        'release',
+        'equation|count() + 100',
+      ],
       sort: ['title'],
       query: '',
       project: [123],
@@ -57,6 +66,7 @@ describe('TableView > CellActions', function () {
 
   beforeEach(function () {
     browserHistory.push.mockReset();
+    browserHistory.replace.mockReset();
 
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
@@ -67,6 +77,7 @@ describe('TableView > CellActions', function () {
       organization,
       router: {location},
     });
+    act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
 
     onChangeShowTags = jest.fn();
 
@@ -77,6 +88,7 @@ describe('TableView > CellActions', function () {
         count: 'integer',
         timestamp: 'date',
         release: 'string',
+        'equation[0]': 'integer',
       },
       data: [
         {
@@ -85,9 +97,38 @@ describe('TableView > CellActions', function () {
           count: 9,
           timestamp: '2019-05-23T22:12:48+00:00',
           release: 'v1.0.2',
+          'equation[0]': 109,
         },
       ],
     };
+  });
+
+  afterEach(() => {
+    ProjectsStore.reset();
+  });
+
+  it('updates sort order on equation fields', async function () {
+    const view = eventView.clone();
+    const wrapper = makeWrapper(initialData, rows, view);
+    const equationSort = wrapper.find('SortLink').last();
+
+    expect(equationSort.find('StyledTooltip').props().title).toBe('count() + 100');
+    expect(equationSort.find('a').props().href).toBe(
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%5B0%5D&statsPeriod=14d&yAxis=p95'
+    );
+  });
+
+  it('updates sort order on non-equation fields', async function () {
+    const view = eventView.clone();
+    const wrapper = makeWrapper(initialData, rows, view);
+    const equationSort = wrapper.find('SortLink').at(1);
+
+    expect(equationSort.find('StyledTooltip').props().title).toBe('transaction');
+    equationSort.simulate('click');
+
+    expect(equationSort.find('a').props().href).toBe(
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-transaction&statsPeriod=14d&yAxis=p95'
+    );
   });
 
   it('handles add cell action on null value', function () {
@@ -240,7 +281,8 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction', function () {
+  it('handles go to transaction without project column selected', function () {
+    rows.data[0]['project.name'] = 'project-slug';
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 1);
     menu.find('button[data-test-id="transaction-summary"]').simulate('click');
@@ -249,6 +291,22 @@ describe('TableView > CellActions', function () {
       pathname: '/organizations/org-slug/performance/summary/',
       query: expect.objectContaining({
         transaction: '/organizations/',
+        project: ['2'],
+      }),
+    });
+  });
+
+  it('handles go to transaction with project column selected', function () {
+    rows.data[0].project = 'project-slug';
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const menu = openContextMenu(wrapper, 1);
+    menu.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/summary/',
+      query: expect.objectContaining({
+        transaction: '/organizations/',
+        project: ['2'],
       }),
     });
   });

@@ -1,56 +1,34 @@
-from collections import OrderedDict
+from __future__ import annotations
+
+from typing import Any
 
 from django import forms
 
 from sentry import tagstore
+from sentry.eventstore.models import Event
+from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
 
 
-class MatchType:
-    EQUAL = "eq"
-    NOT_EQUAL = "ne"
-    STARTS_WITH = "sw"
-    NOT_STARTS_WITH = "nsw"
-    ENDS_WITH = "ew"
-    NOT_ENDS_WITH = "new"
-    CONTAINS = "co"
-    NOT_CONTAINS = "nc"
-    IS_SET = "is"
-    NOT_SET = "ns"
-
-
-MATCH_CHOICES = OrderedDict(
-    [
-        (MatchType.EQUAL, "equals"),
-        (MatchType.NOT_EQUAL, "does not equal"),
-        (MatchType.STARTS_WITH, "starts with"),
-        (MatchType.NOT_STARTS_WITH, "does not start with"),
-        (MatchType.ENDS_WITH, "ends with"),
-        (MatchType.NOT_ENDS_WITH, "does not end with"),
-        (MatchType.CONTAINS, "contains"),
-        (MatchType.NOT_CONTAINS, "does not contain"),
-        (MatchType.IS_SET, "is set"),
-        (MatchType.NOT_SET, "is not set"),
-    ]
-)
-
-
-class TaggedEventForm(forms.Form):
+class TaggedEventForm(forms.Form):  # type: ignore
     key = forms.CharField(widget=forms.TextInput())
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
-    def clean(self):
-        super().clean()
+    def clean(self) -> dict[str, Any] | None:
+        cleaned_data: dict[str, Any] = super().clean()
 
-        match = self.cleaned_data.get("match")
-        value = self.cleaned_data.get("value")
+        match = cleaned_data.get("match")
+        value = cleaned_data.get("value")
 
         if match not in (MatchType.IS_SET, MatchType.NOT_SET) and not value:
             raise forms.ValidationError("This field is required.")
 
+        return None
+
 
 class TaggedEventCondition(EventCondition):
+    id = "sentry.rules.conditions.tagged_event.TaggedEventCondition"
     form_cls = TaggedEventForm
     label = "The event's tags match {key} {match} {value}"
 
@@ -60,7 +38,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def passes(self, event, state, **kwargs):
+    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -144,7 +122,9 @@ class TaggedEventCondition(EventCondition):
                     return False
             return True
 
-    def render_label(self):
+        raise RuntimeError("Invalid Match")
+
+    def render_label(self) -> str:
         data = {
             "key": self.data["key"],
             "value": self.data["value"],

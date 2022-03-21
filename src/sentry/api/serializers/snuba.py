@@ -102,7 +102,9 @@ def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
 
 
-def zerofill(data, start, end, rollup, allow_partial_buckets=False):
+def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default=None):
+    if fill_default is None:
+        fill_default = []
     rv = []
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
@@ -127,7 +129,7 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False):
         except IndexError:
             pass
 
-        rv.append((key, []))
+        rv.append((key, fill_default))
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
@@ -306,6 +308,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
         ]
+        attrs = None
         if self.lookup:
             attrs = self.get_attrs(
                 [value_from_row(r, self.lookup.columns) for _, v in data for r in v]
@@ -343,6 +346,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = order
         elif "order" in result.data:
             res["order"] = result.data["order"]
+        res["isMetricsData"] = result.data.get("isMetricsData", False)
 
         if hasattr(result, "start") and hasattr(result, "end"):
             timeframe = calculateTimeframe(result.start, result.end, result.rollup)

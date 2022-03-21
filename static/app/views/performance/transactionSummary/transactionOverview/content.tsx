@@ -9,9 +9,8 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import SearchBar from 'sentry/components/events/searchBar';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -27,7 +26,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -47,6 +45,7 @@ import Filter, {
 import {
   generateTraceLink,
   generateTransactionLink,
+  normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
 } from '../utils';
@@ -60,24 +59,34 @@ import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
-  location: Location;
-  eventView: EventView;
-  projectId: string;
-  transactionName: string;
-  organization: Organization;
-  isLoading: boolean;
   error: string | null;
-  totalValues: Record<string, number> | null;
-  projects: Project[];
+  eventView: EventView;
+  isLoading: boolean;
+  location: Location;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  organization: Organization;
+  projectId: string;
+  projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalValues: Record<string, number> | null;
+  transactionName: string;
 };
 
-class SummaryContent extends React.Component<Props> {
-  handleSearch = (query: string) => {
-    const {location} = this.props;
-
-    const queryParams = getParams({
+function SummaryContent({
+  eventView,
+  location,
+  totalValues,
+  spanOperationBreakdownFilter,
+  organization,
+  projects,
+  isLoading,
+  error,
+  projectId,
+  transactionName,
+  onChangeFilter,
+}: Props) {
+  function handleSearch(query: string) {
+    const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       query,
     });
@@ -89,29 +98,20 @@ class SummaryContent extends React.Component<Props> {
       pathname: location.pathname,
       query: searchQueryParams,
     });
-  };
+  }
 
-  generateTagUrl = (key: string, value: string) => {
-    const {location} = this.props;
+  function generateTagUrl(key: string, value: string) {
     const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
 
     return {
       ...location,
       query,
     };
-  };
+  }
 
-  handleCellAction = (column: TableColumn<React.ReactText>) => {
+  function handleCellAction(column: TableColumn<React.ReactText>) {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location} = this.props;
-
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
-
-      // no need to include transaction as its already in the query params
-      searchConditions.removeFilter('transaction');
+      const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);
 
@@ -124,41 +124,29 @@ class SummaryContent extends React.Component<Props> {
         },
       });
     };
-  };
+  }
 
-  handleTransactionsListSortChange = (value: string) => {
-    const {location} = this.props;
+  function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
 
     browserHistory.push(target);
-  };
+  }
 
-  handleAllEventsViewClick = () => {
-    const {organization} = this.props;
+  function handleAllEventsViewClick() {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.view_in_transaction_events',
       eventName: 'Performance Views: View in All Events from Transaction Summary',
       organization_id: parseInt(organization.id, 10),
     });
-  };
+  }
 
-  handleDiscoverViewClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_in_discover',
-      eventName: 'Performance Views: View in Discover from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  };
-
-  generateEventView(
+  function generateEventView(
     transactionsListEventView: EventView,
     transactionsListTitles: string[]
   ) {
-    const {location, totalValues, spanOperationBreakdownFilter} = this.props;
     const {selected} = getTransactionsListSort(location, {
       p95: totalValues?.p95 ?? 0,
       spanOperationBreakdownFilter,
@@ -179,239 +167,219 @@ class SummaryContent extends React.Component<Props> {
     return sortedEventView;
   }
 
-  render() {
-    let {eventView} = this.props;
-    const {
-      projectId,
-      transactionName,
-      location,
-      organization,
-      projects,
-      isLoading,
-      error,
-      totalValues,
-      onChangeFilter,
+  const hasPerformanceChartInterpolation = organization.features.includes(
+    'performance-chart-interpolation'
+  );
+
+  const query = decodeScalar(location.query.query, '');
+  const totalCount = totalValues === null ? null : totalValues.count;
+
+  // NOTE: This is not a robust check for whether or not a transaction is a front end
+  // transaction, however it will suffice for now.
+  const hasWebVitals =
+    isSummaryViewFrontendPageLoad(eventView, projects) ||
+    (totalValues !== null &&
+      VITAL_GROUPS.some(group =>
+        group.vitals.some(vital => {
+          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+          return Number.isFinite(totalValues[alias]);
+        })
+      ));
+
+  const isFrontendView = isSummaryViewFrontend(eventView, projects);
+
+  const transactionsListTitles = [
+    t('event id'),
+    t('user'),
+    t('total duration'),
+    t('trace id'),
+    t('timestamp'),
+  ];
+
+  let transactionsListEventView = eventView.clone();
+
+  if (organization.features.includes('performance-ops-breakdown')) {
+    // update search conditions
+
+    const spanOperationBreakdownConditions = filterToSearchConditions(
       spanOperationBreakdownFilter,
-    } = this.props;
-    const hasPerformanceEventsPage = organization.features.includes(
-      'performance-events-page'
-    );
-    const hasPerformanceChartInterpolation = organization.features.includes(
-      'performance-chart-interpolation'
+      location
     );
 
-    const query = decodeScalar(location.query.query, '');
-    const totalCount = totalValues === null ? null : totalValues.count;
-
-    // NOTE: This is not a robust check for whether or not a transaction is a front end
-    // transaction, however it will suffice for now.
-    const hasWebVitals =
-      isSummaryViewFrontendPageLoad(eventView, projects) ||
-      (totalValues !== null &&
-        VITAL_GROUPS.some(group =>
-          group.vitals.some(vital => {
-            const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-            return Number.isFinite(totalValues[alias]);
-          })
-        ));
-
-    const isFrontendView = isSummaryViewFrontend(eventView, projects);
-
-    const transactionsListTitles = [
-      t('event id'),
-      t('user'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ];
-
-    let transactionsListEventView = eventView.clone();
-
-    if (organization.features.includes('performance-ops-breakdown')) {
-      // update search conditions
-
-      const spanOperationBreakdownConditions = filterToSearchConditions(
-        spanOperationBreakdownFilter,
-        location
-      );
-
-      if (spanOperationBreakdownConditions) {
-        eventView = eventView.clone();
-        eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-        transactionsListEventView = eventView.clone();
-      }
-
-      // update header titles of transactions list
-
-      const operationDurationTableTitle =
-        spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
-          ? t('operation duration')
-          : `${spanOperationBreakdownFilter} duration`;
-
-      // add ops breakdown duration column as the 3rd column
-      transactionsListTitles.splice(2, 0, operationDurationTableTitle);
-
-      // span_ops_breakdown.relative is a preserved name and a marker for the associated
-      // field renderer to be used to generate the relative ops breakdown
-      let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
-
-      if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-        durationField = filterToField(spanOperationBreakdownFilter)!;
-      }
-
-      const fields = [...transactionsListEventView.fields];
-
-      // add ops breakdown duration column as the 3rd column
-      fields.splice(2, 0, {field: durationField});
-
-      if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-        fields.push(
-          ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
-            return {field};
-          })
-        );
-      }
-
-      transactionsListEventView.fields = fields;
+    if (spanOperationBreakdownConditions) {
+      eventView = eventView.clone();
+      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+      transactionsListEventView = eventView.clone();
     }
 
-    const openAllEventsProps = {
-      generatePerformanceTransactionEventsView: () => {
-        const performanceTransactionEventsView = this.generateEventView(
-          transactionsListEventView,
-          transactionsListTitles
-        );
-        performanceTransactionEventsView.query = query;
-        return performanceTransactionEventsView;
-      },
-      handleOpenAllEventsClick: this.handleAllEventsViewClick,
-    };
+    // update header titles of transactions list
 
-    const openInDiscoverProps = {
-      generateDiscoverEventView: () =>
-        this.generateEventView(transactionsListEventView, transactionsListTitles),
-      handleOpenInDiscoverClick: this.handleDiscoverViewClick,
-    };
+    const operationDurationTableTitle =
+      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+        ? t('operation duration')
+        : `${spanOperationBreakdownFilter} duration`;
 
-    return (
-      <React.Fragment>
-        <Layout.Main>
-          <Search>
-            <Filter
-              organization={organization}
-              currentFilter={spanOperationBreakdownFilter}
-              onChangeFilter={onChangeFilter}
-            />
-            <StyledSearchBar
+    // add ops breakdown duration column as the 3rd column
+    transactionsListTitles.splice(2, 0, operationDurationTableTitle);
+
+    // span_ops_breakdown.relative is a preserved name and a marker for the associated
+    // field renderer to be used to generate the relative ops breakdown
+    let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+
+    if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+      durationField = filterToField(spanOperationBreakdownFilter)!;
+    }
+
+    const fields = [...transactionsListEventView.fields];
+
+    // add ops breakdown duration column as the 3rd column
+    fields.splice(2, 0, {field: durationField});
+
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+      fields.push(
+        ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+          return {field};
+        })
+      );
+    }
+
+    transactionsListEventView.fields = fields;
+  }
+
+  const openAllEventsProps = {
+    generatePerformanceTransactionEventsView: () => {
+      const performanceTransactionEventsView = generateEventView(
+        transactionsListEventView,
+        transactionsListTitles
+      );
+      performanceTransactionEventsView.query = query;
+      return performanceTransactionEventsView;
+    },
+    handleOpenAllEventsClick: handleAllEventsViewClick,
+  };
+
+  return (
+    <React.Fragment>
+      <Layout.Main>
+        <Search>
+          <Filter
+            organization={organization}
+            currentFilter={spanOperationBreakdownFilter}
+            onChangeFilter={onChangeFilter}
+          />
+          <SearchBarContainer>
+            <SearchBar
               searchSource="transaction_summary"
               organization={organization}
               projectIds={eventView.project}
               query={query}
               fields={eventView.fields}
-              onSearch={this.handleSearch}
+              onSearch={handleSearch}
               maxQueryLength={MAX_QUERY_LENGTH}
             />
-          </Search>
-          <TransactionSummaryCharts
-            organization={organization}
+          </SearchBarContainer>
+        </Search>
+        <TransactionSummaryCharts
+          organization={organization}
+          location={location}
+          eventView={eventView}
+          totalValues={totalCount}
+          currentFilter={spanOperationBreakdownFilter}
+          withoutZerofill={hasPerformanceChartInterpolation}
+        />
+        <TransactionsList
+          location={location}
+          organization={organization}
+          eventView={transactionsListEventView}
+          {...openAllEventsProps}
+          showTransactions={
+            decodeScalar(
+              location.query.showTransactions,
+              TransactionFilterOptions.SLOW
+            ) as TransactionFilterOptions
+          }
+          breakdown={decodeFilterFromLocation(location)}
+          titles={transactionsListTitles}
+          handleDropdownChange={handleTransactionsListSortChange}
+          generateLink={{
+            id: generateTransactionLink(transactionName),
+            trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+          }}
+          handleCellAction={handleCellAction}
+          {...getTransactionsListSort(location, {
+            p95: totalValues?.p95 ?? 0,
+            spanOperationBreakdownFilter,
+          })}
+          forceLoading={isLoading}
+        />
+        <Feature
+          requireAll={false}
+          features={['organizations:performance-suspect-spans-view']}
+        >
+          <SuspectSpans
             location={location}
+            organization={organization}
             eventView={eventView}
-            totalValues={totalCount}
-            currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
-          />
-          <TransactionsList
-            location={location}
-            organization={organization}
-            eventView={transactionsListEventView}
-            {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
-            showTransactions={
-              decodeScalar(
-                location.query.showTransactions,
-                TransactionFilterOptions.SLOW
-              ) as TransactionFilterOptions
-            }
-            breakdown={decodeFilterFromLocation(location)}
-            titles={transactionsListTitles}
-            handleDropdownChange={this.handleTransactionsListSortChange}
-            generateLink={{
-              id: generateTransactionLink(transactionName),
-              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            }}
-            handleCellAction={this.handleCellAction}
-            {...getTransactionsListSort(location, {
-              p95: totalValues?.p95 ?? 0,
-              spanOperationBreakdownFilter,
-            })}
-            forceLoading={isLoading}
-          />
-          <Feature
-            requireAll={false}
-            features={['organizations:performance-suspect-spans-view']}
-          >
-            <SuspectSpans
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
-              projectId={projectId}
-              transactionName={transactionName}
-            />
-          </Feature>
-          <TagExplorer
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            projects={projects}
-            transactionName={transactionName}
-            currentFilter={spanOperationBreakdownFilter}
-          />
-          <RelatedIssues
-            organization={organization}
-            location={location}
-            transaction={transactionName}
-            start={eventView.start}
-            end={eventView.end}
-            statsPeriod={eventView.statsPeriod}
-          />
-        </Layout.Main>
-        <Layout.Side>
-          <UserStats
-            organization={organization}
-            location={location}
-            isLoading={isLoading}
-            hasWebVitals={hasWebVitals}
-            error={error}
-            totals={totalValues}
+            totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
+            projectId={projectId}
             transactionName={transactionName}
           />
-          {!isFrontendView && (
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
-            />
-          )}
-          <SidebarSpacer />
-          <SidebarCharts
-            organization={organization}
-            isLoading={isLoading}
-            error={error}
-            totals={totalValues}
-            eventView={eventView}
-          />
-          <SidebarSpacer />
-          <Tags
-            generateUrl={this.generateTagUrl}
-            totalValues={totalCount}
+        </Feature>
+        <TagExplorer
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          projects={projects}
+          transactionName={transactionName}
+          currentFilter={spanOperationBreakdownFilter}
+        />
+        <RelatedIssues
+          organization={organization}
+          location={location}
+          transaction={transactionName}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
+      </Layout.Main>
+      <Layout.Side>
+        <UserStats
+          organization={organization}
+          location={location}
+          isLoading={isLoading}
+          hasWebVitals={hasWebVitals}
+          error={error}
+          totals={totalValues}
+          transactionName={transactionName}
+          eventView={eventView}
+        />
+        {!isFrontendView && (
+          <StatusBreakdown
             eventView={eventView}
             organization={organization}
             location={location}
           />
-        </Layout.Side>
-      </React.Fragment>
-    );
-  }
+        )}
+        <SidebarSpacer />
+        <SidebarCharts
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          eventView={eventView}
+          transactionName={transactionName}
+        />
+        <SidebarSpacer />
+        <Tags
+          generateUrl={generateTagUrl}
+          totalValues={totalCount}
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+      </Layout.Side>
+    </React.Fragment>
+  );
 }
 
 function getFilterOptions({
@@ -478,7 +446,7 @@ function getFilterOptions({
 function getTransactionsListSort(
   location: Location,
   options: {p95: number; spanOperationBreakdownFilter: SpanOperationBreakdownFilter}
-): {selected: DropdownOption; options: DropdownOption[]} {
+): {options: DropdownOption[]; selected: DropdownOption} {
   const sortOptions = getFilterOptions(options);
   const urlParam = decodeScalar(
     location.query.showTransactions,
@@ -494,18 +462,8 @@ const Search = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const SearchBarContainer = styled('div')`
   flex-grow: 1;
 `;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(SummaryContent);

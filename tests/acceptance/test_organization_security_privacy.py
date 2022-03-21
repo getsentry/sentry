@@ -11,7 +11,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.path = f"/settings/{self.org.slug}/security-and-privacy/"
 
     def load_organization_helper(self, snapshot_name=None):
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         if snapshot_name is not None:
             self.browser.snapshot("organization settings security and privacy -- " + snapshot_name)
         assert self.browser.wait_until(
@@ -36,7 +36,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
 
     def test_setting_2fa_without_2fa_enabled(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert not self.browser.element_exists(
             '[data-test-id="organization-settings-security-and-privacy"] .error'
         )
@@ -49,7 +49,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
 
     def test_renders_advanced_data_scrubbing_without_rule(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
         self.load_organization_helper("advanced-data-scrubbing-without-rule")
 
@@ -68,14 +68,14 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         )
         self.org.update_option("sentry:relay_pii_config", relayPiiConfig)
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing-rules"]')
         self.load_organization_helper("advanced-data-scrubbing-with-rules")
 
     def test_renders_advanced_data_scrubbing_add_rule_modal(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
         self.browser.click_when_visible("[aria-label='Add Rule']")
         self.load_organization_helper("advanced-data-scrubbing-add-rule-modal")

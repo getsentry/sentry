@@ -8,8 +8,8 @@ export enum RuntimeIgnoredDataType {
 }
 
 export type RuntimeData = {
+  build: string;
   name: string;
   type: string;
-  build: string;
   version?: string;
 };

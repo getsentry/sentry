@@ -23,7 +23,23 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200},
+            tags={"method": "GET", "status_code": 200, "ui_request": False},
+            skip_internal=False,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_records_ui_request(self, incr):
+        request = self.factory.get("/")
+        request._view_path = "/"
+        response = Mock(status_code=200)
+        request.COOKIES = {"foo": "bar"}
+
+        self.middleware.process_response(request, response)
+
+        incr.assert_called_with(
+            "view.response",
+            instance=request._view_path,
+            tags={"method": "GET", "status_code": 200, "ui_request": True},
             skip_internal=False,
         )
 
@@ -40,7 +56,7 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "a": "b"},
+            tags={"method": "GET", "status_code": 200, "ui_request": False, "a": "b"},
             skip_internal=False,
         )
 
@@ -58,6 +74,6 @@ class RequestTimingMiddlewareTest(TestCase):
         incr.assert_called_with(
             "view.response",
             instance=request._view_path,
-            tags={"method": "GET", "status_code": 200, "foo": "bar"},
+            tags={"method": "GET", "status_code": 200, "ui_request": False, "foo": "bar"},
             skip_internal=False,
         )

@@ -16,8 +16,8 @@ const pipelineMapper: Record<string, [React.ElementType, string]> = {
 };
 
 type Props = {
-  pipelineName: string;
   [key: string]: any;
+  pipelineName: string;
 };
 
 /**

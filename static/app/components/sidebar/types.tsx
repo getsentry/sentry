@@ -7,9 +7,9 @@ export enum SidebarPanelKey {
 }
 
 export type CommonSidebarProps = {
-  orientation: SidebarOrientation;
   collapsed: boolean;
   currentPanel: SidebarPanelKey | '';
   hidePanel: () => void;
   onShowPanel: () => void;
+  orientation: SidebarOrientation;
 };

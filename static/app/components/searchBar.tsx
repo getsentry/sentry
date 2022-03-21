@@ -3,30 +3,27 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import Button from 'sentry/components/button';
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
-type DefaultProps = {
-  query: string;
+interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery: string;
   onSearch: (query: string) => void;
-};
-
-type Props = DefaultProps & {
-  width?: string;
+  query: string;
   onChange?: (query: string) => void;
-} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
+  width?: string;
+}
 
 type State = {
-  query: string;
   dropdownVisible: boolean;
+  query: string;
 };
 
-class SearchBar extends React.PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
+class SearchBar extends React.PureComponent<SearchBarProps, State> {
+  static defaultProps: Pick<SearchBarProps, 'query' | 'defaultQuery' | 'onSearch'> = {
     query: '',
     defaultQuery: '',
     onSearch: function () {},
@@ -37,7 +34,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     dropdownVisible: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: SearchBarProps) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,
@@ -120,7 +117,7 @@ class SearchBar extends React.PureComponent<Props, State> {
                 onClick={this.clearSearch}
                 size="xsmall"
                 icon={<IconClose />}
-                label={t('Clear')}
+                aria-label={t('Clear')}
               />
             )}
           </div>
@@ -132,9 +129,10 @@ class SearchBar extends React.PureComponent<Props, State> {
 
 const StyledInput = styled(Input)`
   width: ${p => (p.width ? p.width : undefined)};
+
   &.focus-visible {
-    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
-    border-color: #a598b2;
+    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.focusBorder};
     outline: none;
   }
 `;

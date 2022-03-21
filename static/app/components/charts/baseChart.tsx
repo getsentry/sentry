@@ -1,5 +1,6 @@
 import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
+import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
@@ -79,86 +80,73 @@ type Truncateable = {
   truncate?: number | boolean;
 };
 
-type Props = {
-  options?: EChartsOption;
+interface TooltipOption
+  extends Omit<TooltipComponentOption, 'valueFormatter'>,
+    Truncateable {
+  filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
+  formatAxisLabel?: (
+    value: number,
+    isTimestamp: boolean,
+    utc: boolean,
+    showTimeInTooltip: boolean,
+    addSecondsToTimeFormat: boolean,
+    bucketSize: number | undefined,
+    seriesParamsOrParam: TooltipComponentFormatterCallbackParams
+  ) => string;
   /**
-   * Chart Series
-   * This is different than the interface to higher level charts, these need to
-   * be an array of ECharts "Series" components.
+   * Array containing seriesNames that need to be indented
    */
-  series?: SeriesOption[];
+  indentLabels?: string[];
+  markerFormatter?: (marker: string, label?: string) => string;
+  nameFormatter?: (name: string) => string;
+  valueFormatter?: (
+    value: number,
+    label?: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
+}
+
+type Props = {
   /**
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
    */
   additionalSeries?: LineSeriesOption[];
   /**
-   * Array of color codes to use in charts. May also take a function which is
-   * provided with the current theme
+   * If true, ignores height value and auto-scales chart to fit container height.
    */
-  colors?: string[] | ((theme: Theme) => string[]);
-  /**
-   * Must be explicitly `null` to disable xAxis
-   *
-   * Additionally a `truncate` option
-   */
-  xAxis?: (XAXisComponentOption & Truncateable) | null;
-  /**
-   * Must be explicitly `null` to disable yAxis
-   */
-  yAxis?: YAXisComponentOption | null;
-  /**
-   * Pass `true` to have 2 y-axes with default properties. Can pass an array of
-   * objects to customize yAxis properties
-   */
-  yAxes?: true | Props['yAxis'][];
-  /**
-   * Pass `true` to have 2 x-axes with default properties.  Can pass an array
-   * of multiple objects to customize xAxis properties
-   */
-  xAxes?: true | Props['xAxis'][];
-  /**
-   * Tooltip options
-   */
-  tooltip?: TooltipComponentOption &
-    Truncateable & {
-      filter?: (
-        value: number,
-        seriesParam: TooltipComponentOption['formatter']
-      ) => boolean;
-      formatAxisLabel?: (
-        value: number,
-        isTimestamp: boolean,
-        utc: boolean,
-        showTimeInTooltip: boolean,
-        addSecondsToTimeFormat: boolean,
-        bucketSize: number | undefined,
-        seriesParamsOrParam: TooltipComponentFormatterCallbackParams
-      ) => string;
-      valueFormatter?: (
-        value: number,
-        label?: string,
-        seriesParams?: TooltipComponentFormatterCallback<any>
-      ) => string | number;
-      nameFormatter?: (name: string) => string;
-      markerFormatter?: (marker: string, label?: string) => string;
-      /**
-       * Array containing seriesNames that need to be indented
-       */
-      indentLabels?: string[];
-    };
-  /**
-   * DataZoom (allows for zooming of chart)
-   */
-  dataZoom?: EChartsOption['dataZoom'];
+  autoHeightResize?: boolean;
   /**
    * Axis pointer options
    */
   axisPointer?: AxisPointerComponentOption;
   /**
-   * Toolbox options
+   * Bucket size to display time range in chart tooltip
    */
-  toolBox?: EChartsOption['toolbox'];
+  bucketSize?: number;
+  /**
+   * Array of color codes to use in charts. May also take a function which is
+   * provided with the current theme
+   */
+  colors?: string[] | ((theme: Theme) => string[]);
+  /**
+   * DataZoom (allows for zooming of chart)
+   */
+  dataZoom?: EChartsOption['dataZoom'];
+  devicePixelRatio?: ReactEChartOpts['devicePixelRatio'];
+  /**
+   * theme name
+   * example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
+   */
+  echartsTheme?: ReactEchartProps['theme'];
+  /**
+   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   */
+  end?: Date;
+  /**
+   * Forwarded Ref
+   */
+  forwardedRef?: React.Ref<ReactEchartsCore>;
   /**
    * Graphic options
    */
@@ -168,60 +156,51 @@ type Props = {
    */
   grid?: GridComponentOption | GridComponentOption[];
   /**
-   * ECharts Visual Map Options.
+   * Chart height
    */
-  visualMap?: VisualMapComponentOption | VisualMapComponentOption[];
+  height?: ReactEChartOpts['height'];
+  /**
+   * If data is grouped by date; then apply default date formatting to x-axis
+   * and tooltips.
+   */
+  isGroupedByDate?: boolean;
+  /**
+   * states whether not to update chart immediately
+   */
+  lazyUpdate?: boolean;
   /**
    * Chart legend
    */
   legend?: LegendComponentOption & Truncateable;
   /**
-   * Chart height
+   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
    */
-  height?: ReactEChartOpts['height'];
-  /**
-   * Chart width
-   */
-  width?: ReactEChartOpts['width'];
-  /**
-   * Use `canvas` when dealing with large datasets
-   * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
-   */
-  renderer?: ReactEChartOpts['renderer'];
-  devicePixelRatio?: ReactEChartOpts['devicePixelRatio'];
-  /**
-   * theme name
-   * example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
-   */
-  echartsTheme?: ReactEchartProps['theme'];
+  minutesThresholdToDisplaySeconds?: number;
   /**
    * states whether or not to merge with previous `option`
    */
   notMerge?: boolean;
-  /**
-   * states whether not to update chart immediately
-   */
-  lazyUpdate?: boolean;
   onChartReady?: EChartChartReadyHandler;
-  onHighlight?: EChartHighlightHandler;
-  onMouseOver?: EChartMouseOverHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
-  /**
-   * One example of when this is called is restoring chart from zoom levels
-   */
-  onRestore?: EChartRestoreHandler;
   onFinished?: EChartFinishedHandler;
-  onRendered?: EChartRenderedHandler;
+  onHighlight?: EChartHighlightHandler;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onMouseOver?: EChartMouseOverHandler;
+  onRendered?: EChartRenderedHandler;
   /**
-   * Forwarded Ref
+   * One example of when this is called is restoring chart from zoom levels
    */
-  forwardedRef?: React.Ref<ReactEchartsCore>;
+  onRestore?: EChartRestoreHandler;
+  options?: EChartsOption;
+  /**
+   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   */
+  period?: string | null;
   /**
    * Custom chart props that are implemented by us (and not a feature of eCharts)
    *
@@ -229,42 +208,36 @@ type Props = {
    */
   previousPeriod?: Series[];
   /**
-   * If data is grouped by date; then apply default date formatting to x-axis
-   * and tooltips.
+   * Use `canvas` when dealing with large datasets
+   * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
    */
-  isGroupedByDate?: boolean;
+  renderer?: ReactEChartOpts['renderer'];
   /**
-   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   * Chart Series
+   * This is different than the interface to higher level charts, these need to
+   * be an array of ECharts "Series" components.
    */
-  minutesThresholdToDisplaySeconds?: number;
+  series?: SeriesOption[];
   /**
    * Format timestamp with date AND time
    */
   showTimeInTooltip?: boolean;
   /**
-   * Use short date formatting for xAxis
-   */
-  useShortDate?: boolean;
-  /**
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
   start?: Date;
   /**
-   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   * Inline styles
    */
-  end?: Date;
+  style?: React.CSSProperties;
   /**
-   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   * Toolbox options
    */
-  period?: string;
+  toolBox?: EChartsOption['toolbox'];
   /**
-   * Formats dates as UTC?
+   * Tooltip options
    */
-  utc?: boolean;
-  /**
-   * Bucket size to display time range in chart tooltip
-   */
-  bucketSize?: number;
+  tooltip?: TooltipOption;
   /**
    * If true and there's only one datapoint in series.data, we show a bar chart to increase the visibility.
    * Especially useful with line / area charts, because you can't draw line with single data point and one alone point is hard to spot.
@@ -276,14 +249,42 @@ type Props = {
    */
   transformSinglePointToLine?: boolean;
   /**
-   * Inline styles
+   * Use short date formatting for xAxis
    */
-  style?: React.CSSProperties;
+  useShortDate?: boolean;
+  /**
+   * Formats dates as UTC?
+   */
+  utc?: boolean;
+  /**
+   * ECharts Visual Map Options.
+   */
+  visualMap?: VisualMapComponentOption | VisualMapComponentOption[];
+  /**
+   * Chart width
+   */
+  width?: ReactEChartOpts['width'];
+  /**
+   * Pass `true` to have 2 x-axes with default properties.  Can pass an array
+   * of multiple objects to customize xAxis properties
+   */
+  xAxes?: true | Props['xAxis'][];
+  /**
+   * Must be explicitly `null` to disable xAxis
+   *
+   * Additionally a `truncate` option
+   */
+  xAxis?: (XAXisComponentOption & Truncateable) | null;
+  /**
+   * Pass `true` to have 2 y-axes with default properties. Can pass an array of
+   * objects to customize yAxis properties
+   */
+  yAxes?: true | Props['yAxis'][];
 
   /**
-   * If true, ignores height value and auto-scales chart to fit container height.
+   * Must be explicitly `null` to disable yAxis
    */
-  autoHeightResize?: boolean;
+  yAxis?: YAXisComponentOption | null;
 };
 
 function BaseChartUnwrapped({
@@ -452,13 +453,11 @@ function BaseChartUnwrapped({
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
-  // Maybe changing the series type to types/echarts Series[] would be a better
-  // solution and can't use ignore for multiline blocks
-  const seriesValid = series && series[0]?.data && (series[0].data as any[]).length > 1;
-  const seriesData = seriesValid ? series[0].data : undefined;
-  const bucketSize = seriesData
-    ? (seriesData as any[])[1][0] - (seriesData as any[])[0][0]
-    : undefined;
+  const seriesData =
+    Array.isArray(series?.[0]?.data) && series[0].data.length > 1
+      ? series[0].data
+      : undefined;
+  const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
   const tooltipOrNone =
     tooltip !== null
@@ -595,14 +594,14 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     border-top: 8px solid ${p => p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid ${p => p.theme.border};
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid ${p => p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
-      top: -8px;
-      left: -9px;
+      top: -7px;
+      left: -8px;
       z-index: -1;
     }
   }

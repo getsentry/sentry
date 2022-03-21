@@ -30,24 +30,24 @@ type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
 type Props<T> = ModalRenderProps & {
-  onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
-  onGetNewRules: (values: Values) => Array<Rule>;
-  orgSlug: Organization['slug'];
   api: Client;
   endpoint: string;
+  onGetNewRules: (values: Values) => Array<Rule>;
+  onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
+  orgSlug: Organization['slug'];
   savedRules: Array<Rule>;
   title: string;
-  projectId?: T;
   initialState?: Partial<Values>;
+  projectId?: T;
 };
 
 type State = {
-  values: Values;
-  requiredValues: Array<keyof Values>;
   errors: FormProps['errors'];
-  isFormValid: boolean;
-  sourceSuggestions: SourceSuggestions;
   eventId: EventId;
+  isFormValid: boolean;
+  requiredValues: Array<keyof Values>;
+  sourceSuggestions: SourceSuggestions;
+  values: Values;
 };
 
 class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State> {
@@ -138,7 +138,7 @@ class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State>
     }));
 
     try {
-      const query: {projectId?: string; eventId: string} = {eventId: eventId.value};
+      const query: {eventId: string; projectId?: string} = {eventId: eventId.value};
       if (projectId) {
         query.projectId = projectId;
       }

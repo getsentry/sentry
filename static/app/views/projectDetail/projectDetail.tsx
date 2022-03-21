@@ -13,14 +13,13 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
-import GlobalSdkUpdateAlert from 'sentry/components/globalSdkUpdateAlert';
+import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,9 +48,9 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  loadingProjects: boolean;
   organization: Organization;
   projects: Project[];
-  loadingProjects: boolean;
   selection: PageFilters;
 };
 
@@ -223,16 +222,14 @@ class ProjectDetail extends AsyncView<Props, State> {
                   ]}
                 />
                 <Layout.Title>
-                  <TextOverflow>
-                    {project && (
-                      <IdBadge
-                        project={project}
-                        avatarSize={28}
-                        displayName={params.projectId}
-                        disableLink
-                      />
-                    )}
-                  </TextOverflow>
+                  {project && (
+                    <IdBadge
+                      project={project}
+                      avatarSize={28}
+                      hideOverflow="100%"
+                      disableLink
+                    />
+                  )}
                 </Layout.Title>
               </Layout.HeaderContent>
 
@@ -254,7 +251,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   />
                   <Button
                     icon={<IconSettings />}
-                    label={t('Settings')}
+                    aria-label={t('Settings')}
                     to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
                 </ButtonBar>
@@ -263,21 +260,21 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <StyledSdkUpdatesAlert />
+              <Layout.Main fullWidth>
+                <StyledSdkUpdatesAlert />
+              </Layout.Main>
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
                 organization={organization}
               />
               <Layout.Main>
-                <Feature features={['semver']} organization={organization}>
-                  <ProjectFiltersWrapper>
-                    <ProjectFilters
-                      query={query}
-                      onSearch={this.handleSearch}
-                      tagValueLoader={this.tagValueLoader}
-                    />
-                  </ProjectFiltersWrapper>
-                </Feature>
+                <ProjectFiltersWrapper>
+                  <ProjectFilters
+                    query={query}
+                    onSearch={this.handleSearch}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                </ProjectFiltersWrapper>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -365,10 +362,6 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-bottom: 0;
   }
 `;
-
-StyledSdkUpdatesAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

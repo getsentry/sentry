@@ -20,9 +20,9 @@ const defaultProps = {
 };
 
 type Props = {
+  onChange: (value: string) => void;
   options: SelectValue<string>[];
   selected: string;
-  onChange: (value: string) => void;
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
 } & typeof defaultProps;
@@ -74,7 +74,7 @@ class OptionSelector extends Component<Props, State> {
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
-                <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+                <StyledDropdownButton {...getActorProps()} size="small" isOpen={isOpen}>
                   <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
@@ -124,13 +124,7 @@ const StyledTruncate = styled(Truncate)<{
   isActive: boolean;
 }>`
   & span {
-    ${p =>
-      p.isActive &&
-      `
-      color: ${p.theme.white};
-      background: ${p.theme.active};
-      border: none;
-    `}
+    ${p => p.isActive && 'border: none;'}
   }
 `;
 
@@ -140,8 +134,6 @@ const MenuContainer = styled('div')`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  padding: ${space(1)} ${space(2)};
-  font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 

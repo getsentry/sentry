@@ -6,8 +6,9 @@ class UserPermissionsConfigTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.user = self.create_user()
-        self.login_as(user=self.user)
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "users.admin")
 
 
 class UserPermissionsConfigGetTest(UserPermissionsConfigTest):

@@ -4,6 +4,10 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react';
 
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
+import {JsonFormObject} from 'sentry/components/forms/type';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,10 +15,6 @@ import {PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import {JsonFormObject} from 'sentry/views/settings/components/forms/type';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
@@ -24,8 +24,8 @@ const LAMBDA_COUNT_THRESHOLD = 10;
 type LambdaFunction = {FunctionName: string; Runtime: string};
 
 type Props = {
-  lambdaFunctions: LambdaFunction[];
   initialStepNumber: number;
+  lambdaFunctions: LambdaFunction[];
 };
 
 type State = {

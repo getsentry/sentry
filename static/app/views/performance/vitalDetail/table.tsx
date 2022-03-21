@@ -33,6 +33,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {
+  normalizeSearchConditionsWithTransactionName,
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
@@ -81,12 +82,12 @@ export function getProjectID(
 
 type Props = {
   eventView: EventView;
-  organization: Organization;
   location: Location;
-  setError: (msg: string | undefined) => void;
-  summaryConditions: string;
-
+  organization: Organization;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
+
+  summaryConditions: string;
 };
 
 type State = {
@@ -109,10 +110,9 @@ class Table extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 
@@ -181,9 +181,11 @@ class Table extends React.Component<Props, State> {
       conditions.addFilterValues('has', [`${vitalName}`]);
       summaryView.query = conditions.formatString();
 
+      const transaction = String(dataRow.transaction) || '';
+
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
-        transaction: String(dataRow.transaction) || '',
+        transaction,
         query: summaryView.generateQueryStringObject(),
         projectID,
         showTransactions: TransactionFilterOptions.RECENT,
@@ -197,7 +199,11 @@ class Table extends React.Component<Props, State> {
           handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
-          <Link to={target} onClick={this.handleSummaryClick}>
+          <Link
+            to={target}
+            aria-label={t('See transaction summary of the transaction %s', transaction)}
+            onClick={this.handleSummaryClick}
+          >
             {rendered}
           </Link>
         </CellAction>

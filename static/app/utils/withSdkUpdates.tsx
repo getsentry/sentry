@@ -18,12 +18,12 @@ type InjectedProps = {
 };
 
 type Props = {
+  api: Client;
   organization: Organization;
   /**
    * Project IDs to limit the updates query to
    */
   projectIds?: string[];
-  api: Client;
 };
 
 type State = {

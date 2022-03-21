@@ -25,9 +25,9 @@ import OrganizationAccessRequests from './organizationAccessRequests';
 type Props = {
   access: Set<string>;
   features: Set<string>;
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   organization: Organization;
   requestList: AccessRequest[];
-  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({

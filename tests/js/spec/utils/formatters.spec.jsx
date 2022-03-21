@@ -12,11 +12,11 @@ describe('getDuration()', function () {
     expect(getDuration(0.1, 2)).toBe('100.00ms');
     expect(getDuration(1)).toBe('1 second');
     expect(getDuration(2)).toBe('2 seconds');
-    expect(getDuration(65)).toBe('65 seconds');
+    expect(getDuration(65)).toBe('1 minute');
     expect(getDuration(122)).toBe('2 minutes');
-    expect(getDuration(3720)).toBe('62 minutes');
+    expect(getDuration(3720)).toBe('1 hour');
     expect(getDuration(36000)).toBe('10 hours');
-    expect(getDuration(86400)).toBe('24 hours');
+    expect(getDuration(86400)).toBe('1 day');
     expect(getDuration(86400 * 2)).toBe('2 days');
     expect(getDuration(604800)).toBe('1 week');
     expect(getDuration(604800 * 4)).toBe('4 weeks');
@@ -30,11 +30,11 @@ describe('getDuration()', function () {
     expect(getDuration(-0.1, 2)).toBe('-100.00ms');
     expect(getDuration(-1)).toBe('-1 second');
     expect(getDuration(-2)).toBe('-2 seconds');
-    expect(getDuration(-65)).toBe('-65 seconds');
+    expect(getDuration(-65)).toBe('-1 minute');
     expect(getDuration(-122)).toBe('-2 minutes');
-    expect(getDuration(-3720)).toBe('-62 minutes');
+    expect(getDuration(-3720)).toBe('-1 hour');
     expect(getDuration(-36000)).toBe('-10 hours');
-    expect(getDuration(-86400)).toBe('-24 hours');
+    expect(getDuration(-86400)).toBe('-1 day');
     expect(getDuration(-86400 * 2)).toBe('-2 days');
     expect(getDuration(-604800)).toBe('-1 week');
     expect(getDuration(-604800 * 4)).toBe('-4 weeks');
@@ -49,13 +49,13 @@ describe('getDuration()', function () {
     expect(getDuration(0.1, 2, true)).toBe('100.00ms');
     expect(getDuration(1, 2, true)).toBe('1.00s');
     expect(getDuration(122, 0, true)).toBe('2min');
-    expect(getDuration(3600, 0, true)).toBe('60min');
-    expect(getDuration(86400, 0, true)).toBe('24hr');
+    expect(getDuration(3600, 0, true)).toBe('1hr');
+    expect(getDuration(86400, 0, true)).toBe('1d');
     expect(getDuration(86400 * 2, 0, true)).toBe('2d');
     expect(getDuration(604800, 0, true)).toBe('1wk');
     expect(getDuration(604800 * 2, 0, true)).toBe('2wk');
     expect(getDuration(2629800, 0, true)).toBe('1mo');
-    expect(getDuration(604800 * 12, 0, true)).toBe('3mos');
+    expect(getDuration(604800 * 12, 0, true)).toBe('3mo');
   });
 
   it('should format numbers and abbreviate units with one letter', function () {
@@ -65,8 +65,8 @@ describe('getDuration()', function () {
     expect(getDuration(0.1, 2, false, true)).toBe('100.00ms');
     expect(getDuration(1, 2, false, true)).toBe('1.00s');
     expect(getDuration(122, 0, false, true)).toBe('2m');
-    expect(getDuration(3600, 0, false, true)).toBe('60m');
-    expect(getDuration(86400, 0, false, true)).toBe('24h');
+    expect(getDuration(3600, 0, false, true)).toBe('1h');
+    expect(getDuration(86400, 0, false, true)).toBe('1d');
     expect(getDuration(86400 * 2, 0, false, true)).toBe('2d');
     expect(getDuration(604800, 0, false, true)).toBe('1w');
     expect(getDuration(604800 * 2, 0, false, true)).toBe('2w');

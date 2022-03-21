@@ -18,15 +18,15 @@ type Props = RouteComponentProps<
   {groupId: Group['id']; orgId: Organization['slug']},
   {}
 > & {
-  project: Project;
   organization: Organization;
+  project: Project;
 };
 
 type State = {
-  query: string;
-  loading: boolean;
   error: boolean;
+  loading: boolean;
   mergedItems: Array<Fingerprint>;
+  query: string;
   mergedLinks?: string;
 };
 

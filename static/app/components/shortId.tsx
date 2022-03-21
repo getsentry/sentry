@@ -7,12 +7,12 @@ import Link from 'sentry/components/links/link';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  className?: string;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   /**
    * A router target destination
    */
   to?: React.ComponentProps<typeof Link>['to'];
-  className?: string;
 };
 
 function ShortId({shortId, avatar, onClick, to, className}: Props) {

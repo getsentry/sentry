@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {MultiControlProps} from 'sentry/components/forms/multiSelectControl';
+import {MultiControlProps} from 'sentry/components/deprecatedforms/multiSelectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {PanelItem} from 'sentry/components/panels';
@@ -16,13 +16,13 @@ import space from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
 
 type Props = {
+  allRoles: MemberRole[];
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
-  organization: Organization;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
-  allRoles: MemberRole[];
+  organization: Organization;
 };
 
 const InviteModalHook = HookOrDefault({

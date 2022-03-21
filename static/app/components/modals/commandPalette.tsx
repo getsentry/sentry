@@ -3,11 +3,11 @@ import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Search from 'sentry/components/search';
+import Input from 'sentry/components/forms/controls/input';
+import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {analytics} from 'sentry/utils/analytics';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 function CommandPalette({Body}: ModalRenderProps) {
   const theme = useTheme();

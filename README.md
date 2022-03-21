@@ -26,7 +26,7 @@ sending events from any language, in any application.
   - [JavaScript](https://github.com/getsentry/sentry-javascript)
   - [React-Native](https://github.com/getsentry/sentry-react-native)
   - [Python](https://github.com/getsentry/sentry-python)
-  - [Ruby](https://github.com/getsentry/raven-ruby)
+  - [Ruby](https://github.com/getsentry/sentry-ruby)
   - [PHP](https://github.com/getsentry/sentry-php)
   - [Go](https://github.com/getsentry/sentry-go)
   - [Rust](https://github.com/getsentry/sentry-rust)

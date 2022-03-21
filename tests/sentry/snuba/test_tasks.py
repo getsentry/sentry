@@ -8,9 +8,9 @@ import responses
 from django.utils import timezone
 from exam import patcher
 
-from sentry.release_health.metrics import get_tag_values_list, metric_id, tag_key, tag_value
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
@@ -306,13 +306,12 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        org_id = self.organization.id
-        session_status = tag_key(org_id, "session.status")
-        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -331,13 +330,12 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        org_id = self.organization.id
-        session_status = tag_key(org_id, "session.status")
-        session_status_tag_values = get_tag_values_list(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -407,19 +405,18 @@ class BuildSnubaFilterTest(TestCase):
             query="release:ahmed@12.2",
             environment=env,
         )
-        org_id = self.organization.id
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.groupby == [tag_key(org_id, "session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.SESSION)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [
-                tag_key(org_id, "session.status"),
+                resolve_tag_key("session.status"),
                 "IN",
-                get_tag_values_list(org_id, ["crashed", "init"]),
+                resolve_many_weak(["crashed", "init"]),
             ],
-            [tag_key(org_id, "environment"), "=", tag_value(org_id, "development")],
-            [tag_key(org_id, "release"), "=", tag_value(org_id, "ahmed@12.2")],
+            [resolve_tag_key("environment"), "=", resolve_weak("development")],
+            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
         ]
 
     def test_query_and_environment_users(self):
@@ -473,19 +470,18 @@ class BuildSnubaFilterTest(TestCase):
             query="release:ahmed@12.2",
             environment=env,
         )
-        org_id = self.organization.id
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-        assert snuba_filter.groupby == [tag_key(org_id, "session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", metric_id(org_id, SessionMetricKey.USER)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [
-                tag_key(org_id, "session.status"),
+                resolve_tag_key("session.status"),
                 "IN",
-                get_tag_values_list(org_id, ["crashed", "init"]),
+                resolve_many_weak(["crashed", "init"]),
             ],
-            [tag_key(org_id, "environment"), "=", tag_value(org_id, "development")],
-            [tag_key(org_id, "release"), "=", tag_value(org_id, "ahmed@12.2")],
+            [resolve_tag_key("environment"), "=", resolve_weak("development")],
+            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
         ]
 
     def test_aliased_query_transactions(self):

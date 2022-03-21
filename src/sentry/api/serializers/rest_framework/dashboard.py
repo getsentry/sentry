@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from django.db.models import Max
@@ -5,6 +6,7 @@ from rest_framework import serializers
 
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -17,6 +19,29 @@ from sentry.models import (
 from sentry.search.events.fields import get_function_alias, resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period
+
+AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
+AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
+EQUATION_PREFIX = "equation|"
+
+
+def is_equation(field: str) -> bool:
+    """check if a public alias is an equation, which start with the equation prefix
+    eg. `equation|5 + 5`
+    """
+    return field.startswith(EQUATION_PREFIX)
+
+
+def is_aggregate(field: str) -> bool:
+    field_match = re.match(AGGREGATE_PATTERN, field)
+    if field_match:
+        return True
+
+    equation_match = re.match(AGGREGATE_BASE, field)
+    if equation_match and is_equation(field):
+        return True
+
+    return False
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -49,10 +74,47 @@ def is_table_display_type(display_type):
     )
 
 
+class LayoutField(serializers.Field):
+    REQUIRED_KEYS = {
+        "x",
+        "y",
+        "w",
+        "h",
+        "min_h",
+    }
+
+    def to_internal_value(self, data):
+        if data is None:
+            return None
+
+        missing_keys = self.REQUIRED_KEYS - set(data.keys())
+        if missing_keys:
+            missing_key_str = ", ".join(sorted(snake_to_camel_case(key) for key in missing_keys))
+            raise serializers.ValidationError(f"Missing required keys: {missing_key_str}")
+
+        layout_to_store = {}
+        for key in self.REQUIRED_KEYS:
+            value = data.get(key)
+            if value is None:
+                continue
+
+            if not isinstance(value, int):
+                raise serializers.ValidationError(f"Expected number for: {key}")
+            layout_to_store[key] = value
+
+        # Store the layout with camel case dict keys because they'll be
+        # served as camel case in outgoing responses anyways
+        return convert_dict_key_case(layout_to_store, snake_to_camel_case)
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
+    aggregates = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
+    columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
@@ -74,10 +136,27 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
-        fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
-        equations, fields = categorize_columns(fields)
         is_table = is_table_display_type(self.context.get("displayType"))
+
+        # TODO(dam): Use columns and aggregates for validation
+        fields = self._get_attr(data, "fields", []).copy()
+        equations, fields = categorize_columns(fields)
+
+        # TODO(dam): Temp code while we are sure adoption
+        # of fromtend code that sends this data is high enough
+        columns = self._get_attr(data, "columns", []).copy()
+        aggregates = self._get_attr(data, "aggregates", []).copy()
+
+        if not columns and not aggregates:
+            for field in fields:
+                if is_aggregate(field):
+                    aggregates.append(field)
+                else:
+                    columns.append(field)
+
+            data["columns"] = columns
+            data["aggregates"] = aggregates
 
         if equations is not None:
             try:
@@ -120,6 +199,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         if orderby:
             snuba_filter.orderby = get_function_alias(orderby)
+
+        # TODO(dam): Add validation for metrics fields/queries
         try:
             resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
         except InvalidSearchQuery as err:
@@ -152,6 +233,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
+    layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -285,10 +368,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data["widget_type"]
-            if "widget_type" in widget_data
-            else DashboardWidgetTypes.DISCOVER,
+            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
+            limit=widget_data.get("limit", None),
+            detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
@@ -296,6 +379,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                 DashboardWidgetQuery(
                     widget=widget,
                     fields=query["fields"],
+                    aggregates=query.get("aggregates"),
+                    columns=query.get("columns"),
                     conditions=query["conditions"],
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
@@ -305,11 +390,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
+        prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.limit = data.get("limit", widget.limit)
+        widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
         if "queries" in data:
@@ -335,6 +423,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     DashboardWidgetQuery(
                         widget=widget,
                         fields=query_data["fields"],
+                        aggregates=query_data.get("aggregates"),
+                        columns=query_data.get("columns"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
                         orderby=query_data.get("orderby", ""),
@@ -350,6 +440,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
         query.orderby = data.get("orderby", query.orderby)
+        query.aggregates = data.get("aggregates", query.aggregates)
+        query.columns = data.get("columns", query.columns)
         query.order = order
         query.save()
 

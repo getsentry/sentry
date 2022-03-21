@@ -18,10 +18,10 @@ type Props = Pick<
   CrashContentProps,
   'groupingCurrentLevel' | 'hasHierarchicalGrouping'
 > & {
-  event: Event;
-  type: string;
   data: NonNullable<CrashContentProps['stacktrace']>;
+  event: Event;
   projectId: Project['id'];
+  type: string;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };

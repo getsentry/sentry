@@ -8,16 +8,15 @@ import type {Theme} from 'sentry/utils/theme';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
-import {getTooltipArrow} from './utils';
 
 type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 export type PieChartSeries = Series & Omit<PieSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
+  series: PieChartSeries[];
   theme: Theme;
   selectOnRender?: boolean;
-  series: PieChartSeries[];
 };
 
 class PieChart extends React.Component<Props> {
@@ -149,7 +148,7 @@ class PieChart extends React.Component<Props> {
               '</div>',
               `<div class="tooltip-date">${data.value}</div>`,
               '</div>',
-              getTooltipArrow(),
+              '<div class="tooltip-arrow"></div>',
             ].join('');
           },
         }}

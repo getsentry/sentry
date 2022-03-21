@@ -21,19 +21,19 @@ import EventTitleError from './eventTitleError';
 type Size = 'small' | 'normal';
 
 type Props = WithRouterProps<{orgId: string}> & {
-  organization: Organization;
   data: Event | Group | GroupTombstone;
-  hideIcons?: boolean;
-  hideLevel?: boolean;
-  query?: string;
+  organization: Organization;
   className?: string;
-  /** Group link clicked */
-  onClick?: () => void;
-  index?: number;
-  includeLink?: boolean;
-  size?: Size;
   /* is issue breakdown? */
   grouping?: boolean;
+  hideIcons?: boolean;
+  hideLevel?: boolean;
+  includeLink?: boolean;
+  index?: number;
+  /** Group link clicked */
+  onClick?: () => void;
+  query?: string;
+  size?: Size;
 };
 
 /**
@@ -161,7 +161,7 @@ const getMargin = ({size}: {size: Size}) => {
   return 'margin: 0 0 5px';
 };
 
-const Title = styled('div')<{size: Size; hasGroupingTreeUI: boolean}>`
+const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
   ${getMargin};
   & em {

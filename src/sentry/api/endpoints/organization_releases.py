@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, release_health
+from sentry import analytics, release_health
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -372,10 +372,6 @@ class OrganizationReleasesEndpoint(
 
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
-
-        with_adoption_stages = with_adoption_stages and features.has(
-            "organizations:release-adoption-stage", organization, actor=request.user
-        )
 
         return self.paginate(
             request=request,

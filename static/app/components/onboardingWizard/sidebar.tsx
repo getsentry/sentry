@@ -24,9 +24,9 @@ import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from 
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
+  onClose: () => void;
   organization: Organization;
   projects: Project[];
-  onClose: () => void;
 };
 
 /**

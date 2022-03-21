@@ -7,7 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import DeviceName from 'sentry/components/deviceName';
+import {DeviceName} from 'sentry/components/deviceName';
 import DropdownLink from 'sentry/components/dropdownLink';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -33,8 +33,8 @@ type RouteParams = {
 type Props = {
   baseUrl: string;
   group: Group;
-  project?: Project;
   environments?: string[];
+  project?: Project;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {

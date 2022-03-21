@@ -29,17 +29,17 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
-  group: Group;
-  project: Project;
-  organization: Organization;
   event: Event;
+  group: Group;
+  organization: Organization;
+  project: Project;
 };
 
 type State = AsyncComponent['state'] & {
   components: SentryAppComponent[];
-  sentryAppInstallations: SentryAppInstallation[];
   externalIssues: PlatformExternalIssue[];
   integrations: GroupIntegration[];
+  sentryAppInstallations: SentryAppInstallation[];
 };
 
 class ExternalIssueList extends AsyncComponent<Props, State> {

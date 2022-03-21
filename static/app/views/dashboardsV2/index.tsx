@@ -15,8 +15,8 @@ import {DashboardBasicFeature} from './view';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
-  organization: Organization;
   children: React.ReactNode;
+  organization: Organization;
 };
 
 function DashboardsV2Container(props: Props) {

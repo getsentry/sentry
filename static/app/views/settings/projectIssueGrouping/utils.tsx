@@ -8,9 +8,9 @@ export function getGroupingChanges(
   project: Project,
   groupingConfigs: EventGroupingConfig[]
 ): {
-  updateNotes: string;
-  riskLevel: number;
   latestGroupingConfig: EventGroupingConfig | null;
+  riskLevel: number;
+  updateNotes: string;
 } {
   const byId: Record<string, EventGroupingConfig> = {};
   let updateNotes: string = '';
@@ -43,8 +43,8 @@ export function getGroupingChanges(
 }
 
 export function getGroupingRisk(riskLevel: number): {
-  riskNote: React.ReactNode;
   alertType: React.ComponentProps<typeof Alert>['type'];
+  riskNote: React.ReactNode;
 } {
   switch (riskLevel) {
     case 0:

@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 import StepHeading from './stepHeading';
 
 type Props = {
-  stepHeaderText: string;
   platform: PlatformKey;
+  stepHeaderText: string;
 };
 export default function SetupIntroduction({stepHeaderText, platform}: Props) {
   return (

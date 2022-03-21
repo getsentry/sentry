@@ -9,9 +9,9 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import BarChart from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {DateTimeObject, getTooltipArrow} from 'sentry/components/charts/utils';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
-import {getParams} from 'sentry/components/organizations/pageFilters/getParams';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
@@ -21,19 +21,19 @@ import {Organization, Project} from 'sentry/types';
 import {Color, Theme} from 'sentry/utils/theme';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {barAxisLabel, convertDaySeriesToWeeks, groupByTrend} from './utils';
+import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
 type Props = AsyncComponent['props'] & {
-  theme: Theme;
   organization: Organization;
-  teamSlug: string;
   projects: Project[];
+  teamSlug: string;
+  theme: Theme;
 } & DateTimeObject;
 
 type ProjectReleaseCount = {
+  last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
-  last_week_totals: Record<string, number>;
 };
 
 type State = AsyncComponent['state'] & {
@@ -65,7 +65,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...getParams(datetime),
+            ...normalizeDateTimeParams(datetime),
           },
         },
       ],
@@ -186,7 +186,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
         name: new Date(bucket).getTime(),
       })
     );
-    const seriesData = convertDaySeriesToWeeks(data);
+    const seriesData = sortSeriesByDay(data);
 
     const averageValues = Object.values(periodReleases?.project_avgs ?? {});
     const projectAvgSum = averageValues.reduce(
@@ -219,6 +219,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                     show: false,
                   },
                 }),
+                barCategoryGap: '5%',
               },
             ]}
             tooltip={{
@@ -237,7 +238,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
                   `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                   '</div>',
                   `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
-                  getTooltipArrow(),
+                  '<div class="tooltip-arrow"></div>',
                 ].join('');
               },
             }}

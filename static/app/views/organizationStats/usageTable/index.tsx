@@ -19,25 +19,25 @@ import {formatUsageWithUnits} from '../utils';
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
 type Props = {
-  isLoading?: boolean;
-  isEmpty?: boolean;
-  isError?: boolean;
+  dataCategory: DataCategory;
+  headers: React.ReactNode[];
+  usageStats: TableStat[];
   errors?: Record<string, Error>;
 
-  headers: React.ReactNode[];
+  isEmpty?: boolean;
 
-  dataCategory: DataCategory;
-  usageStats: TableStat[];
+  isError?: boolean;
+  isLoading?: boolean;
 };
 
 export type TableStat = {
+  accepted: number;
+  dropped: number;
+  filtered: number;
   project: Project;
   projectLink: string;
   projectSettingsLink: string;
   total: number;
-  accepted: number;
-  filtered: number;
-  dropped: number;
 };
 
 class UsageTable extends React.Component<Props> {

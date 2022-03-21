@@ -1,15 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('ProjectPageFilter', function () {
   const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views']},
+    organization: {features: ['global-views', 'selection-filters-v2']},
     project: undefined,
     projects: [
       {
@@ -18,27 +17,35 @@ describe('ProjectPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });
   OrganizationStore.onUpdate(organization, {replace: true});
   ProjectsStore.loadInitialData(organization.projects);
-  PageFiltersStore.onInitializeUrlState({
-    projects: [],
-    environments: [],
-    datetime: {start: null, end: null, period: '14d', utc: null},
+
+  beforeEach(() => {
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
+    });
   });
 
   it('can pick project', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <ProjectPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the project dropdown
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -56,7 +63,86 @@ describe('ProjectPageFilter', function () {
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: [], project: [2]}})
+      expect.objectContaining({query: {environment: [], project: ['2']}})
     );
+  });
+
+  it('can pin selection', async function () {
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Open the project dropdown
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    userEvent.click(screen.getByText('My Projects'));
+
+    // Click the pin button
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
+    userEvent.click(pinButton);
+
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
+
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        pinnedFilters: new Set(['projects']),
+      })
+    );
+  });
+
+  it('can quick select', async function () {
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Open the project dropdown
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    userEvent.click(screen.getByText('My Projects'));
+
+    // Click the first project's checkbox
+    userEvent.click(screen.getByText('project-2'));
+
+    // Verify we were redirected
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {environment: [], project: ['2']}})
+    );
+
+    await screen.findByText('project-2');
+
+    // Verify store state
+    expect(PageFiltersStore.getState()).toEqual(
+      expect.objectContaining({
+        isReady: true,
+        selection: {
+          datetime: {
+            end: null,
+            period: '14d',
+            start: null,
+            utc: null,
+          },
+          environments: [],
+          projects: [2],
+        },
+      })
+    );
+  });
+
+  it('will change projects when page filter selection changes, e.g. from back button nav', async function () {
+    render(<ProjectPageFilter />, {
+      context: routerContext,
+      organization,
+    });
+
+    // Confirm initial selection
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+
+    // Edit page filter project selection
+    act(() => {
+      PageFiltersStore.updateProjects([2], []);
+    });
+
+    // Page filter selection change should affect project page filter
+    expect(await screen.findByText('project-2')).toBeInTheDocument();
   });
 });

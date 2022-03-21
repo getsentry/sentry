@@ -1,6 +1,6 @@
 import {Query} from 'history';
 
-import {SpanSlug} from '../types';
+import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
 export function generateSpanDetailsRoute({
   orgSlug,
@@ -9,7 +9,8 @@ export function generateSpanDetailsRoute({
   orgSlug: String;
   spanSlug: SpanSlug;
 }): string {
-  return `/organizations/${orgSlug}/performance/summary/spans/${spanSlug.op}:${spanSlug.group}/`;
+  const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;
+  return `/organizations/${orgSlug}/performance/summary/spans/${spanComponent}/`;
 }
 
 export function spanDetailsRouteWithQuery({
@@ -20,9 +21,9 @@ export function spanDetailsRouteWithQuery({
   projectID,
 }: {
   orgSlug: string;
-  transaction: string;
   query: Query;
   spanSlug: SpanSlug;
+  transaction: string;
   projectID?: string | string[];
 }) {
   const pathname = generateSpanDetailsRoute({

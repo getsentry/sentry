@@ -21,16 +21,15 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   getDiffInMinutes,
-  getTooltipArrow,
   ONE_WEEK,
   truncationFormatter,
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {
-  getParams,
+  normalizeDateTimeParams,
   parseStatsPeriod,
   StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/getParams';
+} from 'sentry/components/organizations/pageFilters/parse';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -46,12 +45,12 @@ import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest'
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 type Props = {
-  api: Client;
-  organization: Organization;
-  selection: PageFilters;
   activeDisplay: ReleasesDisplayOption;
+  api: Client;
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
+  selection: PageFilters;
 };
 
 class ReleasesAdoptionChart extends Component<Props> {
@@ -157,7 +156,7 @@ class ReleasesAdoptionChart extends Component<Props> {
         interval={interval}
         groupBy={['release']}
         field={[field]}
-        {...getParams(pick(location.query, Object.values(URL_PARAM)))}
+        {...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)))}
       >
         {({response, loading, reloading}) => {
           const totalCount = getCount(response?.groups, field);
@@ -274,7 +273,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .join(''),
                               '</div>',
                               `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                              getTooltipArrow(),
+                              '<div class="tooltip-arrow"></div>',
                             ].join('');
                           },
                         }}

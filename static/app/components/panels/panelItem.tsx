@@ -4,13 +4,13 @@ import space from 'sentry/styles/space';
 
 type Props = {
   /**
-   * Disables the default padding
-   */
-  noPadding?: boolean;
-  /**
    * Align items vertical center (assuming flex-direction isn't changed).
    */
   center?: boolean;
+  /**
+   * Disables the default padding
+   */
+  noPadding?: boolean;
 };
 
 const PanelItem = styled('div')<Props>`

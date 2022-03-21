@@ -37,8 +37,7 @@ describe('OrganizationProjects', function () {
 
   it('should render the projects in the store', function () {
     const wrapper = mountWithTheme(
-      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
-      routerContext
+      <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />
     );
     expect(wrapper).toSnapshot();
 
@@ -51,7 +50,7 @@ describe('OrganizationProjects', function () {
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
     wrapper.find('BookmarkStar').simulate('click');
-    expect(wrapper.find('Star').prop('isBookmarked')).toBeTruthy();
+    expect(wrapper.find('BookmarkStar').prop('isBookmarked')).toBeTruthy();
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 

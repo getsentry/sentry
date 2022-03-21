@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  mountWithTheme,
+  render,
   screen,
   userEvent,
   waitFor,
@@ -26,7 +26,7 @@ describe('Sidebar', function () {
     <SidebarContainer organization={organization} location={location} {...props} />
   );
 
-  const renderSidebar = props => mountWithTheme(getElement(props));
+  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -139,7 +139,7 @@ describe('Sidebar', function () {
 
       rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
 
-      await waitForElementToBeRemoved(() => screen.getByText("What's new in Sentry"));
+      await waitForElementToBeRemoved(() => screen.queryByText("What's new in Sentry"));
     });
 
     it('can have onboarding feature', async function () {
@@ -173,7 +173,7 @@ describe('Sidebar', function () {
 
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
-      await waitForElementToBeRemoved(() => screen.getByText("What's new in Sentry"));
+      await waitForElementToBeRemoved(() => screen.queryByText("What's new in Sentry"));
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
@@ -205,7 +205,7 @@ describe('Sidebar', function () {
 
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
-      await waitForElementToBeRemoved(() => screen.getByText("What's new in Sentry"));
+      await waitForElementToBeRemoved(() => screen.queryByText("What's new in Sentry"));
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
@@ -250,7 +250,7 @@ describe('Sidebar', function () {
     userEvent.click(screen.getByTestId('sidebar-collapse'));
 
     // Check that the organization name is no longer visible
-    await waitForElementToBeRemoved(() => screen.getByText(organization.name));
+    await waitForElementToBeRemoved(() => screen.queryByText(organization.name));
 
     // Un-collapse he sidebar and make sure the org name is visible again
     userEvent.click(screen.getByTestId('sidebar-collapse'));

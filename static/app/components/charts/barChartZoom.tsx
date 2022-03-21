@@ -9,59 +9,59 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 export type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
-  toolBox: ReturnType<typeof ToolBox>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
+  toolBox: ReturnType<typeof ToolBox>;
 };
 
 export type BarChartBucket = {
-  start: number;
   end: number;
+  start: number;
 };
 
 type Props = {
-  location: Location;
-  /**
-   * This is the query parameter the start of the zoom will be propagated to.
-   */
-  paramStart: string;
-  /**
-   * This is the query parameter the end of the zoom will be propagated to.
-   */
-  paramEnd: string;
-  /**
-   * This is the minimum width of the zoom. If the targeted zoom area is
-   * smaller than is specified by this parameter, the zoom will be cancelled
-   * and the `onDataZoomCancelled` callback will be called.
-   */
-  minZoomWidth?: number;
   /**
    * This is the list of bucket start and end ranges. This is used by the
    * component to determine the start and end of the zoom.
    */
   buckets: BarChartBucket[];
   /**
+   * The children function that will receive the render props and return
+   * a rendered chart.
+   */
+  children: (props: RenderProps) => React.ReactNode;
+  location: Location;
+  /**
+   * This is the query parameter the end of the zoom will be propagated to.
+   */
+  paramEnd: string;
+  /**
+   * This is the query parameter the start of the zoom will be propagated to.
+   */
+  paramStart: string;
+  /**
    * If you need the dataZoom control to control more than one chart.
    * you can provide a list of the axis indexes.
    */
   xAxisIndex: number[];
   /**
-   * The children function that will receive the render props and return
-   * a rendered chart.
+   * This is the minimum width of the zoom. If the targeted zoom area is
+   * smaller than is specified by this parameter, the zoom will be cancelled
+   * and the `onDataZoomCancelled` callback will be called.
    */
-  children: (props: RenderProps) => React.ReactNode;
-  /**
-   *
-   */
-  onHistoryPush?: (start: number, end: number) => void;
+  minZoomWidth?: number;
+  onChartReady?: EChartChartReadyHandler;
+  onDataZoom?: EChartDataZoomHandler;
   /**
    * This callback is called when the zoom action was cancelled. It can happen
    * when `minZoomWidth` is specified and the user tries to zoom on an area
    * smaller than that.
    */
   onDataZoomCancelled?: () => void;
-  onChartReady?: EChartChartReadyHandler;
-  onDataZoom?: EChartDataZoomHandler;
+  /**
+   *
+   */
+  onHistoryPush?: (start: number, end: number) => void;
 };
 
 class BarChartZoom extends React.Component<Props> {

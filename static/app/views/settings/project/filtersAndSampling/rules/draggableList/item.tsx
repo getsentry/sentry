@@ -7,27 +7,27 @@ import styled from '@emotion/styled';
 type UseSortableOutputProps = ReturnType<typeof useSortable>;
 
 export type ItemProps = {
-  value: React.ReactNode;
   renderItem(args: {
     dragging: boolean;
     sorting: boolean;
     value: ItemProps['value'];
+    attributes?: ItemProps['attributes'];
     index?: ItemProps['index'];
     listeners?: ItemProps['listeners'];
     transform?: ItemProps['transform'];
     transition?: ItemProps['transition'];
-    attributes?: ItemProps['attributes'];
   }): React.ReactElement | null;
+  value: React.ReactNode;
+  attributes?: UseSortableOutputProps['attributes'];
   dragging?: boolean;
+  forwardRef?: React.Ref<HTMLElement>;
   index?: number;
-  transform?: Transform | null;
+  innerWrapperStyle?: React.CSSProperties;
   listeners?: DraggableSyntheticListeners;
   sorting?: boolean;
+  transform?: Transform | null;
   transition?: string | null;
-  forwardRef?: React.Ref<HTMLElement>;
-  attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;
-  innerWrapperStyle?: React.CSSProperties;
 };
 
 function Item({

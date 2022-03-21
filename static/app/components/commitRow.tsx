@@ -1,10 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -12,93 +13,88 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Commit, User} from 'sentry/types';
+import {Commit} from 'sentry/types';
 
-type Props = {
+function formatCommitMessage(message: string | null) {
+  if (!message) {
+    return t('No message provided');
+  }
+
+  return message.split(/\n/)[0];
+}
+
+interface CommitRowProps {
   commit: Commit;
+  className?: string;
   customAvatar?: React.ReactNode;
-};
+}
 
-class CommitRow extends React.Component<Props> {
-  renderMessage(message: Commit['message']): string {
-    if (!message) {
-      return t('No message provided');
+function CommitRow({commit, customAvatar, className}: CommitRowProps) {
+  const handleInviteClick = React.useCallback(() => {
+    if (!commit.author?.email) {
+      Sentry.captureException(
+        new Error(`Commit author has no email or id, invite flow is broken.`)
+      );
+      return;
     }
 
-    const firstLine = message.split(/\n/)[0];
+    openInviteMembersModal({
+      initialData: [
+        {
+          emails: new Set([commit.author.email]),
+        },
+      ],
+      source: 'suspect_commit',
+    });
+  }, [commit.author]);
 
-    return firstLine;
-  }
+  return (
+    <PanelItem key={commit.id} className={className}>
+      {customAvatar ? (
+        customAvatar
+      ) : commit.author && commit.author.id === undefined ? (
+        <AvatarWrapper>
+          <Hovercard
+            body={
+              <EmailWarning>
+                {tct(
+                  'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
+                  {
+                    actorEmail: <strong>{commit.author.email}</strong>,
+                    accountSettings: <StyledLink to="/settings/account/emails/" />,
+                    inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
+                  }
+                )}
+              </EmailWarning>
+            }
+          >
+            <UserAvatar size={36} user={commit.author} />
+            <EmailWarningIcon>
+              <IconWarning size="xs" />
+            </EmailWarningIcon>
+          </Hovercard>
+        </AvatarWrapper>
+      ) : (
+        <AvatarWrapper>
+          <UserAvatar size={36} user={commit.author} />
+        </AvatarWrapper>
+      )}
 
-  renderHovercardBody(author: User) {
-    return (
-      <EmailWarning>
-        {tct(
-          'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
-          {
-            actorEmail: <strong>{author.email}</strong>,
-            accountSettings: <StyledLink to="/settings/account/emails/" />,
-            inviteUser: (
-              <StyledLink
-                to=""
-                onClick={() =>
-                  openInviteMembersModal({
-                    initialData: [
-                      {
-                        emails: new Set([author.email]),
-                      },
-                    ],
-                    source: 'suspect_commit',
-                  })
-                }
-              />
-            ),
-          }
-        )}
-      </EmailWarning>
-    );
-  }
+      <CommitMessage>
+        <Message>{formatCommitMessage(commit.message)}</Message>
+        <Meta>
+          {tct('[author] committed [timeago]', {
+            author: <strong>{commit.author?.name ?? t('Unknown author')}</strong>,
+            timeago: <TimeSince date={commit.dateCreated} />,
+          })}
+        </Meta>
+      </CommitMessage>
 
-  render() {
-    const {commit, customAvatar, ...props} = this.props;
-    const {id, dateCreated, message, author, repository} = commit;
-    const nonMemberEmail = author && author.id === undefined;
-
-    return (
-      <PanelItem key={id} {...props}>
-        {customAvatar ? (
-          customAvatar
-        ) : nonMemberEmail ? (
-          <AvatarWrapper>
-            <Hovercard body={this.renderHovercardBody(author!)}>
-              <UserAvatar size={36} user={author} />
-              <EmailWarningIcon>
-                <IconWarning size="xs" />
-              </EmailWarningIcon>
-            </Hovercard>
-          </AvatarWrapper>
-        ) : (
-          <AvatarWrapper>
-            <UserAvatar size={36} user={author} />
-          </AvatarWrapper>
-        )}
-
-        <CommitMessage>
-          <Message>{this.renderMessage(message)}</Message>
-          <Meta>
-            {tct('[author] committed [timeago]', {
-              author: <strong>{(author && author.name) || t('Unknown author')}</strong>,
-              timeago: <TimeSince date={dateCreated} />,
-            })}
-          </Meta>
-        </CommitMessage>
-
-        <div>
-          <CommitLink commitId={id} repository={repository} />
-        </div>
-      </PanelItem>
-    );
-  }
+      <div>
+        <CommitLink commitId={commit.id} repository={commit.repository} />
+      </div>
+    </PanelItem>
+  );
 }
 
 const AvatarWrapper = styled('div')`
@@ -153,6 +149,8 @@ const Meta = styled(TextOverflow)`
   color: ${p => p.theme.subText};
 `;
 
-export default styled(CommitRow)`
+const StyledCommitRow = styled(CommitRow)`
   align-items: center;
 `;
+
+export {StyledCommitRow as CommitRow};

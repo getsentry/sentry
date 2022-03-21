@@ -1,21 +1,21 @@
 import {action} from '@storybook/addon-actions';
 
-import FileField from 'app/views/settings/components/forms/fileField';
+import FileField from 'app/components/forms/fileField';
+import NewBooleanField from 'sentry/components/forms/booleanField';
+import CheckboxField from 'sentry/components/forms/checkboxField';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import DatePickerField from 'sentry/components/forms/datePickerField';
+import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
+import RadioBooleanField from 'sentry/components/forms/radioBooleanField';
+import RadioField from 'sentry/components/forms/radioField';
+import SelectField from 'sentry/components/forms/selectField';
+import TextareaField from 'sentry/components/forms/textareaField';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextField from 'sentry/components/forms/textField';
 import {Panel} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
-import NewBooleanField from 'sentry/views/settings/components/forms/booleanField';
-import CheckboxField from 'sentry/views/settings/components/forms/checkboxField';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import RangeSlider from 'sentry/views/settings/components/forms/controls/rangeSlider';
-import DatePickerField from 'sentry/views/settings/components/forms/datePickerField';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import RadioBooleanField from 'sentry/views/settings/components/forms/radioBooleanField';
-import RadioField from 'sentry/views/settings/components/forms/radioField';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
-import TextareaField from 'sentry/views/settings/components/forms/textareaField';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
-import TextField from 'sentry/views/settings/components/forms/textField';
 
 export default {
   title: 'Components/Forms/Fields',

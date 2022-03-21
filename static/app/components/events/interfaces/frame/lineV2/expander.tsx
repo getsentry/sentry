@@ -11,10 +11,10 @@ import {isDotnet} from '../utils';
 
 type Props = {
   isExpandable: boolean;
-  platform: PlatformType;
   onToggleContext: (evt: React.MouseEvent) => void;
-  isHoverPreviewed?: boolean;
+  platform: PlatformType;
   isExpanded?: boolean;
+  isHoverPreviewed?: boolean;
 };
 
 function Expander({
@@ -32,6 +32,7 @@ function Expander({
     <StyledButton
       className="btn-toggle"
       css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
+      size="zero"
       title={t('Toggle Context')}
       tooltipProps={
         isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined

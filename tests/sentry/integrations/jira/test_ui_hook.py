@@ -2,12 +2,12 @@ from unittest.mock import patch
 
 from jwt import ExpiredSignatureError
 
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
+from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
-UNABLE_TO_VERIFY_INSTALLATION = b"Unable to verify installation"
 REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"
 CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
@@ -25,7 +25,7 @@ class JiraUiHookViewTestCase(APITestCase):
 
 class JiraUiHookViewErrorsTest(JiraUiHookViewTestCase):
     @patch(
-        "sentry.integrations.jira.ui_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.ui_hook.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request):
@@ -34,13 +34,13 @@ class JiraUiHookViewErrorsTest(JiraUiHookViewTestCase):
         assert REFRESH_REQUIRED in response.content
 
     @patch(
-        "sentry.integrations.jira.ui_hook.get_integration_from_request",
+        "sentry.integrations.jira.views.ui_hook.get_integration_from_request",
         side_effect=AtlassianConnectValidationError(),
     )
     def test_expired_invalid_installation_error(self, mock_get_integration_from_request):
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert UNABLE_TO_VERIFY_INSTALLATION in response.content
+        assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
 
 class JiraUiHookViewTest(JiraUiHookViewTestCase):
@@ -50,9 +50,9 @@ class JiraUiHookViewTest(JiraUiHookViewTestCase):
 
     def assert_no_errors(self, response):
         assert REFRESH_REQUIRED not in response.content
-        assert UNABLE_TO_VERIFY_INSTALLATION not in response.content
+        assert UNABLE_TO_VERIFY_INSTALLATION.encode() not in response.content
 
-    @patch("sentry.integrations.jira.ui_hook.get_integration_from_request")
+    @patch("sentry.integrations.jira.views.ui_hook.get_integration_from_request")
     def test_simple_get(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)

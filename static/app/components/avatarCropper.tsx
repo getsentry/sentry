@@ -20,7 +20,6 @@ type Model = Pick<AvatarUser, 'avatar'>;
 
 type Props = {
   model: Model;
-  updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
   type:
     | 'user'
     | 'team'
@@ -29,14 +28,15 @@ type Props = {
     | 'sentryAppColor'
     | 'sentryAppSimple'
     | 'docIntegration';
+  updateDataUrlState: (opts: {dataUrl?: string; savedDataUrl?: string | null}) => void;
   savedDataUrl?: string;
 };
 
 type State = {
   file: File | null;
-  objectURL: string | null;
   mousePosition: {pageX: number; pageY: number};
-  resizeDimensions: {top: number; left: number; size: number};
+  objectURL: string | null;
+  resizeDimensions: {left: number; size: number; top: number};
   resizeDirection: Position | null;
 };
 
