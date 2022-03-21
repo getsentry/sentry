@@ -523,6 +523,7 @@ class ActualMinimap extends React.PureComponent<{
       switch (payload.type) {
         case 'root_span':
         case 'span':
+        case 'span_group_sibling':
         case 'span_group_chain': {
           const {span} = payload;
 
@@ -538,7 +539,10 @@ class ActualMinimap extends React.PureComponent<{
             <MinimapSpanBar
               style={{
                 backgroundColor:
-                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                  payload.type === 'span_group_chain' ||
+                  payload.type === 'span_group_sibling'
+                    ? theme.blue300
+                    : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
               }}
