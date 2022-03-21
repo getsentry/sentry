@@ -84,7 +84,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
             {({histogram, isLoading, error}) => {
               if (error) {
                 return (
-                  <ErrorPanel>
+                  <ErrorPanel data-test-id="histogram-error-panel">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );

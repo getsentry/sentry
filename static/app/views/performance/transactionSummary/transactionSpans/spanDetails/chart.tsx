@@ -81,10 +81,10 @@ function Chart(props: Props) {
       >
         <ChartControls>
           <InlineContainer>
-            <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-            <SectionValue key="total-value">{props.totalCount}</SectionValue>
+            <SectionHeading>{t('Total Events')}</SectionHeading>
+            <SectionValue data-test-id="total-value">{props.totalCount}</SectionValue>
           </InlineContainer>
-          <InlineContainer>
+          <InlineContainer data-test-id="display-toggle">
             <OptionSelector
               title={t('Display')}
               selected={display}
