@@ -30,7 +30,6 @@ const defaultOrgFeatures = [
 ];
 
 function renderTestComponent({
-  widget,
   dashboard,
   query,
   orgFeatures,
@@ -40,9 +39,8 @@ function renderTestComponent({
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
-  params?: WidgetBuilderProps['params'];
+  params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
-  widget?: WidgetBuilderProps['widget'];
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
@@ -76,10 +74,10 @@ function renderTestComponent({
         }
       }
       onSave={onSave ?? jest.fn()}
-      widget={widget}
       params={{
         orgId: organization.slug,
-        widgetIndex: widget ? 0 : undefined,
+        widgetIndex: 'new',
+        dashboardId: dashboard?.id ?? '1',
         ...params,
       }}
     />,
@@ -213,8 +211,16 @@ describe('WidgetBuilder', function () {
       id: '1',
     };
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
     renderTestComponent({
-      widget,
+      dashboard,
       orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
     });
 
@@ -566,7 +572,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     await screen.findByText('Line Chart');
 
@@ -666,7 +672,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({dashboard, widget, onSave: handleSave});
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
@@ -872,7 +878,7 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     userEvent.click(await screen.findByText('Delete'));
 
@@ -914,8 +920,7 @@ describe('WidgetBuilder', function () {
 
     const {router} = renderTestComponent({
       dashboard,
-      widget,
-      params: {orgId: 'org-slug', dashboardId: '1'},
+      params: {orgId: 'org-slug', dashboardId: '1', widgetIndex: '0'},
       query: {statsPeriod: '90d'},
     });
 
@@ -1022,7 +1027,6 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
-        widget,
       });
 
       // Click on the displayType selector
@@ -1050,20 +1054,12 @@ describe('WidgetBuilder', function () {
         displayType: DisplayType.TABLE,
         queries: [
           {
-            name: 'errors',
-            conditions: 'event.type:error',
+            name: '',
+            conditions: '',
             fields: ['count()', 'count_unique(id)'],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
-            orderby: '',
-          },
-          {
-            name: 'csp',
-            conditions: 'event.type:csp',
-            fields: ['count()', 'count_unique(id)'],
-            aggregates: ['count()', 'count_unique(id)'],
-            columns: [],
-            orderby: '',
+            orderby: 'count',
           },
         ],
       };
@@ -1079,7 +1075,6 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
-        widget,
         onSave: handleSave,
       });
 
@@ -1095,7 +1090,9 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getAllByText('count()')[2]);
 
       // menu of the "sortBy" selector is being displayed
-      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+      });
 
       // Click on the second option of the "sortBy" selector
       userEvent.click(screen.getAllByText('count_unique(id)')[1]);
@@ -1106,7 +1103,9 @@ describe('WidgetBuilder', function () {
       });
 
       // Now count_unique(id) is selected in the "sortBy" selector
-      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+      });
 
       // Click on the "sortDirection" selector
       userEvent.click(screen.getByText('Low to high'));

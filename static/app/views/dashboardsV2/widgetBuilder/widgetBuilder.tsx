@@ -108,9 +108,9 @@ const WIDGET_TYPE_TO_DATA_SET = {
 };
 
 interface RouteParams {
+  dashboardId: string;
   orgId: string;
-  dashboardId?: string;
-  widgetIndex?: number;
+  widgetIndex: string;
 }
 
 interface QueryData {
@@ -130,7 +130,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-  widget?: Widget;
 }
 
 interface State {
@@ -144,11 +143,11 @@ interface State {
   userHasModified: boolean;
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
+  widgetToBeUpdated?: Widget;
 }
 
 function WidgetBuilder({
   dashboard,
-  widget: widgetToBeUpdated,
   params,
   location,
   organization,
@@ -166,7 +165,7 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = defined(widgetIndex);
+  const isEditing = Number.isInteger(parseInt(widgetIndex, 10));
   const orgSlug = organization.slug;
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
@@ -189,53 +188,32 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    if (!widgetToBeUpdated) {
-      return {
-        title: defaultTitle ?? t('Custom Widget'),
-        displayType: displayType ?? DisplayType.TABLE,
-        interval: '5m',
-        queries: [
-          defaultWidgetQuery
-            ? widgetBuilderNewDesign
-              ? {
-                  ...defaultWidgetQuery,
-                  orderby:
-                    defaultWidgetQuery.orderby ||
-                    generateOrderOptions({
-                      widgetType: WidgetType.DISCOVER,
-                      widgetBuilderNewDesign,
-                      columns: defaultWidgetQuery.columns,
-                      aggregates: defaultWidgetQuery.aggregates,
-                    })[0].value,
-                }
-              : {...defaultWidgetQuery}
-            : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-        ],
-        errors: undefined,
-        loading: !!notDashboardsOrigin,
-        dashboards: [],
-        userHasModified: false,
-        dataSet: DataSet.EVENTS,
-      };
-    }
-
     return {
-      title: widgetToBeUpdated.title,
-      displayType: widgetToBeUpdated.displayType,
-      interval: widgetToBeUpdated.interval,
-      queries: normalizeQueries({
-        displayType: widgetToBeUpdated.displayType,
-        queries: widgetToBeUpdated.queries,
-        widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
-        widgetBuilderNewDesign,
-      }),
+      title: defaultTitle ?? t('Custom Widget'),
+      displayType: displayType ?? DisplayType.TABLE,
+      interval: '5m',
+      queries: [
+        defaultWidgetQuery
+          ? widgetBuilderNewDesign
+            ? {
+                ...defaultWidgetQuery,
+                orderby:
+                  defaultWidgetQuery.orderby ||
+                  generateOrderOptions({
+                    widgetType: WidgetType.DISCOVER,
+                    widgetBuilderNewDesign,
+                    columns: defaultWidgetQuery.columns,
+                    aggregates: defaultWidgetQuery.aggregates,
+                  })[0].value,
+              }
+            : {...defaultWidgetQuery}
+          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ],
       errors: undefined,
-      loading: false,
+      loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
-      dataSet: widgetToBeUpdated.widgetType
-        ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
-        : DataSet.EVENTS,
+      dataSet: DataSet.EVENTS,
     };
   });
 
@@ -244,6 +222,35 @@ function WidgetBuilder({
       fetchDashboards();
     }
   }, [source]);
+
+  useEffect(() => {
+    if (
+      isEditing &&
+      parseInt(widgetIndex, 10) >= 0 &&
+      parseInt(widgetIndex, 10) < dashboard.widgets.length
+    ) {
+      const widgetToBeUpdated = dashboard.widgets[widgetIndex];
+      setState({
+        title: widgetToBeUpdated.title,
+        displayType: widgetToBeUpdated.displayType,
+        interval: widgetToBeUpdated.interval,
+        queries: normalizeQueries({
+          displayType: widgetToBeUpdated.displayType,
+          queries: widgetToBeUpdated.queries,
+          widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        }),
+        errors: undefined,
+        loading: false,
+        dashboards: [],
+        userHasModified: false,
+        dataSet: widgetToBeUpdated.widgetType
+          ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
+          : DataSet.EVENTS,
+        widgetToBeUpdated,
+      });
+    }
+  }, []);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -292,8 +299,8 @@ function WidgetBuilder({
 
       if (
         prevState.displayType === DisplayType.TABLE &&
-        widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
+        state.widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[state.widgetToBeUpdated.widgetType] === DataSet.ISSUES
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
@@ -315,9 +322,9 @@ function WidgetBuilder({
         // If the Widget is an issue widget,
         if (
           newDisplayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
+          state.widgetToBeUpdated?.widgetType === WidgetType.ISSUE
         ) {
-          set(newState, 'queries', widgetToBeUpdated.queries);
+          set(newState, 'queries', state.widgetToBeUpdated.queries);
           set(newState, 'dataSet', DataSet.ISSUES);
           return {...newState, errors: undefined};
         }
@@ -392,9 +399,9 @@ function WidgetBuilder({
       }
 
       newState.queries.push(
-        ...(widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
-          ? widgetToBeUpdated.queries
+        ...(state.widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[state.widgetToBeUpdated.widgetType] === newDataSet
+          ? state.widgetToBeUpdated.queries
           : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
       );
 
@@ -525,7 +532,7 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndex, 1);
+    nextWidgetList.splice(parseInt(widgetIndex, 10), 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -535,8 +542,8 @@ function WidgetBuilder({
   async function handleSave() {
     const widgetData: Widget = assignTempId(currentWidget);
 
-    if (widgetToBeUpdated) {
-      widgetData.layout = widgetToBeUpdated?.layout;
+    if (state.widgetToBeUpdated) {
+      widgetData.layout = state.widgetToBeUpdated?.layout;
     }
 
     // Only Table and Top N views need orderby
@@ -555,14 +562,14 @@ function WidgetBuilder({
       return;
     }
 
-    if (!!widgetToBeUpdated) {
+    if (!!state.widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
-      const updateIndex = nextWidgetList.indexOf(widgetToBeUpdated);
-      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
+      const updateIndex = nextWidgetList.indexOf(state.widgetToBeUpdated);
+      const nextWidgetData = {...widgetData, id: state.widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(state.widgetToBeUpdated.displayType) !==
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
         nextWidgetList[updateIndex] = enforceWidgetHeightValues(nextWidgetData);
@@ -712,7 +719,11 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && widgetIndex >= dashboard.widgets.length) {
+  if (
+    isEditing &&
+    (parseInt(widgetIndex, 10) >= dashboard.widgets.length ||
+      parseInt(widgetIndex, 10) < 0)
+  ) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
