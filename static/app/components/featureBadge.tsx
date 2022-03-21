@@ -1,4 +1,4 @@
-import {Fragment, HTMLAttributes} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {captureException, withScope} from '@sentry/react';
@@ -18,7 +18,7 @@ type BadgeProps = {
   variant?: 'indicator' | 'badge';
 };
 
-type Props = Omit<HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
+type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
 const defaultTitles = {
   alpha: t('This feature is internal and available for QA purposes'),
@@ -38,13 +38,13 @@ function BaseFeatureBadge({
   title,
   noTooltip,
   expiresAt,
-  ...p
+  ...props
 }: Props) {
   const theme = useTheme();
   if (expiresAt && expiresAt.valueOf() < Date.now()) {
     // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
     if (Math.random() < 0.001) {
-      withScope(function (scope) {
+      withScope(scope => {
         scope.setTag('title', title);
         scope.setTag('type', type);
         scope.setLevel('warning' as Severity);
@@ -55,7 +55,7 @@ function BaseFeatureBadge({
   }
 
   return (
-    <div {...p}>
+    <div {...props}>
       <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
         <Fragment>
           {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
