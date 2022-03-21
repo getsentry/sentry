@@ -25,7 +25,6 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     query=request.GET.get("query"),
                     params=params,
                     referrer="api.organization-events-facets.top-tags",
-                    use_snql=True,
                 )
 
         with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:

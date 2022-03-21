@@ -57,7 +57,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=False,
                 use_aggregate_conditions=False,
-                use_snql=True,
             )
 
         results = {}

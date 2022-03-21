@@ -53,7 +53,6 @@ class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-has-mobile-app-events",
-                use_snql=True,
             )
             data = result["data"]
             if not data:

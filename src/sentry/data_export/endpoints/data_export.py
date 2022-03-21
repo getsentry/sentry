@@ -84,7 +84,6 @@ class DataExportQuerySerializer(serializers.Serializer):
                 del query_info["statsPeriodEnd"]
             query_info["start"] = start.isoformat()
             query_info["end"] = end.isoformat()
-            query_info["use_snql"] = True
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(

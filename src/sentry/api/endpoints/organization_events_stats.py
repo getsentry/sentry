@@ -164,7 +164,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=True,
-                    use_snql=True,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
             return dataset.timeseries_query(
@@ -175,7 +174,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
-                use_snql=True,
             )
 
         try:

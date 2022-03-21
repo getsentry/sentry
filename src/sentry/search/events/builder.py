@@ -399,7 +399,7 @@ class QueryBuilder:
 
         if equations:
             _, _, parsed_equations = resolve_equation_list(
-                equations, stripped_columns, use_snql=True, **self.equation_config
+                equations, stripped_columns, **self.equation_config
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(

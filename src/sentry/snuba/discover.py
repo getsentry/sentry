@@ -8,33 +8,27 @@ from typing import Dict, Optional, Sequence
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 
-from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group
-from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
-    resolve_field_list,
 )
-from sentry.search.events.filter import get_filter
 from sentry.search.events.types import HistogramParams, ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
-from sentry.utils.math import mean, nice_int
+from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    SNUBA_AND,
-    SNUBA_OR,
     Dataset,
     SnubaTSResult,
     bulk_snql_query,
@@ -55,7 +49,6 @@ __all__ = (
     "InvalidSearchQuery",
     "transform_results",
     "query",
-    "prepare_discover_query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
@@ -262,160 +255,6 @@ def query(
         span.set_data("result_count", len(result.get("data", [])))
         result = transform_results(result, builder.function_alias_map, {}, None)
     return result
-
-
-def prepare_discover_query(
-    selected_columns,
-    query,
-    params,
-    equations=None,
-    orderby=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-):
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-
-        snuba_filter = get_filter(query, params)
-        if not use_aggregate_conditions:
-            assert (
-                not auto_aggregations
-            ), "Auto aggregations cannot be used without enabling aggregate conditions"
-            snuba_filter.having = []
-
-    with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
-        if equations is not None:
-            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
-        else:
-            resolved_equations = []
-
-        if orderby is not None:
-            orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
-            snuba_filter.orderby = [get_function_alias(o) for o in orderby]
-
-        resolved_fields = resolve_field_list(
-            selected_columns,
-            snuba_filter,
-            auto_fields=auto_fields,
-            auto_aggregations=auto_aggregations,
-            functions_acl=functions_acl,
-            resolved_equations=resolved_equations,
-        )
-
-        snuba_filter.update_with(resolved_fields)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-
-        # Make sure that any aggregate conditions are also in the selected columns
-        for having_clause in snuba_filter.having:
-            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
-            # any referenced functions are in the aggregations.
-            error_extra = ", and could not be automatically added" if auto_aggregations else ""
-            if isinstance(having_clause[0], (list, tuple)):
-                # Functions are of the form [fn, [args]]
-                args_to_check = [[having_clause[0]]]
-                conditions_not_in_aggregations = []
-                while len(args_to_check) > 0:
-                    args = args_to_check.pop()
-                    for arg in args:
-                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
-                            args_to_check.extend(arg[1])
-                        # Only need to iterate on arg[1] if its a list
-                        elif isinstance(arg[1], (list, tuple)):
-                            alias = arg[1][0]
-                            found = any(
-                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-                            )
-                            if not found:
-                                conditions_not_in_aggregations.append(alias)
-
-                if len(conditions_not_in_aggregations) > 0:
-                    raise InvalidSearchQuery(
-                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations),
-                            error_extra,
-                        )
-                    )
-            else:
-                found = any(
-                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-                )
-                if not found:
-                    raise InvalidSearchQuery(
-                        "Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0],
-                            error_extra,
-                        )
-                    )
-
-        if conditions is not None:
-            snuba_filter.conditions.extend(conditions)
-
-    return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
-
-
-def get_timeseries_snuba_filter(selected_columns, query, params):
-    snuba_filter = get_filter(query, params)
-    if not snuba_filter.start and not snuba_filter.end:
-        raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
-
-    equations, columns = categorize_columns(selected_columns)
-
-    if len(equations) > 0:
-        resolved_equations, updated_columns, _ = resolve_equation_list(
-            equations, columns, aggregates_only=True, auto_add=True
-        )
-    else:
-        resolved_equations = []
-        updated_columns = columns
-
-    # For the new apdex, we need to add project threshold config as a selected
-    # column which means the group by for the time series won't work.
-    # As a temporary solution, we will calculate the mean of all the project
-    # level thresholds in the request and use the legacy apdex, user_misery
-    # or count_miserable calculation.
-    # TODO(snql): Alias the project_threshold_config column so it doesn't
-    # have to be in the SELECT statement and group by to be able to use new apdex,
-    # user_misery and count_miserable.
-    threshold = None
-    for agg in CONFIGURABLE_AGGREGATES:
-        if agg not in updated_columns:
-            continue
-
-        if threshold is None:
-            project_ids = params.get("project_id")
-            threshold_configs = list(
-                ProjectTransactionThreshold.objects.filter(
-                    organization_id=params["organization_id"],
-                    project_id__in=project_ids,
-                ).values_list("threshold", flat=True)
-            )
-
-            projects_without_threshold = len(project_ids) - len(threshold_configs)
-            threshold_configs.extend([DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold)
-            threshold = int(mean(threshold_configs))
-
-        updated_columns.remove(agg)
-        updated_columns.append(CONFIGURABLE_AGGREGATES[agg].format(threshold=threshold))
-
-    snuba_filter.update_with(
-        resolve_field_list(
-            updated_columns, snuba_filter, auto_fields=False, resolved_equations=resolved_equations
-        )
-    )
-
-    # Resolve the public aliases into the discover dataset names.
-    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-    if not snuba_filter.aggregations:
-        raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
-
-    return snuba_filter, translated_columns
 
 
 def timeseries_query(

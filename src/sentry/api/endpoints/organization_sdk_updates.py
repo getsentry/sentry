@@ -90,7 +90,6 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-sdk-updates",
-                use_snql=True,
             )
 
         return Response(serialize(result["data"], projects))

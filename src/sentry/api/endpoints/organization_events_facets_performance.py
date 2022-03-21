@@ -275,7 +275,6 @@ def query_tag_data(
             query=filter_query,
             params=params,
             referrer=f"{referrer}.all_transactions",
-            use_snql=True,
             limit=1,
         )
 
@@ -352,7 +351,6 @@ def query_top_tags(
             ],
             functions_acl=["array_join"],
             referrer=f"{referrer}.top_tags",
-            use_snql=True,
             limit=limit,
             offset=offset,
         )
@@ -512,7 +510,6 @@ def query_facet_performance_key_histogram(
         ],
         histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
-        use_snql=True,
         normalize_results=False,
     )
     return results

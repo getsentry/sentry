@@ -105,7 +105,6 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                     auto_fields=True,
                     auto_aggregations=False,
                     use_aggregate_conditions=False,
-                    use_snql=True,
                 )
             has_measurements = len(results["data"]) > 0
 

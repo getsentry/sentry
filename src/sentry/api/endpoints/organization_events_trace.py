@@ -699,7 +699,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
                 referrer="api.trace-view.get-meta",
-                use_snql=True,
             )
             if len(result["data"]) == 0:
                 return Response(status=404)

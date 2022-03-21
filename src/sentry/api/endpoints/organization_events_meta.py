@@ -28,7 +28,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 params=params,
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
-                use_snql=True,
             )
 
         return Response({"count": result["data"][0]["count"]})
