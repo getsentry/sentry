@@ -60,10 +60,7 @@ function Chart(props: Props) {
   return (
     <Panel>
       <ChartContainer>
-        <Feature
-          organization={props.organization}
-          features={['performance-span-histogram-view']}
-        >
+        <Feature features={['performance-span-histogram-view']}>
           {({hasFeature}) => {
             if (hasFeature) {
               if (display === DisplayModes.TIMESERIES) {
@@ -75,10 +72,7 @@ function Chart(props: Props) {
           }}
         </Feature>
       </ChartContainer>
-      <Feature
-        organization={props.organization}
-        features={['performance-span-histogram-view']}
-      >
+      <Feature features={['performance-span-histogram-view']}>
         <ChartControls>
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>
