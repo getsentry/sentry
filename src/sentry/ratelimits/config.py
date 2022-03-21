@@ -21,12 +21,18 @@ HttpMethodName = str
 RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
 # This default value is going to shrink over time
-_SENTRY_RATELIMITER_DEFAULT = 570
+_SENTRY_RATELIMITER_DEFAULT = 520
+
+# The concurrent rate limiter stores a sorted set of requests, don't make this number
+# too large (e.g > 100)
+_SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 40
+ENFORCE_CONCURRENT_RATE_LIMITS = False
 
 
 _SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
     "default": {
-        category: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1) for category in RateLimitCategory
+        category: RateLimit(_SENTRY_RATELIMITER_DEFAULT, 1, _SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
+        for category in RateLimitCategory
     }
 }
 

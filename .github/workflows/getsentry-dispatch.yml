@@ -12,7 +12,7 @@ on:
 jobs:
   dispatch:
     name: getsentry dispatch
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     steps:
       # Need to checkout just for `github/file-filters.yml`
       - uses: actions/checkout@v2

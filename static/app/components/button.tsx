@@ -17,6 +17,8 @@ import {Theme} from 'sentry/utils/theme';
  */
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
+type TooltipProps = React.ComponentProps<typeof Tooltip>;
+
 interface BaseButtonProps
   extends Omit<
     React.ButtonHTMLAttributes<ButtonElement>,
@@ -39,9 +41,9 @@ interface BaseButtonProps
   rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
   target?: HTMLAnchorElement['target'];
-  title?: React.ComponentProps<typeof Tooltip>['title'];
+  title?: TooltipProps['title'];
   to?: string | object;
-  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
   translucentBorder?: boolean;
 }
 
@@ -154,9 +156,6 @@ export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
-const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
-  `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
-
 const getBoxShadow = ({
   priority,
   borderless,
@@ -222,9 +221,23 @@ const getColors = ({
     }
   };
 
+  const getBackgroundColor = () => {
+    switch (priority) {
+      case 'primary':
+      case 'success':
+      case 'danger':
+        return `background-color: ${background};`;
+      default:
+        if (borderless) {
+          return `background-color: transparent;`;
+        }
+        return `background-color: ${background};`;
+    }
+  };
+
   return css`
     color: ${color};
-    background-color: ${background};
+    ${getBackgroundColor()}
 
     border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
@@ -237,8 +250,9 @@ const getColors = ({
     ${size !== 'zero' &&
     `
     &:hover,
-    &:focus,
-    &:active {
+    &:active,
+    &.focus-visible,
+    &[aria-expanded="true"] {
       color: ${colorActive || color};
       background: ${backgroundActive};
       border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
@@ -315,7 +329,7 @@ const StyledButton = styled(
   display: inline-block;
   border-radius: ${p => p.theme.button.borderRadius};
   text-transform: none;
-  ${getFontWeight};
+  font-weight: 600;
   ${getColors};
   ${getSizeStyles}
   ${getBoxShadow};
@@ -323,7 +337,7 @@ const StyledButton = styled(
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
   transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
-  ${p => p.priority === 'link' && `font-size: inherit; padding: 0;`}
+  ${p => p.priority === 'link' && `font-size: inherit; font-weight: inherit; padding: 0;`}
   ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
 
   &:focus {

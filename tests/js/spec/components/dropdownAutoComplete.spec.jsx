@@ -31,10 +31,10 @@ describe('DropdownAutoComplete', function () {
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
 
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
   });
 
   it('toggles dropdown menu when actor is clicked', function () {
@@ -44,8 +44,8 @@ describe('DropdownAutoComplete', function () {
       </DropdownAutoComplete>
     );
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(1);
     wrapper.find('Actor[role="button"]').simulate('click');
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
+    expect(wrapper.find('StyledDropdownBubble')).toHaveLength(0);
   });
 });

@@ -168,6 +168,9 @@ class QueryDefinition:
         self.start = start
         self.end = end
 
+        # Validates that time series limit will not exceed the snuba limit of 10,000
+        self._validate_series_limit(query_params)
+
     def _parse_orderby(self, query_params):
         orderby = query_params.getlist("orderBy", [])
         if not orderby:
@@ -211,6 +214,16 @@ class QueryDefinition:
                 # possible
                 raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
             return None
+
+    def _validate_series_limit(self, query_params):
+        if self.limit:
+            if (self.end - self.start).total_seconds() / self.rollup * self.limit > MAX_POINTS:
+                raise InvalidParams(
+                    f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
+                    f"{query_params.get('statsPeriod')} is too granular for a per_page of "
+                    f"{self.limit} elements. Increase your interval, decrease your statsPeriod, "
+                    f"or decrease your per_page parameter."
+                )
 
 
 def get_intervals(query: TimeRange):
