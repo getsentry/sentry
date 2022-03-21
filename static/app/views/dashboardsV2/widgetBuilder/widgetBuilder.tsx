@@ -260,6 +260,8 @@ function WidgetBuilder({
     widgetType,
   };
 
+  console.log({state});
+
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {

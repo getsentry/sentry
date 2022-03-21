@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -33,16 +33,26 @@ type Props = {
   topResultsIndicators?: number;
 };
 
-class SimpleTableChart extends Component<Props> {
-  renderRow(
+function SimpleTableChart({
+  className,
+  loading,
+  fields,
+  metadata,
+  data,
+  title,
+  fieldHeaderMap,
+  stickyHeaders,
+  getCustomFieldRenderer,
+  organization,
+  topResultsIndicators,
+  location,
+}: Props) {
+  function renderRow(
     index: number,
     row: TableDataRow,
     tableMeta: NonNullable<TableData['meta']>,
     columns: ReturnType<typeof decodeColumnOrder>
   ) {
-    const {location, organization, getCustomFieldRenderer, topResultsIndicators} =
-      this.props;
-
     return columns.map((column, columnIndex) => {
       const fieldRenderer =
         getCustomFieldRenderer?.(column.key, tableMeta) ??
@@ -59,45 +69,34 @@ class SimpleTableChart extends Component<Props> {
     });
   }
 
-  render() {
-    const {
-      className,
-      loading,
-      fields,
-      metadata,
-      data,
-      title,
-      fieldHeaderMap,
-      stickyHeaders,
-    } = this.props;
-    const meta = metadata ?? {};
-    const columns = decodeColumnOrder(fields.map(field => ({field})));
-    return (
-      <Fragment>
-        {title && <h4>{title}</h4>}
-        <StyledPanelTable
-          className={className}
-          isLoading={loading}
-          headers={columns.map((column, index) => {
-            const align = fieldAlignment(column.name, column.type, meta);
-            const header = fieldHeaderMap?.[column.key] ?? column.name;
-            return (
-              <HeadCell key={index} align={align}>
-                <Tooltip title={header}>
-                  <StyledTruncate value={header} maxLength={30} expandable={false} />
-                </Tooltip>
-              </HeadCell>
-            );
-          })}
-          isEmpty={!data?.length}
-          stickyHeaders={stickyHeaders}
-          disablePadding
-        >
-          {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </StyledPanelTable>
-      </Fragment>
-    );
-  }
+  const meta = metadata ?? {};
+  const columns = decodeColumnOrder(fields.map(field => ({field})));
+
+  return (
+    <Fragment>
+      {title && <h4>{title}</h4>}
+      <StyledPanelTable
+        className={className}
+        isLoading={loading}
+        headers={columns.map((column, index) => {
+          const align = fieldAlignment(column.name, column.type, meta);
+          const header = fieldHeaderMap?.[column.key] ?? column.name;
+          return (
+            <HeadCell key={index} align={align}>
+              <Tooltip title={header}>
+                <StyledTruncate value={header} maxLength={30} expandable={false} />
+              </Tooltip>
+            </HeadCell>
+          );
+        })}
+        isEmpty={!data?.length}
+        stickyHeaders={stickyHeaders}
+        disablePadding
+      >
+        {data?.map((row, index) => renderRow(index, row, meta, columns))}
+      </StyledPanelTable>
+    </Fragment>
+  );
 }
 
 const StyledTruncate = styled(Truncate)`

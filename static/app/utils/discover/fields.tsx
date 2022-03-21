@@ -74,14 +74,17 @@ export type QueryFieldValue =
   | {
       field: string;
       kind: 'field';
+      alias?: string;
     }
   | {
       field: string;
       kind: 'equation';
+      alias?: string;
     }
   | {
       function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
       kind: 'function';
+      alias?: string;
     };
 
 // Column is just an alias of a Query value
