@@ -4,7 +4,15 @@ import FeatureBadge from 'sentry/components/featureBadge';
 
 describe('FeatureBadge', function () {
   it('auto-hides when expired', function () {
-    render(
+    const {rerender} = render(
+      <FeatureBadge
+        type="new"
+        title="Something awesome"
+        expiresAt={new Date(2018, 9, 16)}
+      />
+    );
+    expect(screen.getByText('new')).toBeInTheDocument();
+    rerender(
       <FeatureBadge
         type="new"
         title="Something awesome"
