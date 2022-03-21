@@ -4,8 +4,6 @@ import localStorage from 'sentry/utils/localStorage';
 
 import {createDefinedContext} from './utils';
 
-const storageKey = 'performance.metrics-enhanced-setting';
-
 interface MetricsEnhancedSettingContext {
   isMEPEnabled: boolean;
   setMEPEnabled: (value: boolean) => void;
@@ -18,6 +16,17 @@ const [_MEPSettingProvider, _useMEPSettingContext, MEPSettingContext] =
 
 export const MEPConsumer = MEPSettingContext.Consumer;
 
+const storageKey = 'performance.metrics-enhanced-setting';
+export class MEPSetting {
+  static get() {
+    return localStorage.getItem(storageKey) !== 'false';
+  }
+
+  static set(value) {
+    localStorage.setItem(storageKey, value ? 'true' : 'false');
+  }
+}
+
 export const MEPSettingProvider = ({
   children,
   _isMEPEnabled,
@@ -27,12 +36,12 @@ export const MEPSettingProvider = ({
 }) => {
   const isControlledMEPEnabled = typeof _isMEPEnabled === 'boolean';
   const [isMEPEnabled, _setMEPEnabled] = useState<boolean>(
-    isControlledMEPEnabled ? _isMEPEnabled : localStorage.getItem(storageKey) !== 'false'
+    isControlledMEPEnabled ? _isMEPEnabled : MEPSetting.get()
   );
 
   function setMEPEnabled(value: boolean) {
     _setMEPEnabled(value);
-    localStorage.setItem(storageKey, value ? 'true' : 'false');
+    MEPSetting.set(value);
   }
   return (
     <_MEPSettingProvider value={{isMEPEnabled, setMEPEnabled}}>
