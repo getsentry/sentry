@@ -1223,6 +1223,140 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
             query.run_query("test_query")
 
+    def test_multiple_entity_query_fails(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                "p95(transaction.duration):>5s AND count_unique(user):>0",
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                    "count_unique(user)",
+                ],
+                use_aggregate_conditions=True,
+            )
+            query.run_query("test_query")
+
+    def test_query_entity_does_not_match_orderby(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                "count_unique(user):>0",
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                    "count_unique(user)",
+                ],
+                orderby=["p95(transaction.duration)"],
+                use_aggregate_conditions=True,
+            )
+            query.run_query("test_query")
+
+    def test_aggregate_query_with_multiple_entities_without_orderby(self):
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            2,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        # This will query both sets & distribution cause of selected columns
+        query = MetricsQueryBuilder(
+            self.params,
+            # Filter by count_unique since the default primary is distributions without an orderby
+            "count_unique(user):>1",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+            use_aggregate_conditions=True,
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("baz_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 200,
+            "count_unique_user": 2,
+        }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
+    def test_aggregate_query_with_multiple_entities_with_orderby(self):
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        # This will query both sets & distribution cause of selected columns
+        query = MetricsQueryBuilder(
+            self.params,
+            "p95(transaction.duration):>100",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+            orderby=["p95(transaction.duration)"],
+            use_aggregate_conditions=True,
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve("baz_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 200,
+            "count_unique_user": 1,
+        }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
     def test_invalid_column_arg(self):
         for function in [
             "count_unique(transaction.duration)",

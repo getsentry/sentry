@@ -1616,16 +1616,19 @@ class MetricsQueryBuilder(QueryBuilder):
         query_framework: Dict[str, QueryFramework] = {
             "distribution": QueryFramework(
                 orderby=[],
+                having=[],
                 functions=self.distributions,
                 entity=Entity("metrics_distributions", sample=self.sample_rate),
             ),
             "counter": QueryFramework(
                 orderby=[],
+                having=[],
                 functions=self.counters,
                 entity=Entity("metrics_counters", sample=self.sample_rate),
             ),
             "set": QueryFramework(
                 orderby=[],
+                having=[],
                 functions=self.sets,
                 entity=Entity("metrics_sets", sample=self.sample_rate),
             ),
@@ -1653,9 +1656,46 @@ class MetricsQueryBuilder(QueryBuilder):
                 for framework in query_framework.values():
                     framework.orderby.append(orderby)
 
+        having_entity = None
+        for condition in self.flattened_having:
+            if condition.lhs in self.distributions:
+                if having_entity is None:
+                    having_entity = "distribution"
+                elif having_entity == "distribution":
+                    continue
+                else:
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+            elif condition.lhs in self.sets:
+                if having_entity is None:
+                    having_entity = "set"
+                elif having_entity == "set":
+                    continue
+                else:
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+            elif condition.lhs in self.counters:
+                if having_entity is None:
+                    having_entity = "counter"
+                elif having_entity == "counter":
+                    continue
+                else:
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+
+        if primary is not None and having_entity is not None and having_entity != primary:
+            raise IncompatibleMetricsQuery(
+                "Can't use a having condition on non primary distribution"
+            )
+
         # Pick one arbitrarily, there's no orderby on functions
         if primary is None:
-            primary = "distribution"
+            primary = "distribution" if having_entity is None else having_entity
+
+        query_framework[primary].having = self.having
 
         return primary, query_framework
 
@@ -1726,7 +1766,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     select=select,
                     array_join=self.array_join,
                     where=where,
-                    having=self.having,
+                    having=query_details.having,
                     groupby=self.groupby,
                     orderby=query_details.orderby,
                     limit=self.limit,
