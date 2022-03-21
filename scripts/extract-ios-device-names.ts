@@ -11,7 +11,7 @@ const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
 
 try {
   if (fs.statSync(outputPath)) {
-    console.log('Regenerating ios-device-list.tsx...');
+    // Out with the old, in with the new
     fs.unlinkSync(outputPath);
   }
 } catch (e) {
@@ -75,12 +75,9 @@ export {iOSDeviceMapping}
   `;
 };
 
-async function extractIOSDeviceNames() {
+export async function extractIOSDeviceNames() {
   const files = await getDefinitionFiles();
   const definitions = await collectDefinitions(files);
   fs.writeFileSync(outputPath, template(JSON.stringify(definitions, undefined, 2)));
+  console.log('✅ Regenerated ios-device-list.tsx');
 }
-
-(async () => {
-  await extractIOSDeviceNames();
-})();
