@@ -136,7 +136,7 @@ def get_group_settings_link(
     alert_timestamp: int | None = None,
 ) -> str:
     alert_type = str(AlertRuleTriggerAction.Type.EMAIL.name).lower()
-    alert_timestamp = (
+    alert_timestamp_str = (
         str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
     )
     alert_rule_id = str(rule_details[0].id) if rule_details and rule_details[0].id else None
@@ -147,7 +147,7 @@ def get_group_settings_link(
     if alert_type:
         query_params["alert_type"] = alert_type
     if alert_timestamp:
-        query_params["alert_timestamp"] = alert_timestamp
+        query_params["alert_timestamp"] = alert_timestamp_str
     if alert_rule_id:
         query_params["alert_rule_id"] = alert_rule_id
     return str(group.get_absolute_url(params=query_params))
