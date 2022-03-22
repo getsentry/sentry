@@ -1,7 +1,7 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -23,8 +23,16 @@ jest.mock('sentry/components/tooltip', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-function renderModal({initialData: {organization, routerContext}, widget}) {
-  return render(
+let eventsMetaMock;
+
+const waitForMetaToHaveBeenCalled = async () => {
+  await waitFor(() => {
+    expect(eventsMetaMock).toHaveBeenCalled();
+  });
+};
+
+async function renderModal({initialData: {organization, routerContext}, widget}) {
+  const rendered = render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
         Header={stubEl}
@@ -42,6 +50,12 @@ function renderModal({initialData: {organization, routerContext}, widget}) {
       organization,
     }
   );
+  // Need to wait since WidgetViewerModal will make a request to events-meta
+  // for total events count on mount
+  if (widget.widgetType !== WidgetType.ISSUE) {
+    await waitForMetaToHaveBeenCalled();
+  }
+  return rendered;
 }
 
 describe('Modals -> WidgetViewerModal', function () {
@@ -63,6 +77,11 @@ describe('Modals -> WidgetViewerModal', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
+    eventsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 33323612},
+    });
   });
 
   afterEach(() => {
@@ -70,7 +89,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let container, rerender, eventsStatsMock, eventsv2Mock;
+    let eventsStatsMock, eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()'],
@@ -121,20 +140,17 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      // Forbidden render in beforeEach
-      // eslint-disable-next-line
-      const modal = renderModal({initialData, widget: mockWidget});
-      container = modal.container;
-      rerender = modal.rerender;
     });
 
-    it('renders Edit and Open buttons', function () {
+    it('renders Edit and Open buttons', async function () {
+      await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Edit Widget')).toBeInTheDocument();
       expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     });
 
     it('renders updated table columns and orderby', async function () {
-      expect(await screen.findByText('title')).toBeInTheDocument();
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
       expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
@@ -145,23 +161,25 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders area chart', async function () {
-      expect(await screen.findByText('echarts mock')).toBeInTheDocument();
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('echarts mock')).toBeInTheDocument();
     });
 
-    it('renders Discover area chart widget viewer', function () {
+    it('renders Discover area chart widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
 
     it('redirects user to Discover when clicking Open in Discover', async function () {
-      expect(
-        await screen.findByRole('button', {name: 'Open in Discover'})
-      ).toHaveAttribute(
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-count&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
-    it('zooms into the selected time range', function () {
+    it('zooms into the selected time range', async function () {
+      await renderModal({initialData, widget: mockWidget});
       act(() => {
         // Simulate dataZoom event on chart
         (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
@@ -185,7 +203,8 @@ describe('Modals -> WidgetViewerModal', function () {
       );
     });
 
-    it('renders multiquery label and selector', function () {
+    it('renders multiquery label and selector', async function () {
+      await renderModal({initialData, widget: mockWidget});
       expect(
         screen.getByText(
           'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
@@ -194,7 +213,8 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Query Name')).toBeInTheDocument();
     });
 
-    it('updates selected query when selected in the query dropdown', function () {
+    it('updates selected query when selected in the query dropdown', async function () {
+      const {rerender} = await renderModal({initialData, widget: mockWidget});
       userEvent.click(screen.getByText('Query Name'));
       userEvent.click(screen.getByText('Another Query Name'));
       expect(initialData.router.replace).toHaveBeenCalledWith({
@@ -212,59 +232,25 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
+        />
       );
+      await waitForMetaToHaveBeenCalled();
       expect(screen.getByText('Another Query Name')).toBeInTheDocument();
     });
 
-    it('renders the correct discover query link when there are multiple queries in a widget', function () {
-      // Rerender with a different selected query from the default
+    it('renders the correct discover query link when there are multiple queries in a widget', async function () {
       initialData.router.location.query = {query: ['1']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=&sort=-count&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
-    it('renders with first legend disabled by default', function () {
+    it('renders with first legend disabled by default', async function () {
       // Rerender with first legend disabled
       initialData.router.location.query = {legend: ['Query Name']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      await renderModal({initialData, widget: mockWidget});
       expect(ReactEchartsCore).toHaveBeenLastCalledWith(
         expect.objectContaining({
           option: expect.objectContaining({
@@ -276,10 +262,15 @@ describe('Modals -> WidgetViewerModal', function () {
         {}
       );
     });
+
+    it('renders total results in footer', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('33,323,612')).toBeInTheDocument();
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {
-    let container, rerender, eventsStatsMock, eventsMock;
+    let eventsStatsMock, eventsMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
@@ -363,18 +354,15 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      // Forbidden render in beforeEach
-      // eslint-disable-next-line
-      const modal = renderModal({initialData, widget: mockWidget});
-      container = modal.container;
-      rerender = modal.rerender;
     });
 
-    it('renders Discover topn chart widget viewer', function () {
+    it('renders Discover topn chart widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
 
-    it('sorts table when a sortable column header is clicked', function () {
+    it('sorts table when a sortable column header is clicked', async function () {
+      const {rerender} = await renderModal({initialData, widget: mockWidget});
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: ['-count']},
@@ -391,12 +379,9 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
+        />
       );
+      await waitForMetaToHaveBeenCalled();
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
@@ -412,13 +397,15 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders pagination buttons', async function () {
-      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
+      const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Test Error 1c')).toBeInTheDocument();
-      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {cursor: '0:10:0'},
@@ -436,18 +423,15 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
+        />
       );
+      await waitForMetaToHaveBeenCalled();
       expect(await screen.findByText('Next Page Test Error')).toBeInTheDocument();
     });
   });
 
   describe('Discover World Map Chart Widget', function () {
-    let container, eventsMock;
+    let eventsMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
@@ -493,12 +477,10 @@ describe('Modals -> WidgetViewerModal', function () {
         url: '/organizations/org-slug/events-geo/',
         body: eventsBody,
       });
-      // Forbidden render in beforeEach
-      // eslint-disable-next-line
-      container = renderModal({initialData, widget: mockWidget}).container;
     });
 
     it('always queries geo.country_code in the table chart', async function () {
+      await renderModal({initialData, widget: mockWidget});
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
@@ -510,13 +492,14 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(await screen.findByText('geo.country_code')).toBeInTheDocument();
     });
 
-    it('renders Discover topn chart widget viewer', function () {
+    it('renders Discover topn chart widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
   });
 
   describe('Issue Table Widget', function () {
-    let container, rerender, issuesMock;
+    let issuesMock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -590,24 +573,22 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ],
       });
-      // Forbidden render in beforeEach
-      // eslint-disable-next-line
-      const modal = renderModal({initialData, widget: mockWidget});
-      container = modal.container;
-      rerender = modal.rerender;
     });
 
-    it('renders widget title', function () {
+    it('renders widget title', async function () {
+      await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Issue Widget')).toBeInTheDocument();
     });
 
-    it('renders Edit and Open buttons', function () {
+    it('renders Edit and Open buttons', async function () {
+      await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Edit Widget')).toBeInTheDocument();
       expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     });
 
     it('renders events, status, and title table columns', async function () {
-      expect(await screen.findByText('title')).toBeInTheDocument();
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       expect(screen.getByText('events')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
@@ -615,18 +596,21 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('unresolved')).toBeInTheDocument();
     });
 
-    it('renders Issue table widget viewer', function () {
+    it('renders Issue table widget viewer', async function () {
+      const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
-      expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
       );
     });
 
-    it('sorts table when a sortable column header is clicked', function () {
+    it('sorts table when a sortable column header is clicked', async function () {
+      const {rerender} = await renderModal({initialData, widget: mockWidget});
       userEvent.click(screen.getByText('events'));
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: 'freq'},
@@ -643,11 +627,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
+        />
       );
       expect(issuesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -668,13 +648,15 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders pagination buttons', async function () {
-      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
+      const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
-      userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
       expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -693,33 +675,14 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
+        />
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
     });
 
-    it('displays with correct table column widths', function () {
+    it('displays with correct table column widths', async function () {
       initialData.router.location.query = {width: ['-1', '-1', '575']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
+      await renderModal({initialData, widget: mockWidget});
       expect(screen.getByTestId('grid-editable')).toHaveStyle({
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',

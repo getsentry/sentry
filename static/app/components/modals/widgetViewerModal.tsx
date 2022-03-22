@@ -2,11 +2,15 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
+import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -19,12 +23,13 @@ import GridEditable, {
 import Pagination from 'sentry/components/pagination';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -84,6 +89,29 @@ const MemoizedWidgetCardChartContainer = React.memo(
   }
 );
 
+async function fetchDiscoverTotal(
+  api: Client,
+  organization: Organization,
+  location: Location,
+  eventView: EventView
+): Promise<string | undefined> {
+  if (!eventView.isValid()) {
+    return undefined;
+  }
+
+  try {
+    const total = await fetchTotalCount(
+      api,
+      organization.slug,
+      eventView.getEventsAPIPayload(location)
+    );
+    return total.toLocaleString();
+  } catch (err) {
+    Sentry.captureException(err);
+    return undefined;
+  }
+}
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -101,6 +129,7 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
@@ -224,6 +253,16 @@ function WidgetViewerModal(props: Props) {
     });
   };
 
+  // Get discover result totals
+  React.useEffect(() => {
+    const getDiscoverTotals = async () => {
+      if (widget.widgetType !== WidgetType.ISSUE) {
+        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
+      }
+    };
+    getDiscoverTotals();
+  }, [selectedQueryIndex]);
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
@@ -330,7 +369,10 @@ function WidgetViewerModal(props: Props) {
               }
               cursor={cursor}
             >
-              {({transformedResults, loading, pageLinks}) => {
+              {({transformedResults, loading, pageLinks, totalCount}) => {
+                if (totalResults === undefined) {
+                  setTotalResults(totalCount);
+                }
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -497,38 +539,61 @@ function WidgetViewerModal(props: Props) {
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
-        <ButtonBar gap={1}>
-          {onEdit && widget.id && (
+        <TotalResultsContainer>
+          {totalResults &&
+            (widget.widgetType === WidgetType.ISSUE ? (
+              <span>
+                {tct('[description:Total Issues:] [total]', {
+                  description: <strong />,
+                  total: totalResults === '1000' ? '1000+' : totalResults,
+                })}
+              </span>
+            ) : (
+              <span>
+                {tct('[description:Total Events:] [total]', {
+                  description: <strong />,
+                  total: totalResults,
+                })}
+              </span>
+            ))}
+        </TotalResultsContainer>
+        <ButtonBarContainer>
+          <StyledButtonBar gap={1}>
+            {onEdit && widget.id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  });
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
             <Button
+              to={path}
+              priority="primary"
               type="button"
               onClick={() => {
-                closeModal();
-                onEdit();
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.open_source',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             >
-              {t('Edit Widget')}
+              {openLabel}
             </Button>
-          )}
-          <Button
-            to={path}
-            priority="primary"
-            type="button"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
-                organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          >
-            {openLabel}
-          </Button>
-        </ButtonBar>
+          </StyledButtonBar>
+        </ButtonBarContainer>
       </StyledFooter>
     </React.Fragment>
   );
@@ -546,6 +611,7 @@ const headerCss = css`
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
+  flex-wrap: wrap;
 `;
 
 const Container = styled('div')<{height?: number | null}>`
@@ -589,6 +655,23 @@ const WidgetTitle = styled('h4')`
 
 const StyledPagination = styled(Pagination)`
   padding-top: ${space(2)};
+`;
+
+const TotalResultsContainer = styled('span')`
+  margin-top: auto;
+  margin-bottom: ${space(1)};
+  font-size: 0.875rem;
+  text-align: right;
+`;
+
+const ButtonBarContainer = styled('span')`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: row-reverse;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  width: fit-content;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
