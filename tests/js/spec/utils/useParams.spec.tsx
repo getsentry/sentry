@@ -1,7 +1,7 @@
 import * as React from 'react';
-import {RouteContextInterface} from 'react-router';
+import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import useParams from 'sentry/utils/useParams';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -9,53 +9,62 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('useParams', () => {
   describe('when the path has no params', () => {
     it('returns an empty object', () => {
-      const paramsProps = {};
-      const wrapper = ({children}) => (
-        <RouteContext.Provider
-          value={
-            {
-              params: paramsProps,
-            } as RouteContextInterface
-          }
+      let params;
+      function HomePage() {
+        params = useParams();
+        return null;
+      }
+
+      const memoryHistory = createMemoryHistory();
+      memoryHistory.push('/?hello');
+
+      render(
+        <Router
+          history={memoryHistory}
+          render={props => {
+            return (
+              <RouteContext.Provider value={props}>
+                <RouterContext {...props} />
+              </RouteContext.Provider>
+            );
+          }}
         >
-          {children}
-        </RouteContext.Provider>
+          <Route path="/" component={HomePage} />
+        </Router>
       );
-      const {result} = reactHooks.renderHook(() => useParams(), {wrapper});
 
-      reactHooks.act(() => {
-        result.current;
-      });
-
-      expect(result.current).toStrictEqual({
-        ...paramsProps,
-      });
+      expect(typeof params).toBe('object');
+      expect(params).toEqual({});
     });
   });
 
   describe('when the path has some params', () => {
     it('returns an object of the URL params', () => {
-      const paramsProps = {slug: 'react-router'};
-      const wrapper = ({children}) => (
-        <RouteContext.Provider
-          value={
-            {
-              params: paramsProps,
-            } as RouteContextInterface
-          }
+      let params;
+      function HomePage() {
+        params = useParams();
+        return null;
+      }
+
+      const memoryHistory = createMemoryHistory();
+      memoryHistory.push('/sentry');
+
+      render(
+        <Router
+          history={memoryHistory}
+          render={props => {
+            return (
+              <RouteContext.Provider value={props}>
+                <RouterContext {...props} />
+              </RouteContext.Provider>
+            );
+          }}
         >
-          {children}
-        </RouteContext.Provider>
+          <Route path="/:slug" component={HomePage} />
+        </Router>
       );
-      const {result} = reactHooks.renderHook(() => useParams(), {wrapper});
-
-      reactHooks.act(() => {
-        result.current;
-      });
-
-      expect(result.current).toStrictEqual({
-        ...paramsProps,
-      });
+      expect(typeof params).toBe('object');
+      expect(params).toEqual({slug: 'sentry'});
     });
   });
 });

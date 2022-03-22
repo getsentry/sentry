@@ -1,41 +1,40 @@
 import * as React from 'react';
-import {RouteContextInterface} from 'react-router';
+import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import useLocation from 'sentry/utils/useLocation';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
   it('returns the current location object', function () {
-    const locationProps = {
-      action: 'PUSH',
-      hash: '',
-      key: 'kkshof',
-      pathname: '/settings/petal/integrations/',
-      query: {hello: null},
-      search: '?hello',
-      state: undefined,
-    };
-    const wrapper = ({children}) => (
-      <RouteContext.Provider
-        value={
-          {
-            location: locationProps,
-          } as RouteContextInterface
-        }
+    let location;
+    function HomePage() {
+      location = useLocation();
+      return null;
+    }
+
+    const memoryHistory = createMemoryHistory();
+    memoryHistory.push('/?hello');
+
+    render(
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
       >
-        {children}
-      </RouteContext.Provider>
+        <Route path="/" component={HomePage} />
+      </Router>
     );
-    const {result} = reactHooks.renderHook(() => useLocation(), {wrapper});
 
-    reactHooks.act(() => {
-      result.current;
-    });
-
-    expect(result.current).toStrictEqual({
-      ...locationProps,
-    });
+    expect(typeof location).toBe('object');
+    expect(location.pathname).toBe('/');
+    expect(location.query).toEqual({hello: null});
+    expect(location.search).toBe('?hello');
   });
 });

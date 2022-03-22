@@ -1,15 +1,16 @@
+import * as React from 'react';
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useHistory from 'sentry/utils/useHistory';
+import useRoutes from 'sentry/utils/useRoutes';
 import {RouteContext} from 'sentry/views/routeContext';
 
-describe('useHistory', () => {
-  it('returns the history object', function () {
-    let history;
+describe('useRoutes', () => {
+  it('returns the current routes object', function () {
+    let routes;
     function HomePage() {
-      history = useHistory();
+      routes = useRoutes();
       return null;
     }
 
@@ -31,7 +32,8 @@ describe('useHistory', () => {
       </Router>
     );
 
-    expect(typeof history).toBe('object');
-    expect(typeof history.push).toBe('function');
+    expect(typeof routes).toBe('object');
+    expect(routes.length).toEqual(1);
+    expect(routes[0]).toEqual({path: '/', component: HomePage});
   });
 });
