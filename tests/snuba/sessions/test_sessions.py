@@ -1,4 +1,3 @@
-import inspect
 import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -12,7 +11,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import SessionMetricsTestCase, apply_feature_flag_on_cls
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -22,7 +21,6 @@ def parametrize_backend(cls):
     over to pytest-style tests so we can use `pytest.mark.parametrize`, but
     hopefully we won't have more than one backend in the future.
     """
-    caller_globals = inspect.stack()[1][0].f_globals
 
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
@@ -33,9 +31,8 @@ def parametrize_backend(cls):
 
     MetricsTest.__name__ = f"{cls.__name__}Metrics"
 
-    caller_globals[MetricsTest.__name__] = MetricsTest
+    globals()[MetricsTest.__name__] = MetricsTest
 
-    @apply_feature_flag_on_cls("organizations:release-health-check-metrics")
     class DuplexTest(cls):
         __doc__ = f"Repeat tests from {cls} with duplex backend"
         backend = DuplexReleaseHealthBackend(
@@ -44,7 +41,7 @@ def parametrize_backend(cls):
 
     DuplexTest.__name__ = f"{cls.__name__}Duplex"
 
-    caller_globals[DuplexTest.__name__] = DuplexTest
+    globals()[DuplexTest.__name__] = DuplexTest
 
     return cls
 
@@ -670,7 +667,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (new_proj_id, "foo@3.0.0"),
         }
 
-    def _add_timestamps_to_series(self, series, start: datetime):
+    @staticmethod
+    def _add_timestamps_to_series(series, start: datetime):
         one_day = 24 * 60 * 60
         day0 = one_day * int(start.timestamp() / one_day)
 

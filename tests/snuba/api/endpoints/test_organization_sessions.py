@@ -6,9 +6,10 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
-from tests.snuba.sessions.test_sessions import parametrize_backend
 
 
 def result_sorted(result):
@@ -29,7 +30,6 @@ SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
 
-@parametrize_backend
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -875,3 +875,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
+
+
+@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+class OrganizationSessionsEndpointMetricsTest(
+    SessionMetricsTestCase, OrganizationSessionsEndpointTest
+):
+    """Repeat with metrics backend"""
