@@ -588,6 +588,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.profiles.task",
+    "sentry.release_health.duplex",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -655,6 +656,7 @@ CELERY_QUEUES = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:

@@ -56,6 +56,7 @@ from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.metrics.query_builder import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.tasks.base import instrumented_task
 from sentry.utils.metrics import incr, timer, timing
 
 DateLike = Union[datetime, str]
@@ -625,6 +626,87 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
     }
 
 
+@instrumented_task(
+    name="sentry.release_health.duplex.run_comparison",
+    queue="release_health.duplex",
+    max_retries=0,  # No need to retry
+)
+def run_comparison(
+    self,
+    fn_name: str,
+    should_compare: bool,
+    rollup: Optional[int],
+    organization: Optional[Organization],
+    schema: Optional[Schema],
+    function_args: Tuple[Any],
+    sessions_result: Any,
+    **kwargs,
+):
+    if rollup is None:
+        rollup = 0  # force exact date comparison if not specified
+
+    tags = {"method": fn_name, "rollup": str(rollup)}
+
+    set_tag("releasehealth.duplex.rollup", str(rollup))
+    set_tag("releasehealth.duplex.method", fn_name)
+    set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
+
+    set_extra("function_args", function_args)  # Make sure we always know all function args
+
+    set_context(
+        "release-health-duplex-sessions",
+        {
+            "sessions": sessions_result,
+        },
+    )
+
+    try:
+        # We read from the metrics source even if there is no need to compare.
+        metrics_fn = getattr(self.metrics, fn_name)
+        with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+            metrics_val = metrics_fn(*function_args)
+
+        incr(
+            "releasehealth.metrics.check_should_compare",
+            tags={"should_compare": str(should_compare), **tags},
+            sample_rate=1.0,
+        )
+
+        if not should_compare:
+            return
+
+        copy = deepcopy(sessions_result)
+
+        set_context("release-health-duplex-metrics", {"metrics": metrics_val})
+
+        with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
+            errors = compare_results(copy, metrics_val, rollup, None, schema)
+        set_context("release-health-duplex-errors", {"errors": [str(error) for error in errors]})
+
+        should_report = features.has(
+            "organizations:release-health-check-metrics-report", organization
+        )
+
+        incr(
+            "releasehealth.metrics.compare",
+            tags={"has_errors": str(bool(errors)), "reported": str(should_report), **tags},
+            sample_rate=1.0,
+        )
+
+        if errors and should_report:
+            tag_delta(errors, tags)
+            # We heavily rely on Sentry's message sanitization to properly deduplicate this
+            capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
+    except Exception:
+        capture_exception()
+        should_compare = False
+        incr(
+            "releasehealth.metrics.crashed",
+            tags=tags,
+            sample_rate=1.0,
+        )
+
+
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     DEFAULT_ROLLUP = 60 * 60  # 1h
 
@@ -689,93 +771,20 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 # evaluate it now
                 should_compare = should_compare(ret_val)
 
-            self._run_comparison(
-                fn_name,
-                should_compare,
-                rollup,
-                organization,
-                schema,
-                function_args=args,
-                sessions_result=ret_val,
-            )
+            try:
+                run_comparison.delay(
+                    fn_name,
+                    should_compare,
+                    rollup,
+                    organization,
+                    schema,
+                    function_args=args,
+                    sessions_result=ret_val,
+                )
+            except Exception:
+                capture_exception()
 
         return ret_val
-
-    def _run_comparison(
-        self,
-        fn_name: str,
-        should_compare: bool,
-        rollup: Optional[int],
-        organization: Optional[Organization],
-        schema: Optional[Schema],
-        function_args: Tuple[Any],
-        sessions_result: Any,
-    ):
-        if rollup is None:
-            rollup = 0  # force exact date comparison if not specified
-
-        tags = {"method": fn_name, "rollup": str(rollup)}
-
-        set_tag("releasehealth.duplex.rollup", str(rollup))
-        set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
-
-        set_extra("function_args", function_args)  # Make sure we always know all function args
-
-        set_context(
-            "release-health-duplex-sessions",
-            {
-                "sessions": sessions_result,
-            },
-        )
-
-        try:
-            # We read from the metrics source even if there is no need to compare.
-            metrics_fn = getattr(self.metrics, fn_name)
-            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                metrics_val = metrics_fn(*function_args)
-
-            incr(
-                "releasehealth.metrics.check_should_compare",
-                tags={"should_compare": str(should_compare), **tags},
-                sample_rate=1.0,
-            )
-
-            if not should_compare:
-                return
-
-            copy = deepcopy(sessions_result)
-
-            set_context("release-health-duplex-metrics", {"metrics": metrics_val})
-
-            with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
-                errors = compare_results(copy, metrics_val, rollup, None, schema)
-            set_context(
-                "release-health-duplex-errors", {"errors": [str(error) for error in errors]}
-            )
-
-            should_report = features.has(
-                "organizations:release-health-check-metrics-report", organization
-            )
-
-            incr(
-                "releasehealth.metrics.compare",
-                tags={"has_errors": str(bool(errors)), "reported": str(should_report), **tags},
-                sample_rate=1.0,
-            )
-
-            if errors and should_report:
-                tag_delta(errors, tags)
-                # We heavily rely on Sentry's message sanitization to properly deduplicate this
-                capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
-        except Exception:
-            capture_exception()
-            should_compare = False
-            incr(
-                "releasehealth.metrics.crashed",
-                tags=tags,
-                sample_rate=1.0,
-            )
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
