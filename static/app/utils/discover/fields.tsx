@@ -977,9 +977,11 @@ export function explodeField(field: Field): Column {
  */
 export function getAggregateAlias(field: string): string {
   const result = parseFunction(field);
+
   if (!result) {
     return field;
   }
+
   let alias = result.name;
 
   if (result.arguments.length > 0) {
