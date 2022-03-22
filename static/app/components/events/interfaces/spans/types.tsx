@@ -61,6 +61,13 @@ export type SpanGroupProps = {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
+};
+
+export type SpanSiblingGroupProps = {
+  isLastSibling: boolean;
+  spanSiblingGrouping: EnhancedSpan[] | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -73,6 +80,7 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  isFirstSiblingOfGroup?: boolean;
 };
 
 export type EnhancedSpan =
@@ -83,6 +91,7 @@ export type EnhancedSpan =
   | ({
       span: SpanType;
       toggleNestedSpanGroup: (() => void) | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 
@@ -106,7 +115,13 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
-    } & SpanGroupProps);
+    } & SpanGroupProps)
+  | ({
+      continuingTreeDepths: Array<TreeDepthType>;
+      span: SpanType;
+      treeDepth: number;
+      type: 'span_group_sibling';
+    } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
   data: Array<RawSpanType>;
