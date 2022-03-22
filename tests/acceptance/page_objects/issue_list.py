@@ -26,6 +26,11 @@ class IssueListPage(BasePage):
 
     def resolve_issues(self):
         self.browser.click('[aria-label="Resolve"]')
+        self.browser.click('[data-test-id="confirm-button"]')
+
+    # TODO(Kelly): update once issue-list-removal-action feature is stable
+    def resolve_issues_removal(self):
+        self.browser.click('[aria-label="Resolve"]')
 
     def wait_for_resolved_issue(self):
         self.browser.wait_until('[data-test-id="resolved-issue"]')

@@ -80,35 +80,73 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def test_resolve_issues(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
-
-        group1 = self.event_a.group
-
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
 
         self.page.select_issue(1)
+        self.page.select_issue(2)
         self.page.resolve_issues()
 
-        group1.update(status=GroupStatus.RESOLVED)
+        self.page.wait_for_resolved_issue()
+        resolved_groups = self.page.find_resolved_issues()
 
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
+        assert len(resolved_groups) == 2
 
-        assert len(groups) == 1
+    @patch("django.utils.timezone.now")
+    def test_resolve_issues_removal(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.create_issues()
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            group1 = self.event_a.group
+
+            self.page.visit_issue_list(self.org.slug)
+            self.page.wait_for_stream()
+
+            self.page.select_issue(1)
+            self.page.resolve_issues_removal()
+
+            group1.update(status=GroupStatus.RESOLVED)
+
+            self.page.wait_for_issue_removal()
+            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+
+            assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
     def test_resolve_issues_multi_projects(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
 
-        group1 = self.event_a.group
-
         with self.feature("organizations:global-views"):
             self.page.visit_issue_list(self.org.slug)
             self.page.wait_for_stream()
 
             self.page.select_issue(1)
+            self.page.select_issue(2)
             self.page.resolve_issues()
+
+            self.page.wait_for_resolved_issue()
+            resolved_groups = self.page.find_resolved_issues()
+
+            assert len(resolved_groups) == 2
+
+    @patch("django.utils.timezone.now")
+    def test_resolve_issues_removal_multi_projects(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.create_issues()
+
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature(
+            ["organizations:global-views", "organizations:issue-list-removal-action"]
+        ):
+            group1 = self.event_a.group
+
+            self.page.visit_issue_list(self.org.slug)
+            self.page.wait_for_stream()
+
+            self.page.select_issue(1)
+            self.page.resolve_issues_removal()
 
             group1.update(status=GroupStatus.RESOLVED)
 
@@ -119,32 +157,13 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_ignore_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.create_issues()
 
-        group1 = self.event_a.group
+            group1 = self.event_a.group
 
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
-
-        self.page.select_issue(1)
-        self.page.ignore_issues()
-
-        group1.update(status=GroupStatus.IGNORED)
-
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
-
-        assert len(groups) == 1
-
-    @patch("django.utils.timezone.now")
-    def test_ignore_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
-
-        group1 = self.event_a.group
-
-        with self.feature("organizations:global-views"):
             self.page.visit_issue_list(self.org.slug)
             self.page.wait_for_stream()
 
@@ -159,33 +178,37 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_delete_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
+    def test_ignore_issues_multi_projects(self, mock_now):
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.create_issues()
 
-        group1 = self.event_a.group
+            group1 = self.event_a.group
 
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
+            with self.feature("organizations:global-views"):
+                self.page.visit_issue_list(self.org.slug)
+                self.page.wait_for_stream()
 
-        self.page.select_issue(1)
-        self.page.delete_issues()
+                self.page.select_issue(1)
+                self.page.ignore_issues()
 
-        group1.update(status=GroupStatus.PENDING_DELETION)
+                group1.update(status=GroupStatus.IGNORED)
 
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
+                self.page.wait_for_issue_removal()
+                groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-        assert len(groups) == 1
+                assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_delete_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
+    def test_delete_issues(self, mock_now):
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.create_issues()
 
-        group1 = self.event_a.group
+            group1 = self.event_a.group
 
-        with self.feature("organizations:global-views"):
             self.page.visit_issue_list(self.org.slug)
             self.page.wait_for_stream()
 
@@ -200,37 +223,38 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_merge_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
+    def test_delete_issues_multi_projects(self, mock_now):
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.create_issues()
 
-        group1 = self.event_a.group
-        group2 = self.event_b.group
+            group1 = self.event_a.group
 
-        self.page.visit_issue_list(self.org.slug)
-        self.page.wait_for_stream()
+            with self.feature("organizations:global-views"):
+                self.page.visit_issue_list(self.org.slug)
+                self.page.wait_for_stream()
 
-        self.page.select_issue(1)
-        self.page.select_issue(2)
-        self.page.merge_issues()
+                self.page.select_issue(1)
+                self.page.delete_issues()
 
-        group1.update(status=GroupStatus.PENDING_MERGE)
-        group2.update(status=GroupStatus.PENDING_MERGE)
+                group1.update(status=GroupStatus.PENDING_DELETION)
 
-        self.page.wait_for_issue_removal()
-        groups = self.browser.elements('[data-test-id="event-issue-header"]')
+                self.page.wait_for_issue_removal()
+                groups = self.browser.elements('[data-test-id="event-issue-header"]')
 
-        assert len(groups) == 1
+                assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_merge_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        self.create_issues()
+    def test_merge_issues(self, mock_now):
+        # TODO(Kelly): update once issue-list-removal-action feature is stable
+        with self.feature("organizations:issue-list-removal-action"):
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.create_issues()
 
-        group1 = self.event_a.group
-        group2 = self.event_b.group
+            group1 = self.event_a.group
+            group2 = self.event_b.group
 
-        with self.feature("organizations:global-views"):
             self.page.visit_issue_list(self.org.slug)
             self.page.wait_for_stream()
 
