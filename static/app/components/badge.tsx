@@ -4,12 +4,10 @@ import styled from '@emotion/styled';
 import space from 'sentry/styles/space';
 import type {Theme} from 'sentry/utils/theme';
 
-type Props = React.HTMLProps<HTMLSpanElement> & {
-  children?: React.ReactNode;
-  className?: string;
+interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;
   type?: keyof Theme['badge'];
-};
+}
 
 const Badge = styled(({children, text, ...props}: Props) => (
   <span {...props}>{children ?? text}</span>

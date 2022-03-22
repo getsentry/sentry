@@ -38,11 +38,11 @@ export const MEPTag = () => {
     return null;
   }
 
-  if (!isMEPEnabled) {
-    return null;
-  }
-
-  if (isMetricsData !== true) {
+  // - If MEP is not enabled but they have the flag, always show sampled (corresponds to 'always show sampled')
+  // - If isMetricsData is false it means a result was returned (not undefined) and is sampled
+  // - If isMetricsData is true it means a result was returned and is metrics (unsampled)
+  // - If isMetricsData is undefined it means a result was not been returned so we don't want to show sampled.
+  if (isMEPEnabled && isMetricsData !== false) {
     return <span data-test-id="no-metrics-data-tag" />;
   }
 

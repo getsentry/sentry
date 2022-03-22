@@ -18,7 +18,10 @@ describe('EnvironmentPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });
@@ -79,10 +82,10 @@ describe('EnvironmentPageFilter', function () {
     userEvent.click(screen.getByText('All Environments'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
-    userEvent.click(pinButton);
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
