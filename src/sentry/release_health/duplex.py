@@ -652,8 +652,6 @@ def run_comparison(
     set_tag("releasehealth.duplex.method", fn_name)
     set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
 
-    set_extra("function_args", function_args)  # Make sure we always know all function args
-
     set_context(
         "release-health-duplex-sessions",
         {
