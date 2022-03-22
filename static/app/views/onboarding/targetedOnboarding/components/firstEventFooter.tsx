@@ -141,6 +141,7 @@ const Wrapper = styled('div')`
   display: flex;
   background-color: ${p => p.theme.background};
   justify-content: space-between;
+  box-shadow: 0px -4px 24px rgba(43, 34, 51, 0.08);
 `;
 
 const OnboardingButtonBar = styled(ButtonBar)`

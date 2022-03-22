@@ -126,7 +126,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
   display: flex;
   justify-content: center;
   position: relative;
-  background: ${p => p.theme.surface100};
+  background: ${p => p.theme.background};
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
