@@ -675,28 +675,57 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         schema: Optional[Schema],
         *args: Any,
     ) -> ReleaseHealthResult:
-        if rollup is None:
-            rollup = 0  # force exact date comparison if not specified
         sessions_fn = getattr(self.sessions, fn_name)
-        set_tag("releasehealth.duplex.rollup", str(rollup))
-        set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
-
-        set_extra("function_args", args)  # Make sure we always know all function args
 
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
 
-        if organization is None or not features.has(
+        if organization is not None and features.has(
             "organizations:release-health-check-metrics", organization
         ):
-            return ret_val  # cannot check feature without organization
+            if not isinstance(should_compare, bool):
+                # should compare depends on the session result
+                # evaluate it now
+                should_compare = should_compare(ret_val)
+
+            self._run_comparison(
+                fn_name,
+                should_compare,
+                rollup,
+                organization,
+                schema,
+                function_args=args,
+                sessions_result=ret_val,
+            )
+
+        return ret_val
+
+    def _run_comparison(
+        self,
+        fn_name: str,
+        should_compare: bool,
+        rollup: Optional[int],
+        organization: Optional[Organization],
+        schema: Optional[Schema],
+        function_args: Tuple[Any],
+        sessions_result: Any,
+    ):
+        if rollup is None:
+            rollup = 0  # force exact date comparison if not specified
+
+        tags = {"method": fn_name, "rollup": str(rollup)}
+
+        set_tag("releasehealth.duplex.rollup", str(rollup))
+        set_tag("releasehealth.duplex.method", fn_name)
+        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
+
+        set_extra("function_args", function_args)  # Make sure we always know all function args
 
         set_context(
             "release-health-duplex-sessions",
             {
-                "sessions": ret_val,
+                "sessions": sessions_result,
             },
         )
 
@@ -704,12 +733,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             # We read from the metrics source even if there is no need to compare.
             metrics_fn = getattr(self.metrics, fn_name)
             with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                metrics_val = metrics_fn(*args)
-
-            if not isinstance(should_compare, bool):
-                # should compare depends on the session result
-                # evaluate it now
-                should_compare = should_compare(ret_val)
+                metrics_val = metrics_fn(*function_args)
 
             incr(
                 "releasehealth.metrics.check_should_compare",
@@ -718,9 +742,9 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             )
 
             if not should_compare:
-                return ret_val
+                return
 
-            copy = deepcopy(ret_val)
+            copy = deepcopy(sessions_result)
 
             set_context("release-health-duplex-metrics", {"metrics": metrics_val})
 
@@ -752,8 +776,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 tags=tags,
                 sample_rate=1.0,
             )
-
-        return ret_val
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
