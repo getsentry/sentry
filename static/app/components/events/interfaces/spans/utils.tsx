@@ -473,6 +473,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.vue',
     'sentry.javascript.angular',
     'sentry.javascript.nextjs',
+    'sentry.javascript.electron',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -634,4 +635,8 @@ export function scrollToSpan(
 
 export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
+}
+
+export function getSiblingGroupKey(span: SpanType): string {
+  return `${span?.op}.${span?.description}`;
 }
