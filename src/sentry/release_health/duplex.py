@@ -630,7 +630,7 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
     name="sentry.release_health.duplex.run_comparison",
     queue="release_health.duplex",
     max_retries=0,  # No need to retry
-)
+)  # type: ignore
 def run_comparison(
     self,
     fn_name: str,
@@ -641,7 +641,7 @@ def run_comparison(
     function_args: Tuple[Any],
     sessions_result: Any,
     **kwargs,
-):
+) -> None:
     if rollup is None:
         rollup = 0  # force exact date comparison if not specified
 
@@ -707,7 +707,7 @@ def run_comparison(
         )
 
 
-def identity(x):
+def identity(x: Any) -> Any:
     return x
 
 
