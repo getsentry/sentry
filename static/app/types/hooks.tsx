@@ -524,7 +524,8 @@ type IntegrationsFeatureGatesHook = () => {
 };
 
 /**
- * Invite Button customization allows for ???
+ * Invite Button customization allows for a render-props component to replace
+ * or intercept props of the button element.
  */
 type InviteButtonCustomizationHook = () => React.ComponentType<{
   children: (opts: {
@@ -532,7 +533,9 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      * Whether the Invite Members button is active or not
      */
     disabled: boolean;
+    onTriggerModal: () => void;
   }) => React.ReactElement;
+  onTriggerModal: () => void;
   organization: Organization;
 }>;
 

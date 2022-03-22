@@ -78,7 +78,8 @@ describe('OrganizationMembersWrapper', function () {
       <OrganizationMembersWrapper organization={org} {...defaultProps} />
     );
 
-    expect(wrapper.find('StyledButton').exists()).toBeFalsy();
+    const inviteButton = wrapper.find('StyledButton');
+    expect(inviteButton.props().disabled).toBeTruthy();
   });
 
   it('can invite without permissions', function () {
