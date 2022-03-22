@@ -868,7 +868,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             organization=self.organization, teams=[self.team], name="Bengal"
         )
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard Test", created_by=self.user, organization=self.organization
         )
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
