@@ -1,6 +1,5 @@
 import {
   ChromeTraceProfile,
-  parseChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
   TypeScriptProfile,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
@@ -33,7 +32,7 @@ describe('splitEventsByProcessAndTraceId', () => {
   });
 });
 
-describe('parseChromeTraceArrayFormat', () => {
+describe('importChromeTrace', () => {
   it('returns chrometrace profile', () => {
     expect(
       parseChromeTraceArrayFormat(
@@ -343,7 +342,7 @@ describe('parseChromeTraceArrayFormat', () => {
 
   it('marks trace as typescript trace if first frame.cat is createProgram', () => {
     expect(
-      parseChromeTraceArrayFormat([
+      importChromeTrace([
         {
           name: 'process_name',
           args: {name: 'tsc'},
@@ -386,6 +385,7 @@ describe('parseChromeTraceArrayFormat', () => {
 });
 
 // import trace from './samples/chrometrace/typescript/trace.json';
+// import {parseChromeTraceArrayFormat} from '../../../../../../static/app/utils/profiling/profile/chromeTraceProfile';
 
 // // Keeping the benchmark around
 // // eslint-disable-next-line

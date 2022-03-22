@@ -1,12 +1,11 @@
-import {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 import {AnimationControls, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   animateVariant: AnimationControls;
-} & HTMLAttributes<HTMLDivElement>;
+}
 
 const PageCorners = ({animateVariant, ...rest}: Props) => (
   <Container {...rest}>

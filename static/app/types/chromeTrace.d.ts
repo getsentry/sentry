@@ -24,6 +24,7 @@ namespace ChromeTrace {
   }
 
   type ArrayFormat = ReadonlyArray<Event>;
+
   type DurationEvent = 'B' | 'E';
   // Instant event
   type CompleteEvent = 'X';

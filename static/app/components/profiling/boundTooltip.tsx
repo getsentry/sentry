@@ -30,7 +30,7 @@ const useCachedMeasure = (string: string, font: string): Rect => {
   }, [string, ctx]);
 };
 
-interface BoundTooltipProps {
+export interface BoundTooltipProps {
   bounds: Rect;
   configToPhysicalSpace: mat3;
   cursor: vec2 | null;
@@ -118,7 +118,10 @@ function BoundTooltip({
         fontFamily: flamegraphTheme.FONTS.FONT,
         left: cursorHorizontalPosition,
         top: cursorVerticalPosition,
-        width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
+        maxWidth: Math.min(
+          tooltipRect.width,
+          bounds.width - cursorHorizontalPosition - 2
+        ),
       }}
     >
       {children}
@@ -129,7 +132,6 @@ function BoundTooltip({
 const Tooltip = styled('div')`
   background: #fff;
   position: absolute;
-  white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
   pointer-events: none;

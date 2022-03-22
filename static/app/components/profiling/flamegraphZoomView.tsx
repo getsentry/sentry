@@ -16,7 +16,7 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
-import {BoundTooltip} from './boundTooltip';
+import {FlamegraphTooltip} from './flamegraphTooltip';
 
 interface FlamegraphZoomViewProps {
   canvasPoolManager: CanvasPoolManager;
@@ -600,13 +600,13 @@ function FlamegraphZoomView({
         }}
       />
       {flamegraphRenderer ? (
-        <BoundTooltip
+        <FlamegraphTooltip
           bounds={canvasBounds}
-          cursor={configSpaceCursor}
-          configToPhysicalSpace={flamegraphRenderer?.configToPhysicalSpace}
-        >
-          {hoveredNode?.frame?.name}
-        </BoundTooltip>
+          configSpaceCursor={configSpaceCursor}
+          configToPhysicalSpace={flamegraphRenderer.configToPhysicalSpace}
+          hoveredNode={hoveredNode}
+          flamegraph={flamegraph}
+        />
       ) : null}
     </Fragment>
   );

@@ -1,4 +1,4 @@
-// yarn run tsc static/app/utils/profiling/typescript/samples/program.ts --generateTrace static/app/utils/profiling/typescript/samples/tsc_trace --incremental false --diagnostics --skipLibCheck
+// yarn run tsc static/app/utils/profiling/typescript/samples/program.ts --generateTrace static/app/utils/profiling/typescript/samples/tsc_trace --incremental false --diagnostics --skipLibCheck --noEmit
 
 type CustomNumber = number;
 type CustomString = string;
@@ -28,7 +28,8 @@ type RecursiveType<T> = {
   type?: RecursiveType<T>;
 };
 
-type IndexedType = [number, string, Array<any>];
+type SimpleTuple = [number, string, Array<any>];
+
 type CustomRecord = {
   arr: [];
   object: {};
@@ -37,14 +38,23 @@ type CustomRecord = {
 type MappedType = {
   readonly [K in keyof CustomRecord]: CustomRecord[K];
 };
+type ComplexTuple = [number | string, CustomRecord | never];
 
 export const a: CustomNumber | CustomString = 0;
-export const indexedType0: IndexedType[1] = 'test';
-export const indexedType1: IndexedType[0] = 0;
-export const mappedType: MappedType | IndexedType = {
+export const indexedType0: SimpleTuple[1] = 'test';
+export const indexedType1: SimpleTuple[0] = 0;
+export const mappedType: MappedType | SimpleTuple = {
   arr: [],
   object: {},
 };
+
+export const tuple: ComplexTuple = [0, {arr: [], object: {}}];
+
+function tupleCheck(t: ComplexTuple | MappedType) {
+  return t[0];
+}
+
+tupleCheck(tuple);
 
 export const aa: A = void 0;
 export const b: RecursiveType<string> = {

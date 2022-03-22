@@ -14,7 +14,15 @@ import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 import {EventedProfile} from './eventedProfile';
 import {ImportOptions, ProfileGroup} from './importProfile';
 
-export class ChromeTraceProfile extends EventedProfile {}
+export class ChromeTraceProfile extends EventedProfile {
+  static FromArrayProfile(
+    processId: string,
+    threadId: string,
+    profile: ChromeTrace.ArrayFormat
+  ): ChromeTraceProfile {
+    return buildChromeTraceArrayProfile(processId, threadId, profile);
+  }
+}
 export class TypeScriptProfile extends ChromeTraceProfile {
   typeScriptTypeTree?: TypeScriptTypes.TypeTree;
 
@@ -84,10 +92,10 @@ function getNextQueue(
   return 'B';
 }
 
-function buildProfile(
+function buildChromeTraceArrayProfile(
   processId: string,
   threadId: string,
-  events: ChromeTrace.Event[]
+  events: ChromeTrace.ArrayFormat
 ): ChromeTraceProfile {
   let processName: string = `pid (${processId})`;
   let threadName: string = `tid (${threadId})`;
@@ -117,7 +125,7 @@ function buildProfile(
     }
 
     // B, E and X events are pushed to the timeline. We transform all X events into
-    // B and E event, so that they can be pushed onto the queue and handled
+    // B and E event, so that they can be pushed onto the queue and handled chronologically
     if (event.ph === 'B') {
       beginQueue.push(event);
       continue;
@@ -254,7 +262,7 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event): Profiling.FrameInfo
 
   return {
     key,
-    name: `${event?.name || 'Unknown'} ${key}`.trim(),
+    name: event?.name || 'Unknown',
     meta: event.args,
   };
 }
@@ -273,7 +281,7 @@ export function parseChromeTraceArrayFormat(
         options?.transaction,
         () =>
           profiles.push(
-            buildProfile(
+            buildChromeTraceArrayProfile(
               processId,
               threadId,
               eventsByProcessAndThreadID[processId][threadId] ?? []

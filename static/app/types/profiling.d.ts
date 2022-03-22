@@ -43,7 +43,11 @@ namespace Profiling {
     meta?: Record<string, any>;
   };
 
-  type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
+  type ProfileTypes =
+    | EventedProfile
+    | SampledProfile
+    | JSSelfProfiling.Trace
+    | ChromeTrace.Trace;
 
   type ImportedProfiles = {
     name: string;

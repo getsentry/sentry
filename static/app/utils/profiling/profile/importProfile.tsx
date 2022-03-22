@@ -9,13 +9,11 @@ import {
   isJSProfile,
   isSampledProfile,
   isSchema,
-} from '../guards/profile';
-import {
-  importTypeScriptTypesJSONFile,
   isTypeScriptTypesJSONFile,
-} from '../typescript/importTypeFile';
+} from '../guards/profile';
 
-import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
+import {importTypeScriptTypesJSON} from './typescript/importTypeScriptTypesJSON';
+import {ChromeTraceProfile, parseChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -151,9 +149,6 @@ function importSingleProfile(
     );
   }
 
-  if (isTypeScriptTypesJSONFile(json)) {
-    return importTypeScriptTypesJSONFile(json);
-  }
   throw new Error('Unrecognized trace format');
 }
 
@@ -196,7 +191,7 @@ function readFileAsString(file: File): Promise<string> {
 export async function importDroppedFile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileGroup> {
+): Promise<ProfileGroup | TypeScriptTypes.TypeTree> {
   const fileContents = await readFileAsString(file);
 
   for (const parser of parsers) {
@@ -207,7 +202,17 @@ export async function importDroppedFile(
         throw new TypeError('Input JSON is not an object');
       }
 
-      return importProfile(json, file.name);
+      try {
+        return importProfile(json, file.name);
+      } catch (e) {
+        // Fallthrough
+      }
+
+      try {
+        return importTypeScriptTypesJSON(json);
+      } catch (e) {
+        // Fallthrough
+      }
     }
   }
 
