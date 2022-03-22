@@ -1271,6 +1271,29 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('Update table header value (column alias)', async function () {
+    const handleSave = jest.fn();
+
+    renderTestComponent({
+      onSave: handleSave,
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.type(screen.getByPlaceholderText('Alias'), 'Test Alias{enter}');
+
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          queries: [expect.objectContaining({columnAliases: ['Test Alias']})],
+        }),
+      ]);
+    });
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
