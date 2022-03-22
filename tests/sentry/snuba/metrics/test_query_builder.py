@@ -96,7 +96,7 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 def test_parse_query(monkeypatch, query_string, expected):
     local_indexer = MockIndexer()
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
-        local_indexer.record(s)
+        local_indexer.record(1, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(parse_query(query_string))
     assert parsed == expected

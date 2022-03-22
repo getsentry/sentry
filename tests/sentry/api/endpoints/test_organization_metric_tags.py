@@ -47,7 +47,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
 
     def test_metric_tags_metric_does_not_have_data(self):
-        indexer.record("foo.bar")
+        indexer.record(self.organization.id, "foo.bar")
         assert (
             self.get_response(
                 self.organization.slug,

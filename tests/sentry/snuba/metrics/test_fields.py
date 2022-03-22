@@ -73,9 +73,10 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         Test that ensures that method generate_select_statements generates the equivalent SnQL
         required to query for the instance of DerivedMetric
         """
+        org_id = self.project.organization_id
         for status in ("init", "crashed"):
-            indexer.record(status)
-        session_ids = [indexer.record("sentry.sessions.session")]
+            indexer.record(org_id, status)
+        session_ids = [indexer.record(org_id, "sentry.sessions.session")]
 
         derived_name_snql = {
             "session.init": (init_sessions, session_ids),
@@ -83,7 +84,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.errored_preaggregated": (errored_preaggr_sessions, session_ids),
             "session.errored_set": (
                 sessions_errored_set,
-                [indexer.record("sentry.sessions.session.error")],
+                [indexer.record(org_id, "sentry.sessions.session.error")],
             ),
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
@@ -110,8 +111,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_metric_ids(self):
-        session_metric_id = indexer.record("sentry.sessions.session")
-        session_error_metric_id = indexer.record("sentry.sessions.session.error")
+        org_id = self.project.organization_id
+        session_metric_id = indexer.record(org_id, "sentry.sessions.session")
+        session_error_metric_id = indexer.record(org_id, "sentry.sessions.session.error")
 
         for derived_metric_name in [
             "session.init",
