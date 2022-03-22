@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
@@ -12,11 +13,14 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -203,10 +207,25 @@ function WidgetViewerModal(props: Props) {
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
 
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
-    label: truncate(name || conditions, 120),
-    value: index,
-  }));
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+    // Creates the highlighted query elements to be used in the Query Select
+    const parsedQuery = !!!name ? parseSearch(conditions) : null;
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      return parsedQuery !== null ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <HighlightQuery parsedQuery={parsedQuery} />
+        </HighlightContainer>
+      ) : undefined;
+    };
+
+    return {
+      label: truncate(name || conditions, 120),
+      value: index,
+      getHighlightedQuery,
+    };
+  });
 
   const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
@@ -313,6 +332,43 @@ function WidgetViewerModal(props: Props) {
                   }
                 );
               }}
+              components={{
+                // Replaces the displayed selected value
+                SingleValue: containerProps => {
+                  return (
+                    <components.SingleValue
+                      {...containerProps}
+                      // Overwrites some of the default styling that interferes with highlighted query text
+                      getStyles={() => ({'word-break': 'break-word'})}
+                    >
+                      {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                        display: 'block',
+                      }) ?? queryOptions[selectedQueryIndex].label}
+                    </components.SingleValue>
+                  );
+                },
+                // Replaces the dropdown options
+                Option: containerProps => {
+                  const highlightedQuery = containerProps.data.getHighlightedQuery({
+                    display: 'flex',
+                  });
+                  return (
+                    <Option
+                      {...(highlightedQuery
+                        ? {
+                            ...containerProps,
+                            label: '',
+                            data: {
+                              ...containerProps.data,
+                              leadingItems: highlightedQuery,
+                            },
+                          }
+                        : containerProps)}
+                    />
+                  );
+                },
+              }}
+              isSearchable={false}
             />
           </React.Fragment>
         )}
@@ -565,6 +621,9 @@ const StyledSelectControl = styled(SelectControl)`
   & > div {
     width: 100%;
   }
+  & input {
+    height: 0;
+  }
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width
@@ -589,6 +648,14 @@ const WidgetTitle = styled('h4')`
 
 const StyledPagination = styled(Pagination)`
   padding-top: ${space(2)};
+`;
+
+const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
+  display: ${p => p.display};
+  gap: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${space(1.5)};
+  line-height: 2;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
