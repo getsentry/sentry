@@ -587,8 +587,13 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const MenuAction = ({children}: {children: ReactNode}) => {
-  return <_StyledMenuAction data-test-id="menu-action">{children}</_StyledMenuAction>;
+const MenuAction = styled('div')<{['data-test-id']?: string}>`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+`;
+
+MenuAction.defaultProps = {
+  'data-test-id': 'menu-action',
 };
 
 const _StyledMenuAction = styled('div')`
