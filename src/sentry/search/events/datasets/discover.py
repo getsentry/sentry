@@ -830,11 +830,13 @@ class DiscoverDatasetConfig(DatasetConfig):
                                         ],
                                     )
                                 ],
+                                "exclusive_time",
                             )
                         ],
                         alias,
                     ),
                     default_result_type="number",
+                    private=True,
                 ),
             ]
         }
