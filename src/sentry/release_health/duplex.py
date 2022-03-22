@@ -632,14 +632,15 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
     max_retries=0,  # No need to retry
 )  # type: ignore
 def run_comparison(
-    self,
     fn_name: str,
+    metrics_fn: Callable[..., Any],
     should_compare: bool,
     rollup: Optional[int],
     organization: Optional[Organization],
     schema: Optional[Schema],
     function_args: Tuple[Any],
     sessions_result: Any,
+    sessions_time: datetime,
     **kwargs,
 ) -> None:
     if rollup is None:
@@ -661,8 +662,11 @@ def run_comparison(
     )
 
     try:
+        delay = (datetime.now(pytz.utc) - sessions_time).total_seconds()
+        set_extra("delay", delay)
+        timing("releasehealth.metrics.delay", delay)
+
         # We read from the metrics source even if there is no need to compare.
-        metrics_fn = getattr(self.metrics, fn_name)
         with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
             metrics_val = metrics_fn(*function_args)
 
@@ -767,6 +771,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleaseHealthResult:
         sessions_fn = getattr(self.sessions, fn_name)
 
+        now = datetime.now(pytz.utc)
         tags = {"method": fn_name, "rollup": str(rollup)}
         with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
             ret_val = sessions_fn(*args)
@@ -782,12 +787,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             try:
                 run_comparison.delay(
                     fn_name,
+                    getattr(self.metrics, fn_name),
                     should_compare,
                     rollup,
                     organization,
                     schema,
                     function_args=args,
                     sessions_result=ret_val,
+                    sessions_time=now,
                 )
             except Exception:
                 capture_exception()
