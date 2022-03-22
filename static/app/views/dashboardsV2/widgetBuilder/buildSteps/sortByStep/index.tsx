@@ -19,7 +19,7 @@ interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
   onLimitChange: (newLimit: number) => void;
-  onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
+  onSortByChange: (newSortBy: string) => void;
   organization: Organization;
   queries: WidgetQuery[];
   widgetBuilderNewDesign: boolean;
@@ -30,7 +30,7 @@ interface Props {
 
 export function SortByStep({
   displayType,
-  onQueryChange,
+  onSortByChange,
   queries,
   dataSet,
   widgetBuilderNewDesign,
@@ -75,6 +75,7 @@ export function SortByStep({
             />
           )}
           <SortBySelectors
+            widgetType={widgetType}
             sortByOptions={
               dataSet === DataSet.EVENTS
                 ? generateOrderOptions({
@@ -95,12 +96,9 @@ export function SortByStep({
               sortBy: orderBy[0] === '-' ? orderBy.substring(1, orderBy.length) : orderBy,
             }}
             onChange={({sortDirection, sortBy}) => {
-              const newQuery: WidgetQuery = {
-                ...queries[0],
-                orderby:
-                  sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy,
-              };
-              onQueryChange(0, newQuery);
+              const newOrderBy =
+                sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
+              onSortByChange(newOrderBy);
             }}
           />
         </Field>
@@ -134,11 +132,7 @@ export function SortByStep({
                 )
           }
           onChange={(option: SelectValue<string>) => {
-            const newQuery: WidgetQuery = {
-              ...queries[0],
-              orderby: option.value,
-            };
-            onQueryChange(0, newQuery);
+            onSortByChange(option.value);
           }}
         />
       </Field>

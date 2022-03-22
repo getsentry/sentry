@@ -402,7 +402,7 @@ class WidgetQueries extends React.Component<Props, State> {
           requestData.topEvents = widget.limit ?? TOP_N;
           // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
-          requestData.orderby = query.aggregates?.[0];
+          requestData.orderby = query.orderby;
         }
       }
       return doEventsRequest(api, requestData);

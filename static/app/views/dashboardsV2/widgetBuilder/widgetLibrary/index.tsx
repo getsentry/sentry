@@ -3,16 +3,16 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
-import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {normalizeQueries} from '../utils';
 
 import {Card} from './card';
 
@@ -20,14 +20,12 @@ interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
   widgetBuilderNewDesign: boolean;
-  widgetType: WidgetType;
 }
 
 export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
   widgetBuilderNewDesign,
-  widgetType,
 }: Props) {
   const theme = useTheme();
 
@@ -57,28 +55,31 @@ export function WidgetLibrary({
           const iconColor = theme.charts.getColorPalette(DEFAULT_WIDGETS.length - 2)[
             index
           ];
-          if (widgetBuilderNewDesign) {
-            if (!widget.queries[0].orderby) {
-              const orderBy = (
-                widgetType === WidgetType.DISCOVER
-                  ? generateOrderOptions({
-                      widgetType,
-                      widgetBuilderNewDesign,
-                      columns: widget.queries[0].columns,
-                      aggregates: widget.queries[0].aggregates,
-                    })[0].value
-                  : IssueSortOptions.DATE
-              ) as string;
 
-              widget.queries[0].orderby = orderBy;
-            }
-          }
+          const displayType =
+            widgetBuilderNewDesign && widget.displayType === DisplayType.TOP_N
+              ? DisplayType.TABLE
+              : widget.displayType;
+
+          const normalizedQueries = normalizeQueries({
+            displayType,
+            queries: widget.queries,
+            widgetBuilderNewDesign,
+            widgetType: widget.widgetType,
+          });
+
+          const newWidget = {
+            ...widget,
+            displayType,
+            queries: normalizedQueries,
+          };
+
           return (
             <CardHoverWrapper
               key={widget.title}
-              onClick={getLibrarySelectionHandler(widget, iconColor)}
+              onClick={getLibrarySelectionHandler(newWidget, iconColor)}
             >
-              <Card widget={widget} iconColor={iconColor} />
+              <Card widget={newWidget} iconColor={iconColor} />
             </CardHoverWrapper>
           );
         })}

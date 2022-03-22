@@ -86,7 +86,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       columns: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? 'count' : '',
+      orderby: widgetBuilderNewDesign ? '-count' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -575,6 +575,19 @@ function WidgetBuilder({
     setState({...state, limit: newLimit});
   }
 
+  function handleSortByChange(newSortBy: string) {
+    const newState = cloneDeep(state);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.orderby = newSortBy;
+      set(newState, `queries.${index}`, newQuery);
+    });
+
+    set(newState, 'userHasModified', true);
+    setState(newState);
+  }
+
   function handleDelete() {
     if (!isEditing) {
       return;
@@ -829,6 +842,7 @@ function WidgetBuilder({
                     onChange={newDisplayType => {
                       handleDisplayTypeOrTitleChange('displayType', newDisplayType);
                     }}
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                   />
                   <DataSetStep
                     dataSet={state.dataSet}
@@ -899,7 +913,7 @@ function WidgetBuilder({
                       dataSet={state.dataSet}
                       widgetBuilderNewDesign={widgetBuilderNewDesign}
                       error={state.errors?.orderby}
-                      onQueryChange={handleQueryChange}
+                      onSortByChange={handleSortByChange}
                       onLimitChange={handleLimitChange}
                       organization={organization}
                       widgetType={widgetType}
@@ -931,7 +945,6 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
-                widgetType={widgetType}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget =>
                   setState({

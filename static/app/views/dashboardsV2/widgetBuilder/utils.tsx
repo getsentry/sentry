@@ -95,6 +95,8 @@ export function normalizeQueries({
     DisplayType.BAR,
   ].includes(displayType);
 
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
+
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
       displayType
@@ -107,10 +109,14 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (widgetBuilderNewDesign) {
-      if (!queries[0].orderby) {
-        const orderBy = (
+  if (widgetBuilderNewDesign) {
+    queries = queries.map(query => {
+      if (isTabularChart || isTimeseriesChart) {
+        if (!!query.orderby) {
+          return query;
+        }
+
+        const orderBy =
           widgetType === WidgetType.DISCOVER
             ? generateOrderOptions({
                 widgetType,
@@ -118,16 +124,24 @@ export function normalizeQueries({
                 columns: queries[0].columns,
                 aggregates: queries[0].aggregates,
               })[0].value
-            : IssueSortOptions.DATE
-        ) as string;
-        queries[0].orderby = orderBy;
+            : IssueSortOptions.DATE;
+
+        return {
+          ...query,
+          orderby:
+            // Issues data set doesn't support order by descending
+            widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy),
+        };
       }
 
-      if (!!queries[0].columns.length) {
-        queries[0].columns = [];
-      }
-    }
+      return {
+        ...query,
+        orderby: '',
+      };
+    });
+  }
 
+  if (isTabularChart) {
     return queries;
   }
 
