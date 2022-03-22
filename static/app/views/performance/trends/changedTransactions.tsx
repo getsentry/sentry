@@ -596,11 +596,6 @@ MenuAction.defaultProps = {
   'data-test-id': 'menu-action',
 };
 
-const _StyledMenuAction = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-`;
-
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;
   justify-content: center;
