@@ -9,11 +9,14 @@ from sentry.models import (
     AuthProvider,
     ObjectStatus,
     Organization,
+    OrganizationMemberTeam,
     TeamStatus,
     UserPermission,
     UserRole,
 )
+from sentry.roles import team_roles
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class FromUserTest(TestCase):
@@ -196,6 +199,25 @@ class FromUserTest(TestCase):
             assert result.has_projects_access([project])
             assert result.has_project_scope(project, "project:read")
             assert result.has_project_membership(project)
+
+    @with_feature("organizations:team-roles")
+    def test_has_scope_from_team_role(self):
+        user = self.create_user()
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_member(organization=organization, user=user, teams=[team])
+
+        omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
+        omt.update_team_role(team_roles.get("admin"))
+
+        request = self.make_request(user=user)
+        results = [access.from_user(user, organization), access.from_request(request, organization)]
+
+        for result in results:
+            assert not result.has_scope("team:admin")
+            assert result.has_team_scope(team, "team:admin")
+            assert result.has_project_scope(project, "team:admin")
 
     def test_unlinked_sso(self):
         user = self.create_user()

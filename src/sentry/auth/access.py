@@ -227,7 +227,7 @@ class Access(abc.ABC):
         if self.has_scope(scope):
             return True
 
-        for team in self.projects:
+        for team in project.teams.all():
             if self.has_team_scope(team, scope):
                 return True
         return False
