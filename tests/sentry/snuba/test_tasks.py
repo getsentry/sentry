@@ -158,7 +158,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
         for tag in [SessionMetricKey.SESSION.value, SessionMetricKey.USER.value, "session.status"]:
-            indexer.record(tag)
+            indexer.record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
             (30, 10),
             (90, 60),
@@ -293,13 +293,14 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_simple_sessions_for_metrics(self):
+        org_id = self.organization.id
         for tag in [SessionMetricKey.SESSION.value, "session.status", "crashed", "init"]:
-            indexer.record(tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            extra_fields={"org_id": self.organization.id},
+            extra_fields={"org_id": org_id},
         )
         snuba_filter = build_snuba_filter(
             entity_subscription,
@@ -317,13 +318,14 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.groupby == [session_status]
 
     def test_simple_users_for_metrics(self):
+        org_id = self.organization.id
         for tag in [SessionMetricKey.USER.value, "session.status", "crashed", "init"]:
-            indexer.record(tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            extra_fields={"org_id": self.organization.id},
+            extra_fields={"org_id": org_id},
         )
         snuba_filter = build_snuba_filter(
             entity_subscription,
@@ -383,6 +385,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_query_and_environment_sessions_metrics(self):
         env = self.create_environment(self.project, name="development")
+        org_id = self.organization.id
         for tag in [
             SessionMetricKey.SESSION.value,
             "session.status",
@@ -393,12 +396,12 @@ class BuildSnubaFilterTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            indexer.record(tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            extra_fields={"org_id": self.organization.id},
+            extra_fields={"org_id": org_id},
         )
         snuba_filter = build_snuba_filter(
             entity_subscription,
@@ -448,6 +451,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_query_and_environment_users_metrics(self):
         env = self.create_environment(self.project, name="development")
+        org_id = self.organization.id
         for tag in [
             SessionMetricKey.USER.value,
             "session.status",
@@ -458,12 +462,12 @@ class BuildSnubaFilterTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            indexer.record(tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            extra_fields={"org_id": self.organization.id},
+            extra_fields={"org_id": org_id},
         )
         snuba_filter = build_snuba_filter(
             entity_subscription,
