@@ -8,7 +8,6 @@ import {createFrameIndex} from './utils';
 export class EventedProfile extends Profile {
   appendOrderStack: CallTreeNode[] = [this.appendOrderTree];
   stack: Frame[] = [];
-
   lastValue = 0;
 
   static FromProfile(

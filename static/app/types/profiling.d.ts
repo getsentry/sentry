@@ -40,6 +40,7 @@ namespace Profiling {
     is_application?: boolean;
     image?: string;
     resource?: string;
+    meta?: Record<string, any>;
   };
 
   type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;

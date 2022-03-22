@@ -12,6 +12,37 @@ namespace TypeScriptTypes {
     };
   }
 
+  type TypeFlag =
+    | 'Any'
+    | 'Unknown'
+    | 'String'
+    | 'Number'
+    | 'Boolean'
+    | 'Enum'
+    | 'BigInt'
+    | 'StringLiteral'
+    | 'NumberLiteral'
+    | 'BooleanLiteral'
+    | 'EnumLiteral'
+    | 'BigIntLiteral'
+    | 'ESSymbol'
+    | 'UniqueESSymbol'
+    | 'Void'
+    | 'Undefined'
+    | 'Null'
+    | 'Never'
+    | 'TypeParameter'
+    | 'Object'
+    | 'Union'
+    | 'Intersection'
+    | 'Index'
+    | 'IndexedAccess'
+    | 'Conditional'
+    | 'Substitution'
+    | 'NonPrimitive'
+    | 'TemplateLiteral'
+    | 'StringMapping';
+
   interface TypeDescriptor {
     id: number;
     intrinsicName?: string;
@@ -26,7 +57,7 @@ namespace TypeScriptTypes {
     firstDeclaration?: TypeLocationDescriptor;
 
     display?: string;
-    flags?: string[];
+    flags?: TypeFlag[];
 
     // extra index accessed type properties
     indexedAccessObjectType?: number | undefined;
@@ -58,9 +89,12 @@ namespace TypeScriptTypes {
   }
 
   type TreeNode = {
-    flags: ReadonlyArray<TypeFlag>;
     node: TypeScriptTypes.TypeDescriptor;
   };
 
-  type TypeTree = Record<TypeDescriptor['id'], TreeNode>;
+  interface TypeTree {
+    tree: Record<TypeDescriptor['id'], TreeNode>;
+    indexType(type: TypeScriptTypes.TypeDescriptor): TreeNode;
+    queryByTypeId(id: number): TreeNode | undefined;
+  }
 }

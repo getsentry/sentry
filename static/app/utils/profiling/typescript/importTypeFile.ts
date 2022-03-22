@@ -1,38 +1,7 @@
 // https://github.com/microsoft/typescript-analyze-trace/blob/9e2c745ea424911d364b0c8d37998d77e8373049/src/simplify-type.ts
 
-type TypeFlag =
-  | 'Any'
-  | 'Unknown'
-  | 'String'
-  | 'Number'
-  | 'Boolean'
-  | 'Enum'
-  | 'BigInt'
-  | 'StringLiteral'
-  | 'NumberLiteral'
-  | 'BooleanLiteral'
-  | 'EnumLiteral'
-  | 'BigIntLiteral'
-  | 'ESSymbol'
-  | 'UniqueESSymbol'
-  | 'Void'
-  | 'Undefined'
-  | 'Null'
-  | 'Never'
-  | 'TypeParameter'
-  | 'Object'
-  | 'Union'
-  | 'Intersection'
-  | 'Index'
-  | 'IndexedAccess'
-  | 'Conditional'
-  | 'Substitution'
-  | 'NonPrimitive'
-  | 'TemplateLiteral'
-  | 'StringMapping';
-
-function expandTypeFlags41(flags41: number): TypeFlag[] {
-  const flags: TypeFlag[] = [];
+function expandTypeFlags41(flags41: number): TypeScriptTypes.TypeFlag[] {
+  const flags: TypeScriptTypes.TypeFlag[] = [];
 
   if (flags41 & (1 << 0)) {
     flags.push('Any');
@@ -125,11 +94,11 @@ function expandTypeFlags41(flags41: number): TypeFlag[] {
   return flags;
 }
 
-function getTypeFlags(flags: readonly string[]): readonly TypeFlag[] {
+function getTypeFlags(flags: readonly string[]): readonly TypeScriptTypes.TypeFlag[] {
   // Traces from TS 4.1 contained numeric flags, rather than their string equivalents
   return flags.length === 1 && /^\d+$/.test(flags[0])
     ? expandTypeFlags41(+flags[0])
-    : (flags as TypeFlag[]);
+    : (flags as TypeScriptTypes.TypeFlag[]);
 }
 
 export function isTypeScriptTypesJSONFile(
@@ -138,23 +107,51 @@ export function isTypeScriptTypesJSONFile(
   return Array.isArray(input) && typeof input[0]?.id === 'number';
 }
 
+class TypeTree implements TypeScriptTypes.TypeTree {
+  tree = {};
+
+  resolveTypeId(typeId: number): string {
+    if (this.tree[typeId]) {
+      return (
+        (this.tree[typeId].node.display || this.tree[typeId].node.symbolName) ??
+        'Unknown type'
+      );
+    }
+
+    return 'Unknown type';
+  }
+
+  indexType(type: TypeScriptTypes.TypeDescriptor): TypeScriptTypes.TreeNode {
+    this.tree[type.id] = {
+      node: {...type, flags: getTypeFlags(type.flags ?? [])},
+    };
+
+    return this.tree[type.id];
+  }
+
+  queryByTypeId(id: number): TypeScriptTypes.TreeNode | undefined {
+    return this.tree[id];
+  }
+}
+
 export function importTypeScriptTypesJSONFile(
   input: TypeScriptTypes.TypeDescriptor[]
 ): TypeScriptTypes.TypeTree {
-  const tree: TypeScriptTypes.TypeTree = {};
+  const tree = new TypeTree();
 
   while (input.length > 0) {
     const type = input.pop();
 
-    if (!type) {
+    if (type === undefined) {
       throw new Error('Empty type queue');
     }
 
-    tree[type.id] = {
-      flags: getTypeFlags(type.flags ?? []),
-      node: type,
-    };
+    tree.indexType(type);
   }
 
   return tree;
+}
+
+export function formatTypeTreeNode(treeNode: TypeScriptTypes.TreeNode): string {
+  return treeNode.node.display || treeNode.node.symbolName || 'Unknown';
 }
