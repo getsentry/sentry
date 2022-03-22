@@ -76,7 +76,8 @@ import {
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
-const NEW_DASHBOARD_ID = 'new';
+// Both dashboards and widgets use the 'new' keyword when creating
+const NEW_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
   return {
@@ -172,7 +173,7 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = defined(widgetIndex) && widgetIndex !== 'new';
+  const isEditing = widgetIndex !== NEW_ID;
   const widgetIndexNum: number = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
@@ -652,7 +653,7 @@ function WidgetBuilder({
 
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
-      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      goToDashboards(dashboardId ?? NEW_ID);
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
         organization,
       });
@@ -661,7 +662,7 @@ function WidgetBuilder({
 
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
-    goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+    goToDashboards(dashboardId ?? NEW_ID);
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
@@ -678,7 +679,7 @@ function WidgetBuilder({
             ({title, id}) =>
               title === state.selectedDashboard?.label &&
               id === state.selectedDashboard?.value
-          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
+          ) || state.selectedDashboard.value === NEW_ID
         )
       ) {
         setState({
@@ -769,7 +770,7 @@ function WidgetBuilder({
           }
         : undefined;
 
-    if (id === NEW_DASHBOARD_ID) {
+    if (id === NEW_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
         query: pathQuery,
