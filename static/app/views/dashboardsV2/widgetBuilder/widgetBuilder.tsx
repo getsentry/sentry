@@ -313,6 +313,10 @@ function WidgetBuilder({
         normalized.splice(1);
       }
 
+      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
+        newState.limit = undefined;
+      }
+
       if (
         prevState.displayType === DisplayType.TABLE &&
         widgetToBeUpdated?.widgetType &&

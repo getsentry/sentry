@@ -111,14 +111,17 @@ export function normalizeQueries({
 
   if (widgetBuilderNewDesign) {
     queries = queries.map(query => {
+      const {fields = [], aggregates, columns} = query;
+
       if (!isTabularChart && !isTimeseriesChart) {
         return {
           ...query,
           orderby: '',
+          columns: [],
+          fields: [fields[0]],
+          aggregates: aggregates.includes[fields[0]] ? [fields[0]] : [],
         };
       }
-
-      const {fields = [], columns} = query;
 
       if (isTabularChart) {
         // If the groupBy field has values, port everything over to the columnEditCollect field.
