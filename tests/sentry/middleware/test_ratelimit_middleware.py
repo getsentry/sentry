@@ -79,36 +79,35 @@ class RatelimitMiddlewareTest(TestCase):
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
+            # allowed to make 0 requests in 100 seconds, should 429
             resp = self.middleware(request)
-            assert int(resp["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert resp.status_code == 429
 
         with freeze_time("2000-01-02"):
             # 10th request in a 10 request window should get rate limited
             default_rate_limit_mock.return_value = RateLimit(10, 100)
             for _ in range(10):
                 resp = self.middleware(request)
+                assert resp.status_code == 200
 
             resp = self.middleware(request)
-            assert int(resp["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert resp.status_code == 429
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
         default_rate_limit_mock.return_value = RateLimit(10, 100)
         resp = self.middleware(request)
-        # assert not resp["will_be_rate_limited"]
-        assert int(resp["X-Sentry-Rate-Limit-Remaining"]) >= 1
+        assert resp.status_code == 200
 
         # Requests outside the current window should not be rate limited
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
             resp = self.middleware(request)
-            assert int(resp["X-Sentry-Rate-Limit-Remaining"]) == 0
-            assert int(resp["X-Sentry-Rate-Limit-Limit"]) == 1
+            assert resp.status_code == 200
             frozen_time.tick(1)
             resp = self.middleware(request)
-            assert int(resp["X-Sentry-Rate-Limit-Remaining"]) == 0
-            assert int(resp["X-Sentry-Rate-Limit-Limit"]) == 1
+            assert resp.status_code == 200
 
     def test_rate_limit_category(self):
         request = self.factory.get("/")

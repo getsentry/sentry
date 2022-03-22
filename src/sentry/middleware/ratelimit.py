@@ -40,7 +40,6 @@ class RatelimitMiddleware:
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return
-            will_be_rate_limited = False
             category_str = rate_limit_key.split(":", 1)[0]
             request.rate_limit_category = category_str
 
@@ -60,8 +59,8 @@ class RatelimitMiddleware:
                 else rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
             )
             if rate_limit_cond:
-                will_be_rate_limited = True
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
+                # view_func.view_class is sentry.web.frontend.home.HomeView
                 if enforce_rate_limit:
                     return HttpResponse(
                         {
