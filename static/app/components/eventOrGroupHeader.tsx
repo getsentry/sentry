@@ -84,7 +84,6 @@ function EventOrGroupHeader({
             hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             hasGuideAnchor={index === 0}
-            guideAnchorName="issue_stream_title"
             grouping={grouping}
           />
         </ErrorBoundary>
