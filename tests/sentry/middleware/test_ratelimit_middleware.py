@@ -298,6 +298,16 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
+            response = self.get_error_response()
+            assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 0
+            assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+            assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
+
     @patch("sentry.ratelimits.utils.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
