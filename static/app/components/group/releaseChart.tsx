@@ -1,7 +1,10 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group, Release, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -100,8 +103,13 @@ function GroupReleaseChart(props: Props) {
     }
   }
 
+  const totalSeries =
+    environment && environmentStats ? environmentStats[statsPeriod] : stats;
+  const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
+
   return (
     <SidebarSection secondary title={title} className={className}>
+      <TotalEventCount value={totalEvents} />
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip
@@ -114,3 +122,8 @@ function GroupReleaseChart(props: Props) {
 }
 
 export default GroupReleaseChart;
+
+const TotalEventCount = styled(Count)`
+  display: block;
+  margin-bottom: -${space(1)};
+`;
