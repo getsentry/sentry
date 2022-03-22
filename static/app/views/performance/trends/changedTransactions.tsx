@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -587,8 +587,8 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const MenuAction = () => {
-  return <_StyledMenuAction data-test-id="menu-action" />;
+const MenuAction = ({children}: {children: ReactNode}) => {
+  return <_StyledMenuAction data-test-id="menu-action">{children}</_StyledMenuAction>;
 };
 
 const _StyledMenuAction = styled('div')`
