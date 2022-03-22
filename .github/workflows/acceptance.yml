@@ -52,6 +52,9 @@ jobs:
       - name: Build CSS
         run: NODE_ENV=production yarn build-css
 
+      - name: Check CPUS
+        run: node -e "console.log(require('os').cpus().length)"
+
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
