@@ -525,6 +525,14 @@ function WidgetBuilder({
         }
       }
 
+      if (widgetBuilderNewDesign) {
+        if (queryIndex === 0) {
+          newQuery.orderby = aggregateAliasFieldStrings[0];
+        }
+
+        newQuery.columnAliases = columnsAndAggregates?.columnAliases ?? [];
+      }
+
       set(newState, `queries.${queryIndex}`, newQuery);
     }
 
