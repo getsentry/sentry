@@ -865,7 +865,7 @@ function WidgetBuilder({
                       organization={organization}
                     />
                   )}
-                  {!isTabularChart && (
+                  {![DisplayType.TABLE].includes(state.displayType) && (
                     <YAxisStep
                       displayType={state.displayType}
                       widgetType={widgetType}

@@ -976,7 +976,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
@@ -1030,7 +1030,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
@@ -1082,7 +1082,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
@@ -1105,10 +1105,10 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the "sortDirection" selector
-      userEvent.click(screen.getByText('Low to high'));
+      userEvent.click(screen.getByText('High to low'));
 
       // Select the other option
-      userEvent.click(screen.getByText('High to low'));
+      userEvent.click(screen.getByText('Low to high'));
 
       // Saves the widget
       userEvent.click(screen.getByText('Update Widget'));
@@ -1116,7 +1116,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
-            queries: [expect.objectContaining({orderby: '-count_unique_id'})],
+            queries: [expect.objectContaining({orderby: 'count_unique_id'})],
           }),
         ]);
       });
@@ -1483,7 +1483,7 @@ describe('WidgetBuilder', function () {
             yAxis: ['count()'],
             field: ['project', 'count()'],
             topEvents: TOP_N,
-            orderby: 'count()',
+            orderby: '-count',
           }),
         })
       );
@@ -1550,7 +1550,7 @@ describe('WidgetBuilder', function () {
             yAxis: ['count()'],
             field: ['project', 'count()'],
             topEvents: 2,
-            orderby: 'count()',
+            orderby: '-count',
           }),
         })
       );
