@@ -34,7 +34,7 @@ function Sidebar({
         onClick={() => setNewProject(project.id)}
       >
         <IconWrapper>
-          <PlatformIcon platform={project.platform || 'other'} size={23} />
+          <PlatformIcon platform={project.platform || 'other'} size={36} />
         </IconWrapper>
         <MiddleWrapper>
           {name}
@@ -66,14 +66,16 @@ const Title = styled('span')`
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
+  margin-left: ${space(2)};
 `;
 
 const ProjectWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
   grid-template-columns: 1fr fit-content(100%) 1fr;
-  background-color: ${p => p.isActive && p.theme.surface100};
-  padding: ${space(2)} ${space(2)} ${space(2)} 0;
+  background-color: ${p => p.isActive && p.theme.gray100};
+  padding: ${space(2)};
   cursor: pointer;
+  border-radius: 4px;
 `;
 
 const SubHeader = styled('div')<{errorReceived: boolean}>`
@@ -109,5 +111,5 @@ const MiddleWrapper = styled('div')`
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
 const Wrapper = styled('div')`
-  margin: 0 calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
+  margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
 `;

@@ -67,7 +67,6 @@ function SetupDocs({organization, projects, search}: Props) {
   const fetchData = async () => {
     // const {platform} = project || {};
     // TODO: add better error handling logic
-    setPlatformDocs(null);
     if (!project?.platform) {
       return;
     }
