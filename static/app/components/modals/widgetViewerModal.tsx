@@ -375,7 +375,7 @@ function WidgetViewerModal(props: Props) {
                 <components.SingleValue
                   {...containerProps}
                   // Overwrites some of the default styling that interferes with highlighted query text
-                  getStyles={() => ({'word-break': 'break-word'})}
+                  getStyles={() => ({wordBreak: 'break-word'})}
                 >
                   {queryOptions[selectedQueryIndex].getHighlightedQuery({
                     display: 'block',
