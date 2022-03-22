@@ -33,6 +33,10 @@ class RatelimitMiddleware:
 
     def __call__(self, request: Request) -> Response:
         # First, check if the endpoint call will violate.
+        rate_limit_metadata = None
+        rate_limit_key = None
+        rate_limit_uid = None
+
         try:
             request.rate_limit_category = None
             # CEO: idk how to not put this on the request object
@@ -63,7 +67,7 @@ class RatelimitMiddleware:
             if rate_limit_cond:
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                 if enforce_rate_limit:
-                    return HttpResponse(
+                    response = HttpResponse(
                         {
                             "detail": DEFAULT_ERROR_MESSAGE.format(
                                 limit=rate_limit_metadata.limit,
@@ -72,6 +76,10 @@ class RatelimitMiddleware:
                         },
                         status=429,
                     )
+                    if rate_limit_metadata:
+                        self.add_headers(rate_limit_metadata, response)
+                    return response
+
         except Exception:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
@@ -81,17 +89,18 @@ class RatelimitMiddleware:
         # Process the response
         try:
             if rate_limit_metadata:
-                response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
-                response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
-                response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                response[
-                    "X-Sentry-Rate-Limit-ConcurrentRemaining"
-                ] = rate_limit_metadata.concurrent_remaining
-                response[
-                    "X-Sentry-Rate-Limit-ConcurrentLimit"
-                ] = rate_limit_metadata.concurrent_limit
+                self.add_headers(rate_limit_metadata, response)
             finish_request(rate_limit_key, rate_limit_uid)
         except Exception:
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
-        # CEO: the headers are on the response here and then not in the test
+        return response
+
+    def add_headers(self, rate_limit_metadata, response):
+        response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
+        response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
+        response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
+        response[
+            "X-Sentry-Rate-Limit-ConcurrentRemaining"
+        ] = rate_limit_metadata.concurrent_remaining
+        response["X-Sentry-Rate-Limit-ConcurrentLimit"] = rate_limit_metadata.concurrent_limit
         return response
