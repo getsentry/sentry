@@ -356,7 +356,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [data[self.metric_name] if idx is None else data[self.metric_name][idx]]
         result = self.post_query_func(*compute_func_args)
-        return result[0] if len(result) else result
+        return result[0] if len(result) == 1 else result
 
 
 class CompositeEntityDerivedMetric(DerivedMetric):
@@ -454,19 +454,20 @@ class CompositeEntityDerivedMetric(DerivedMetric):
         alias before we are able to compute `session.errored` which also does not have a direct
         query alias
         """
-        import queue
+        from collections import deque
+
+        metric_nodes = deque()
 
         results = []
-        queue = queue.Queue()
-        queue.put(self)
-        while not queue.empty():
-            node = queue.get()
+        metric_nodes.append(self)
+        while metric_nodes:
+            node = metric_nodes.popleft()
             if node.metric_name in DERIVED_METRICS:
                 results.append((None, node.metric_name))
             for metric in node.metrics:
                 if metric in DERIVED_METRICS:
-                    queue.put(DERIVED_METRICS[metric])
-        return list(reversed(results))
+                    metric_nodes.append(DERIVED_METRICS[metric])
+        return reversed(results)
 
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [

@@ -296,7 +296,7 @@ class SnubaQueryBuilder:
 
     def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
         self._projects = projects
-        self._queries_by_entity = {}
+        self._fields_in_entities = {}
         self._queries = self._build_queries(query_definition)
 
     def _build_where(
@@ -374,7 +374,7 @@ class SnubaQueryBuilder:
                 metric_key = (op, metric_name)
                 if metric_key not in metric_name_to_obj_dict:
                     metric_name_to_obj_dict[metric_key] = metric_object_factory(op, metric_name)
-                    self._queries_by_entity.setdefault(entity, []).append(metric_key)
+                    self._fields_in_entities.setdefault(entity, []).append(metric_key)
         return metric_name_to_obj_dict
 
     def _build_queries(self, query_definition):
@@ -419,13 +419,13 @@ class SnubaQueryBuilder:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
             metric_name_to_obj_dict[(op, metric_name)] = metric_field_obj
-            self._queries_by_entity.setdefault(entity, []).append((op, metric_name))
+            self._fields_in_entities.setdefault(entity, []).append((op, metric_name))
 
         where = self._build_where(query_definition)
         groupby = self._build_groupby(query_definition)
 
         queries_dict = {}
-        for entity, fields in self._queries_by_entity.items():
+        for entity, fields in self._fields_in_entities.items():
             select = []
             metric_ids_set = set()
             for op, name in fields:
@@ -457,7 +457,7 @@ class SnubaQueryBuilder:
         return queries_dict
 
     def get_snuba_queries(self):
-        return self._queries, self._queries_by_entity
+        return self._queries, self._fields_in_entities
 
 
 class SnubaResultConverter:
@@ -467,7 +467,7 @@ class SnubaResultConverter:
         self,
         organization_id: int,
         query_definition: QueryDefinition,
-        queries_by_entities: dict,
+        fields_in_entities: dict,
         intervals: List[datetime],
         results,
     ):
@@ -482,10 +482,10 @@ class SnubaResultConverter:
         # SingularEntityDerivedMetric or the instances of SingularEntityDerivedMetric that are
         # the constituents necessary to calculate instances of CompositeEntityDerivedMetric but
         # are not necessarily requested in the query definition
-        self._queries_in_entity_set = {
-            elem for queries_in_entity in queries_by_entities.values() for elem in queries_in_entity
+        self._fields_in_entities_set = {
+            elem for fields_in_entity in fields_in_entities.values() for elem in fields_in_entity
         }
-        self._set_of_constituent_queries = self._queries_in_entity_set.union(
+        self._set_of_constituent_queries = self._fields_in_entities_set.union(
             self._query_definition_fields_set
         )
 
@@ -518,7 +518,7 @@ class SnubaResultConverter:
         if bucketed_time is not None:
             bucketed_time = parse_snuba_datetime(bucketed_time)
 
-        # We query the union of the query_definition fields, and the queries_by_entities from the
+        # We query the union of the query_definition fields, and the fields_in_entities from the
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
         for op, metric_name in self._set_of_constituent_queries:

@@ -21,6 +21,7 @@ __all__ = (
     "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
+    "DerivedMetricException",
     "DerivedMetricParseException",
     "MetricDoesNotExistException",
     "MetricDoesNotExistInIndexer",
@@ -31,6 +32,7 @@ __all__ = (
 
 
 import re
+from abc import ABC
 from datetime import datetime
 from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
 
@@ -142,10 +144,6 @@ DEFAULT_AGGREGATES = {
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
 
 
-class DerivedMetricParseException(Exception):
-    ...
-
-
 class MetricDoesNotExistException(Exception):
     ...
 
@@ -154,7 +152,15 @@ class MetricDoesNotExistInIndexer(Exception):
     ...
 
 
-class NotSupportedOverCompositeEntityException(Exception):
+class DerivedMetricException(Exception, ABC):
+    ...
+
+
+class DerivedMetricParseException(DerivedMetricException):
+    ...
+
+
+class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
 
 

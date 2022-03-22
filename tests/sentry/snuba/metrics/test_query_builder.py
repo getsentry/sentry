@@ -301,8 +301,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
     )
     query_definition = QueryDefinition(query_params)
     query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition)
-    snuba_queries, queries_by_entity = query_builder.get_snuba_queries()
-    assert queries_by_entity == {
+    snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
+    assert fields_in_entities == {
         "metrics_counters": [
             (None, "session.errored_preaggregated"),
             (None, "session.crash_free_rate"),
@@ -486,7 +486,7 @@ def test_translate_results(_1, _2, monkeypatch):
         }
     )
     query_definition = QueryDefinition(query_params)
-    queries_by_entity = {
+    fields_in_entities = {
         "metrics_counters": [("sum", "sentry.sessions.session")],
         "metrics_distributions": [
             ("max", "sentry.sessions.session.duration"),
@@ -600,7 +600,7 @@ def test_translate_results(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        1, query_definition, queries_by_entity, intervals, results
+        1, query_definition, fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {"session.status": "healthy"},
@@ -655,7 +655,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
         }
     )
     query_definition = QueryDefinition(query_params)
-    queries_by_entity = {
+    fields_in_entities = {
         "metrics_counters": [
             (None, "session.errored_preaggregated"),
             (None, "session.crash_free_rate"),
@@ -713,7 +713,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        1, query_definition, queries_by_entity, intervals, results
+        1, query_definition, fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},
@@ -747,7 +747,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
         }
     )
     query_definition = QueryDefinition(query_params)
-    queries_by_entity = {
+    fields_in_entities = {
         "metrics_counters": [
             ("sum", "sentry.sessions.session"),
         ],
@@ -783,7 +783,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
 
     intervals = list(get_intervals(query_definition))
     assert SnubaResultConverter(
-        1, query_definition, queries_by_entity, intervals, results
+        1, query_definition, fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},

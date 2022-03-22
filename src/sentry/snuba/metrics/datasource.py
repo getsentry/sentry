@@ -357,7 +357,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
     results = {}
-    queries_by_entities = {}
+    fields_in_entities = {}
 
     if not query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
@@ -420,7 +420,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             query.fields = original_query_fields
 
             query_builder = SnubaQueryBuilder(projects, query)
-            snuba_queries, queries_by_entities = query_builder.get_snuba_queries()
+            snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
             # Translate the groupby fields of the query into their tag keys because these fields
             # will be used to filter down and order the results of the 2nd query.
@@ -522,7 +522,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     for group_tuple in ordered_tag_conditions[groupby_tags]:
                         results[entity][key]["data"] += snuba_query_data_dict.get(group_tuple, [])
     else:
-        snuba_queries, queries_by_entities = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, fields_in_entities = SnubaQueryBuilder(projects, query).get_snuba_queries()
         for entity, queries in snuba_queries.items():
             results.setdefault(entity, {})
             for key, snuba_query in queries.items():
@@ -534,7 +534,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id, query, queries_by_entities, intervals, results
+        projects[0].organization_id, query, fields_in_entities, intervals, results
     )
 
     return {

@@ -248,15 +248,17 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_generate_bottom_up_derived_metrics_dependencies(self):
-        assert self.sessions_errored.generate_bottom_up_derived_metrics_dependencies() == [
+        assert list(self.sessions_errored.generate_bottom_up_derived_metrics_dependencies()) == [
             (None, "session.errored_set"),
             (None, "session.errored_preaggregated"),
             (None, "session.errored"),
         ]
 
-        assert MOCKED_DERIVED_METRICS[
-            "random_composite"
-        ].generate_bottom_up_derived_metrics_dependencies() == [
+        assert list(
+            MOCKED_DERIVED_METRICS[
+                "random_composite"
+            ].generate_bottom_up_derived_metrics_dependencies()
+        ) == [
             (None, "session.errored_set"),
             (None, "session.errored_preaggregated"),
             (None, "session.errored"),
