@@ -65,7 +65,6 @@ class Monitors extends AsyncView<Props, State> {
   renderBody() {
     const {monitorList, monitorListPageLinks} = this.state;
     const {organization} = this.props;
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
 
     return (
       <Fragment>
@@ -82,13 +81,13 @@ class Monitors extends AsyncView<Props, State> {
             </Button>
           </HeaderTitle>
         </PageHeader>
-        <Filters hasPageFilters={hasPageFilters}>
+        <Filters>
           <SearchBar
             query={decodeScalar(qs.parse(location.search)?.query, '')}
             placeholder={t('Search for monitors.')}
             onSearch={this.handleSearch}
           />
-          {hasPageFilters && <ProjectPageFilter />}
+          <ProjectPageFilter />
         </Filters>
         <Panel>
           <PanelBody>
@@ -140,9 +139,9 @@ const StyledTimeSince = styled(TimeSince)`
   font-variant-numeric: tabular-nums;
 `;
 
-const Filters = styled('div')<{hasPageFilters?: boolean}>`
+const Filters = styled('div')`
   display: grid;
-  grid-template-columns: ${p => (p.hasPageFilters ? '1fr minmax(auto, 300px)' : '1fr')};
+  grid-template-columns: 1fr minmax(auto, 300px);
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 `;
