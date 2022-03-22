@@ -222,7 +222,15 @@ class Access(abc.ABC):
 
         >>> access.has_project_scope(project, 'project:read')
         """
-        return self.has_project_access(project) and self.has_scope(scope)
+        if not self.has_project_access(project):
+            return False
+        if self.has_scope(scope):
+            return True
+
+        for team in self.projects:
+            if self.has_team_scope(team, scope):
+                return True
+        return False
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
