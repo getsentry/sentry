@@ -1048,7 +1048,7 @@ SENTRY_FEATURES = {
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable inviting members to organizations.
-    "organizations:invite-members": False,
+    "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
     # Enable removing issue from issue list if action taken.
