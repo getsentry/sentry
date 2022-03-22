@@ -3,7 +3,7 @@
 import {TextDecoder, TextEncoder} from 'util';
 
 import {InjectedRouter} from 'react-router';
-import {configure} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {configure, getConfig} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
@@ -36,7 +36,25 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  *
  * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
  */
-configure({testIdAttribute: 'data-test-id'});
+const currentRTLConfig = getConfig();
+configure({
+  testIdAttribute: 'data-test-id',
+  eventWrapper: (...args) => {
+    // This function will wrap any events that are created such as click.
+    const span = global.transaction
+      ? global.transaction.startChild({
+          op: 'event',
+          desc: 'eventWrapper',
+        })
+      : null;
+    const result = currentRTLConfig.eventWrapper(...args);
+    if (span) {
+      span.finish();
+    }
+
+    return result;
+  },
+});
 
 /**
  * Enzyme configuration
