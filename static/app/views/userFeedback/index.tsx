@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -121,46 +120,29 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const unresolvedQuery = omit(query, 'status');
     const allIssuesQuery = {...query, status: ''};
 
-    const hasNewPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
-      <PageFiltersContainer hideGlobalHeader={hasNewPageFilters}>
+      <PageFiltersContainer hideGlobalHeader>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
-                {!hasNewPageFilters && (
-                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
-                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
-                      {t('Unresolved')}
-                    </Button>
-                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
-                      {t('All Issues')}
-                    </Button>
-                  </ButtonBar>
-                )}
               </Header>
-              <Feature
-                organization={organization}
-                features={['organizations:selection-filters-v2']}
-              >
-                <Filters>
-                  <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
-                    <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
-                      {t('Unresolved')}
-                    </Button>
-                    <Button barId="" to={{pathname, query: allIssuesQuery}}>
-                      {t('All Issues')}
-                    </Button>
-                  </ButtonBar>
-                  <PageFilterBar>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="right" />
-                  </PageFilterBar>
-                </Filters>
-              </Feature>
+              <Filters>
+                <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                  <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
+                    {t('Unresolved')}
+                  </Button>
+                  <Button barId="" to={{pathname, query: allIssuesQuery}}>
+                    {t('All Issues')}
+                  </Button>
+                </ButtonBar>
+                <PageFilterBar>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="right" />
+                </PageFilterBar>
+              </Filters>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
