@@ -260,7 +260,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-        self.session_status = resolve_tag_key("session.status")
+        self.session_status = resolve_tag_key(self.org_id, "session.status")
         self.time_window = time_window
 
     def get_query_groupby(self) -> List[str]:
@@ -290,12 +290,12 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
-        session_status_tag_values = resolve_many_weak(["crashed", "init"])
+        session_status_tag_values = resolve_many_weak(self.org_id, ["crashed", "init"])
         snuba_filter.update_with(
             {
                 "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
                 "conditions": [
-                    ["metric_id", "=", resolve(self.metric_key.value)],
+                    ["metric_id", "=", resolve(self.org_id, self.metric_key.value)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
@@ -304,7 +304,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         )
         if environment:
             snuba_filter.conditions.append(
-                [resolve_tag_key("environment"), "=", resolve_weak(environment.name)]
+                [
+                    resolve_tag_key(self.org_id, "environment"),
+                    "=",
+                    resolve_weak(self.org_id, environment.name),
+                ]
             )
         if query and len(conditions) > 0:
             release_conditions = [
@@ -314,9 +318,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             for release_condition in release_conditions:
                 snuba_filter.conditions.append(
                     [
-                        resolve_tag_key(release_condition[0]),
+                        resolve_tag_key(self.org_id, release_condition[0]),
                         release_condition[1],
-                        resolve_weak(release_condition[2]),
+                        resolve_weak(self.org_id, release_condition[2]),
                     ]
                 )
 
@@ -329,14 +333,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
-    @staticmethod
     def translate_sessions_tag_keys_and_values(
-        data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
+        self, data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
     ) -> Tuple[int, int]:
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key("session.status")
+            session_status = resolve_tag_key(self.org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve(row[session_status])
                 translated_data[tag_value] = row[value_col_name]
