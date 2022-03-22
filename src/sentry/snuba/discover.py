@@ -49,6 +49,7 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
     naiveify_datetime,
     raw_query,
+    raw_snql_query,
     resolve_column,
     resolve_snuba_aliases,
     to_naive_timestamp,
@@ -1365,17 +1366,15 @@ def spans_histogram_query(
         max_value -= 0.1 / multiplier
 
     # TODO add min max calculation after
-    # min_value, max_value = find_histogram_min_max(
-    #     fields, min_value, max_value, user_query, params, data_filter, use_snql
-    # )
+    find_span_histogram_min_max(span, min_value, max_value, user_query, params, data_filter)
 
     key_column = None
     field_names = []
     histogram_rows = None
 
     # TODO calculate histogram_params
-    # histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    histogram_params = HistogramParams(num_buckets=100, bucket_size=1, start_offset=0, multiplier=1)
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    # histogram_params = HistogramParams(num_buckets=100, bucket_size=1, start_offset=0, multiplier=1)
     histogram_column = get_span_histogram_column(span, histogram_params)
 
     builder = HistogramQueryBuilder(
@@ -1390,6 +1389,7 @@ def spans_histogram_query(
         Dataset.Discover,
         params,
         query=user_query,
+        # TODO add PREWHERE
         selected_columns=[""],
         orderby=order_by,
         limitby=limit_by,
@@ -1638,6 +1638,40 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     num_buckets = (last_bin - start_offset) // bucket_size + 1
 
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
+
+
+def find_span_histogram_min_max(span, min_value, max_value, user_query, params, data_filter=None):
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    min_columns = []
+    max_columns = []
+    if min_value is None:
+        min_columns.append("min")
+    if max_value is None:
+        max_columns.append("max")
+
+    selected_columns = [
+        f'fn_span_exclusive_time("{span.op}", {span.group}, min)',
+        f'fn_span_exclusive_time("{span.op}", {span.group}, max)',
+    ]
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=selected_columns,
+        query=user_query,
+        limit=1,
+    )
+
+    snql_query = builder.get_snql_query()
+    results = raw_snql_query(snql_query)
+
+    data = results.get("data")
+
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
 
 
 def find_histogram_min_max(
