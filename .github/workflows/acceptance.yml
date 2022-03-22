@@ -343,6 +343,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   fake-visual-snapshot:
+    # This is the opposite condition as the real check (visual-diff.yml)
     if: needs.changes.outputs.backend_or_frontend != 'true'
     needs: changes
     runs-on: ubuntu-18.04
@@ -350,21 +351,3 @@ jobs:
     name: Visual Snapshot
     steps:
       - run: 'echo "Check not required." '
-
-  visual-diff:
-    # This guarantees that we will only schedule Visual Snapshots if all
-    # workflows that generate artifacts succeed
-    needs: [acceptance, frontend, chartcuterie]
-    name: check to trigger visual snapshot
-    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master' && needs.changes.outputs.backend_or_frontend == 'true'
-    runs-on: ubuntu-18.04
-    timeout-minutes: 20
-
-    steps:
-      - name: Diff snapshots
-        id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
-        with:
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
