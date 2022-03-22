@@ -293,6 +293,10 @@ function WidgetBuilder({
     DisplayType.AREA,
   ].includes(state.displayType);
 
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
+    state.displayType
+  );
+
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -307,14 +311,6 @@ function WidgetBuilder({
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
-      }
-
-      if (
-        widgetBuilderNewDesign &&
-        (newDisplayType === DisplayType.TOP_N || newDisplayType === DisplayType.TABLE) &&
-        !!prevState.limit
-      ) {
-        set(newState, 'limit', undefined);
       }
 
       if (
@@ -609,13 +605,15 @@ function WidgetBuilder({
     }
 
     // Only Table and Top N views need orderby
-    if (
-      !widgetBuilderNewDesign &&
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)
-    ) {
+    if (!widgetBuilderNewDesign && !isTabularChart) {
       widgetData.queries.forEach(query => {
         query.orderby = '';
       });
+    }
+
+    // Only Time Series charts shall have a limit
+    if (widgetBuilderNewDesign && !isTimeseriesChart) {
+      widgetData.limit = undefined;
     }
 
     if (!(await dataIsValid(widgetData))) {
@@ -849,7 +847,7 @@ function WidgetBuilder({
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
                   />
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
+                  {isTabularChart && (
                     <ColumnsStep
                       dataSet={state.dataSet}
                       queries={state.queries}
@@ -867,7 +865,7 @@ function WidgetBuilder({
                       organization={organization}
                     />
                   )}
-                  {![DisplayType.TABLE].includes(state.displayType) && (
+                  {!isTabularChart && (
                     <YAxisStep
                       displayType={state.displayType}
                       widgetType={widgetType}
@@ -902,10 +900,7 @@ function WidgetBuilder({
                       tags={tags}
                     />
                   )}
-                  {((widgetBuilderNewDesign && isTimeseriesChart) ||
-                    [DisplayType.TABLE, DisplayType.TOP_N].includes(
-                      state.displayType
-                    )) && (
+                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
                     <SortByStep
                       limit={state.limit}
                       displayType={state.displayType}

@@ -111,33 +111,43 @@ export function normalizeQueries({
 
   if (widgetBuilderNewDesign) {
     queries = queries.map(query => {
-      if (isTabularChart || isTimeseriesChart) {
-        if (!!query.orderby) {
-          return query;
-        }
-
-        const orderBy =
-          widgetType === WidgetType.DISCOVER
-            ? generateOrderOptions({
-                widgetType,
-                widgetBuilderNewDesign,
-                columns: queries[0].columns,
-                aggregates: queries[0].aggregates,
-              })[0].value
-            : IssueSortOptions.DATE;
-
+      if (!isTabularChart && !isTimeseriesChart) {
         return {
           ...query,
-          orderby:
-            // Issues data set doesn't support order by descending
-            widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy),
+          orderby: '',
         };
       }
 
-      return {
-        ...query,
-        orderby: '',
-      };
+      const {fields = [], columns} = query;
+
+      if (isTabularChart) {
+        // If the groupBy field has values, port everything over to the columnEditCollect field.
+        query.fields = [...new Set([...fields, ...columns])];
+      } else {
+        // If columnEditCollect has field values , port everything over to the groupBy field.
+        query.fields = fields.filter(field => !columns.includes(field));
+      }
+
+      if (!!query.orderby) {
+        return query;
+      }
+
+      const orderBy =
+        queries[0].orderby ||
+        (widgetType === WidgetType.DISCOVER
+          ? generateOrderOptions({
+              widgetType,
+              widgetBuilderNewDesign,
+              columns: queries[0].columns,
+              aggregates: queries[0].aggregates,
+            })[0].value
+          : IssueSortOptions.DATE);
+
+      // Issues data set doesn't support order by descending
+      query.orderby =
+        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+
+      return query;
     });
   }
 

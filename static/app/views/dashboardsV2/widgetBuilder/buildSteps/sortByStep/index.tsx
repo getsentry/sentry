@@ -57,23 +57,24 @@ export function SortByStep({
         }
       >
         <Field inline={false} error={error} flexibleControlStateSize stacked>
-          {limit && (
-            <ResultsLimitSelector
-              name="resultsLimit"
-              menuPlacement="auto"
-              options={[...Array(RESULTS_LIMIT).keys()].map(resultLimit => {
-                const value = resultLimit + 1;
-                return {
-                  label: tn('Limit to %s result', 'Limit to %s results', value),
-                  value,
-                };
-              })}
-              value={limit}
-              onChange={(option: SelectValue<number>) => {
-                onLimitChange(option.value);
-              }}
-            />
-          )}
+          {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
+            limit && (
+              <ResultsLimitSelector
+                name="resultsLimit"
+                menuPlacement="auto"
+                options={[...Array(RESULTS_LIMIT).keys()].map(resultLimit => {
+                  const value = resultLimit + 1;
+                  return {
+                    label: tn('Limit to %s result', 'Limit to %s results', value),
+                    value,
+                  };
+                })}
+                value={limit}
+                onChange={(option: SelectValue<number>) => {
+                  onLimitChange(option.value);
+                }}
+              />
+            )}
           <SortBySelectors
             widgetType={widgetType}
             sortByOptions={
