@@ -32,6 +32,7 @@ function PageFilterPinButton({filter, size, className}: Props) {
       pinned={pinned}
       borderless={size === 'zero'}
       icon={<IconLock isSolid={pinned} size="xs" />}
+      title={t('Apply filter across pages')}
     />
   );
 }
