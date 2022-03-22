@@ -188,7 +188,20 @@ class QuerySubscriptionConsumer:
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
-                self.handle_message(message)
+                try:
+                    self.handle_message(message)
+                except Exception:
+                    # This is a failsafe to make sure that no individual message will block this
+                    # consumer. If we see errors occurring here they need to be investigated to
+                    # make sure that we're not dropping legitimate messages.
+                    logger.exception(
+                        "Unexpected error while handling message in QuerySubscriptionConsumer. Skipping message.",
+                        extra={
+                            "offset": message.offset(),
+                            "partition": message.partition(),
+                            "value": message.value(),
+                        },
+                    )
 
             # Track latest completed message here, for use in `shutdown` handler.
             self.offsets[message.partition()] = message.offset() + 1
