@@ -231,6 +231,45 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
+    const widget: Widget = {
+      displayType: DisplayType.AREA,
+      interval: '1d',
+      queries: [
+        {
+          name: 'Known Users',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          conditions: '',
+          orderby: '-time',
+        },
+      ],
+      title: 'Transactions',
+      id: '1',
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      dashboard,
+      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '0.5', // Invalid index
+      },
+    });
+
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
+  });
+
   it('renders', async function () {
     renderTestComponent();
 

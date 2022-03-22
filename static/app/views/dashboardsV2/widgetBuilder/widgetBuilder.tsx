@@ -172,7 +172,12 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = Number.isInteger(parseInt(widgetIndex, 10));
+  const isEditing = defined(widgetIndex) && widgetIndex !== 'new';
+  const widgetIndexNum: number = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < dashboard.widgets.length &&
+    Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
@@ -233,12 +238,8 @@ function WidgetBuilder({
   }, [source]);
 
   useEffect(() => {
-    if (
-      isEditing &&
-      parseInt(widgetIndex, 10) >= 0 &&
-      parseInt(widgetIndex, 10) < dashboard.widgets.length
-    ) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndex];
+    if (isEditing && isValidWidgetIndex) {
+      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
       const visualization =
         widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
           ? DisplayType.TABLE
@@ -598,7 +599,7 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(parseInt(widgetIndex, 10), 1);
+    nextWidgetList.splice(widgetIndexNum, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -790,11 +791,7 @@ function WidgetBuilder({
     return false;
   }
 
-  if (
-    isEditing &&
-    (parseInt(widgetIndex, 10) >= dashboard.widgets.length ||
-      parseInt(widgetIndex, 10) < 0)
-  ) {
+  if (isEditing && !isValidWidgetIndex) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
