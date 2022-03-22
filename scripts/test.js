@@ -11,6 +11,14 @@ process.env.TZ = 'America/New_York';
 // ignoring them. In the future, promise rejections that are not handled will
 // terminate the Node.js process with a non-zero exit code.
 process.on('unhandledRejection', err => {
+  console.error('[scripts/test] unhandledRejection');
+  if (global._lastTest) {
+    console.error('Last run test: ', global._lastTest);
+  }
+  if (global.Sentry) {
+    // Needs Sentry from env to be provided as a global.
+    Sentry.captureException(err);
+  }
   throw err;
 });
 

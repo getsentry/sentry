@@ -56,6 +56,18 @@ configure({
   },
 });
 
+afterEach(() => {
+  global._lastTest = expect.getState().currentTestName;
+});
+process.on('unhandledRejection', reason => {
+  if (global._lastTest) {
+    // eslint-disable-next-line no-console
+    console.error('Last run test: ', global._lastTest);
+  }
+  // eslint-disable-next-line no-console
+  console.error(reason);
+});
+
 /**
  * Enzyme configuration
  *

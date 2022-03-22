@@ -17,5 +17,5 @@ declare global {
 
 process.on('unhandledRejection', reason => {
   // eslint-disable-next-line no-console
-  console.error(reason);
+  console.error('[setupFramework] Unhandled Rejection:', reason);
 });
