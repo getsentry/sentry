@@ -30,8 +30,7 @@ const TextAreaControl = React.forwardRef(function TextAreaControl(
   {autosize, rows, maxRows, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
-  const _autosize = getAllowAutosize() && autosize;
-  return _autosize ? (
+  return getAllowAutosize() && autosize ? (
     <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />
