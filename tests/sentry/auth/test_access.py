@@ -9,12 +9,10 @@ from sentry.models import (
     AuthProvider,
     ObjectStatus,
     Organization,
-    OrganizationMemberTeam,
     TeamStatus,
     UserPermission,
     UserRole,
 )
-from sentry.roles import team_roles
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -206,10 +204,8 @@ class FromUserTest(TestCase):
         organization = self.create_organization()
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, teams=[team])
-        member = self.create_member(organization=organization, user=user, teams=[team])
-
-        omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-        omt.update_team_role(team_roles.get("admin"))
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
 
         request = self.make_request(user=user)
         results = [access.from_user(user, organization), access.from_request(request, organization)]
