@@ -16,12 +16,13 @@ class DerivedMetricSnQLTestCase(TestCase):
         self.metric_ids = [0, 1, 2]
 
     def test_counter_sum_aggregation_on_session_status(self):
+        org_id = 0
         for status, func in [
             ("init", init_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
         ]:
-            assert func(self.metric_ids, alias=status) == Function(
+            assert func(org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
                 [
                     Column("value"),
@@ -31,8 +32,8 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak('session.status')}]"),
-                                    resolve_weak(status),
+                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                                    resolve_weak(org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),

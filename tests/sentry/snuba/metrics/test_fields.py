@@ -33,8 +33,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             metric_name="crash_free_fake",
             metrics=["session.crashed", "session.errored_set"],
             unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, metric_ids, alias="crash_free_fake"
+            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
+                *args, org_id, metric_ids, alias="crash_free_fake"
             ),
         )
         DERIVED_METRICS.update({"crash_free_fake": self.crash_free_fake})
@@ -88,15 +88,23 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_name].generate_select_statements([self.project]) == [
-                func(metric_ids=metric_ids_list, alias=metric_name),
+                func(
+                    org_id=self.project.organization_id,
+                    metric_ids=metric_ids_list,
+                    alias=metric_name,
+                ),
             ]
 
         assert DERIVED_METRICS["session.crash_free_rate"].generate_select_statements(
             [self.project]
         ) == [
             percentage(
-                crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
-                init_sessions(metric_ids=session_ids, alias="session.init"),
+                crashed_sessions(
+                    self.project.organization_id, metric_ids=session_ids, alias="session.crashed"
+                ),
+                init_sessions(
+                    self.project.organization_id, metric_ids=session_ids, alias="session.init"
+                ),
                 alias="session.crash_free_rate",
             )
         ]
@@ -109,6 +117,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     @mock.patch(
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
+    @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
     def test_generate_metric_ids(self):
         session_metric_id = indexer.record("sentry.sessions.session")
         session_error_metric_id = indexer.record("sentry.sessions.session.error")
@@ -119,8 +128,10 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.crash_free_rate",
             "session.errored_preaggregated",
         ]:
-            assert DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {session_metric_id}
-        assert DERIVED_METRICS["session.errored_set"].generate_metric_ids() == {
+            assert DERIVED_METRICS[derived_metric_name].generate_metric_ids([]) == {
+                session_metric_id
+            }
+        assert DERIVED_METRICS["session.errored_set"].generate_metric_ids([]) == {
             session_error_metric_id
         }
 
