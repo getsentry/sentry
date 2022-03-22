@@ -260,8 +260,6 @@ function WidgetBuilder({
     widgetType,
   };
 
-  console.log({state});
-
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
@@ -468,7 +466,8 @@ function WidgetBuilder({
   }
 
   function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
-    const {aggregates, columns} = getColumnsAndAggregatesAsStrings(newFields);
+    const {aggregates, columns, columnAliases} =
+      getColumnsAndAggregatesAsStrings(newFields);
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
@@ -502,8 +501,12 @@ function WidgetBuilder({
         }
       }
 
-      if (widgetBuilderNewDesign && index === 0) {
-        newQuery.orderby = aggregateAliasFieldStrings[0];
+      if (widgetBuilderNewDesign) {
+        if (index === 0) {
+          newQuery.orderby = aggregateAliasFieldStrings[0];
+        }
+
+        newQuery.columnAliases = columnAliases;
       }
 
       handleQueryChange(index, newQuery);

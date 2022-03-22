@@ -956,6 +956,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
   }
+
   if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
@@ -1014,10 +1015,12 @@ export function getColumnsAndAggregates(fields: string[]): {
 
 export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
   aggregates: string[];
+  columnAliases: string[];
   columns: string[];
 } {
   const aggregateFields: string[] = [];
   const nonAggregateFields: string[] = [];
+  const columnAliases: string[] = [];
 
   for (const field of fields) {
     const fieldString = generateFieldAsString(field);
@@ -1032,8 +1035,11 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
     } else {
       nonAggregateFields.push(fieldString);
     }
+
+    columnAliases.push(field.alias ?? '');
   }
-  return {aggregates: aggregateFields, columns: nonAggregateFields};
+
+  return {aggregates: aggregateFields, columns: nonAggregateFields, columnAliases};
 }
 
 /**

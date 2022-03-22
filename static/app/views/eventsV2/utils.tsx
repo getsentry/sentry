@@ -55,9 +55,12 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
+export function decodeColumnOrder(
+  fields: Readonly<Field[]>,
+  columnAliases?: string[]
+): TableColumn<string>[] {
   let equations = 0;
-  return fields.map((f: Field) => {
+  return fields.map((f: Field, index: number) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
@@ -91,6 +94,8 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
       }
     }
     column.column = col;
+
+    column.name = columnAliases?.[index] ?? column.name;
 
     return column;
   });

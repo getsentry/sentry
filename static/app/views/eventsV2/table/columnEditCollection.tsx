@@ -152,6 +152,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   handleUpdateColumn = (index: number, updatedColumn: Column) => {
     const newColumns = [...this.props.columns];
+
     if (updatedColumn.kind === 'equation') {
       this.setState(prevState => {
         const error = new Map(prevState.error);
@@ -165,6 +166,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       // Update any equations that contain the existing column
       this.updateEquationFields(newColumns, index, updatedColumn);
     }
+
     newColumns.splice(index, 1, updatedColumn);
     this.props.onChange(newColumns);
   };
@@ -456,7 +458,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           className={isGhost ? '' : DRAG_CLASS}
         >
           {canDrag ? (
-            <Button
+            <DragAndReorderButton
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
               onTouchStart={event => this.startDrag(event, i)}
@@ -482,7 +484,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             widgetBuilderNewDesign={widgetBuilderNewDesign}
           />
           {widgetBuilderNewDesign && (
-            <AliasField>
+            <AliasField singleColumn={singleColumn}>
               <AliasInput
                 name="alias"
                 placeholder={t('Alias')}
@@ -593,7 +595,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           widgetBuilderNewDesign={widgetBuilderNewDesign}
           singleColumn={singleColumn}
         >
-          <Actions>
+          <Actions widgetBuilderNewDesign={widgetBuilderNewDesign}>
             <Button
               size="small"
               aria-label={t('Add a Column')}
@@ -623,12 +625,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 }
 
-const Actions = styled('div')`
+const Actions = styled('div')<{widgetBuilderNewDesign: boolean}>`
   grid-column: 2 / 3;
 
   & button {
     margin-right: ${space(1)};
   }
+
+  ${p =>
+    p.widgetBuilderNewDesign &&
+    css`
+      grid-column: 1/-1;
+    `};
 `;
 
 const RowContainer = styled('div')<{
@@ -646,11 +654,13 @@ const RowContainer = styled('div')<{
   ${p =>
     p.widgetBuilderNewDesign &&
     css`
-      grid-template-columns: ${p.singleColumn
-        ? `1fr calc(200px + ${space(1)})`
-        : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
-      ${Actions} {
-        grid-column: 1/-1;
+      align-items: flex-start;
+      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
+
+      @media (min-width: ${p.theme.breakpoints[0]}) {
+        grid-template-columns: ${p.singleColumn
+          ? `1fr calc(200px + ${space(1)})`
+          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
       }
     `};
 `;
@@ -698,17 +708,30 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 const AliasInput = styled(Input)`
   /* Match the height of the select boxes */
-  height: 41px;
+  height: 40px;
   min-width: 50px;
 `;
 
-const AliasField = styled('div')`
-  margin-left: ${space(1)};
+const AliasField = styled('div')<{singleColumn: boolean}>`
+  margin-top: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: 0;
+    margin-left: ${space(1)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-row: 2/2;
+    grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
+  }
 `;
 
 const RemoveButton = styled(Button)`
   margin-left: ${space(1)};
-  height: 41px;
+  height: 40px;
+`;
+
+const DragAndReorderButton = styled(Button)`
+  height: 40px;
 `;
 
 export default ColumnEditCollection;

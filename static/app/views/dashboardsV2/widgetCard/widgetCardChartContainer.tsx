@@ -89,12 +89,14 @@ export function WidgetCardChartContainer({
     const queryFields = defined(query.fields)
       ? query.fields
       : [...query.columns, ...query.aggregates];
+    const querycolumnAliases = query.columnAliases || [];
 
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
         fields={queryFields}
+        columnAliases={querycolumnAliases}
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}

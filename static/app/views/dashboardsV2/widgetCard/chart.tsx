@@ -128,10 +128,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
+      const columnAliases = widget.queries[i]?.columnAliases ?? [];
 
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
+          columnAliases={columnAliases}
           location={location}
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}

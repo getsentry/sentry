@@ -16,6 +16,7 @@ import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 type Props = {
+  columnAliases: string[];
   data: TableData['data'] | undefined;
   fields: string[];
   loading: boolean;
@@ -46,6 +47,7 @@ function SimpleTableChart({
   organization,
   topResultsIndicators,
   location,
+  columnAliases,
 }: Props) {
   function renderRow(
     index: number,
@@ -70,7 +72,10 @@ function SimpleTableChart({
   }
 
   const meta = metadata ?? {};
-  const columns = decodeColumnOrder(fields.map(field => ({field})));
+  const columns = decodeColumnOrder(
+    fields.map(field => ({field})),
+    columnAliases
+  );
 
   return (
     <Fragment>
