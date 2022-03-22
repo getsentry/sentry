@@ -707,6 +707,14 @@ def run_comparison(
         )
 
 
+def identity(x):
+    return x
+
+
+def index_by_group(d: Mapping[Any, Any]) -> Any:
+    return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
+
+
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     DEFAULT_ROLLUP = 60 * 60  # 1h
 
@@ -903,9 +911,6 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             else:
                 set_tag("run_sessions_query.platform", project.platform)
 
-        def index_by(d: Mapping[Any, Any]) -> Any:
-            return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
-
         schema = {
             "start": ComparatorType.DateTime,
             "end": ComparatorType.DateTime,
@@ -916,7 +921,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     "series": schema_for_series,
                     "totals": ComparatorType.Ignore,
                 },
-                index_by=index_by,
+                index_by=index_by_group,
             ),
             "query": ComparatorType.Exact,
         }
@@ -1098,7 +1103,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
-        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+
+        schema = ListSet(schema=ComparatorType.Exact, index_by=identity)
 
         should_compare = (
             lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
@@ -1279,7 +1285,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[str]] = None,
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
+        schema = ListSet(schema=ComparatorType.Exact, index_by=identity)
 
         set_tag("gprbs.limit", str(limit))
         set_tag("gprbs.offset", str(offset))
