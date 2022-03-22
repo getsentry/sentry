@@ -350,6 +350,9 @@ let appConfig: Configuration = {
               configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
               configOverwrite: {
                 compilerOptions: {incremental: true},
+                // Path is "../" to match paths in tsconfig file
+                include: ['../static'],
+                exclude: ['../node_modules'],
               },
             },
             devServer: false,
