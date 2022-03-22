@@ -167,6 +167,7 @@ export type NewQuery = {
 
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
+  utc?: boolean;
   widths?: Readonly<string[]>;
 
   // Graph
