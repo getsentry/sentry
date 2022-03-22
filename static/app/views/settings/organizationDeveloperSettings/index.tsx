@@ -172,7 +172,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         />
         <Alert type="info">
           {tct(
-            'You can now create integrations that subscribe to webhooks which notify you when a comment on an issue is added or changes.  [link:Learn more].',
+            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
