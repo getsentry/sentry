@@ -216,6 +216,19 @@ function Tooltip({
     [useGlobalPortal]
   );
 
+  // When the component is unmounted, make sure to stop the timeouts
+  useEffect(
+    () => () => {
+      if (delayOpenTimeoutRef.current) {
+        window.clearTimeout(delayOpenTimeoutRef.current);
+      }
+      if (delayHideTimeoutRef.current) {
+        window.clearTimeout(delayHideTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   // When not using a global portal we need to be sure to cleanup tooltip
   // portals from the DOM
   useEffect(
