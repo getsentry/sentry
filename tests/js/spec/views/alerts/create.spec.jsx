@@ -239,7 +239,7 @@ describe('ProjectAlertsCreate', function () {
     describe('updates and saves', function () {
       let wrapper, mock;
 
-      beforeEach(async function () {
+      beforeEach(function () {
         wrapper = createWrapper({
           organization: {
             features: ['alert-filters'],
@@ -253,7 +253,11 @@ describe('ProjectAlertsCreate', function () {
         });
       });
 
-      it('all', async function () {
+      afterEach(function () {
+        jest.clearAllMocks();
+      });
+
+      it('new condition', async function () {
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
@@ -262,11 +266,6 @@ describe('ProjectAlertsCreate', function () {
         expect(allDropdowns).toHaveLength(2);
         await selectEvent.select(allDropdowns[0], ['any']);
         await selectEvent.select(allDropdowns[1], ['any']);
-
-        // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
-        // the purpose of this test is not focused on how the user interacts with the fields,
-        // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
-        // so that this test does not time out from the default jest value of 5000ms
 
         // Change name of alert rule
         userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
@@ -277,15 +276,110 @@ describe('ProjectAlertsCreate', function () {
         ]);
         // Edit new Condition
         userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
-
         userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
         await selectEvent.select(screen.getByText('equals'), ['does not equal']);
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'any',
+              filterMatch: 'any',
+              conditions: [
+                {
+                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+                  key: 'conditionKey',
+                  match: 'ne',
+                  value: 'conditionValue',
+                },
+              ],
+              actions: [],
+              filters: [],
+              environment: 'production',
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new filter', async function () {
+        // Change target environment
+        await selectEvent.select(screen.getByText('All Environments'), ['production']);
+
+        // Change actionMatch and filterMatch dropdown
+        const allDropdowns = screen.getAllByText('all');
+        expect(allDropdowns).toHaveLength(2);
+        await selectEvent.select(allDropdowns[0], ['any']);
+        await selectEvent.select(allDropdowns[1], ['any']);
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           'The issue is {comparison_type} than {value} {time}',
         ]);
         userEvent.paste(screen.getByPlaceholderText('10'), '12');
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'any',
+              filterMatch: 'any',
+              filters: [
+                {
+                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                  comparison_type: 'older',
+                  time: 'minute',
+                  value: '12',
+                },
+              ],
+              actions: [],
+              conditions: [],
+              environment: 'production',
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new action', async function () {
+        // Change target environment
+        await selectEvent.select(screen.getByText('All Environments'), ['production']);
+
+        // Change actionMatch and filterMatch dropdown
+        const allDropdowns = screen.getAllByText('all');
+        expect(allDropdowns).toHaveLength(2);
+        await selectEvent.select(allDropdowns[0], ['any']);
+        await selectEvent.select(allDropdowns[1], ['any']);
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
@@ -309,22 +403,8 @@ describe('ProjectAlertsCreate', function () {
                   service: 'mail',
                 },
               ],
-              conditions: [
-                {
-                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-                  key: 'conditionKey',
-                  match: 'ne',
-                  value: 'conditionValue',
-                },
-              ],
-              filters: [
-                {
-                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-                  comparison_type: 'older',
-                  time: 'minute',
-                  value: '12',
-                },
-              ],
+              conditions: [],
+              filters: [],
               environment: 'production',
               frequency: '60',
               name: 'My Rule Name',
