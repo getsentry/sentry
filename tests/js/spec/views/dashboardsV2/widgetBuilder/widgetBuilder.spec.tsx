@@ -1060,7 +1060,7 @@ describe('WidgetBuilder', function () {
             fields: ['count()', 'count_unique(id)'],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
-            orderby: 'count',
+            orderby: '-count',
           },
         ],
       };
