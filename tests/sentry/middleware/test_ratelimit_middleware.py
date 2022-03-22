@@ -26,6 +26,12 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+class RatelimitMiddlewareEndpoint(Endpoint):
+    def get(self, request):
+        return Response({"ok": True})
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
 class RatelimitMiddlewareTest(TestCase):
     def get_response(response):
         return HttpResponse(
@@ -36,11 +42,7 @@ class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(get_response)
     factory = fixture(RequestFactory)
 
-    class TestEndpoint(Endpoint):
-        def get(self):
-            return Response({"ok": True})
-
-    _test_endpoint = TestEndpoint.as_view()
+    _test_endpoint = RatelimitMiddlewareEndpoint.as_view()
 
     def populate_sentry_app_request(self, request):
         sentry_app = self.create_sentry_app(
@@ -76,7 +78,7 @@ class RatelimitMiddlewareTest(TestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
-        request = self.factory.get("/")
+        request = self.factory.get("/middleware/")
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             # allowed to make 0 requests in 100 seconds, should 429
@@ -95,7 +97,7 @@ class RatelimitMiddlewareTest(TestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):
-        request = self.factory.get("/")
+        request = self.factory.get("/middleware/")
         default_rate_limit_mock.return_value = RateLimit(10, 100)
         resp = self.middleware(request)
         assert resp.status_code == 200
@@ -272,9 +274,10 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
-    url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
-    url(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
+    url(r"^ratelimit/$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
+    url(r"^race-condition/$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+    url(r"^concurrent/$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
+    url(r"^middleware/$", RatelimitMiddlewareEndpoint.as_view()),
 ]
 
 

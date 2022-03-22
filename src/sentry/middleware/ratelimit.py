@@ -35,6 +35,8 @@ class RatelimitMiddleware:
         # First, check if the endpoint call will violate.
         try:
             request.rate_limit_category = None
+            # CEO: idk how to not put this on the request object
+            # and still have it in the access logs and test for it
             rate_limit_uid = uuid.uuid4().hex
             view_func = resolve(request.path).func
             rate_limit_key = get_rate_limit_key(view_func, request)
@@ -60,7 +62,6 @@ class RatelimitMiddleware:
             )
             if rate_limit_cond:
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
-                # view_func.view_class is sentry.web.frontend.home.HomeView
                 if enforce_rate_limit:
                     return HttpResponse(
                         {
@@ -92,4 +93,5 @@ class RatelimitMiddleware:
             finish_request(rate_limit_key, rate_limit_uid)
         except Exception:
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
+        # CEO: the headers are on the response here and then not in the test
         return response
