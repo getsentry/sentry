@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -19,7 +18,7 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
-import {StepData, StepDescriptor} from './types';
+import {StepDescriptor} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -67,13 +66,7 @@ function Onboarding(props: Props) {
 
   React.useEffect(updateCornerVariant, []);
 
-  const [_stepState, setStepState] = useState<StepData>({
-    platform: null,
-  });
-
-  const goNextStep = (step: StepDescriptor, data: StepData) => {
-    setStepState(data);
-
+  const goNextStep = (step: StepDescriptor) => {
     const stepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
     const nextStep = ONBOARDING_STEPS[stepIndex + 1];
 
@@ -108,8 +101,7 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
-                onComplete={data => goNextStep(stepObj, data)}
-                onUpdate={() => {}}
+                onComplete={() => goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}

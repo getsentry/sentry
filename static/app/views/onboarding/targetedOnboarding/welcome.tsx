@@ -52,19 +52,18 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
   React.useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
-      organization: organization || null,
+      organization,
       source,
     });
   });
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
-      organization: organization || null,
+      organization,
       source,
     });
-    props.onComplete({
-      platform: null,
-    });
+
+    props.onComplete();
   };
   return (
     <FallingError>
@@ -124,7 +123,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               }
             />
           </ActionItem>
-          {!organization?.features.includes('sandbox-kill-switch') && (
+          {!organization.features.includes('sandbox-kill-switch') && (
             <ActionItem>
               <InnerAction
                 title={t('Preview before you (git) commit')}
@@ -156,23 +155,21 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               />
             </ActionItem>
           )}
-          {organization && (
-            <motion.p style={{margin: 0}}>
-              {t("Gee, I've used Sentry before.")}
-              <br />
-              <Link
-                onClick={() =>
-                  trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-                    organization: organization || null,
-                    source,
-                  })
-                }
-                to={`/organizations/${organization.slug}/issues/`}
-              >
-                {t('Skip onboarding.')}
-              </Link>
-            </motion.p>
-          )}
+          <motion.p style={{margin: 0}}>
+            {t("Gee, I've used Sentry before.")}
+            <br />
+            <Link
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+                  organization,
+                  source,
+                })
+              }
+              to={`/organizations/${organization.slug}/issues/`}
+            >
+              {t('Skip onboarding.')}
+            </Link>
+          </motion.p>
         </Wrapper>
       )}
     </FallingError>

@@ -7,8 +7,7 @@ export type StepData = {
 
 export type StepProps = {
   active: boolean;
-  onComplete: (data: StepData) => void;
-  onUpdate: (data: StepData) => void;
+  onComplete: () => void;
   orgId: string;
   organization: Organization;
   search: string;
