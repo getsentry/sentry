@@ -11,7 +11,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def test_unknown_tag(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_success_response(self.project.organization.slug, "bar")
         assert response.data == []
 
@@ -20,7 +20,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         assert response.status_code == 400
 
     def test_non_existing_filter(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_response(self.project.organization.slug, "bar", metric="bad")
         assert response.status_code == 200
         assert response.data == []
@@ -55,7 +55,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
 
         # We need to ensure that if the tag is present in the indexer but has no values in the
         # dataset, the intersection of it and other tags should not yield any results
-        indexer.record("random_tag")
+        indexer.record(self.organization.id, "random_tag")
         response = self.get_success_response(
             self.organization.slug,
             "tag1",
