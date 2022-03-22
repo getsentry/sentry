@@ -953,6 +953,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
   }
+
   if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
@@ -973,9 +974,11 @@ export function explodeField(field: Field): Column {
  */
 export function getAggregateAlias(field: string): string {
   const result = parseFunction(field);
+
   if (!result) {
     return field;
   }
+
   let alias = result.name;
 
   if (result.arguments.length > 0) {
