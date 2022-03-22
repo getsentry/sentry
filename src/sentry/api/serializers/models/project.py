@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, List, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db import connection
@@ -12,7 +12,7 @@ from typing_extensions import TypedDict
 from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
+from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
@@ -25,6 +25,7 @@ from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
     NotificationSetting,
+    OrganizationMemberTeam,
     Project,
     ProjectAvatar,
     ProjectBookmark,
@@ -33,6 +34,7 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Release,
+    Team,
     User,
     UserReport,
 )
@@ -66,6 +68,17 @@ _PROJECT_SCOPE_PREFIX = "projects:"
 LATEST_DEPLOYS_KEY = "latestDeploys"
 
 
+def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+    """Get memberships the user has in the provided team list"""
+    if not user.is_authenticated:
+        return ()
+
+    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
+        organizationmember__user=user, team__in=team_list
+    ).values_list("team", flat=True)
+    return set(team_ids)
+
+
 def get_access_by_project(
     projects: Sequence[Project], user: User
 ) -> MutableMapping[Project, MutableMapping[str, Any]]:
@@ -77,7 +90,7 @@ def get_access_by_project(
     for pt in project_teams:
         project_team_map[pt.project_id].append(pt.team)
 
-    team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
+    team_memberships = set(_get_team_memberships([pt.team for pt in project_teams], user))
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
     prefetch_related_objects(projects, "organization")
 

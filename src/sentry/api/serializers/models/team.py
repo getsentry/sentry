@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
-    Iterable,
     List,
     Mapping,
     MutableMapping,
@@ -48,15 +47,19 @@ if TYPE_CHECKING:
     )
 
 
-def get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+def _get_team_memberships(
+    team_list: Sequence[Team], user: User
+) -> Mapping[int, OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
-        return []
+        return {}
 
-    team_ids: Iterable[int] = OrganizationMemberTeam.objects.filter(
-        organizationmember__user=user, team__in=team_list
-    ).values_list("team", flat=True)
-    return team_ids
+    return {
+        omt.team.id: omt
+        for omt in OrganizationMemberTeam.objects.filter(
+            organizationmember__user=user, team__in=team_list
+        )
+    }
 
 
 def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int]:
@@ -111,6 +114,7 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     name: str
     dateCreated: datetime
     isMember: bool
+    role: str
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -145,7 +149,7 @@ class TeamSerializer(Serializer):  # type: ignore
         org_roles = get_org_roles(org_ids, user)
 
         member_totals = get_member_totals(item_list, user)
-        memberships = get_team_memberships(item_list, user)
+        memberships = _get_team_memberships(item_list, user)
         access_requests = get_access_requests(item_list, user)
 
         avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
@@ -154,7 +158,14 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            is_member = team.id in memberships
+            membership: OrganizationMemberTeam = memberships.get(team.id)
+            if membership is None:
+                is_member = False
+                role = None
+            else:
+                is_member = True
+                role = membership.get_team_role().id
+
             org_role = org_roles.get(team.organization_id)
             if is_member:
                 has_access = True
@@ -169,6 +180,7 @@ class TeamSerializer(Serializer):  # type: ignore
             result[team] = {
                 "pending_request": team.id in access_requests,
                 "is_member": is_member,
+                "role": role,
                 "has_access": has_access,
                 "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
@@ -220,6 +232,7 @@ class TeamSerializer(Serializer):  # type: ignore
             "name": obj.name,
             "dateCreated": obj.date_added,
             "isMember": attrs["is_member"],
+            "role": attrs["role"],
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
