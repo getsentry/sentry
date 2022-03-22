@@ -352,7 +352,6 @@ let appConfig: Configuration = {
                 compilerOptions: {incremental: true},
                 // Path is "../" to match paths in tsconfig file
                 include: ['../static'],
-                exclude: ['../node_modules'],
               },
             },
             devServer: false,
