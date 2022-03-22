@@ -226,11 +226,7 @@ class Access(abc.ABC):
             return False
         if self.has_scope(scope):
             return True
-
-        for team in project.teams.all():
-            if self.has_team_scope(team, scope):
-                return True
-        return False
+        return any(self.has_team_scope(team, scope) for team in project.teams.all())
 
     def to_django_context(self) -> Mapping[str, bool]:
         return {s.replace(":", "_"): self.has_scope(s) for s in settings.SENTRY_SCOPES}
