@@ -415,6 +415,56 @@ class SpanTreeModel {
 
           // This may not be the case, and needs to be looked into later
 
+          const key = getSiblingGroupKey(group[0].span);
+          if (this.expandedSiblingGroups.has(key)) {
+            // Check if any of the spans in the sibling group are filtered out (possible when filtering by span ID)
+            group.forEach((spanModel, index) => {
+              if (this.isSpanFilteredOut(props, spanModel)) {
+                acc.descendants.push({
+                  type: 'filtered_out',
+                  span: spanModel.span,
+                });
+              } else {
+                const enhancedSibling: EnhancedSpan = {
+                  type: 'span',
+                  span: spanModel.span,
+                  numOfSpanChildren: 0,
+                  treeDepth: treeDepth + 1,
+                  isLastSibling:
+                    index === group.length - 1 &&
+                    groupIndex === groupedDescendants.length - 1,
+                  isFirstSiblingOfGroup: index === 0,
+                  continuingTreeDepths: descendantContinuingTreeDepths,
+                  fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
+                  showEmbeddedChildren: spanModel.showEmbeddedChildren,
+                  toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+                    addTraceBounds,
+                    removeTraceBounds,
+                  }),
+                  toggleNestedSpanGroup: undefined,
+                  toggleSiblingSpanGroup:
+                    index === 0 ? this.toggleSiblingSpanGroup : undefined,
+                };
+
+                acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
+                acc.descendants.push(enhancedSibling);
+              }
+            });
+
+            return acc;
+          }
+
+          if (this.isSpanFilteredOut(props, group[0])) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'filtered_out',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          // Since the group is not expanded, return a singular grouped span bar
           const wrappedSiblings: EnhancedSpan[] = group.map((spanModel, index) => {
             const enhancedSibling: EnhancedSpan = {
               type: 'span',
@@ -440,16 +490,6 @@ class SpanTreeModel {
             return enhancedSibling;
           });
 
-          if (this.isSpanFilteredOut(props, group[0])) {
-            group.forEach(spanModel =>
-              acc.descendants.push({
-                type: 'filtered_out',
-                span: spanModel.span,
-              })
-            );
-            return acc;
-          }
-
           const groupedSiblingsSpan: EnhancedProcessedSpanType = {
             type: 'span_group_siblings',
             span: this.span,
@@ -462,13 +502,6 @@ class SpanTreeModel {
 
           acc.previousSiblingEndTimestamp =
             wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
-
-          // Check if the group is currently expanded or not
-          const key = getSiblingGroupKey(group[0].span);
-          if (this.expandedSiblingGroups.has(key)) {
-            acc.descendants.push(...wrappedSiblings);
-            return acc;
-          }
 
           acc.descendants.push(groupedSiblingsSpan);
           return acc;
