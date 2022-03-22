@@ -10,26 +10,26 @@ import {
 
 type TypeStyle = {
   fontFamily?: string;
-  fontWeight?: number;
   fontSize?: string;
-  lineHeight?: number;
+  fontWeight?: number;
   letterSpacing?: string;
+  lineHeight?: number;
 };
 
 type TypeDefinition = {
   name: string;
+  style: TypeStyle;
   /**
    * HTML tag (h1, h2, p) used to render type element
    */
   tag: keyof JSX.IntrinsicElements;
-  style: TypeStyle;
 };
 
 type Column = {
-  colName: string;
-  key?: keyof TypeStyle | keyof TypeDefinition;
   align: 'left' | 'right' | 'center';
+  colName: string;
   tabularFigures: boolean;
+  key?: keyof TypeStyle | keyof TypeDefinition;
 };
 
 const sampleColumn: Column = {

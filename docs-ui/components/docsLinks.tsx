@@ -7,12 +7,6 @@ import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 type Link = {
-  img?: {
-    src: string;
-    alt: string;
-  };
-  title: string;
-  desc?: string;
   /**
    * props to pass to LinkTo:
    *
@@ -26,6 +20,12 @@ type Link = {
    */
   kind: string;
   story: string;
+  title: string;
+  desc?: string;
+  img?: {
+    alt: string;
+    src: string;
+  };
 };
 
 type LinkProps = Link;
