@@ -7,14 +7,12 @@ from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
+from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, ProjectTeam, Release, SemverFilter
+from sentry.models import Environment, Release, SemverFilter
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -35,6 +33,8 @@ from sentry.search.events.constants import (
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
+    MISERY_ALPHA,
+    MISERY_BETA,
     NON_FAILURE_STATUS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
@@ -56,9 +56,9 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
-    MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     ColumnArg,
     ColumnTagArg,
     ConditionArg,
@@ -198,8 +198,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                     # for an intuitive explanation of the Beta Distribution Function.
                     optional_args=[
                         NullableNumberRange("satisfaction", 0, None),
-                        with_default(5.8875, NumberRange("alpha", 0, None)),
-                        with_default(111.8625, NumberRange("beta", 0, None)),
+                        with_default(MISERY_ALPHA, NumberRange("alpha", 0, None)),
+                        with_default(MISERY_BETA, NumberRange("beta", 0, None)),
                     ],
                     calculated_args=[
                         {
@@ -677,6 +677,109 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "spans_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("spans_group"),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "arrayJoin",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                            "y",
+                                                                                            "z",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "and",
+                                                                                            [
+                                                                                                Function(
+                                                                                                    "equals",
+                                                                                                    [
+                                                                                                        Identifier(
+                                                                                                            "y"
+                                                                                                        ),
+                                                                                                        args[
+                                                                                                            "spans_op"
+                                                                                                        ],
+                                                                                                    ],
+                                                                                                ),
+                                                                                                Function(
+                                                                                                    "equals",
+                                                                                                    [
+                                                                                                        Identifier(
+                                                                                                            "z",
+                                                                                                        ),
+                                                                                                        args[
+                                                                                                            "spans_group"
+                                                                                                        ],
+                                                                                                    ],
+                                                                                                ),
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.exclusive_time"
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.group"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 
@@ -687,29 +790,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     # Field Aliases
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
-        project_ids = {
-            project_id
-            for project_id in self.builder.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        # Do not optimize projects list if conditions contain OR operator
-        if not self.builder.has_or_condition and len(self.builder.projects_to_filter) > 0:
-            project_ids &= self.builder.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return Function(
-            "transform",
-            [
-                self.builder.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            alias,
-        )
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         """The state of having no issues is represented differently on transactions vs
@@ -898,47 +979,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return _project_threshold_config(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
-        team_ids = self.builder.params.get("team_id")
-
-        if org_id is None or team_ids is None or project_ids is None:
-            raise TypeError("Team key transactions parameters cannot be None")
-
-        team_key_transactions = list(
-            TeamKeyTransaction.objects.filter(
-                organization_id=org_id,
-                project_team__in=ProjectTeam.objects.filter(
-                    project_id__in=project_ids, team_id__in=team_ids
-                ),
-            )
-            .order_by("transaction", "project_team__project_id")
-            .values_list("project_team__project_id", "transaction")
-            .distinct("transaction", "project_team__project_id")[
-                :MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
-            ]
-        )
-
-        count = len(team_key_transactions)
-
-        # NOTE: this raw count is not 100% accurate because if it exceeds
-        # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
-        sentry_sdk.set_tag("team_key_txns.count", count)
-        sentry_sdk.set_tag(
-            "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
-        )
-
-        if count == 0:
-            return Function("toInt8", [0], TEAM_KEY_TRANSACTION_ALIAS)
-
-        return Function(
-            "in",
-            [
-                (self.builder.column("project_id"), self.builder.column("transaction")),
-                team_key_transactions,
-            ],
-            TEAM_KEY_TRANSACTION_ALIAS,
-        )
+        return field_aliases.resolve_team_key_transaction_alias(self.builder)
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
@@ -1131,6 +1172,12 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_filter_converter(self.builder, search_filter)
+
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
@@ -1266,21 +1313,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        value = search_filter.value.value
-        key_transaction_expr = self.builder.resolve_field_alias(TEAM_KEY_TRANSACTION_ALIAS)
-
-        if search_filter.value.raw_value == "":
-            return Condition(
-                key_transaction_expr, Op.NEQ if search_filter.operator == "!=" else Op.EQ, 0
-            )
-        if value in ("1", 1):
-            return Condition(key_transaction_expr, Op.EQ, 1)
-        if value in ("0", 0):
-            return Condition(key_transaction_expr, Op.EQ, 0)
-
-        raise InvalidSearchQuery(
-            "Invalid value for key_transaction condition. Accepted values are 1, 0"
-        )
+        return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """

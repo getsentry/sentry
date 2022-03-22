@@ -1,14 +1,12 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface WellProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   centered?: boolean;
   hasImage?: boolean;
   theme?: any;
-};
-
-type WellProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
+}
 
 const Well = styled('div')<WellProps>`
   border: 1px solid ${p => p.theme.border};

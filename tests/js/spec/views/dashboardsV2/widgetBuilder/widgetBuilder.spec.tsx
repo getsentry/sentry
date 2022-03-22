@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -21,6 +22,12 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 // Mock World Map because setState inside componentDidMount is
 // throwing UnhandledPromiseRejection
 jest.mock('sentry/components/charts/worldMapChart');
+
+const defaultOrgFeatures = [
+  'new-widget-builder-experience',
+  'dashboards-edit',
+  'global-views',
+];
 
 function renderTestComponent({
   widget,
@@ -40,11 +47,7 @@ function renderTestComponent({
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: orgFeatures ?? [
-        'new-widget-builder-experience',
-        'dashboards-edit',
-        'global-views',
-      ],
+      features: orgFeatures ?? defaultOrgFeatures,
     },
     router: {
       location: {
@@ -237,7 +240,7 @@ describe('WidgetBuilder', function () {
     // Header - Widget Title
     expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
-    // Header - Actions
+    // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
     expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
 
@@ -245,9 +248,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Select All Events (Errors and Transactions)')
-    ).toBeChecked();
+    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -266,6 +267,58 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
+  });
+
+  it('renders new design', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    // Switch to line chart for time series
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Header - Breadcrumbs
+    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/'
+    );
+    expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+    expect(screen.getByText('Widget Builder')).toBeInTheDocument();
+
+    // Header - Widget Title
+    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+
+    // Footer - Actions
+    expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
+
+    // Content - Step 1
+    expect(
+      screen.getByRole('heading', {name: 'Choose your data set'})
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+
+    // Content - Step 2
+    expect(
+      screen.getByRole('heading', {name: 'Choose your visualization'})
+    ).toBeInTheDocument();
+
+    // Content - Step 3
+    expect(
+      screen.getByRole('heading', {name: 'Choose what to plot in the y-axis'})
+    ).toBeInTheDocument();
+
+    // Content - Step 4
+    expect(
+      screen.getByRole('heading', {name: 'Filter your results'})
+    ).toBeInTheDocument();
+
+    // Content - Step 5
+    expect(screen.getByRole('heading', {name: 'Group your results'})).toBeInTheDocument();
   });
 
   it('can update the title', async function () {
@@ -680,7 +733,7 @@ describe('WidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
     // Restricting to a single query
-    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add Query')).not.toBeInTheDocument();
 
     // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
@@ -769,8 +822,8 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(screen.getByLabelText('Add query'));
-    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
     expect(
       screen.getAllByPlaceholderText('Search for events, users, tags, and more')
     ).toHaveLength(3);
@@ -914,12 +967,7 @@ describe('WidgetBuilder', function () {
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -928,7 +976,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
@@ -968,12 +1016,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         widget,
       });
@@ -987,7 +1030,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
@@ -1030,12 +1073,7 @@ describe('WidgetBuilder', function () {
       };
 
       renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
         widget,
         onSave: handleSave,
@@ -1044,7 +1082,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
@@ -1067,10 +1105,10 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
       // Click on the "sortDirection" selector
-      userEvent.click(screen.getByText('Low to high'));
+      userEvent.click(screen.getByText('High to low'));
 
       // Select the other option
-      userEvent.click(screen.getByText('High to low'));
+      userEvent.click(screen.getByText('Low to high'));
 
       // Saves the widget
       userEvent.click(screen.getByText('Update Widget'));
@@ -1078,7 +1116,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
-            queries: [expect.objectContaining({orderby: '-count_unique_id'})],
+            queries: [expect.objectContaining({orderby: 'count_unique_id'})],
           }),
         ]);
       });
@@ -1095,12 +1133,7 @@ describe('WidgetBuilder', function () {
       };
 
       const {router} = renderTestComponent({
-        orgFeatures: [
-          'dashboards-edit',
-          'global-views',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
@@ -1244,7 +1277,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({onSave: handleSave});
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
       userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
@@ -1282,12 +1315,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select All Events (Errors and Transactions)',
+          name: 'Select Events (Errors, transactions)',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Select Issues (Status, assignee, etc.)',
         })
       ).toBeDisabled();
     });
@@ -1295,7 +1328,7 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
@@ -1310,6 +1343,22 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('title')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+    });
+
+    it('renders with an issues search bar', async function () {
+      renderTestComponent();
+      userEvent.type(
+        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
+        'is:'
+      );
+      expect(await screen.findByText('No items found')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+      userEvent.type(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'is:'
+      );
+      expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
   });
 
@@ -1338,6 +1387,189 @@ describe('WidgetBuilder', function () {
       // Should not have overwritten widget data, and confirm modal should open
       expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
       expect(mockModal).toHaveBeenCalled();
+    });
+  });
+
+  // Disabling for CI, but should run locally when making changes
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('group by field', function () {
+    it('does not contain functions as options', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+
+      expect(screen.getByText('Select group')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select group'));
+
+      // Only one f(x) field set in the y-axis selector
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
+    });
+
+    it('adds more fields when Add Group is clicked', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(await screen.findAllByText('Select group')).toHaveLength(2);
+    });
+
+    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+
+      for (let i = 0; i < 19; i++) {
+        userEvent.click(screen.getByText('Add Group'));
+      }
+
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
+    });
+
+    it("doesn't reset group by when changing y-axis", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
+      userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
+
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it("doesn't erase the selection when switching to another time series", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Area Chart'));
+
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it('sends a top N request when a grouping is selected', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: TOP_N,
+            orderby: '-count',
+          }),
+        })
+      );
+    });
+
+    it('allows deleting groups until there is one left', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+
+      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('limit field', function () {
+    it('renders if groupBy value and  is present in the handleSave', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        onSave: handleSave,
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() =>
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            limit: 5,
+          }),
+        ])
+      );
+    });
+
+    it('update value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      userEvent.click(screen.getByText('Limit to 5 results'));
+      userEvent.click(screen.getByText('Limit to 2 results'));
+
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: 2,
+            orderby: '-count',
+          }),
+        })
+      );
+    });
+
+    it('gets removed if no groupBy value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Remove group'));
+
+      expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
     });
   });
 });
