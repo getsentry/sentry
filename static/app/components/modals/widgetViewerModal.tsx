@@ -303,75 +303,71 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <React.Fragment>
-            <Alert type="info" icon={<IconInfo />}>
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-              )}
-            </Alert>
-            <StyledSelectControl
-              value={selectedQueryIndex}
-              options={queryOptions}
-              onChange={(option: SelectValue<number>) => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.QUERY]: option.value,
-                    [WidgetViewerQueryField.PAGE]: undefined,
-                    [WidgetViewerQueryField.CURSOR]: undefined,
-                  },
-                });
-
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.select_query',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
-              }}
-              components={{
-                // Replaces the displayed selected value
-                SingleValue: containerProps => {
-                  return (
-                    <components.SingleValue
-                      {...containerProps}
-                      // Overwrites some of the default styling that interferes with highlighted query text
-                      getStyles={() => ({'word-break': 'break-word'})}
-                    >
-                      {queryOptions[selectedQueryIndex].getHighlightedQuery({
-                        display: 'block',
-                      }) ?? queryOptions[selectedQueryIndex].label}
-                    </components.SingleValue>
-                  );
-                },
-                // Replaces the dropdown options
-                Option: containerProps => {
-                  const highlightedQuery = containerProps.data.getHighlightedQuery({
-                    display: 'flex',
-                  });
-                  return (
-                    <Option
-                      {...(highlightedQuery
-                        ? {
-                            ...containerProps,
-                            label: '',
-                            data: {
-                              ...containerProps.data,
-                              leadingItems: highlightedQuery,
-                            },
-                          }
-                        : containerProps)}
-                    />
-                  );
-                },
-              }}
-              isSearchable={false}
-            />
-          </React.Fragment>
+          <Alert type="info" icon={<IconInfo />}>
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+            )}
+          </Alert>
         )}
+        <StyledSelectControl
+          value={selectedQueryIndex}
+          options={queryOptions}
+          onChange={(option: SelectValue<number>) => {
+            router.replace({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [WidgetViewerQueryField.QUERY]: option.value,
+                [WidgetViewerQueryField.PAGE]: undefined,
+                [WidgetViewerQueryField.CURSOR]: undefined,
+              },
+            });
+
+            trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.select_query', {
+              organization,
+              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+              display_type: widget.displayType,
+            });
+          }}
+          components={{
+            // Replaces the displayed selected value
+            SingleValue: containerProps => {
+              return (
+                <components.SingleValue
+                  {...containerProps}
+                  // Overwrites some of the default styling that interferes with highlighted query text
+                  getStyles={() => ({'word-break': 'break-word'})}
+                >
+                  {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                    display: 'block',
+                  }) ?? queryOptions[selectedQueryIndex].label}
+                </components.SingleValue>
+              );
+            },
+            // Replaces the dropdown options
+            Option: containerProps => {
+              const highlightedQuery = containerProps.data.getHighlightedQuery({
+                display: 'flex',
+              });
+              return (
+                <Option
+                  {...(highlightedQuery
+                    ? {
+                        ...containerProps,
+                        label: '',
+                        data: {
+                          ...containerProps.data,
+                          leadingItems: highlightedQuery,
+                        },
+                      }
+                    : containerProps)}
+                />
+              );
+            },
+          }}
+          isSearchable={false}
+          isDisabled={widget.queries.length < 2}
+        />
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
             <IssueWidgetQueries
