@@ -117,7 +117,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
 interface RouteParams {
   dashboardId: string;
   orgId: string;
-  widgetIndex: string;
+  widgetIndex?: string;
 }
 
 interface QueryData {
@@ -173,7 +173,7 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = widgetIndex !== NEW_ID;
+  const isEditing = defined(widgetIndex) && widgetIndex !== NEW_ID;
   const widgetIndexNum: number = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
