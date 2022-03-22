@@ -540,8 +540,6 @@ function generateMobilePerformanceEventView(
     'project',
     'transaction.op',
     'tpm()',
-    'p75(measurements.app_start_cold)',
-    'p75(measurements.app_start_warm)',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
