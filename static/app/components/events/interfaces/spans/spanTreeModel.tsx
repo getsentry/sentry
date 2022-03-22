@@ -454,10 +454,27 @@ class SpanTreeModel {
             return acc;
           }
 
+          // Check if the sibling group is filtered out
           if (this.isSpanFilteredOut(props, group[0])) {
             group.forEach(spanModel =>
               acc.descendants.push({
                 type: 'filtered_out',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          // Check if the sibling group is out of bounds
+          const bounds = generateBounds({
+            startTimestamp: group[0].span.start_timestamp,
+            endTimestamp: group[group.length - 1].span.timestamp,
+          });
+
+          if (!bounds.isSpanVisibleInView) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'out_of_view',
                 span: spanModel.span,
               })
             );
