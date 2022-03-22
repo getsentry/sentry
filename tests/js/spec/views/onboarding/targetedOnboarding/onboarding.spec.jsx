@@ -14,7 +14,7 @@ describe('Onboarding', function () {
         },
       },
     });
-    const {container} = render(
+    render(
       <OrganizationContext.Provider value={organization}>
         <Onboarding {...router} />
       </OrganizationContext.Provider>,
@@ -22,7 +22,6 @@ describe('Onboarding', function () {
         context: routerContext,
       }
     );
-    expect(container).toSnapshot();
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
     expect(screen.getByLabelText('Explore')).toBeInTheDocument();
@@ -42,7 +41,7 @@ it('renders the setup docs step', function () {
     },
   });
   ProjectsStore.loadInitialData(projects);
-  const {container} = render(
+  render(
     <OrganizationContext.Provider value={organization}>
       <Onboarding {...router} />
     </OrganizationContext.Provider>,
@@ -50,6 +49,5 @@ it('renders the setup docs step', function () {
       context: routerContext,
     }
   );
-  expect(container).toSnapshot();
   expect(screen.getAllByText('Waiting for error')).toHaveLength(2);
 });
