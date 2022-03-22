@@ -56,4 +56,4 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         self.fix_data_for_issue()
-        yield super().after(event, state)
+        yield super().after(event, state)  # type: ignore
