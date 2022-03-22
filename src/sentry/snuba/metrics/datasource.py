@@ -37,6 +37,7 @@ from sentry.snuba.metrics.utils import (
     MetricMeta,
     MetricMetaWithTagKeys,
     MetricType,
+    NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
 )
@@ -76,7 +77,11 @@ def get_available_derived_metrics(
 
     found_derived_metrics = set()
     for derived_metric_name, derived_metric_obj in requested_derived_metrics.items():
-        derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
+        try:
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
+        except NotSupportedOverCompositeEntityException:
+            # ToDo(ahmed): Handle instances of CompositeEntityDerivedMetrics in upcoming PR
+            continue
 
         for ids_per_entity in supported_metric_ids_in_entities.values():
             if derived_metric_obj_ids.intersection(ids_per_entity) == derived_metric_obj_ids:
@@ -352,6 +357,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
     results = {}
+    queries_by_entities = {}
 
     if not query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
@@ -379,7 +385,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
         orderby_field = [key for key, value in query.fields.items() if value == query.orderby[0]][0]
         query.fields = {orderby_field: parse_field(orderby_field)}
 
-        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
         if len(snuba_queries) > 1:
             # Currently accepting an order by field that spans multiple entities is not
             # supported, but it might change in the future. Even then, it might be better
@@ -413,7 +419,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             query.orderby = None
             query.fields = original_query_fields
 
-            snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+            query_builder = SnubaQueryBuilder(projects, query)
+            snuba_queries, queries_by_entities = query_builder.get_snuba_queries()
 
             # Translate the groupby fields of the query into their tag keys because these fields
             # will be used to filter down and order the results of the 2nd query.
@@ -515,7 +522,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     for group_tuple in ordered_tag_conditions[groupby_tags]:
                         results[entity][key]["data"] += snuba_query_data_dict.get(group_tuple, [])
     else:
-        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, queries_by_entities = SnubaQueryBuilder(projects, query).get_snuba_queries()
         for entity, queries in snuba_queries.items():
             results.setdefault(entity, {})
             for key, snuba_query in queries.items():
@@ -526,7 +533,9 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 )
 
     assert projects
-    converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)
+    converter = SnubaResultConverter(
+        projects[0].organization_id, query, queries_by_entities, intervals, results
+    )
 
     return {
         "start": query.start,

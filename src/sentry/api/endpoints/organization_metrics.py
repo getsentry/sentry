@@ -15,7 +15,10 @@ from sentry.snuba.metrics import (
     get_tag_values,
     get_tags,
 )
-from sentry.snuba.metrics.utils import DerivedMetricParseException
+from sentry.snuba.metrics.utils import (
+    DerivedMetricParseException,
+    NotSupportedOverCompositeEntityException,
+)
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -122,7 +125,12 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(projects, query)
-            except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
+            except (
+                InvalidField,
+                InvalidParams,
+                DerivedMetricParseException,
+                NotSupportedOverCompositeEntityException,
+            ) as exc:
                 raise (ParseError(detail=str(exc)))
             return data
 

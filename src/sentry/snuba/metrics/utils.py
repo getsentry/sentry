@@ -18,10 +18,15 @@ __all__ = (
     "MetricMeta",
     "MetricMetaWithTagKeys",
     "OPERATIONS",
+    "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
     "DerivedMetricParseException",
+    "MetricDoesNotExistException",
+    "MetricDoesNotExistInIndexer",
+    "NotSupportedOverCompositeEntityException",
     "TimeRange",
+    "MetricEntity",
 )
 
 
@@ -104,7 +109,7 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-_OPERATIONS_PERCENTILES = (
+OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
@@ -119,7 +124,7 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
-) + _OPERATIONS_PERCENTILES
+) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
     "avg": None,
@@ -146,6 +151,10 @@ class MetricDoesNotExistException(Exception):
 
 
 class MetricDoesNotExistInIndexer(Exception):
+    ...
+
+
+class NotSupportedOverCompositeEntityException(Exception):
     ...
 
 
