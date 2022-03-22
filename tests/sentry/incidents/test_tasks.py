@@ -27,6 +27,7 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -202,7 +203,9 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
 
     @fixture
     def subscription(self):
-        return self.rule.snuba_query.subscriptions.get()
+        snuba_query = self.rule.snuba_query
+        snuba_query.update(dataset=Dataset.Metrics.value)
+        return snuba_query.subscriptions.get()
 
     def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
@@ -218,18 +221,17 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         }
 
     def test(self):
-        with patch("sentry.incidents.tasks.metrics") as metrics:
-            handle_subscription_metrics_logger(self.build_subscription_update(), self.subscription)
-            assert metrics.incr.call_args_list == [
+        with patch("sentry.incidents.tasks.logger") as logger:
+            subscription_update = self.build_subscription_update()
+            handle_subscription_metrics_logger(subscription_update, self.subscription)
+            assert logger.info.call_args_list == [
                 call(
-                    "subscriptions.result.value",
-                    100,
-                    tags={
-                        "project_id": self.project.id,
-                        "project_slug": self.project.slug,
+                    "handle_subscription_metrics_logger.message",
+                    extra={
                         "subscription_id": self.subscription.id,
-                        "time_window": 600,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
                     },
-                    sample_rate=1.0,
                 )
             ]

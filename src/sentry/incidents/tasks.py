@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -7,7 +6,6 @@ from django.urls import reverse
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
     INCIDENT_STATUS,
-    AlertRule,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -18,6 +16,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
 )
 from sentry.models import Project
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -111,24 +110,16 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
     :param subscription: The `QuerySubscription` that this update is for
     """
-    from sentry.incidents.subscription_processor import SubscriptionProcessor
-
     try:
-        processor = SubscriptionProcessor(subscription)
-        processor.alert_rule = AlertRule()
-        aggregation_value = int(processor.get_aggregation_value(subscription_update))
-        processor.alert_rule.comparison_delta = int(timedelta(days=7).total_seconds())
-        comparison_value = processor.get_aggregation_value(subscription_update)
-        tags = {
-            "project_id": subscription.project_id,
-            "project_slug": subscription.project.slug,
-            "subscription_id": subscription.id,
-            "time_window": subscription.snuba_query.time_window,
-        }
-        metrics.incr("subscriptions.result.value", aggregation_value, tags=tags, sample_rate=1.0)
-        if comparison_value is not None:
-            metrics.incr(
-                "subscriptions.result.comparison", int(comparison_value), tags=tags, sample_rate=1.0
+        if subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
+            logger.info(
+                "handle_subscription_metrics_logger.message",
+                extra={
+                    "subscription_id": subscription.id,
+                    "dataset": subscription.snuba_query.dataset,
+                    "snuba_subscription_id": subscription.subscription_id,
+                    "result": subscription_update,
+                },
             )
     except Exception:
         logger.exception("Failed to log subscription results")
