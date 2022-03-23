@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-export default {
+const effectiveDirectives = {
   'base-uri': t(
     `The <code>base-uri</code> directive defines the URIs that a user agent
   may use as the document base URL. If this value is absent, then any URI
@@ -104,3 +104,5 @@ export default {
   <code>ServiceWorker</code> scripts.`
   ),
 };
+
+export default effectiveDirectives;

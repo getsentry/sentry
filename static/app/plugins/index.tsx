@@ -25,7 +25,7 @@ const get: typeof registry.get = registry.get.bind(registry);
 const isLoaded: typeof registry.isLoaded = registry.isLoaded.bind(registry);
 const load: typeof registry.load = registry.load.bind(registry);
 
-export default {
+const plugins = {
   BasePlugin,
   DefaultIssuePlugin,
 
@@ -38,3 +38,5 @@ export default {
   isLoaded,
   load,
 };
+
+export default plugins;
