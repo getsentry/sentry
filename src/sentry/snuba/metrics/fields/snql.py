@@ -3,7 +3,9 @@ from snuba_sdk import Column, Function
 from sentry.sentry_metrics.utils import resolve_weak
 
 
-def _counter_sum_aggregation_on_session_status_factory(session_status, metric_ids, alias=None):
+def _counter_sum_aggregation_on_session_status_factory(
+    org_id: int, session_status, metric_ids, alias=None
+):
     return Function(
         "sumIf",
         [
@@ -14,8 +16,8 @@ def _counter_sum_aggregation_on_session_status_factory(session_status, metric_id
                     Function(
                         "equals",
                         [
-                            Column(f"tags[{resolve_weak('session.status')}]"),
-                            resolve_weak(session_status),
+                            Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                            resolve_weak(org_id, session_status),
                         ],
                     ),
                     Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -26,25 +28,25 @@ def _counter_sum_aggregation_on_session_status_factory(session_status, metric_id
     )
 
 
-def init_sessions(metric_ids, alias=None):
+def init_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
-        session_status="init", metric_ids=metric_ids, alias=alias
+        org_id, session_status="init", metric_ids=metric_ids, alias=alias
     )
 
 
-def crashed_sessions(metric_ids, alias=None):
+def crashed_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
-        session_status="crashed", metric_ids=metric_ids, alias=alias
+        org_id, session_status="crashed", metric_ids=metric_ids, alias=alias
     )
 
 
-def errored_preaggr_sessions(metric_ids, alias=None):
+def errored_preaggr_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
-        session_status="errored_preaggr", metric_ids=metric_ids, alias=alias
+        org_id, session_status="errored_preaggr", metric_ids=metric_ids, alias=alias
     )
 
 
-def sessions_errored_set(metric_ids, alias=None):
+def sessions_errored_set(org_id: int, metric_ids, alias=None):
     return Function(
         "uniqIf",
         [

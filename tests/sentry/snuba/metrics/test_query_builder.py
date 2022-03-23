@@ -94,11 +94,12 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
+    org_id = 666  # mock indexer does not require a real organization ID
     local_indexer = MockIndexer()
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string))
     assert parsed == expected
 
 
@@ -188,6 +189,8 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     query_definition = QueryDefinition(query_params)
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
+    org_id = 666  # mock indexer does not require a real organization ID
+
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
@@ -198,7 +201,9 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     OP_TO_SNUBA_FUNCTION[match][alias],
                     [
                         Column("value"),
-                        Function("equals", [Column("metric_id"), resolve_weak(metric_name)]),
+                        Function(
+                            "equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]
+                        ),
                     ],
                     alias=f"{alias}({metric_name})",
                 )
@@ -210,7 +215,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.IN, [10]),
-                Condition(Column("metric_id"), Op.IN, [resolve_weak(metric_name)]),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, metric_name)]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -281,6 +286,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
     snuba_queries = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition).get_snuba_queries()
 
+    org_id = 666  # mock indexer does not require a real organization ID
+
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
 
@@ -288,7 +295,10 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     metric_name = "sentry.sessions.session"
     select = Function(
         OP_TO_SNUBA_FUNCTION["metrics_counters"]["sum"],
-        [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(metric_name)])],
+        [
+            Column("value"),
+            Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+        ],
         alias=f"{op}({metric_name})",
     )
 

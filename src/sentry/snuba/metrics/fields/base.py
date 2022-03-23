@@ -77,8 +77,8 @@ def run_metrics_query(
 
 def _get_entity_of_metric_name(projects: Sequence[Project], metric_name: str) -> EntityKey:
     assert projects
-
-    metric_id = indexer.resolve(metric_name)
+    org_id = org_id_from_projects(projects)
+    metric_id = indexer.resolve(org_id, metric_name)
 
     if metric_id is None:
         raise InvalidParams
@@ -92,12 +92,17 @@ def _get_entity_of_metric_name(projects: Sequence[Project], metric_name: str) ->
             groupby=[Column("metric_id")],
             referrer="snuba.metrics.meta.get_entity_of_metric",
             projects=projects,
-            org_id=projects[0].organization_id,
+            org_id=org_id,
         )
         if data:
             return entity_key
 
     raise InvalidParams(f"Raw metric {metric_name} does not exit")
+
+
+def org_id_from_projects(projects: Sequence[Project]) -> int:
+    assert len({p.organization_id for p in projects}) == 1
+    return projects[0].organization_id
 
 
 @dataclass
@@ -117,7 +122,7 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_metric_ids(self) -> Set[Any]:
+    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[Any]:
         """
         Method that generates all the metric ids required to query an instance of
         MetricsFieldBase
@@ -134,7 +139,9 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
 
     @abstractmethod
     def generate_orderby_clause(
-        self, projects: Sequence[Project], direction: Direction
+        self,
+        direction: Direction,
+        projects: Sequence[Project],
     ) -> List[OrderBy]:
         """
         Method that generates a list of SnQL OrderBy clauses based on an instance of
@@ -156,27 +163,32 @@ class RawMetric(MetricFieldBase):
         #  op, and should rather do so dynamically with respect to the projects filter
         return OPERATIONS_TO_ENTITY[self.op]
 
-    def generate_metric_ids(self) -> Set[int]:
-        return {resolve_weak(self.metric_name)}
+    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+        return {resolve_weak(org_id_from_projects(projects), self.metric_name)}
 
-    def __build_conditional_aggregate_for_metric(self, entity: MetricEntity) -> Function:
+    def __build_conditional_aggregate_for_metric(
+        self, org_id: int, entity: MetricEntity
+    ) -> Function:
         snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
         return Function(
             snuba_function,
             [
                 Column("value"),
-                Function("equals", [Column("metric_id"), resolve_weak(self.metric_name)]),
+                Function("equals", [Column("metric_id"), resolve_weak(org_id, self.metric_name)]),
             ],
             alias=f"{self.op}({self.metric_name})",
         )
 
-    def generate_select_statements(self, **kwargs: Any) -> List[Function]:
-        return [self.__build_conditional_aggregate_for_metric(entity=self.get_entity())]
+    def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
+        org_id = org_id_from_projects(projects)
+        return [self.__build_conditional_aggregate_for_metric(org_id, entity=self.get_entity())]
 
-    def generate_orderby_clause(self, direction: Direction, **kwargs: Any) -> List[OrderBy]:
+    def generate_orderby_clause(
+        self, direction: Direction, projects: Sequence[Project]
+    ) -> List[OrderBy]:
         return [
             OrderBy(
-                self.generate_select_statements(entity=self.get_entity())[0],
+                self.generate_select_statements(projects)[0],
                 direction,
             )
         ]
@@ -254,7 +266,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
         return entities.pop()
 
     @classmethod
-    def __recursively_generate_metric_ids(cls, derived_metric_name: str) -> Set[int]:
+    def __recursively_generate_metric_ids(cls, org_id: int, derived_metric_name: str) -> Set[int]:
         """
         Method that traverses a derived metric dependency tree to return a set of the metric ids
         of its constituent metrics
@@ -265,16 +277,19 @@ class SingularEntityDerivedMetric(DerivedMetric):
         ids = set()
         for metric_name in derived_metric.metrics:
             if metric_name not in DERIVED_METRICS:
-                ids.add(resolve_weak(metric_name))
+                ids.add(resolve_weak(org_id, metric_name))
             else:
-                ids |= cls.__recursively_generate_metric_ids(metric_name)
+                ids |= cls.__recursively_generate_metric_ids(org_id, metric_name)
         return ids
 
-    def generate_metric_ids(self) -> Set[int]:
-        return self.__recursively_generate_metric_ids(derived_metric_name=self.metric_name)
+    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+        org_id = org_id_from_projects(projects)
+        return self.__recursively_generate_metric_ids(org_id, derived_metric_name=self.metric_name)
 
     @classmethod
-    def __recursively_generate_select_snql(cls, derived_metric_name: str) -> List[Function]:
+    def __recursively_generate_select_snql(
+        cls, org_id: int, derived_metric_name: str
+    ) -> List[Function]:
         """
         Method that generates the SnQL representation for the derived metric
         """
@@ -283,11 +298,12 @@ class SingularEntityDerivedMetric(DerivedMetric):
         derived_metric = DERIVED_METRICS[derived_metric_name]
         arg_snql = []
         for arg in derived_metric.metrics:
-            arg_snql += cls.__recursively_generate_select_snql(arg)
+            arg_snql += cls.__recursively_generate_select_snql(org_id, arg)
         return [
             derived_metric.snql(
                 *arg_snql,
-                metric_ids=cls.__recursively_generate_metric_ids(derived_metric_name),
+                org_id=org_id,
+                metric_ids=cls.__recursively_generate_metric_ids(org_id, derived_metric_name),
                 alias=derived_metric_name,
             )
         ]
@@ -299,7 +315,8 @@ class SingularEntityDerivedMetric(DerivedMetric):
         if not projects:
             self.__raise_entity_validation_exception("generate_select_statements")
         self.get_entity(projects=projects)
-        return self.__recursively_generate_select_snql(derived_metric_name=self.metric_name)
+        org_id = org_id_from_projects(projects)
+        return self.__recursively_generate_select_snql(org_id, derived_metric_name=self.metric_name)
 
     def generate_orderby_clause(
         self, direction: Direction, projects: Sequence[Project]
@@ -334,19 +351,23 @@ DERIVED_METRICS = {
             metric_name="session.init",
             metrics=["sentry.sessions.session"],
             unit="sessions",
-            snql=lambda *_, metric_ids, alias=None: init_sessions(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: init_sessions(
+                org_id, metric_ids, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crashed",
             metrics=["sentry.sessions.session"],
             unit="sessions",
-            snql=lambda *_, metric_ids, alias=None: crashed_sessions(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: crashed_sessions(
+                org_id, metric_ids, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crash_free_rate",
             metrics=["session.crashed", "session.init"],
             unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(
+            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"
             ),
         ),
@@ -354,15 +375,17 @@ DERIVED_METRICS = {
             metric_name="session.errored_preaggregated",
             metrics=["sentry.sessions.session"],
             unit="sessions",
-            snql=lambda *_, metric_ids, alias=None: errored_preaggr_sessions(
-                metric_ids, alias=alias
+            snql=lambda *_, org_id, metric_ids, alias=None: errored_preaggr_sessions(
+                org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.errored_set",
             metrics=["sentry.sessions.session.error"],
             unit="sessions",
-            snql=lambda *_, metric_ids, alias=None: sessions_errored_set(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: sessions_errored_set(
+                org_id, metric_ids, alias=alias
+            ),
         ),
     ]
 }

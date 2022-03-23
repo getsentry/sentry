@@ -16,12 +16,13 @@ class DerivedMetricSnQLTestCase(TestCase):
         self.metric_ids = [0, 1, 2]
 
     def test_counter_sum_aggregation_on_session_status(self):
+        org_id = 0
         for status, func in [
             ("init", init_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
         ]:
-            assert func(self.metric_ids, alias=status) == Function(
+            assert func(org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
                 [
                     Column("value"),
@@ -31,8 +32,8 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak('session.status')}]"),
-                                    resolve_weak(status),
+                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                                    resolve_weak(org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -43,8 +44,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
+        org_id = 666
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert sessions_errored_set(org_id, self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -60,9 +62,10 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_percentage_in_snql(self):
+        org_id = 666
         alias = "foo.percentage"
-        init_session_snql = init_sessions(self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.metric_ids, "crashed_sessions")
+        init_session_snql = init_sessions(org_id, self.metric_ids, "init_sessions")
+        crashed_session_snql = crashed_sessions(org_id, self.metric_ids, "crashed_sessions")
 
         assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
