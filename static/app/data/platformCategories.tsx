@@ -181,6 +181,19 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+// List of platforms that have performance onboarding checklist content
+export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-react',
+]);
+
+// List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
+// views such as Performance onboarding checklist.
+export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'minidump',
+]);
+
 export const releaseHealth: PlatformKey[] = [
   // frontend
   'javascript',
