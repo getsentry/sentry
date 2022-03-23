@@ -16,13 +16,13 @@ const alphaSortFromKey =
     keyExtractor(a).localeCompare(keyExtractor(b));
 
 type Platform = {
-  key: string;
-  type: 'language' | 'framework';
-  details: string;
-  doc_link: string;
-  name: string;
   aliases: string[];
   categories: string[];
+  details: string;
+  doc_link: string;
+  key: string;
+  name: string;
+  type: 'language' | 'framework';
 };
 
 type PlatformItem = {_self: Platform} & Record<string, Platform>;
