@@ -119,9 +119,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
           })
         }
       >
-        {({disabled, onTriggerModal}) => (
-          <InviteMembersButton disabled={disabled} onClick={onTriggerModal} />
-        )}
+        {renderInviteMembersButton}
       </InviteMembersButtonHook>
     );
 
@@ -142,18 +140,18 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
   }
 }
 
-function InviteMembersButton({
+function renderInviteMembersButton({
   disabled,
-  onClick,
+  onTriggerModal,
 }: {
-  onClick: () => void;
+  onTriggerModal: () => void;
   disabled?: boolean;
 }) {
   const action = (
     <Button
       priority="primary"
       size="small"
-      onClick={onClick}
+      onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}
       disabled={disabled}
