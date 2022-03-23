@@ -10,14 +10,16 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Enum, Project, dataclass
+from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak

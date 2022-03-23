@@ -1269,6 +1269,16 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "value": [1, 2, 4],
                     "retention_days": 90,
                 },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
+                    "type": "s",
+                    "value": [1, 2, 4, 7, 9],
+                    "retention_days": 90,
+                },
             ],
             entity="metrics_sets",
         )
