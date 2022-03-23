@@ -23,8 +23,11 @@ type State = AsyncView['state'] & {
 
 const InviteMembersButtonHook = HookOrDefault({
   hookName: 'member-invite-buttom:customization',
-  defaultComponent: ({children, organization}) =>
-    children({disabled: !organization.features.includes('invite-members')}),
+  defaultComponent: ({children, organization, onTriggerModal}) =>
+    children({
+      disabled: !organization.features.includes('invite-members'),
+      onTriggerModal,
+    }),
 });
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
