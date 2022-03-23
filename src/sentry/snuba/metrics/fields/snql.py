@@ -44,6 +44,12 @@ def errored_preaggr_sessions(metric_ids, alias=None):
     )
 
 
+def abnormal_sessions(metric_ids, alias=None):
+    return _counter_sum_aggregation_on_session_status_factory(
+        session_status="abnormal", metric_ids=metric_ids, alias=alias
+    )
+
+
 def sessions_errored_set(metric_ids, alias=None):
     return Function(
         "uniqIf",
