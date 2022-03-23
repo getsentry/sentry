@@ -42,8 +42,6 @@ class RatelimitMiddlewareTest(TestCase):
     middleware = RatelimitMiddleware(get_response)
     factory = fixture(RequestFactory)
 
-    _test_endpoint = RatelimitMiddlewareEndpoint.as_view()
-
     def populate_sentry_app_request(self, request):
         sentry_app = self.create_sentry_app(
             name="Bubbly Webhook",
@@ -75,6 +73,19 @@ class RatelimitMiddlewareTest(TestCase):
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             self.middleware(request)
+
+    def test_process_response_fails_open(self):
+        # TODO rewrite this since we no longer call process_response
+        request = self.factory.get("/")
+        bad_response = object()
+        assert self.middleware.process_response(request, bad_response) is bad_response
+
+        class BadRequest:
+            def __getattr__(self, attr):
+                raise Exception("nope")
+
+        bad_request = BadRequest()
+        assert self.middleware.process_response(bad_request, bad_response) is bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
@@ -112,12 +123,12 @@ class RatelimitMiddlewareTest(TestCase):
             assert resp.status_code == 200
 
     def test_rate_limit_category(self):
-        request = self.factory.get("/")
+        request = self.factory.get("/middleware/")
         request.META["REMOTE_ADDR"] = None
         self.middleware(request)
         assert request.rate_limit_category is None
 
-        request = self.factory.get("/")
+        request = self.factory.get("/middleware/")
         self.middleware(request)
         assert request.rate_limit_category == "ip"
 

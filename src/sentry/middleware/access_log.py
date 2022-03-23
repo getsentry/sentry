@@ -75,6 +75,7 @@ def _create_api_access_log(
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = response.status_code if response else 500
+        rate_limited = True if status_code == 429 else False
         log_metrics = dict(
             method=str(request.method),
             view=view,
@@ -88,8 +89,7 @@ def _create_api_access_log(
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
-            rate_limited=str(getattr(request, "will_be_rate_limited", False)),  # XXX
-            # ^ str(True if response.status_code == 429 else False)
+            rate_limited=rate_limited,
             rate_limit_category=str(getattr(request, "rate_limit_category", None)),  # XXX?
             # ^ still not sure how to pass this through if it's not on the request
             request_duration_seconds=access_log_metadata.get_request_duration(),

@@ -32,11 +32,11 @@ class RatelimitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
-        # First, check if the endpoint call will violate.
         rate_limit_metadata = None
         rate_limit_key = None
         rate_limit_uid = None
 
+        # First, check if the endpoint call will violate.
         try:
             request.rate_limit_category = None
             # CEO: idk how to not put this on the request object
@@ -76,8 +76,7 @@ class RatelimitMiddleware:
                         },
                         status=429,
                     )
-                    if rate_limit_metadata:
-                        self.add_headers(rate_limit_metadata, response)
+                    self.add_headers(response, rate_limit_metadata)
                     return response
 
         except Exception:
@@ -87,15 +86,15 @@ class RatelimitMiddleware:
         response = self.get_response(request)
 
         # Process the response
-        try:
-            if rate_limit_metadata:
-                self.add_headers(rate_limit_metadata, response)
-            finish_request(rate_limit_key, rate_limit_uid)
-        except Exception:
-            logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
+        self.add_headers(response, rate_limit_metadata)
+        finish_request(rate_limit_key, rate_limit_uid)
         return response
 
-    def add_headers(self, rate_limit_metadata, response):
+    def add_headers(self, response, rate_limit_metadata=None):
+        if not rate_limit_metadata:
+            logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
+            return response
+
         response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
         response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
         response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
