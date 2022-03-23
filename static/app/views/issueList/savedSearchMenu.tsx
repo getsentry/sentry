@@ -163,7 +163,7 @@ const SearchSort = styled('span')`
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
