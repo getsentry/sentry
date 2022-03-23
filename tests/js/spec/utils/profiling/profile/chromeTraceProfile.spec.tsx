@@ -1,6 +1,5 @@
 import {
   ChromeTraceProfile,
-  importChromeTrace,
   parseChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
