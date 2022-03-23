@@ -190,6 +190,15 @@ build-utils/        @getsentry/owners-js-build
 /tests/sentry/api/endpoints/test_organization_profiling_profiles.py @getsentry/profiling
 ### End of Profiling ###
 
+### Emerging Tech ###
+
+###### Replays #######
+/static/app/views/replays/        @getsentry/emerging-technology
+/tests/js/spec/views/replays/     @getsentry/emerging-technology
+###### End of Replays #######
+
+### End of Emerging Tech ###
+
 
 ### Ecosystem ###
 
