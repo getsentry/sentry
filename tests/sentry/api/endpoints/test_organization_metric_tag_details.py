@@ -76,7 +76,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         response = self.get_response(
             self.organization.slug,
             "release",
-            metric=["session.crash_free_rate", "session.init"],
+            metric=["session.crash_free_rate", "session.all"],
         )
         assert response.data == [{"key": "release", "value": "foobar"}]
 

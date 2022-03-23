@@ -82,6 +82,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "operations": ["count_unique"],
                 "unit": None,
             },
+            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
+            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
@@ -89,13 +92,13 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "unit": "percentage",
             },
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.errored_preaggregated",
                 "type": "numeric",
                 "operations": [],
                 "unit": "sessions",
             },
-            {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
         ]
 
     def test_metrics_index(self):
