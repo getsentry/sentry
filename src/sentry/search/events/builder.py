@@ -104,6 +104,7 @@ class QueryBuilder:
     ):
         self.dataset = dataset
         self.params = params
+        self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -135,7 +136,6 @@ class QueryBuilder:
 
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
-        self.organization_id = params.get("organization_id")
 
         self.resolve_query(
             query=query,
