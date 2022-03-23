@@ -1,20 +1,10 @@
+from __future__ import annotations
+
 import abc
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Dict,
-    FrozenSet,
-    Generic,
-    Iterable,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from typing import Any, Dict, FrozenSet, Generic, Iterable, Mapping, Sequence, Tuple, Type, TypeVar
 
 from sentry.utils import warnings
 
@@ -28,7 +18,7 @@ R = TypeVar("R", bound="Role")
 
 @dataclass(frozen=True, eq=True)
 class Role(abc.ABC):
-    parent: "RoleManager"
+    parent: RoleManager
     priority: int
     id: str
     name: str
@@ -41,7 +31,7 @@ class Role(abc.ABC):
     @classmethod
     def from_config(
         cls: Type[R],
-        parent: "RoleManager",
+        parent: RoleManager,
         priority: int,
         desc: str = "",
         scopes: Iterable[str] = (),
@@ -65,10 +55,10 @@ class Role(abc.ABC):
 class OrganizationRole(Role):
     is_global: bool = False
 
-    def can_manage(self, other: "OrganizationRole") -> bool:
+    def can_manage(self, other: OrganizationRole) -> bool:
         return self.priority >= other.priority
 
-    def get_entry_role(self) -> "TeamRole":
+    def get_entry_role(self) -> TeamRole:
         """Return the entry team role for this organization role.
 
         The "entry role" is the minimum team-level role that a member with this
@@ -76,22 +66,22 @@ class OrganizationRole(Role):
         """
         return self.parent.get_entry_role(self.id)
 
-    def can_manage_team_role(self, other: "TeamRole") -> bool:
+    def can_manage_team_role(self, other: TeamRole) -> bool:
         return self.get_entry_role().can_manage(other)
 
 
 @dataclass(frozen=True, eq=True)
 class TeamRole(Role):
-    is_entry_role_for: Optional[str] = None
+    is_entry_role_for: str | None = None
 
-    def can_manage(self, other: "TeamRole") -> bool:
+    def can_manage(self, other: TeamRole) -> bool:
         return self.priority >= other.priority
 
 
 class RoleLevel(Generic[R]):
     """Represent the set of all roles at one level (org or team)."""
 
-    def __init__(self, roles: Iterable[R], default_id: Optional[str] = None) -> None:
+    def __init__(self, roles: Iterable[R], default_id: str | None = None) -> None:
         self._priority_seq = tuple(sorted(roles, key=lambda r: r.priority))
         self._id_map = OrderedDict((r.id, r) for r in self._priority_seq)
 
@@ -136,7 +126,7 @@ class RoleManager:
         self,
         org_config: Iterable[Mapping[str, str]],
         team_config: Iterable[Mapping[str, str]],
-        default_org_role: Optional[str] = None,
+        default_org_role: str | None = None,
     ) -> None:
         self.organization_roles: RoleLevel[OrganizationRole] = RoleLevel(
             (
@@ -156,7 +146,7 @@ class RoleManager:
     def _make_entry_role_map(
         organization_roles: RoleLevel[OrganizationRole], team_roles: RoleLevel[TeamRole]
     ) -> Dict[str, str]:
-        def get_mapped_org_role(team_role: TeamRole) -> Optional[OrganizationRole]:
+        def get_mapped_org_role(team_role: TeamRole) -> OrganizationRole | None:
             if team_role.is_entry_role_for is None:
                 return None
             try:
