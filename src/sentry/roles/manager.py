@@ -69,6 +69,11 @@ class OrganizationRole(Role):
         return self.priority >= other.priority
 
     def get_entry_role(self) -> "TeamRole":
+        """Return the entry team role for this organization role.
+
+        The "entry role" is the minimum team-level role that a member with this
+        organization role automatically receives when joining a new team.
+        """
         return self.parent.get_entry_role(self.id)
 
     def can_manage_team_role(self, other: "TeamRole") -> bool:
