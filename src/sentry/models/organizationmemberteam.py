@@ -51,21 +51,6 @@ class OrganizationMemberTeam(BaseModel):
                 return team_role
         return entry_role
 
-    def update_team_role(self, role: TeamRole) -> None:
-        """Modify this member's team-level role.
-
-        If the member has an organization role that gives an equal or higher entry
-        role, write null to this object's role field. We do this because a persistent
-        team role, if it is overshadowed by the entry role, would be effectively
-        invisible in the UI, and would be surprising if it were left behind after the
-        user's org-level role is lowered.
-        """
-        entry_role = roles.get_entry_role(self.organizationmember.role)
-        if role.priority > entry_role.priority:
-            self.update(role=role.id)
-        else:
-            self.update(role=None)
-
     def get_scopes(self) -> FrozenSet[str]:
         """Get the scopes belonging to this member's team-level role."""
         if features.has("organizations:team-roles", self.organizationmember.organization):

@@ -18,12 +18,12 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import features, roles
+from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.team import TeamStatus
-from sentry.roles import organization_roles, team_roles
+from sentry.roles import organization_roles
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -477,23 +477,3 @@ class OrganizationMember(Model):
             .exclude(id=self.id)
             .exists()
         )
-
-    def update_role(self, role: str) -> None:
-        """Modify this member's org-level role.
-
-        If the new org role provides an entry role that is greater than or equal to
-        any existing team roles, overwrite the redundant team roles with null. We do
-        this because such a team role would be effectively invisible in the UI,
-        and would be surprising if it were left behind after the user's org role is
-        lowered.
-        """
-
-        from sentry.models import OrganizationMemberTeam
-
-        entry_role = roles.get_entry_role(role)
-        lesser_roles = [r.id for r in team_roles.get_all() if r.priority <= entry_role.priority]
-        with transaction.atomic():
-            OrganizationMemberTeam.objects.filter(
-                organizationmember=self, role__in=lesser_roles
-            ).update(role=None)
-            self.update(role=role)

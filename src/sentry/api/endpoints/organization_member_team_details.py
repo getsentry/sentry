@@ -2,7 +2,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -219,9 +219,25 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             if not self._can_set_team_role(request, team, new_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
-            omt.update_team_role(new_role)
+            self._change_team_member_role(omt, new_role)
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=200)
+
+    @staticmethod
+    def _change_team_member_role(member: OrganizationMemberTeam, role: TeamRole) -> None:
+        """Modify a member's team-level role.
+
+        If the member has an organization role that gives an equal or higher entry
+        role, write null to this object's role field. We do this because a persistent
+        team role, if it is overshadowed by the entry role, would be effectively
+        invisible in the UI, and would be surprising if it were left behind after the
+        user's org-level role is lowered.
+        """
+        entry_role = roles.get_entry_role(member.organizationmember.role)
+        if role.priority > entry_role.priority:
+            member.update(role=role.id)
+        else:
+            member.update(role=None)
 
     def delete(
         self,
