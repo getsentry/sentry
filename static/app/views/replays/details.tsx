@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -94,23 +93,21 @@ class ReplayDetails extends AsyncView<Props, State> {
     const projectSlug = event.projectSlug || event['project.name']; // seems janky
 
     return (
-      <Fragment>
-        <Fragment>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    to: `/organizations/${orgSlug}/replays/`,
-                    label: t('Replays'),
-                  },
-                  {label: t('Replay Details')}, // TODO: put replay ID or something here
-                ]}
-              />
-              <EventHeader event={event} />
-            </Layout.HeaderContent>
-          </Layout.Header>
-        </Fragment>
+      <NoPaddingContent>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: `/organizations/${orgSlug}/replays/`,
+                  label: t('Replays'),
+                },
+                {label: t('Replay Details')}, // TODO: put replay ID or something here
+              ]}
+            />
+            <EventHeader event={event} />
+          </Layout.HeaderContent>
+        </Layout.Header>
 
         <Layout.Body>
           <Layout.Main>
@@ -124,7 +121,7 @@ class ReplayDetails extends AsyncView<Props, State> {
             />
           </Layout.Side>
         </Layout.Body>
-      </Fragment>
+      </NoPaddingContent>
     );
   }
 }
@@ -140,6 +137,10 @@ const TitleWrapper = styled('div')`
 
 const MessageWrapper = styled('div')`
   margin-top: ${space(1)};
+`;
+
+const NoPaddingContent = styled(PageContent)`
+  padding: 0;
 `;
 
 export default ReplayDetails;
