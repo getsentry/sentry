@@ -45,15 +45,18 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
-  it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
+  it('dashboard adds new widget if component is mounted with newWidget prop and isEditing', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -62,6 +65,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        isEditing
       />,
       initialData.routerContext
     );
