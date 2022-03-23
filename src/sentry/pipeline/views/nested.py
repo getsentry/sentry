@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,15 +18,21 @@ class NestedPipelineView(PipelineView):
     Useful for embedding an identity authentication pipeline.
     """
 
-    def __init__(self, bind_key, pipeline_cls, provider_key, config=None):
+    def __init__(
+        self,
+        bind_key: str,
+        pipeline_cls,
+        provider_key: str,
+        config: Mapping[str, Any] | None = None,
+    ) -> None:
         self.provider_key = provider_key
         self.config = config or {}
 
         class NestedPipeline(pipeline_cls):
-            def set_parent_pipeline(self, parent_pipeline):
+            def set_parent_pipeline(self, parent_pipeline) -> None:
                 self.parent_pipeline = parent_pipeline
 
-            def finish_pipeline(self):
+            def finish_pipeline(self) -> Response:
                 self.parent_pipeline.bind_state(bind_key, self.fetch_state())
                 self.clear_session()
 
