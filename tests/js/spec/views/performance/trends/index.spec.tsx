@@ -1,7 +1,12 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  initializeData,
+  initializeDataSettings,
+} from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
   fireEvent,
@@ -12,9 +17,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/discover/fields';
 import TrendsIndex from 'sentry/views/performance/trends/';
+import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
 import {
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
@@ -25,9 +32,12 @@ const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
-jest.mock('sentry/components/forms/utils/getAllowAutosize', () => {
-  () => false;
-});
+jest.mock(
+  'sentry/utils/getDynamicComponent',
+  () =>
+    ({fixed}) =>
+      fixed
+);
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment');
@@ -91,6 +101,48 @@ async function enterSearch(el, text) {
 // Might swap on/off the skiphover to check perf later.
 async function clickEl(el) {
   userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
+}
+
+function _initializeData(
+  settings: initializeDataSettings,
+  options?: {selectedProjectId?: string}
+) {
+  const newSettings = {...settings};
+  newSettings.projects = settings.projects ?? [
+    TestStubs.Project({id: '1', firstTransactionEvent: false}),
+    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+  ];
+
+  if (options?.selectedProjectId) {
+    const selectedProject = newSettings.projects.find(
+      p => p.id === options.selectedProjectId
+    );
+    if (!selectedProject) {
+      throw new Error("Test is selecting project that isn't loaded");
+    } else {
+      PageFiltersStore.updateProjects(
+        settings.project ? [Number(selectedProject)] : [],
+        []
+      );
+    }
+    newSettings.project = selectedProject;
+  }
+
+  newSettings.project = settings.project ?? newSettings.projects[0];
+  const data = initializeData(newSettings);
+
+  // Modify page filters store to stop rerendering due to the test harness.
+  (PageFiltersStore as any)._hasInitialState = true;
+  PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
+  if (!options?.selectedProjectId) {
+    PageFiltersStore.updateProjects(
+      settings.project ? [Number(newSettings.projects[0].id)] : [],
+      []
+    );
+  }
+
+  act(() => ProjectsStore.loadInitialData(data.projects));
+  return data;
 }
 
 function initializeTrendsData(
@@ -224,8 +276,7 @@ describe('Performance > Trends', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const projects = [TestStubs.Project()];
-    const data = initializeTrendsData(projects, {});
+    const data = _initializeData({});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
@@ -235,12 +286,11 @@ describe('Performance > Trends', function () {
     );
 
     expect(await screen.findByTestId('trends-dropdown')).toBeInTheDocument();
-    expect(await screen.findAllByTestId('changed-transactions')).toHaveLength(2);
+    expect(screen.getAllByTestId('changed-transactions')).toHaveLength(2);
   });
 
   it('transaction list items are rendered', async function () {
-    const projects = [TestStubs.Project()];
-    const data = initializeTrendsData(projects, {project: ['-1']});
+    const data = _initializeData({});
 
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
