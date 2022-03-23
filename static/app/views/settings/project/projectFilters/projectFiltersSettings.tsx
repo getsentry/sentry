@@ -95,7 +95,7 @@ class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
   constructor(props: RowProps) {
     super(props);
 
-    let initialSubfilters;
+    let initialSubfilters: Set<string>;
 
     if (props.data.active === true) {
       initialSubfilters = new Set<string>(LEGACY_BROWSER_KEYS);
@@ -193,7 +193,7 @@ type Props = {
 
 type State = {
   hooksDisabled: ReturnType<typeof HookStore['get']>;
-};
+} & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {
   getDefaultState() {
