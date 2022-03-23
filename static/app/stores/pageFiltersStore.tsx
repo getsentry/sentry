@@ -111,7 +111,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 
   updateDateTime(datetime) {
-    if (isEqualWithDates(this.selection.datetime, datetime)) {
+    if (
+      isEqualWithDates(this.selection.datetime, datetime) &&
+      this.selection.datetime.utc === datetime.utc
+    ) {
       return;
     }
 

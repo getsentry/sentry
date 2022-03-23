@@ -76,8 +76,9 @@ declare global {
      * to React Testing Library.
      *
      * See the useLegacyStore hook for more unformation about this.
+     * Additionally passes the useLegacyStores internal state and the legacy stores state for comparison to reduce extra setStates.
      */
-    _legacyStoreHookUpdate: (update: () => void) => void;
+    _legacyStoreHookUpdate: (update: () => void, hookState: any, storeState: any) => void;
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {
