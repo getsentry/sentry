@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -26,12 +27,6 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def create_event(self, **kwargs):
-        if "start_timestamp" not in kwargs:
-            kwargs["start_timestamp"] = self.min_ago
-
-        if "timestamp" not in kwargs:
-            kwargs["timestamp"] = self.min_ago + timedelta(seconds=8)
-
         if "spans" not in kwargs:
             kwargs["spans"] = [
                 {
@@ -66,43 +61,255 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
+    def format_span(self, op, group):
+        return f"{op}:{group}"
+
+    def do_request(self, query, with_feature=True):
+        features = self.FEATURES if with_feature else []
+        with self.feature(features):
+            return self.client.get(self.url, query, format="json")
+
     def test_no_feature(self):
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 404, response.content
+        query = {
+            "projects": [-1],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+        }
+        response = self.do_request(query, False)
+        assert response.status_code == 404
 
     def test_no_projects(self):
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url, data={"projects": [-1], "span": f"django.middleware:{'cd'* 8}"}
-            )
+        query = {
+            "projects": [-1],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+        }
+        response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
+        assert response.status_code == 200
         assert response.data == {}
 
-    def test_endpoint(self):
+    def test_bad_params_missing_span(self):
+        query = {
+            "project": [self.project.id],
+            "numBuckets": 50,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400
+        assert response.data == {"span": [ErrorDetail("This field is required.", code="required")]}
+
+    def test_bad_params_missing_num_buckets(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400
+        assert response.data == {
+            "numBuckets": [ErrorDetail("This field is required.", code="required")]
+        }
+
+    def test_bad_params_invalid_num_buckets(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": "foo",
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400, "failing for numBuckets"
+        assert response.data == {
+            "numBuckets": ["A valid integer is required."]
+        }, "failing for numBuckets"
+
+    def test_bad_params_outside_range_num_buckets(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": -1,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400, "failing for numBuckets"
+        assert response.data == {
+            "numBuckets": ["Ensure this value is greater than or equal to 1."]
+        }, "failing for numBuckets"
+
+    def test_bad_params_num_buckets_too_large(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 101,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400, "failing for numBuckets"
+        assert response.data == {
+            "numBuckets": ["Ensure this value is less than or equal to 100."]
+        }, "failing for numBuckets"
+
+    def test_bad_params_invalid_precision_too_small(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "precision": -1,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 400, "failing for precision"
+        assert response.data == {
+            "precision": ["Ensure this value is greater than or equal to 0."],
+        }, "failing for precision"
+
+    def test_bad_params_invalid_precision_too_big(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "precision": 100,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, "failing for precision"
+        assert response.data == {
+            "precision": ["Ensure this value is less than or equal to 4."],
+        }, "failing for precision"
+
+    def test_bad_params_reverse_min_max(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "min": 10,
+            "max": 5,
+        }
+
+        response = self.do_request(query)
+        assert response.data == {"non_field_errors": ["min cannot be greater than max."]}
+
+    def test_bad_params_invalid_min(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "min": "foo",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, "failing for min"
+        assert response.data == {"min": ["A valid number is required."]}, "failing for min"
+
+    def test_bad_params_invalid_max(self):
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": 50,
+            "max": "bar",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, "failing for max"
+        assert response.data == {"max": ["A valid number is required."]}, "failing for max"
+
+    def test_histogram_empty(self):
+        num_buckets = 5
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.view", "cd" * 8),
+            "numBuckets": num_buckets,
+        }
+
+        expected_empty_response = [{"bin": i, "count": 0} for i in range(num_buckets)]
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data == expected_empty_response
+
+    def test_histogram(self):
         self.create_event()
-        num_buckets = 100
+        num_buckets = 50
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": num_buckets,
+        }
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "span": f"django.middleware:{'cd'* 8}",
-                    "numBuckets": num_buckets,
-                },
-                format="json",
-            )
-
-        # currently, num of buckets is hardcoded to 100, so we need to generate a result
-        # with 100 buckets
-        # then insert two non-null bins [{"bin": 3, "count": 2}, {"bin": 10, "count": 3}]
-        # TODO refactor this once num of buckets is dynamic
-        expected_data = [{"bin": i, "count": 0} for i in range(num_buckets)]
-        firstIndex = expected_data.index({"bin": 3, "count": 0})
-        expected_data[firstIndex] = {"bin": 3, "count": 2}
-        secondIndex = expected_data.index({"bin": 10, "count": 0})
-        expected_data[secondIndex] = {"bin": 10, "count": 3}
+        response = self.do_request(query)
 
         assert response.status_code == 200, response.content
-        assert response.data == expected_data
+        for bucket in response.data:
+            if bucket["bin"] == 3:
+                assert bucket["count"] == 2
+            elif bucket["bin"] == 10:
+                assert bucket["count"] == 3
+            else:
+                assert bucket["count"] == 0
+
+    def test_histogram_using_min_max(self):
+        self.create_event()
+        num_buckets = 10
+        min = 5
+        max = 11
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": num_buckets,
+            "min": min,
+            "max": max,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        for bucket in response.data:
+            if bucket["bin"] == 10:
+                assert bucket["count"] == 3
+            else:
+                assert bucket["count"] == 0
+        assert response.data[0]["bin"] == min
+        assert response.data[-1]["bin"] == max - 1
+
+    def test_histogram_simple_using_given_min_above_queried_max(self):
+        self.create_event()
+        num_buckets = 10
+        min = 12
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": num_buckets,
+            "min": min,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 200
+        for bucket in response.data:
+            assert bucket["count"] == 0
+        assert response.data[0] == {"bin": min, "count": 0}
+
+    def test_histogram_simple_using_given_max_below_queried_min(self):
+        self.create_event()
+        num_buckets = 10
+        max = 2
+        query = {
+            "project": [self.project.id],
+            "span": self.format_span("django.middleware", "cd" * 8),
+            "numBuckets": num_buckets,
+            "max": max,
+        }
+
+        response = self.do_request(query)
+
+        assert response.status_code == 200
+        for bucket in response.data:
+            assert bucket["count"] == 0
+        assert response.data[-1] == {"bin": max - 1, "count": 0}
