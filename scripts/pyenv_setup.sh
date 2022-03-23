@@ -92,7 +92,7 @@ install_pyenv() {
       echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
-    pyenv install --skip-existing || pyenv install --list
+    pyenv install --skip-existing
   else
     echo >&2 "!!! pyenv not found, try running bootstrap script again or run \`brew bundle\` in the sentry repo"
     exit 1
