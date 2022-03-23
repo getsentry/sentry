@@ -2,15 +2,17 @@ import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Button from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Hovercard} from 'sentry/components/hovercard';
+import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Member, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-
-import InviteMembersButton from './components/inviteMembersButton';
 
 type Props = {
   organization: Organization;
@@ -22,7 +24,7 @@ type State = AsyncView['state'] & {
 };
 
 const InviteMembersButtonHook = HookOrDefault({
-  hookName: 'member-invite-buttom:customization',
+  hookName: 'member-invite-button:customization',
   defaultComponent: ({children, organization, onTriggerModal}) =>
     children({
       disabled: !organization.features.includes('invite-members'),
@@ -138,6 +140,43 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       </Fragment>
     );
   }
+}
+
+function InviteMembersButton({
+  disabled,
+  onClick,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const action = (
+    <Button
+      priority="primary"
+      size="small"
+      onClick={onClick}
+      data-test-id="email-invite"
+      icon={<IconMail />}
+      disabled={disabled}
+    >
+      {t('Invite Members')}
+    </Button>
+  );
+
+  return disabled ? (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          featureName="Invite Members"
+          features={['organizations:invite-members']}
+          hideHelpToggle
+        />
+      }
+    >
+      {action}
+    </Hovercard>
+  ) : (
+    action
+  );
 }
 
 export default withOrganization(OrganizationMembersWrapper);

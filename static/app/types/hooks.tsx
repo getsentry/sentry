@@ -115,7 +115,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
-  'member-invite-buttom:customization': InviteButtonCustomizationHook;
+  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
