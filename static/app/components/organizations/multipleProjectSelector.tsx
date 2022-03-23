@@ -42,6 +42,7 @@ type Props = WithRouterProps & {
   lockedMessageSubject?: React.ReactNode;
   shouldForceProject?: boolean;
   showIssueStreamLink?: boolean;
+  showPin?: boolean;
   showProjectSettingsLink?: boolean;
 };
 

@@ -17,7 +17,10 @@ describe('ProjectPageFilter', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
       params: {orgId: 'org-slug'},
     },
   });
@@ -76,7 +79,7 @@ describe('ProjectPageFilter', function () {
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton);
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 

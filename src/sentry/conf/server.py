@@ -587,6 +587,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.profiles.task",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -653,6 +654,8 @@ CELERY_QUEUES = [
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -2228,6 +2231,7 @@ KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
+KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2261,6 +2265,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    # Topic for receiving profiles from Relay
+    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
 }
 
 # If True, consumers will create the topics if they don't exist

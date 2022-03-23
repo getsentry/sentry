@@ -33,7 +33,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             assert response.status_code == 400
 
     def test_groupby_single(self):
-        indexer.record("environment")
+        indexer.record(self.project.organization_id, "environment")
         response = self.get_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -54,7 +54,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_valid_filter(self):
         for tag in ("release", "environment"):
-            indexer.record(tag)
+            indexer.record(self.project.organization_id, tag)
         query = "release:myapp@2.0.0"
         response = self.get_success_response(
             self.project.organization.slug,
@@ -148,20 +148,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby(self):
         # Record some strings
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        k_transaction = indexer.record("transaction")
-        v_foo = indexer.record("/foo")
-        v_bar = indexer.record("/bar")
-        v_baz = indexer.record("/baz")
-        k_rating = indexer.record("measurement_rating")
-        v_good = indexer.record("good")
-        v_meh = indexer.record("meh")
-        v_poor = indexer.record("poor")
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        k_transaction = indexer.record(org_id, "transaction")
+        v_foo = indexer.record(org_id, "/foo")
+        v_bar = indexer.record(org_id, "/bar")
+        v_baz = indexer.record(org_id, "/baz")
+        k_rating = indexer.record(org_id, "measurement_rating")
+        v_good = indexer.record(org_id, "good")
+        v_meh = indexer.record(org_id, "meh")
+        v_poor = indexer.record(org_id, "poor")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
                     "timestamp": int(time.time()),
@@ -209,15 +210,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby_percentile(self):
         # Record some strings
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
                     "timestamp": int(time.time()),
@@ -258,15 +260,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             }
 
     def test_orderby_percentile_with_pagination(self):
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
                     "timestamp": int(time.time()),
@@ -317,15 +320,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
         `limit` parameter
         """
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
                     "timestamp": int(time.time()),
@@ -364,7 +368,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "sentry.transactions.measurements.fcp",
             "transaction",
         ]:
-            indexer.record(metric)
+            indexer.record(self.organization.id, metric)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -385,16 +389,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from the same entity
         """
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        metric_id_fcp = indexer.record("sentry.transactions.measurements.fcp")
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        metric_id_fcp = indexer.record(org_id, "sentry.transactions.measurements.fcp")
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id,
                     "timestamp": int(time.time()),
@@ -413,7 +418,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id_fcp,
                     "timestamp": int(time.time()),
@@ -467,16 +472,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -493,9 +499,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.user"),
+                    "metric_id": indexer.record(org_id, "sentry.transactions.user"),
                     "timestamp": int(time.time()),
                     "tags": {tag: value},
                     "type": "s",
@@ -546,16 +552,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -569,7 +576,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_distributions",
         )
-        user_metric = indexer.record("sentry.transactions.user")
+        user_metric = indexer.record(org_id, "sentry.transactions.user")
         user_ts = time.time()
         for ts, ranges in [
             (int(user_ts), [range(4, 5), range(6, 11)]),
@@ -578,7 +585,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self._send_buckets(
                 [
                     {
-                        "org_id": self.organization.id,
+                        "org_id": org_id,
                         "project_id": self.project.id,
                         "metric_id": user_metric,
                         "timestamp": ts,
@@ -697,16 +704,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         with a different entity than the entity of the field in the order by), then the table gets
         populated accordingly
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -785,7 +793,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id))
 
         # "foo" is known by indexer, "bar" is not
-        indexer.record("foo")
+        indexer.record(self.organization.id, "foo")
 
         response = self.get_success_response(
             self.organization.slug,
@@ -815,7 +823,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=30))
     def test_no_limit_with_series(self):
         """Pagination args do not apply to series"""
-        indexer.record("session.status")
+        indexer.record(self.organization.id, "session.status")
         for minute in range(4):
             self.store_session(
                 self.build_session(
@@ -917,13 +925,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_rate", "session.init", "session.crashed"],
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] == 0.5
-        assert group["totals"]["session.init"] == 8
+        assert group["totals"]["session.all"] == 8
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
@@ -982,7 +990,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.crash_free_rate"] == [None]
 
     def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
-        indexer.record("release")
+        indexer.record(self.organization.id, "release")
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
@@ -1007,36 +1015,37 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
     def test_errored_sessions(self):
-        session_metric = indexer.record(SessionMetricKey.SESSION.value)
-        indexer.record("sentry.sessions.session.duration")
-        indexer.record("sentry.sessions.user")
-        session_error_metric = indexer.record("sentry.sessions.session.error")
-        session_status_tag = indexer.record("session.status")
-        release_tag = indexer.record("release")
+        org_id = self.organization.id
+        session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
+        indexer.record(org_id, "sentry.sessions.session.duration")
+        indexer.record(org_id, "sentry.sessions.user")
+        session_error_metric = indexer.record(org_id, "sentry.sessions.session.error")
+        session_status_tag = indexer.record(org_id, "session.status")
+        release_tag = indexer.record(org_id, "release")
         user_ts = time.time()
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        session_status_tag: indexer.record("errored_preaggr"),
-                        release_tag: indexer.record("foo"),
+                        session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
                     "retention_days": 90,
                 },
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        session_status_tag: indexer.record("init"),
-                        release_tag: indexer.record("foo"),
+                        session_status_tag: indexer.record(org_id, "init"),
+                        release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 10,
@@ -1048,7 +1057,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": session_error_metric,
                     "timestamp": user_ts,
@@ -1057,16 +1066,169 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "value": numbers,
                     "retention_days": 90,
                 }
-                for tag, value, numbers in ((release_tag, indexer.record("foo"), list(range(3))),)
+                for tag, value, numbers in (
+                    (release_tag, indexer.record(org_id, "foo"), list(range(3))),
+                )
             ],
             entity="metrics_sets",
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set"],
+            field=["session.errored_preaggregated", "session.errored_set", "session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.errored_set"] == 3
         assert group["totals"]["session.errored_preaggregated"] == 4
+        assert group["totals"]["session.errored"] == 7
+        assert group["series"]["session.errored_set"] == [0, 0, 0, 0, 0, 3]
+        assert group["series"]["session.errored_preaggregated"] == [0, 4, 0, 0, 0, 0]
+        assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"session.errored": 7},
+            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
+        }
+
+    def test_orderby_composite_entity_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["session.errored"],
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "It is not possible to orderBy field session.errored as it does not "
+            "have a direct mapping to a query alias"
+        )
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_abnormal_sessions(self):
+        session_metric = indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
+        indexer.record(self.organization.id, "sentry.sessions.session.duration")
+        indexer.record(self.organization.id, "sentry.sessions.user")
+        session_status_tag = indexer.record(self.organization.id, "session.status")
+        release_tag = indexer.record(self.organization.id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "bar"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.abnormal"],
+        )
+        foo_group, bar_group = response.data["groups"][0], response.data["groups"][1]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.abnormal": 4}
+        assert foo_group["series"] == {"session.abnormal": [0, 4, 0, 0, 0, 0]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.abnormal": 3}
+        assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_crashed_user_sessions(self):
+        org_id = self.organization.id
+        indexer.record(org_id, "sentry.sessions.session.duration")
+        users_metric_id = indexer.record(org_id, "sentry.sessions.user")
+        session_status_tag = indexer.record(org_id, "session.status")
+        release_tag = indexer.record(org_id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "bar"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8, 9, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crashed_user"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.crashed_user"],
+        )
+        foo_group, bar_group = response.data["groups"][1], response.data["groups"][0]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.crashed_user": 3}
+        assert foo_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 3]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.crashed_user": 6}
+        assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}

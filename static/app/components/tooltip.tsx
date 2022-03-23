@@ -126,10 +126,22 @@ export function DO_NOT_USE_TOOLTIP({
   // Delayed open and close time handles
   const delayOpenTimeoutRef = useRef<number | null>(null);
   const delayHideTimeoutRef = useRef<number | null>(null);
+  
+  // When the component is unmounted, make sure to stop the timeouts
+  useEffect(
+    () => () => {
+      if (delayOpenTimeoutRef.current) {
+        window.clearTimeout(delayOpenTimeoutRef.current);
+      }
+      if (delayHideTimeoutRef.current) {
+        window.clearTimeout(delayHideTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
-
   const modifiers: PopperJS.Modifiers = useMemo(() => {
     return {
       hide: {enabled: false},
@@ -143,7 +155,7 @@ export function DO_NOT_USE_TOOLTIP({
       },
     };
   }, []);
-
+  
   function handleOpen() {
     if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
       return;

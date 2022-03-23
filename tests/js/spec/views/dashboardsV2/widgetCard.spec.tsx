@@ -550,6 +550,7 @@ describe('Dashboards > WidgetCard', function () {
         widgetLimitReached={false}
         showWidgetViewerButton
         index="10"
+        isPreview
       />,
       {context: routerContext}
     );
