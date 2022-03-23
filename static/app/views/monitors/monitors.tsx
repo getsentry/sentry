@@ -82,12 +82,12 @@ class Monitors extends AsyncView<Props, State> {
           </HeaderTitle>
         </PageHeader>
         <Filters>
+          <ProjectPageFilter />
           <SearchBar
             query={decodeScalar(qs.parse(location.search)?.query, '')}
             placeholder={t('Search for monitors.')}
             onSearch={this.handleSearch}
           />
-          <ProjectPageFilter />
         </Filters>
         <Panel>
           <PanelBody>
@@ -141,7 +141,7 @@ const StyledTimeSince = styled(TimeSince)`
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: 1fr minmax(auto, 300px);
+  grid-template-columns: minmax(auto, 300px) 1fr;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 `;
