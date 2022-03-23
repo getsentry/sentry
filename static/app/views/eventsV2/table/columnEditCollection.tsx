@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
