@@ -1656,32 +1656,26 @@ class MetricsQueryBuilder(QueryBuilder):
                 for framework in query_framework.values():
                     framework.orderby.append(orderby)
 
-        having_entity = None
+        having_entity: Optional[str] = None
         for condition in self.flattened_having:
             if condition.lhs in self.distributions:
                 if having_entity is None:
                     having_entity = "distribution"
-                elif having_entity == "distribution":
-                    continue
-                else:
+                elif having_entity != "distribution":
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
             elif condition.lhs in self.sets:
                 if having_entity is None:
                     having_entity = "set"
-                elif having_entity == "set":
-                    continue
-                else:
+                elif having_entity != "set":
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
             elif condition.lhs in self.counters:
                 if having_entity is None:
                     having_entity = "counter"
-                elif having_entity == "counter":
-                    continue
-                else:
+                elif having_entity != "counter":
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
