@@ -2,6 +2,7 @@ from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
+    abnormal_sessions,
     all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
@@ -20,6 +21,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("init", all_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
+            ("abnormal", abnormal_sessions),
         ]:
             assert func(self.metric_ids, alias=status) == Function(
                 "sumIf",
