@@ -47,6 +47,12 @@ def all_sessions(metric_ids, alias=None):
     )
 
 
+def all_users(metric_ids, alias=None):
+    return _set_uniq_aggregation_on_session_status_factory(
+        session_status="init", metric_ids=metric_ids, alias=alias
+    )
+
+
 def crashed_sessions(metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         session_status="crashed", metric_ids=metric_ids, alias=alias

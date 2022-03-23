@@ -84,6 +84,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
             {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
             {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
