@@ -925,13 +925,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_rate", "session.init", "session.crashed"],
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] == 0.5
-        assert group["totals"]["session.init"] == 8
+        assert group["totals"]["session.all"] == 8
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 

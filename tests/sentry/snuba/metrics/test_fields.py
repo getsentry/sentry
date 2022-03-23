@@ -16,9 +16,9 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.fields.base import CompositeEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import (
+    all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
-    init_sessions,
     percentage,
     sessions_errored_set,
 )
@@ -70,7 +70,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         - Return the entity of that derived metric
         """
         expected_derived_metrics_entities = {
-            "session.init": "metrics_counters",
+            "session.all": "metrics_counters",
             "session.crashed": "metrics_counters",
             "session.crash_free_rate": "metrics_counters",
             "session.errored_preaggregated": "metrics_counters",
@@ -97,7 +97,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         session_ids = [indexer.record(org_id, "sentry.sessions.session")]
 
         derived_name_snql = {
-            "session.init": (init_sessions, session_ids),
+            "session.all": (all_sessions, session_ids),
             "session.crashed": (crashed_sessions, session_ids),
             "session.errored_preaggregated": (errored_preaggr_sessions, session_ids),
             "session.errored_set": (
@@ -115,7 +115,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ) == [
             percentage(
                 crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
-                init_sessions(metric_ids=session_ids, alias="session.init"),
+                all_sessions(metric_ids=session_ids, alias="session.all"),
                 alias="session.crash_free_rate",
             )
         ]
@@ -134,7 +134,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         session_error_metric_id = indexer.record(org_id, "sentry.sessions.session.error")
 
         for derived_metric_name in [
-            "session.init",
+            "session.all",
             "session.crashed",
             "session.crash_free_rate",
             "session.errored_preaggregated",
@@ -171,7 +171,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
     def test_generate_default_value(self):
         for derived_metric_name in [
-            "session.init",
+            "session.all",
             "session.crashed",
             "session.errored_set",
             "session.errored_preaggregated",

@@ -2,9 +2,9 @@ from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
+    all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
-    init_sessions,
     percentage,
     sessions_errored_set,
 )
@@ -17,7 +17,7 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_counter_sum_aggregation_on_session_status(self):
         for status, func in [
-            ("init", init_sessions),
+            ("init", all_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
         ]:
@@ -61,7 +61,7 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_percentage_in_snql(self):
         alias = "foo.percentage"
-        init_session_snql = init_sessions(self.metric_ids, "init_sessions")
+        init_session_snql = all_sessions(self.metric_ids, "init_sessions")
         crashed_session_snql = crashed_sessions(self.metric_ids, "crashed_sessions")
 
         assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(

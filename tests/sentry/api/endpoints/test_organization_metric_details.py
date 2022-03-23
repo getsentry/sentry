@@ -12,7 +12,7 @@ MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
             metric_name="derived_metric.multiple_metrics",
-            metrics=["metric_foo_doe", "session.init"],
+            metrics=["metric_foo_doe", "session.all"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"

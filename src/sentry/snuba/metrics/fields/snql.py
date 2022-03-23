@@ -26,7 +26,7 @@ def _counter_sum_aggregation_on_session_status_factory(session_status, metric_id
     )
 
 
-def init_sessions(metric_ids, alias=None):
+def all_sessions(metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         session_status="init", metric_ids=metric_ids, alias=alias
     )
