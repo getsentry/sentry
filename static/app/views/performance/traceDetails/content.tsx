@@ -223,7 +223,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     this.setState({searchQuery: searchQuery || undefined}, this.filterTransactions);
   };
 
-  filterTransactions = async () => {
+  filterTransactions = () => {
     const {traces} = this.props;
     const {filteredTransactionIds, searchQuery} = this.state;
 
