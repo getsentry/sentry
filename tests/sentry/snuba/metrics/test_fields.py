@@ -28,6 +28,7 @@ from sentry.testutils import TestCase
 def get_entity_of_metric_mocked(_, metric_name):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
+        "sentry.sessions.user": EntityKey.MetricsSets,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
     }[metric_name]
 

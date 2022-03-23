@@ -141,7 +141,7 @@ DEFAULT_AGGREGATES = {
     "sum": 0,
     "percentage": None,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
+UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 
 
 class MetricDoesNotExistException(Exception):
