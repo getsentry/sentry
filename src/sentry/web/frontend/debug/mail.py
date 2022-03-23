@@ -40,7 +40,7 @@ from sentry.models import (
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_rules
+from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -288,7 +288,9 @@ def alert(request):
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
-            "link": "http://example.com/link",
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,

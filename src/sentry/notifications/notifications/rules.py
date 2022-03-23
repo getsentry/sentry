@@ -11,9 +11,9 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
+    get_group_settings_link,
     get_integration_link,
     get_interface_list,
-    get_link,
     get_rules,
     has_alert_integration,
     has_integrations,
@@ -90,12 +90,13 @@ class AlertRuleNotification(ProjectNotification):
         alert_status_page_enabled = features.has(
             "organizations:alert-rule-status-page", self.project.organization
         )
+        rule_details = get_rules(self.rules, self.organization, self.project)
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_link(self.group, environment),
-            "rules": get_rules(self.rules, self.organization, self.project),
+            "link": get_group_settings_link(self.group, environment, rule_details),
+            "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
