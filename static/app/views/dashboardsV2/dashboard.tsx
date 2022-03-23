@@ -151,9 +151,8 @@ class Dashboard extends Component<Props, State> {
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
+      this.addNewWidget();
     }
-
-    this.addNewWidget();
 
     // Get member list data for issue widgets
     this.fetchMemberList();
@@ -207,12 +206,12 @@ class Dashboard extends Component<Props, State> {
       try {
         await validateWidget(api, organization.slug, newWidget);
         handleAddCustomWidget(newWidget);
+        onSetNewWidget && onSetNewWidget();
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
       }
     }
-    onSetNewWidget && onSetNewWidget();
   }
 
   fetchTags() {

@@ -644,6 +644,7 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
+
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
