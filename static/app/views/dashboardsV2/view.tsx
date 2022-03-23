@@ -71,6 +71,7 @@ function ViewEditDashboard(props: Props) {
               dashboards={dashboards}
               onDashboardUpdate={onDashboardUpdate}
               newWidget={newWidget}
+              onSetNewWidget={() => setNewWidget(undefined)}
             />
           ) : (
             <LoadingIndicator />

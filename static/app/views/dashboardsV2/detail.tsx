@@ -72,6 +72,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
+  onSetNewWidget: () => void;
   organization: Organization;
   route: PlainRoute;
   newWidget?: Widget;
@@ -624,8 +625,16 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   renderDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location, newWidget} =
-      this.props;
+    const {
+      organization,
+      dashboard,
+      dashboards,
+      params,
+      router,
+      location,
+      newWidget,
+      onSetNewWidget,
+    } = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
@@ -694,6 +703,7 @@ class DashboardDetail extends Component<Props, State> {
                     router={router}
                     location={location}
                     newWidget={newWidget}
+                    onSetNewWidget={onSetNewWidget}
                     isPreview={this.isPreview}
                   />
                 </Layout.Main>
