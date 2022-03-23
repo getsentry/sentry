@@ -116,8 +116,8 @@ describe('GroupActions', function () {
       expect(reprocessActionButton).toBeTruthy();
 
       reprocessActionButton.simulate('click');
-
       await tick();
+      wrapper.update();
 
       expect(onReprocessEventFunc).toHaveBeenCalled();
     });
