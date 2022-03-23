@@ -1,6 +1,6 @@
 import SeenInfo from 'sentry/components/group/seenInfo';
 
-export default {
+export default story = {
   title: 'Features/Issues/Seen Info',
   args: {
     title: 'Last Seen',

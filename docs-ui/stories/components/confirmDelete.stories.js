@@ -2,7 +2,7 @@ import Button from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 
 // TODO(scttcper): modal not working
-export default {
+export default story = {
   title: 'Components/Buttons/Confirm',
   component: ConfirmDelete,
   args: {

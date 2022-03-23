@@ -1,7 +1,7 @@
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {IconFire} from 'sentry/icons';
 
-export default {
+export default story = {
   title: 'Views/Onboarding Panel',
   component: OnboardingPanel,
 };

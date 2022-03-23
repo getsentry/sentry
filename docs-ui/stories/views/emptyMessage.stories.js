@@ -6,7 +6,7 @@ import {IconTelescope, IconUser} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-export default {
+export default story = {
   title: 'Views/Empty States/Empty Messages',
   component: EmptyMessage,
 };

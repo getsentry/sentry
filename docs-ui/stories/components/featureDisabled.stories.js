@@ -1,6 +1,6 @@
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Feature Disabled',
 };
 

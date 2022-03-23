@@ -14,7 +14,7 @@ import {IconTelescope} from 'sentry/icons';
 
 import {_BulkController} from './bulkController.stories';
 
-export default {
+export default story = {
   title: 'Components/Tables/Panels',
   args: {
     dashedBorder: false,

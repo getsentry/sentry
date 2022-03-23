@@ -1,6 +1,6 @@
 import Badge from 'sentry/components/badge';
 
-export default {
+export default story = {
   title: 'Components/Badges/Badge',
   component: Badge,
   parameters: {

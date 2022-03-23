@@ -6,7 +6,7 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
-export default {
+export default story = {
   title: 'Components/PageTimeRangeSelector',
   component: PageTimeRangeSelector,
 };

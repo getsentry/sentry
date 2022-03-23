@@ -1,6 +1,6 @@
 import Well from 'sentry/components/well';
 
-export default {
+export default story = {
   title: 'Components/Well',
   component: Well,
 };

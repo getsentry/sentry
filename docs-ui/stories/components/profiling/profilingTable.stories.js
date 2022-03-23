@@ -1,7 +1,7 @@
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {ProfilingTable} from 'sentry/views/profiling/landing/profilingTable';
 
-export default {
+export default story = {
   title: 'Components/Profiling/ProfilingTable',
 };
 

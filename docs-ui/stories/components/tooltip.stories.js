@@ -15,7 +15,7 @@ class PassThroughComponent extends Component {
   }
 }
 
-export default {
+export default story = {
   title: 'Components/Tooltips/Tooltip',
   component: Tooltip,
 };

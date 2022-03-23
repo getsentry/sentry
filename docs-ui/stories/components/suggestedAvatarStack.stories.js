@@ -31,7 +31,7 @@ const options = {
   Team: suggestionsWithTeam,
 };
 
-export default {
+export default story = {
   title: 'Components/Avatars/Suggested Avatar',
   component: SuggestedAvatarStack,
 };

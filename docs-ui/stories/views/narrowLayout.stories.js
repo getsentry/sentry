@@ -1,6 +1,6 @@
 import NarrowLayout from 'sentry/components/narrowLayout';
 
-export default {
+export default story = {
   title: 'Views/Layout - Narrow',
 };
 

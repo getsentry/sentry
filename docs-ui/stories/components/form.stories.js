@@ -5,7 +5,7 @@ import RangeField from 'sentry/components/forms/rangeField';
 import SelectField from 'sentry/components/forms/selectField';
 import TextField from 'sentry/components/forms/textField';
 
-export default {
+export default story = {
   title: 'Components/Forms/Form',
   args: {
     alignRight: false,

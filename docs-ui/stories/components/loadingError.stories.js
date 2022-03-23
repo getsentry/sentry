@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Loading Error',
 };
 

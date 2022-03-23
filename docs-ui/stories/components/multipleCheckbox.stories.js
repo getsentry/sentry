@@ -2,7 +2,7 @@ import {action} from '@storybook/addon-actions';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
-export default {
+export default story = {
   title: 'Components/Forms/Controls/Multiple Checkbox',
   component: MultipleCheckbox,
   args: {

@@ -19,7 +19,7 @@ const RESOLVED_IN_COMMIT = {
   },
 };
 
-export default {
+export default story = {
   title: 'Features/Issues/Resolution Box & Muted Box',
 };
 

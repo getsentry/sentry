@@ -18,7 +18,7 @@ const Header = styled('h2')`
 `;
 Header.displayName = 'Header';
 
-export default {
+export default story = {
   title: 'Components/Badges/ID Badge',
   components: IdBadge,
 };

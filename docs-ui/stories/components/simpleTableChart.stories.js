@@ -1,6 +1,6 @@
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Simple Table Chart',
   component: SimpleTableChart,
   args: {

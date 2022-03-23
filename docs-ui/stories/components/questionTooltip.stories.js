@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import theme from 'sentry/utils/theme';
 
-export default {
+export default story = {
   title: 'Components/Tooltips/Question Tooltip',
   component: QuestionTooltip,
   args: {

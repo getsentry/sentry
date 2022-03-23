@@ -30,7 +30,7 @@ const dummy = [
 
 const pageIds = dummy.map(d => d.id);
 
-export default {
+export default story = {
   title: 'Components/Tables/BulkController',
   component: BulkController,
 };

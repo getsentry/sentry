@@ -1,6 +1,6 @@
 import LazyLoad from 'sentry/components/lazyLoad';
 
-export default {
+export default story = {
   title: 'Utilities/Lazy Load',
   component: LazyLoad,
 };

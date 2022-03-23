@@ -1,6 +1,6 @@
 import DeployBadge from 'sentry/components/deployBadge';
 
-export default {
+export default story = {
   title: 'Components/Badges/Deploy Badge',
   component: DeployBadge,
   args: {

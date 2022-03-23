@@ -1,6 +1,6 @@
 import RepoLabel from 'sentry/components/repoLabel';
 
-export default {
+export default story = {
   title: 'Components/Tags/Repo Label',
 };
 

@@ -1,6 +1,6 @@
 import PieChart from 'sentry/components/charts/pieChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Pie Chart',
   component: PieChart,
 };

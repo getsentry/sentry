@@ -5,7 +5,7 @@ import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'sentry/i
 import {toTitleCase} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-export default {
+export default story = {
   title: 'Components/Tags',
   component: Tag,
   argTypes: {

@@ -42,7 +42,7 @@ const columns = [
   },
 ];
 
-export default {
+export default story = {
   title: 'Components/Tables/ColumnEditor',
   component: ColumnEditModal,
   args: {

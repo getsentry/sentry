@@ -12,7 +12,7 @@ const items = [
   },
 ];
 
-export default {
+export default story = {
   title: 'Components/Forms/Auto Complete',
   parameters: {
     controls: {hideNoControlsWarning: true},

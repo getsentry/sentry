@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import UserMisery from 'sentry/components/userMisery';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Score Bar/User Misery',
   component: UserMisery,
 };

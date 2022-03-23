@@ -1,6 +1,6 @@
 import BarChart from 'sentry/components/charts/barChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Bar Chart',
   component: BarChart,
   parameters: {

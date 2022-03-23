@@ -2,7 +2,7 @@ import {action} from '@storybook/addon-actions';
 
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
 
-export default {
+export default story = {
   title: 'Utilities/Copy/Input',
   component: TextCopyInput,
   argTypes: {

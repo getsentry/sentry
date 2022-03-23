@@ -12,7 +12,7 @@ const user = {
   email: 'billy@sentry.io',
 };
 
-export default {
+export default story = {
   title: 'Views/Activity/Activity Item',
 };
 

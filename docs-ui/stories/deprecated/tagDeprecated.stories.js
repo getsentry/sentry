@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import Tag from 'sentry/components/tagDeprecated';
 import Tooltip from 'sentry/components/tooltip';
 
-export default {
+export default story = {
   title: 'Deprecated/TagDeprecated',
 };
 

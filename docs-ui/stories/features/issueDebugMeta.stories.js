@@ -103,7 +103,7 @@ class OrganizationContext extends Component {
   }
 }
 
-export default {
+export default story = {
   title: 'Features/Issues/Debug Meta',
 };
 

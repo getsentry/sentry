@@ -18,7 +18,7 @@ const event = {
   ],
 };
 
-export default {
+export default story = {
   title: 'Features/Discover/Tags Table',
   args: {
     title: 'title',

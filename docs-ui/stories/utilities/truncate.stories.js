@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Truncate from 'sentry/components/truncate';
 
-export default {
+export default story = {
   title: 'Utilities/Text/Truncate',
   component: Truncate,
 };

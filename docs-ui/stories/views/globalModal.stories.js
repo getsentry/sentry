@@ -2,7 +2,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import GlobalModal from 'sentry/components/globalModal';
 
-export default {
+export default story = {
   title: 'Views/Modals/Global Modal',
 };
 

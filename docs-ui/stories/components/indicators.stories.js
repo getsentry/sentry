@@ -7,7 +7,7 @@ import Button from 'sentry/components/button';
 import IndicatorContainer, {Indicators} from 'sentry/components/indicators';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 
-export default {
+export default story = {
   title: 'Components/Toast Indicators',
 };
 

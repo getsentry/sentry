@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 
 import NumberDragControl from 'sentry/components/numberDragControl';
 
-export default {
+export default story = {
   title: 'Components/Forms/Controls/Number Drag Control',
   componet: NumberDragControl,
   args: {

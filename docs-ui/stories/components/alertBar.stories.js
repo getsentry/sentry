@@ -1,6 +1,6 @@
 import PageAlertBar from 'sentry/components/pageAlertBar';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Alert Bar',
   component: PageAlertBar,
 };

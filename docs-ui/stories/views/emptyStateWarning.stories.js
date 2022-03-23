@@ -1,6 +1,6 @@
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 
-export default {
+export default story = {
   title: 'Views/Empty States/Empty State Warning',
   component: EmptyStateWarning,
 };

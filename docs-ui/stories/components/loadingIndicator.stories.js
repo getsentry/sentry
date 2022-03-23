@@ -1,7 +1,7 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 
-export default {
+export default story = {
   title: 'Components/Loading Indicators',
   component: LoadingIndicator,
 };

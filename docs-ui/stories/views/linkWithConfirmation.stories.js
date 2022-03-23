@@ -2,7 +2,7 @@ import {action} from '@storybook/addon-actions';
 
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 
-export default {
+export default story = {
   title: 'Views/Modals/Link With Confirmation Modal',
 };
 

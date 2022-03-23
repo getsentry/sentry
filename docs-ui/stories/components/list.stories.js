@@ -4,7 +4,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {listSymbol} from 'sentry/components/list/utils';
 
-export default {
+export default story = {
   title: 'Components/List',
   argTypes: {
     symbol: {

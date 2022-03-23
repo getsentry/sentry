@@ -4,7 +4,7 @@ import {action} from '@storybook/addon-actions';
 import EditableText from 'sentry/components/editableText';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Components/Forms/Misc/Editable Text',
   component: EditableText,
 };

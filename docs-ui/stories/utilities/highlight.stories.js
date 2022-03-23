@@ -1,6 +1,6 @@
 import Highlight, {HighlightComponent} from 'sentry/components/highlight';
 
-export default {
+export default story = {
   title: 'Utilities/Highlight',
   component: HighlightComponent,
   args: {

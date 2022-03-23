@@ -2,7 +2,7 @@ import {action} from '@storybook/addon-actions';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 
-export default {
+export default story = {
   title: 'Views/Breadcrumbs',
   component: Breadcrumbs,
 };

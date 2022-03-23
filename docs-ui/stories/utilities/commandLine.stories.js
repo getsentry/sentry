@@ -1,6 +1,6 @@
 import CommandLine from 'sentry/components/commandLine';
 
-export default {
+export default story = {
   title: 'Utilities/Command Line',
   args: {
     children: 'sentry devserver --workers',

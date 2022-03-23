@@ -1,6 +1,6 @@
 import ScoreBar from 'sentry/components/scoreBar';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Score Bar',
   args: {
     vertical: false,

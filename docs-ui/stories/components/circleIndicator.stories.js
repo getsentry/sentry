@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Misc/Circle Indicator',
   component: CircleIndicator,
   args: {

@@ -93,7 +93,7 @@ class GridParent extends Component {
   }
 }
 
-export default {
+export default story = {
   title: 'Components/Tables/GridEditable',
 };
 

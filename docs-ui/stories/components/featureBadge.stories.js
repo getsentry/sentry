@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 
-export default {
+export default story = {
   title: 'Components/Badges/Feature Badge',
   component: FeatureBadge,
 };

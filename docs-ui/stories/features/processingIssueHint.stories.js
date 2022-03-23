@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ProcessingIssueHint from 'sentry/components/stream/processingIssueHint';
 
-export default {
+export default story = {
   title: 'Features/Issues/Processing Issue Hint',
   args: {
     showProject: false,

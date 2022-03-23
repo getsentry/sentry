@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 
-export default {
+export default story = {
   title: 'Features/Issues/Stream Group',
 };
 

@@ -4,7 +4,7 @@ import {Form as LegacyForm} from 'sentry/components/deprecatedforms';
 import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
-export default {
+export default story = {
   title: 'Deprecated/SelectFields',
 };
 

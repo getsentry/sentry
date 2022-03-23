@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Features/Issues/Issue Sync List',
   component: IssueSyncListElement,
 };

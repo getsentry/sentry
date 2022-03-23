@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 
-export default {
+export default story = {
   title: 'Components/Forms/Misc/Checkbox Fancy',
   component: CheckboxFancy,
   args: {

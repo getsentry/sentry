@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import PlatformList from 'sentry/components/platformList';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Assets/Platforms/Platform List',
   component: PlatformList,
 };

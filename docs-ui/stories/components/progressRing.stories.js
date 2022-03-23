@@ -27,7 +27,7 @@ class Ticker extends Component {
   }
 }
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Progress Ring',
   args: {
     value: 29,

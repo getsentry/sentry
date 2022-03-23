@@ -1,6 +1,6 @@
 import Placeholder from 'sentry/components/placeholder';
 
-export default {
+export default story = {
   title: 'Components/Loading Indicators/Placeholder',
   component: Placeholder,
   args: {

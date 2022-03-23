@@ -2,7 +2,7 @@ import {action} from '@storybook/addon-actions';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 
-export default {
+export default story = {
   title: 'Views/Detailed Error',
   component: DetailedError,
 };

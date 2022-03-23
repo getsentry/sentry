@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 
 import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
-export default {
+export default story = {
   title: 'Features/Issues/Share Issue',
   component: ShareIssue,
   args: {

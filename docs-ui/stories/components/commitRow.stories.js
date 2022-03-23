@@ -1,6 +1,6 @@
 import {CommitRow} from 'sentry/components/commitRow';
 
-export default {
+export default story = {
   title: 'Components/Tables/CommitRow',
   component: CommitRow,
 };

@@ -1,7 +1,7 @@
 import AlertBadge from 'sentry/components/alertBadge';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Alert Badge',
   component: AlertBadge,
   args: {

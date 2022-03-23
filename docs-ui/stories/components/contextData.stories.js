@@ -1,6 +1,6 @@
 import ContextData from 'sentry/components/contextData';
 
-export default {
+export default story = {
   title: 'Components/Context Data',
   component: ContextData,
 };

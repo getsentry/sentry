@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import theme from 'sentry/utils/theme';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar.tsx';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Color Bar',
   component: ColorBar,
   args: {

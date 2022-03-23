@@ -26,7 +26,7 @@ UndoButton.contextTypes = {
   form: PropTypes.object,
 };
 
-export default {
+export default story = {
   title: 'Deprecated/Form',
 };
 

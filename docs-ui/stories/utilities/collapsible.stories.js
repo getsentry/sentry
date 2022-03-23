@@ -2,7 +2,7 @@ import Button from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import {tn} from 'sentry/locale';
 
-export default {
+export default story = {
   title: 'Utilities/Hidden Content/Collapsible',
   component: Collapsible,
 };

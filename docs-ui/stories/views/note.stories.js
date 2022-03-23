@@ -70,7 +70,7 @@ class OrganizationContext extends Component {
   }
 }
 
-export default {
+export default story = {
   title: 'Views/Activity/Activity Note',
   component: Note,
 };

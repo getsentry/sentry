@@ -1,7 +1,7 @@
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 
-export default {
+export default story = {
   title: 'Components/Pills',
 };
 

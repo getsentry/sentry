@@ -5,7 +5,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark, IconInfo, IconLightning, IconNot, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Alert',
   component: Alert,
   parameters: {

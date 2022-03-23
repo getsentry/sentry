@@ -1,7 +1,7 @@
 import DropdownLink from 'sentry/components/dropdownLink';
 import MenuItem from 'sentry/components/menuItem';
 
-export default {
+export default story = {
   title: 'Components/Buttons/Dropdowns/Dropdown Link',
   component: DropdownLink,
 };

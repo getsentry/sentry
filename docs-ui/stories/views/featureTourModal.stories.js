@@ -5,7 +5,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {IconEdit} from 'sentry/icons';
 
-export default {
+export default story = {
   title: 'Views/Modals/Feature Tour Modal',
   component: FeatureTourModal,
 };

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
-export default {
+export default story = {
   title: 'Components/Forms/Controls/Range Slider',
 };
 

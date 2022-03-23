@@ -1,6 +1,6 @@
 import LineChart from 'sentry/components/charts/lineChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Line Chart',
   component: LineChart,
 };

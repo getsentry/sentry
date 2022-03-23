@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import AreaChart from 'sentry/components/charts/areaChart';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Area Chart',
   component: AreaChart,
   parameters: {

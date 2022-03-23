@@ -1,6 +1,6 @@
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Misc/Similar Spectrum',
 };
 

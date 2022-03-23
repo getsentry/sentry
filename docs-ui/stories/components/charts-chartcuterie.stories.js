@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 
 const {renderConfig} = config;
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Chartcuterie',
 };
 

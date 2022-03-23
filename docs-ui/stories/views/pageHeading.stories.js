@@ -1,6 +1,6 @@
 import PageHeading from 'sentry/components/pageHeading';
 
-export default {
+export default story = {
   title: 'Views/Page Heading',
 };
 

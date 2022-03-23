@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import theme from 'sentry/utils/theme';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/MiniBarChart',
 };
 

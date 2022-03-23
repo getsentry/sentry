@@ -81,7 +81,7 @@ const groupedItems = [
   },
 ];
 
-export default {
+export default story = {
   title: 'Components/Buttons/Dropdowns/Dropdown Auto Complete',
   component: DropdownAutoComplete,
 };

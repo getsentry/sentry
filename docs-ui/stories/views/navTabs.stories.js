@@ -1,6 +1,6 @@
 import NavTabs from 'sentry/components/navTabs';
 
-export default {
+export default story = {
   title: 'Views/Tabs',
   component: NavTabs,
 };

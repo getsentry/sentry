@@ -6,7 +6,7 @@ const Wrapper = styled('div')`
   width: 250px;
 `;
 
-export default {
+export default story = {
   title: 'Components/Tables/KeyValueTable',
   component: KeyValueTable,
 };

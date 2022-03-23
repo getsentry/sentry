@@ -8,7 +8,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
-export default {
+export default story = {
   title: 'Views/Sidebar Section',
   component: SidebarSection,
   argTypes: {

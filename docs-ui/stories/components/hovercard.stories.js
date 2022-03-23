@@ -1,6 +1,6 @@
 import {Hovercard} from 'sentry/components/hovercard';
 
-export default {
+export default story = {
   title: 'Components/Tooltips/Hovercard',
   component: Hovercard,
   args: {

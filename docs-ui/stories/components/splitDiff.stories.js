@@ -104,7 +104,7 @@ const target = `TypeError: Cannot read property 'id' of undefined
   at ReactCompositeComponentWrapper._performComponentUpdate(~/react/lib/ReactCompositeComponent.js:721:0)
   at ReactCompositeComponentWrapper.updateComponent(~/react/lib/ReactCompositeComponent.js:642:0)`;
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Misc/Split Diff',
   component: SplitDiff,
   argTypes: {

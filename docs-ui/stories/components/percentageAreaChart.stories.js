@@ -2,7 +2,7 @@ import PercentageAreaChart from 'sentry/components/charts/percentageAreaChart';
 
 const TOTAL = 6;
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Percentage Area Chart',
   component: PercentageAreaChart,
 };

@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import LineChart from 'sentry/components/charts/lineChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Utilities/Chart Zoom',
   component: ChartZoom,
   args: {

@@ -6,7 +6,7 @@ const USER = {
   email: 'janebloggs@example.com',
 };
 
-export default {
+export default story = {
   title: 'Components/Avatars',
   component: Avatar,
   args: {

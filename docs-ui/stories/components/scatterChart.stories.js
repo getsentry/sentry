@@ -1,6 +1,6 @@
 import ScatterChart from 'sentry/components/charts/scatterChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Scatter Chart',
   component: ScatterChart,
 };

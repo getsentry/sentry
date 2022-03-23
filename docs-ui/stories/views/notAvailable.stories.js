@@ -1,7 +1,7 @@
 import NotAvailable from 'sentry/components/notAvailable';
 import PanelTable from 'sentry/components/panels/panelTable';
 
-export default {
+export default story = {
   title: 'Views/Not Available',
   component: NotAvailable,
 };

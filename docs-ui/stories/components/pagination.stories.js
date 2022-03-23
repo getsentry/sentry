@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import Pagination from 'sentry/components/pagination';
 
-export default {
+export default story = {
   title: 'Components/Buttons/Pagination',
   component: Pagination,
 };

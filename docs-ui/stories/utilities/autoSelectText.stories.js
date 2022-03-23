@@ -1,6 +1,6 @@
 import AutoSelectText from 'sentry/components/autoSelectText';
 
-export default {
+export default story = {
   title: 'Utilities/Text/Auto Select',
   component: AutoSelectText,
 };

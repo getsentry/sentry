@@ -5,7 +5,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin: 0 15px 15px 0;
 `;
 
-export default {
+export default story = {
   title: 'Assets/Platforms/Platform Icons',
   component: PlatformIcon,
 };

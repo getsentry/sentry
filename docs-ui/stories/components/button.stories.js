@@ -18,7 +18,7 @@ const WideButton = styled(Button)`
   width: 200px;
 `;
 
-export default {
+export default story = {
   title: 'Components/Buttons',
   component: Button,
 };

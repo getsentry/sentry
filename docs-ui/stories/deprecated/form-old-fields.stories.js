@@ -4,7 +4,7 @@ import {
   PasswordField,
 } from 'sentry/components/deprecatedforms';
 
-export default {
+export default story = {
   title: 'Deprecated/Fields',
 };
 

@@ -17,7 +17,7 @@ import TextField from 'sentry/components/forms/textField';
 import {Panel} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
 
-export default {
+export default story = {
   title: 'Components/Forms/Fields',
 };
 

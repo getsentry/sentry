@@ -4,7 +4,7 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
-export default {
+export default story = {
   title: 'Components/Profiling/FlamegraphZoomView',
 };
 

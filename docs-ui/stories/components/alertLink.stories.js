@@ -1,7 +1,7 @@
 import AlertLink from 'sentry/components/alertLink';
 import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'sentry/icons';
 
-export default {
+export default story = {
   title: 'Components/Alerts/Alert Links',
   component: AlertLink,
 };

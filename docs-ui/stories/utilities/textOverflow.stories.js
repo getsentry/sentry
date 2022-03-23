@@ -1,6 +1,6 @@
 import TextOverflow from 'sentry/components/textOverflow';
 
-export default {
+export default story = {
   title: 'Utilities/Text/Overflow',
   args: {
     isParagraph: false,

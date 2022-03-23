@@ -4278,7 +4278,7 @@ const organization = {
   access: ['project:releases'],
 };
 
-export default {
+export default story = {
   title: 'Features/Issues/Debug Meta (v2)',
 };
 

@@ -11,7 +11,7 @@ const options = [
   {value: 'more', label: 'Additional option'},
 ];
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Option Selector',
   component: OptionSelector,
   args: {

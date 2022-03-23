@@ -1,6 +1,6 @@
 import BreakdownBars from 'sentry/components/charts/breakdownBars';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Breakdown Bars',
   component: BreakdownBars,
   parameters: {

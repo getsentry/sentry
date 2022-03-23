@@ -4,7 +4,7 @@ import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import Version from 'sentry/components/version';
 
-export default {
+export default story = {
   title: 'Utilities/Text/Formatters',
 };
 

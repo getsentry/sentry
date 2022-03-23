@@ -1,6 +1,6 @@
 import LogoSentry from 'sentry/components/logoSentry';
 
-export default {
+export default story = {
   title: 'Assets/Logo',
   component: LogoSentry,
 };

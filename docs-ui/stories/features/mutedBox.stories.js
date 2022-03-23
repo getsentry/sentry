@@ -1,6 +1,6 @@
 import MutedBox from 'sentry/components/mutedBox';
 
-export default {
+export default story = {
   title: 'Features/Issues/Muted Box',
   component: MutedBox,
 };

@@ -1,6 +1,6 @@
 import ClippedBox from 'sentry/components/clippedBox';
 
-export default {
+export default story = {
   title: 'Utilities/Hidden Content/Clipped Box',
   component: ClippedBox,
   args: {

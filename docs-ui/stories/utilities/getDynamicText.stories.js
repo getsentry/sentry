@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-export default {
+export default story = {
   title: 'Utilities/Get Dynamic Text',
   component: getDynamicText,
 };

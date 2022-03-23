@@ -1,7 +1,7 @@
 import BarChart from 'sentry/components/charts/barChart';
 import LineChart from 'sentry/components/charts/lineChart';
 
-export default {
+export default story = {
   title: 'Components/Data Visualization/Charts/Playground',
   args: {
     height: 300,

@@ -1,7 +1,7 @@
 import Clipboard from 'sentry/components/clipboard';
 import Tooltip from 'sentry/components/tooltip';
 
-export default {
+export default story = {
   title: 'Utilities/Clipboard',
   component: Clipboard,
   args: {

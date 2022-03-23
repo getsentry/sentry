@@ -22,7 +22,7 @@ const crumbs = [
   },
 ];
 
-export default {
+export default story = {
   title: 'Views/Layout - Thirds',
 };
 
