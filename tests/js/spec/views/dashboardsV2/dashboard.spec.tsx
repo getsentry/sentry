@@ -112,7 +112,6 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
