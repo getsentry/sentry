@@ -1,4 +1,6 @@
-from typing import Any, List, Mapping, TypedDict
+from typing import Any, List, Mapping
+
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer
 from sentry.models import User
