@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from before_after import before
 from django.conf.urls import url
@@ -74,19 +74,21 @@ class RatelimitMiddlewareTest(TestCase):
             default_rate_limit_mock.return_value = RateLimit(0, 100)
             self.middleware(request)
 
-    def test_process_response_fails_open(self):
+    def test_bad_request_bad_response_fails_open(self):
         # TODO rewrite this since we no longer call process_response
         # and __call__ doesn't take a response
-        request = self.factory.get("/middleware/")
         bad_response = object()
-        assert self.middleware.process_response(request, bad_response) is bad_response
+        middleware = Mock()
+        middleware.__call__.return_value = bad_response
+        request = self.factory.get("/middleware/")
+        assert middleware(request) is bad_response
 
         class BadRequest:
             def __getattr__(self, attr):
                 raise Exception("nope")
 
         bad_request = BadRequest()
-        assert self.middleware.process_response(bad_request, bad_response) is bad_response
+        assert self.middleware(bad_request) is bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
