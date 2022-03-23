@@ -1055,17 +1055,17 @@ class SessionMetricsTestCase(SnubaTestCase):
     @classmethod
     def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
         def metric_id(key: SessionMetricKey):
-            res = indexer.record(key.value)
+            res = indexer.record(1, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(name)
+            res = indexer.record(1, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(name)
+            res = indexer.record(1, name)
             assert res is not None, name
             return res
 
@@ -1133,22 +1133,22 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._index_metric_strings()
 
     def _index_metric_strings(self):
-        PGStringIndexer().bulk_record(
-            strings=[
-                "transaction",
-                "environment",
-                "http.status",
-                "transaction.status",
-                METRIC_SATISFIED_TAG_KEY,
-                METRIC_TOLERATED_TAG_KEY,
-                METRIC_MISERABLE_TAG_KEY,
-                METRIC_TRUE_TAG_VALUE,
-                METRIC_FALSE_TAG_VALUE,
-                *self.METRIC_STRINGS,
-                *list(SPAN_STATUS_NAME_TO_CODE.keys()),
-                *list(METRICS_MAP.values()),
-            ]
-        )
+        strings = [
+            "transaction",
+            "environment",
+            "http.status",
+            "transaction.status",
+            METRIC_SATISFIED_TAG_KEY,
+            METRIC_TOLERATED_TAG_KEY,
+            METRIC_MISERABLE_TAG_KEY,
+            METRIC_TRUE_TAG_VALUE,
+            METRIC_FALSE_TAG_VALUE,
+            *self.METRIC_STRINGS,
+            *list(SPAN_STATUS_NAME_TO_CODE.keys()),
+            *list(METRICS_MAP.values()),
+        ]
+        org_strings = {self.organization.id: set(strings)}
+        PGStringIndexer().bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1605,28 +1605,29 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
         now = int(time.time())
 
         # TODO: move _send to SnubaMetricsTestCase
+        org_id = self.organization.id
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("metric1"),
+                    "metric_id": indexer.record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record("tag1"): indexer.record("value1"),
-                        indexer.record("tag2"): indexer.record("value2"),
+                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value1"),
+                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value2"),
                     },
                     "type": "c",
                     "value": 1,
                     "retention_days": 90,
                 },
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("metric1"),
+                    "metric_id": indexer.record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record("tag3"): indexer.record("value3"),
+                        indexer.record(org_id, "tag3"): indexer.record(org_id, "value3"),
                     },
                     "type": "c",
                     "value": 1,
@@ -1638,23 +1639,23 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("metric2"),
+                    "metric_id": indexer.record(org_id, "metric2"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record("tag4"): indexer.record("value3"),
-                        indexer.record("tag1"): indexer.record("value2"),
-                        indexer.record("tag2"): indexer.record("value1"),
+                        indexer.record(org_id, "tag4"): indexer.record(org_id, "value3"),
+                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value2"),
+                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value1"),
                     },
                     "type": "s",
                     "value": [123],
                     "retention_days": 90,
                 },
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("metric3"),
+                    "metric_id": indexer.record(org_id, "metric3"),
                     "timestamp": now,
                     "tags": {},
                     "type": "s",
