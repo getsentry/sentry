@@ -9,9 +9,9 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventWaiter from 'sentry/utils/eventWaiter';
+import EventWaiter, {FirstIssue} from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
@@ -34,7 +34,7 @@ export default function FirstEventFooter({
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
 
-  const getSecondaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+  const getSecondaryCta = ({firstIssue}: {firstIssue: FirstIssue}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
@@ -54,7 +54,11 @@ export default function FirstEventFooter({
     return (
       <Button
         to={`/organizations/${organization.slug}/issues/${
-          firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
+          typeof firstIssue !== 'boolean' &&
+          firstIssue !== null &&
+          typeof firstIssue !== 'string'
+            ? `${firstIssue.id}/`
+            : ''
         }`}
       >
         {t('Take me to my error')}
@@ -62,7 +66,7 @@ export default function FirstEventFooter({
     );
   };
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+  const getPrimaryCta = ({firstIssue}: {firstIssue: FirstIssue}) => {
     // if hasn't sent first event, allow skiping
     if (!hasFirstEvent) {
       return (
@@ -75,7 +79,11 @@ export default function FirstEventFooter({
       return (
         <Button
           to={`/organizations/${organization.slug}/issues/${
-            firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
+            typeof firstIssue !== 'boolean' &&
+            firstIssue !== null &&
+            typeof firstIssue !== 'string'
+              ? `${firstIssue.id}/`
+              : ''
           }`}
           priority="primary"
         >
