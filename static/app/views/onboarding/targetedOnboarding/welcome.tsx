@@ -21,16 +21,6 @@ import FallingError from 'sentry/views/onboarding/components/fallingError';
 
 import WelcomeBackground from './components/welcomeBackground';
 
-const easterEggText = [
-  t('Be careful. She’s barely hanging on as it is.'),
-  t("You know this error's not real, right?"),
-  t("It's that big button, right up there."),
-  t('You could do this all day. But you really shouldn’t.'),
-  tct("Ok, really, that's enough. Click [start:Start].", {start: <em />}),
-  tct("Next time you do that, [bold:we're starting].", {bold: <strong />}),
-  t("We weren't kidding, let's get going."),
-];
-
 const fadeAway: MotionProps = {
   variants: {
     initial: {opacity: 0},
@@ -82,15 +72,17 @@ function TargetedOnboardingWelcome({organization}: Props) {
     browserHistory.push(`/onboarding/${organization.slug}/select-platform/`);
   };
   return (
-    <FallingError onFall={fallCount => fallCount >= easterEggText.length && onComplete()}>
-      {({fallingError, fallCount}) => (
+    <FallingError>
+      {({fallingError, fallCount, isFalling}) => (
         <Wrapper>
           <WelcomeBackground />
-          <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
-          <SubHeaderText {...fadeAway}>
-            {t('Your code is probably broken. Maybe not.')}
-            <br />
-            {t('Find out for sure. Get started below.')}
+          <motion.h1 {...fadeAway} style={{marginBottom: space(0.5)}}>
+            {t('Welcome to Sentry')}
+          </motion.h1>
+          <SubHeaderText style={{marginBottom: space(4)}} {...fadeAway}>
+            {t(
+              'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
+            )}
           </SubHeaderText>
           <ActionItem>
             <InnerAction
@@ -110,7 +102,9 @@ function TargetedOnboardingWelcome({organization}: Props) {
                   >
                     {t('Start')}
                   </ButtonWithFill>
-                  <PositionedFallingError>{fallingError}</PositionedFallingError>
+                  {(fallCount === 0 || isFalling) && (
+                    <PositionedFallingError>{fallingError}</PositionedFallingError>
+                  )}
                 </React.Fragment>
               }
             />
@@ -147,6 +141,18 @@ function TargetedOnboardingWelcome({organization}: Props) {
                   <SandboxBtnWithFill
                     scenario="oneIssue"
                     priority="primary"
+                    clientData={{
+                      cta: {
+                        id: 'onboarding',
+                        shortTitle: t('Continue'),
+                        title: t('Continue Onboarding'),
+                        url: new URL(
+                          `/onboarding/${organization.slug}/welcome/`,
+                          window.location.origin
+                        ).toString(),
+                      },
+                      skipEmail: true,
+                    }}
                     {...{source}}
                   >
                     {t('Explore')}
@@ -156,7 +162,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
             </ActionItem>
           )}
           <motion.p style={{margin: 0}}>
-            {[t("Gee, I've used Sentry before."), ...easterEggText][fallCount]}
+            {t("Gee, I've used Sentry before.")}
             <br />
             <Link
               onClick={() =>
@@ -190,6 +196,7 @@ const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
+  align-self: center;
   text-align: center;
 
   h1 {
@@ -220,6 +227,11 @@ const TextWrapper = styled('div')`
   text-align: left;
   margin: auto ${space(3)};
   min-height: 70px;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+    margin: ${space(1)} ${space(1)};
+    margin-top: ${space(3)};
+  }
 `;
 
 const Strike = styled('span')`
@@ -227,7 +239,7 @@ const Strike = styled('span')`
 `;
 
 const ActionTitle = styled('h5')`
-  font-weight: 500;
+  font-weight: 900;
   margin: 0 0 ${space(0.5)};
   color: ${p => p.theme.gray400};
 `;

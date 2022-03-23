@@ -9,7 +9,6 @@ from requests.exceptions import Timeout
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.models import Activity, Rule, SentryApp, SentryAppInstallation
-from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -26,6 +25,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.faux import faux
+from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
@@ -42,8 +42,6 @@ def raiseStatusTrue():
 def raiseException():
     raise Exception
 
-
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]

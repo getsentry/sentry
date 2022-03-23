@@ -9,6 +9,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   getIssueFieldRenderer,
   getSortField,
@@ -46,7 +47,7 @@ type Props = {
 };
 
 export const renderIssueGridHeaderCell =
-  ({location, widget, tableData}: Props) =>
+  ({location, widget, tableData, organization}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -67,12 +68,21 @@ export const renderIssueGridHeaderCell =
             [WidgetViewerQueryField.CURSOR]: undefined,
           },
         })}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+            column: column.name,
+            order: 'desc',
+          });
+        }}
       />
     );
   };
 
 export const renderDiscoverGridHeaderCell =
-  ({location, selection, widget, tableData}: Props) =>
+  ({location, selection, widget, tableData, organization}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const eventView = eventViewFromWidget(
       widget.title,
@@ -115,6 +125,15 @@ export const renderDiscoverGridHeaderCell =
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+            column: column.name,
+            order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
+          });
+        }}
       />
     );
   };

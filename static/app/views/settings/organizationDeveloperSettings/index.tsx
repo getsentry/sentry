@@ -2,10 +2,10 @@ import {RouteComponentProps} from 'react-router';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
-import AlertLink from 'sentry/components/alertLink';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp} from 'sentry/types';
@@ -77,7 +77,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-internal/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -123,7 +123,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             priority="primary"
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
+            size="xsmall"
             to={`/settings/${orgId}/developer-settings/new-public/`}
             icon={<IconAdd size="xs" isCircled />}
           >
@@ -155,22 +155,31 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Developer Settings')} />
-        <PanelAlert type="info">
+        <SettingsPageHeader
+          title={t('Developer Settings')}
+          body={t(
+            `Create integrations that interact with Sentry using the REST API and webhooks.`
+          )}
+          action={
+            <Button
+              size="small"
+              external
+              href="https://docs.sentry.io/product/integrations/integration-platform/"
+            >
+              {t('View Docs')}
+            </Button>
+          }
+        />
+        <Alert type="info">
           {tct(
-            "We've added new webhooks for comments on issues! Read more in our [link:webhook documentation].",
+            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
               ),
             }
           )}
-        </PanelAlert>
-        <AlertLink href="https://docs.sentry.io/product/integrations/integration-platform/">
-          {t(
-            'Have questions about the Integration Platform? Learn more about it in our docs.'
-          )}
-        </AlertLink>
+        </Alert>
         {this.renderExernalIntegrations()}
         {this.renderInternalIntegrations()}
       </div>
