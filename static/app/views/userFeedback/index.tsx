@@ -164,13 +164,13 @@ const Header = styled('div')`
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: max-content minmax(0, max-content);
+  grid-template-columns: minmax(0, max-content) max-content;
   justify-content: start;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
