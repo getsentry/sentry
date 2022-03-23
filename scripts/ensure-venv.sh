@@ -29,5 +29,11 @@ else
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi
 
+
+if [ -L "${venv_name}/bin/python3" ] && [ ! -e "${venv_name}/bin/python3" ]; then
+    die "Your symlink ${venv_name}/bin/python3 seems to be pointing to a non-existing Python binary. Try: rm -rf ${venv_name} && direnv allow"
+fi
+
+
 # Somehow it does not succeed unless I exit with 0
 exit 0
