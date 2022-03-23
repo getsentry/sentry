@@ -283,11 +283,13 @@ export const AlertWizardRuleTemplates: Record<
   },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.USER,
   },

@@ -927,6 +927,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
     # Alert wizard redesign version 3
