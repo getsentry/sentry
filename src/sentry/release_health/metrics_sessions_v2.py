@@ -20,7 +20,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    TypedDict,
     Union,
     cast,
     get_args,
@@ -40,6 +39,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
+from typing_extensions import TypedDict
 
 from sentry.release_health.base import (
     GroupByFieldName,

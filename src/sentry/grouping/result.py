@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
+
+from typing_extensions import TypedDict
 
 from sentry.utils.safe import get_path, safe_execute, set_path
 

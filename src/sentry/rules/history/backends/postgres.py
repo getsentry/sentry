@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from typing import TYPE_CHECKING, Sequence
 
 import pytz
 from django.db.models import Count, Max
 from django.db.models.functions import TruncHour
+from typing_extensions import TypedDict
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, RuleFireHistory

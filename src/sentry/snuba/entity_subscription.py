@@ -2,7 +2,9 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypedDict, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
+
+from typing_extensions import TypedDict
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter

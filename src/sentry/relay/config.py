@@ -1,10 +1,11 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, TypedDict
+from typing import Any, List, Mapping, Optional
 
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
+from typing_extensions import TypedDict
 
 from sentry import features, quotas, utils
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD

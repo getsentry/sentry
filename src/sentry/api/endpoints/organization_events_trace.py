@@ -12,7 +12,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    TypedDict,
     TypeVar,
     Union,
     cast,
@@ -23,6 +22,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from typing_extensions import TypedDict
 
 from sentry import eventstore, features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase

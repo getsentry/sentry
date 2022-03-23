@@ -1,6 +1,7 @@
-from typing import Any, Dict, Literal, Mapping, Set, TypedDict
+from typing import Any, Dict, Literal, Mapping, Set
 
 from drf_spectacular.drainage import warn
+from typing_extensions import TypedDict
 
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError

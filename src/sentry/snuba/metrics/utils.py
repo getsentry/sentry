@@ -34,7 +34,9 @@ __all__ = (
 import re
 from abc import ABC
 from datetime import datetime
-from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
+from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence
+
+from typing_extensions import TypedDict
 
 from sentry.snuba.dataset import EntityKey
 

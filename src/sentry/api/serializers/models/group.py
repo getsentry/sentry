@@ -4,13 +4,14 @@ import functools
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import Iterable, Mapping, Optional, Sequence, Tuple
 
 import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
+from typing_extensions import TypedDict
 
 from sentry import release_health, tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize

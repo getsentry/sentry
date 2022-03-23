@@ -1,7 +1,9 @@
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict
+from typing import Any, Callable, Dict, Optional, Sequence
 from urllib.parse import urlparse
+
+from typing_extensions import TypedDict
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 

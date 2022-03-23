@@ -1,5 +1,7 @@
 from abc import ABC
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+
+from typing_extensions import TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder

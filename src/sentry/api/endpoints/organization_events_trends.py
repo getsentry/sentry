@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Dict, Match, Optional, TypedDict
+from typing import Dict, Match, Optional
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
+from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
