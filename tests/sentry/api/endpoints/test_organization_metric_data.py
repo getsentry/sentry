@@ -888,6 +888,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        org_id = self.organization.id
+        indexer.record(org_id, SessionMetricKey.SESSION_DURATION.value)
+        self.session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
+        self.session_user_metric = indexer.record(org_id, SessionMetricKey.USER.value)
+        self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
+        self.session_status_tag = indexer.record(org_id, "session.status")
+        self.release_tag = indexer.record(self.organization.id, "release")
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.query_builder.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
@@ -990,7 +997,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.crash_free_rate"] == [None]
 
     def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
-        indexer.record(self.organization.id, "release")
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
@@ -1015,24 +1021,18 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
     def test_errored_sessions(self):
-        org_id = self.organization.id
-        session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
-        indexer.record(org_id, "sentry.sessions.session.duration")
-        indexer.record(org_id, "sentry.sessions.user")
-        session_error_metric = indexer.record(org_id, "sentry.sessions.session.error")
-        session_status_tag = indexer.record(org_id, "session.status")
-        release_tag = indexer.record(org_id, "release")
         user_ts = time.time()
+        org_id = self.organization.id
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        session_status_tag: indexer.record(org_id, "errored_preaggr"),
-                        release_tag: indexer.record(org_id, "foo"),
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1041,11 +1041,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        session_status_tag: indexer.record(org_id, "init"),
-                        release_tag: indexer.record(org_id, "foo"),
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 10,
@@ -1059,7 +1059,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_error_metric,
+                    "metric_id": self.session_error_metric,
                     "timestamp": user_ts,
                     "tags": {tag: value},
                     "type": "s",
@@ -1067,7 +1067,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "retention_days": 90,
                 }
                 for tag, value, numbers in (
-                    (release_tag, indexer.record(org_id, "foo"), list(range(3))),
+                    (self.release_tag, indexer.record(org_id, "foo"), list(range(3))),
                 )
             ],
             entity="metrics_sets",
@@ -1125,22 +1125,17 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_abnormal_sessions(self):
-        session_metric = indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
-        indexer.record(self.organization.id, "sentry.sessions.session.duration")
-        indexer.record(self.organization.id, "sentry.sessions.user")
-        session_status_tag = indexer.record(self.organization.id, "session.status")
-        release_tag = indexer.record(self.organization.id, "release")
         user_ts = time.time()
         self._send_buckets(
             [
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
-                        release_tag: indexer.record(self.organization.id, "foo"),
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        self.release_tag: indexer.record(self.organization.id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1149,11 +1144,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
-                        release_tag: indexer.record(self.organization.id, "bar"),
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        self.release_tag: indexer.record(self.organization.id, "bar"),
                     },
                     "type": "c",
                     "value": 3,
@@ -1181,21 +1176,17 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_crashed_user_sessions(self):
         org_id = self.organization.id
-        indexer.record(org_id, "sentry.sessions.session.duration")
-        users_metric_id = indexer.record(org_id, "sentry.sessions.user")
-        session_status_tag = indexer.record(org_id, "session.status")
-        release_tag = indexer.record(org_id, "release")
         user_ts = time.time()
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": users_metric_id,
+                    "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        session_status_tag: indexer.record(org_id, "crashed"),
-                        release_tag: indexer.record(org_id, "foo"),
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -1204,11 +1195,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": users_metric_id,
+                    "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        session_status_tag: indexer.record(org_id, "crashed"),
-                        release_tag: indexer.record(org_id, "bar"),
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "bar"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8, 9, 5],
@@ -1235,18 +1226,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_all_user_sessions(self):
-        indexer.record(self.organization.id, "sentry.sessions.session.duration")
-        users_metric_id = indexer.record(self.organization.id, "sentry.sessions.user")
-        session_status_tag = indexer.record(self.organization.id, "session.status")
         user_ts = time.time()
         self._send_buckets(
             [
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": users_metric_id,
+                    "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
-                    "tags": {session_status_tag: indexer.record(self.organization.id, "init")},
+                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
                     "type": "s",
                     "value": [1, 2, 4],
                     "retention_days": 90,
@@ -1263,3 +1251,33 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"] == {"session.all_user": 3}
         assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_abnormal_user_sessions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal")
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal_user"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"] == {"session.abnormal_user": 3}
+        assert group["series"] == {"session.abnormal_user": [0, 0, 0, 0, 0, 3]}

@@ -17,12 +17,14 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Quer
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project, dataclass
+from sentry.models import Enum, Project, dataclass
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
+    abnormal_users,
     all_sessions,
     all_users,
     crashed_sessions,
@@ -480,65 +482,86 @@ class CompositeEntityDerivedMetric(DerivedMetric):
         return self.post_query_func(*compute_func_args)
 
 
-# ToDo(ahmed): Replace the metric_names with Enums
+class DerivedMetricKey(Enum):
+    SESSION_ALL = "session.all"
+    SESSION_ALL_USER = "session.all_user"
+    SESSION_ABNORMAL = "session.abnormal"
+    SESSION_ABNORMAL_USER = "session.abnormal_user"
+    SESSION_CRASHED = "session.crashed"
+    SESSION_CRASHED_USER = "session.crashed_user"
+    SESSION_ERRORED_PREAGGREGATED = "session.errored_preaggregated"
+    SESSION_ERRORED_SET = "session.errored_set"
+    SESSION_ERRORED = "session.errored"
+    SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
+
+
+# ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
+#  values
 DERIVED_METRICS = {
     derived_metric.metric_name: derived_metric
     for derived_metric in [
         SingularEntityDerivedMetric(
-            metric_name="session.all",
-            metrics=["sentry.sessions.session"],
+            metric_name=DerivedMetricKey.SESSION_ALL.value,
+            metrics=[SessionMetricKey.SESSION.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: all_sessions(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name="session.abnormal",
-            metrics=["sentry.sessions.session"],
+            metric_name=DerivedMetricKey.SESSION_ALL_USER.value,
+            metrics=[SessionMetricKey.USER.value],
+            unit="users",
+            snql=lambda *_, metric_ids, alias=None: all_users(metric_ids, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_ABNORMAL.value,
+            metrics=[SessionMetricKey.SESSION.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: abnormal_sessions(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name="session.crashed",
-            metrics=["sentry.sessions.session"],
+            metric_name=DerivedMetricKey.SESSION_ABNORMAL_USER.value,
+            metrics=[SessionMetricKey.USER.value],
+            unit="users",
+            snql=lambda *_, metric_ids, alias=None: abnormal_users(metric_ids, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_CRASHED.value,
+            metrics=[SessionMetricKey.SESSION.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: crashed_sessions(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name="session.crash_free_rate",
-            metrics=["session.crashed", "session.all"],
-            unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, alias="session.crash_free_rate"
-            ),
+            metric_name=DerivedMetricKey.SESSION_CRASHED_USER.value,
+            metrics=[SessionMetricKey.USER.value],
+            unit="users",
+            snql=lambda *_, metric_ids, alias=None: crashed_users(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name="session.errored_preaggregated",
-            metrics=["sentry.sessions.session"],
+            metric_name=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+            metrics=[DerivedMetricKey.SESSION_CRASHED.value, DerivedMetricKey.SESSION_ALL.value],
+            unit="percentage",
+            snql=lambda *args, metric_ids, alias=None: percentage(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
+            metrics=[SessionMetricKey.SESSION.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: errored_preaggr_sessions(
                 metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name="session.errored_set",
-            metrics=["sentry.sessions.session.error"],
+            metric_name=DerivedMetricKey.SESSION_ERRORED_SET.value,
+            metrics=[SessionMetricKey.SESSION_ERROR.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: sessions_errored_set(metric_ids, alias=alias),
         ),
-        SingularEntityDerivedMetric(
-            metric_name="session.all_user",
-            metrics=["sentry.sessions.user"],
-            unit="users",
-            snql=lambda *_, metric_ids, alias=None: all_users(metric_ids, alias=alias),
-        ),
-        SingularEntityDerivedMetric(
-            metric_name="session.crashed_user",
-            metrics=["sentry.sessions.user"],
-            unit="users",
-            snql=lambda *_, metric_ids, alias=None: crashed_users(metric_ids, alias=alias),
-        ),
         CompositeEntityDerivedMetric(
-            metric_name="session.errored",
-            metrics=["session.errored_preaggregated", "session.errored_set"],
+            metric_name=DerivedMetricKey.SESSION_ERRORED.value,
+            metrics=[
+                DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
+                DerivedMetricKey.SESSION_ERRORED_SET.value,
+            ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
         ),
