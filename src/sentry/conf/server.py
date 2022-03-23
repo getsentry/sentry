@@ -655,6 +655,7 @@ CELERY_QUEUES = [
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:

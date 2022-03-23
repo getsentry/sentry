@@ -925,13 +925,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_rate", "session.init", "session.crashed"],
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] == 0.5
-        assert group["totals"]["session.init"] == 8
+        assert group["totals"]["session.all"] == 8
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
@@ -1074,10 +1074,192 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set"],
+            field=["session.errored_preaggregated", "session.errored_set", "session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.errored_set"] == 3
         assert group["totals"]["session.errored_preaggregated"] == 4
+        assert group["totals"]["session.errored"] == 7
+        assert group["series"]["session.errored_set"] == [0, 0, 0, 0, 0, 3]
+        assert group["series"]["session.errored_preaggregated"] == [0, 4, 0, 0, 0, 0]
+        assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"session.errored": 7},
+            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
+        }
+
+    def test_orderby_composite_entity_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["session.errored"],
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "It is not possible to orderBy field session.errored as it does not "
+            "have a direct mapping to a query alias"
+        )
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_abnormal_sessions(self):
+        session_metric = indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
+        indexer.record(self.organization.id, "sentry.sessions.session.duration")
+        indexer.record(self.organization.id, "sentry.sessions.user")
+        session_status_tag = indexer.record(self.organization.id, "session.status")
+        release_tag = indexer.record(self.organization.id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "bar"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.abnormal"],
+        )
+        foo_group, bar_group = response.data["groups"][0], response.data["groups"][1]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.abnormal": 4}
+        assert foo_group["series"] == {"session.abnormal": [0, 4, 0, 0, 0, 0]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.abnormal": 3}
+        assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_crashed_user_sessions(self):
+        org_id = self.organization.id
+        indexer.record(org_id, "sentry.sessions.session.duration")
+        users_metric_id = indexer.record(org_id, "sentry.sessions.user")
+        session_status_tag = indexer.record(org_id, "session.status")
+        release_tag = indexer.record(org_id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "bar"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8, 9, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crashed_user"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.crashed_user"],
+        )
+        foo_group, bar_group = response.data["groups"][1], response.data["groups"][0]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.crashed_user": 3}
+        assert foo_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 3]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.crashed_user": 6}
+        assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_all_user_sessions(self):
+        indexer.record(self.organization.id, "sentry.sessions.session.duration")
+        users_metric_id = indexer.record(self.organization.id, "sentry.sessions.user")
+        session_status_tag = indexer.record(self.organization.id, "session.status")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {session_status_tag: indexer.record(self.organization.id, "init")},
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.all_user"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"] == {"session.all_user": 3}
+        assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
