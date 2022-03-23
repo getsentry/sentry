@@ -4,7 +4,9 @@ from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     abnormal_sessions,
     all_sessions,
+    all_users,
     crashed_sessions,
+    crashed_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
@@ -25,6 +27,32 @@ class DerivedMetricSnQLTestCase(TestCase):
         ]:
             assert func(self.metric_ids, alias=status) == Function(
                 "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "equals",
+                                [
+                                    Column(f"tags[{resolve_weak('session.status')}]"),
+                                    resolve_weak(status),
+                                ],
+                            ),
+                            Function("in", [Column("metric_id"), list(self.metric_ids)]),
+                        ],
+                    ),
+                ],
+                status,
+            )
+
+    def test_set_uniq_aggregation_on_session_status(self):
+        for status, func in [
+            ("init", all_users),
+            ("crashed", crashed_users),
+        ]:
+            assert func(self.metric_ids, alias=status) == Function(
+                "uniqIf",
                 [
                     Column("value"),
                     Function(
