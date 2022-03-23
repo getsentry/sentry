@@ -214,7 +214,11 @@ const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
 `;
 
 const OpenWidgetViewerButton = styled(Button)`
-  margin-left: ${space(0.5)};
-  margin-right: auto;
+  padding: ${space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+    background: ${p => p.theme.surface400};
+    border-color: transparent;
+  }
 `;
