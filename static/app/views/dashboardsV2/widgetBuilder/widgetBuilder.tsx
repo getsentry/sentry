@@ -76,6 +76,7 @@ import {
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
+// Both dashboards and widgets use the 'new' keyword when creating
 const NEW_DASHBOARD_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
@@ -114,9 +115,9 @@ const WIDGET_TYPE_TO_DATA_SET = {
 };
 
 interface RouteParams {
+  dashboardId: string;
   orgId: string;
-  dashboardId?: string;
-  widgetIndex?: number;
+  widgetIndex?: string;
 }
 
 interface QueryData {
@@ -136,7 +137,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-  widget?: Widget;
 }
 
 interface State {
@@ -151,11 +151,11 @@ interface State {
   userHasModified: boolean;
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
+  widgetToBeUpdated?: Widget;
 }
 
 function WidgetBuilder({
   dashboard,
-  widget: widgetToBeUpdated,
   params,
   location,
   organization,
@@ -174,6 +174,11 @@ function WidgetBuilder({
   );
 
   const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < dashboard.widgets.length &&
+    Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
@@ -196,71 +201,72 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    if (!widgetToBeUpdated) {
-      return {
-        title: defaultTitle ?? t('Custom Widget'),
-        displayType:
-          widgetBuilderNewDesign && displayType === DisplayType.TOP_N
-            ? DisplayType.TABLE
-            : displayType ?? DisplayType.TABLE,
-        interval: '5m',
-        queries: [
-          defaultWidgetQuery
-            ? widgetBuilderNewDesign
-              ? {
-                  ...defaultWidgetQuery,
-                  orderby:
-                    defaultWidgetQuery.orderby ||
-                    generateOrderOptions({
-                      widgetType: WidgetType.DISCOVER,
-                      widgetBuilderNewDesign,
-                      columns: defaultWidgetQuery.columns,
-                      aggregates: defaultWidgetQuery.aggregates,
-                    })[0].value,
-                }
-              : {...defaultWidgetQuery}
-            : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-        ],
-        limit,
-        errors: undefined,
-        loading: !!notDashboardsOrigin,
-        dashboards: [],
-        userHasModified: false,
-        dataSet: DataSet.EVENTS,
-      };
-    }
-
-    const visualization =
-      widgetBuilderNewDesign && widgetToBeUpdated.displayType === DisplayType.TOP_N
-        ? DisplayType.TABLE
-        : widgetToBeUpdated.displayType;
-
     return {
-      title: widgetToBeUpdated.title,
-      displayType: visualization,
-      interval: widgetToBeUpdated.interval,
-      queries: normalizeQueries({
-        displayType: visualization,
-        queries: widgetToBeUpdated.queries,
-        widgetType: widgetToBeUpdated.widgetType ?? WidgetType.DISCOVER,
-        widgetBuilderNewDesign,
-      }),
-      limit: widgetToBeUpdated.limit,
+      title: defaultTitle ?? t('Custom Widget'),
+      displayType: displayType ?? DisplayType.TABLE,
+      interval: '5m',
+      queries: [
+        defaultWidgetQuery
+          ? widgetBuilderNewDesign
+            ? {
+                ...defaultWidgetQuery,
+                orderby:
+                  defaultWidgetQuery.orderby ||
+                  generateOrderOptions({
+                    widgetType: WidgetType.DISCOVER,
+                    widgetBuilderNewDesign,
+                    columns: defaultWidgetQuery.columns,
+                    aggregates: defaultWidgetQuery.aggregates,
+                  })[0].value,
+              }
+            : {...defaultWidgetQuery}
+          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ],
+      limit,
       errors: undefined,
-      loading: false,
+      loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
-      dataSet: widgetToBeUpdated.widgetType
-        ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
-        : DataSet.EVENTS,
+      dataSet: DataSet.EVENTS,
     };
   });
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
   }, [source]);
+
+  useEffect(() => {
+    if (isEditing && isValidWidgetIndex) {
+      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const visualization =
+        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
+          ? DisplayType.TABLE
+          : widgetFromDashboard.displayType;
+      setState({
+        title: widgetFromDashboard.title,
+        displayType: visualization,
+        interval: widgetFromDashboard.interval,
+        queries: normalizeQueries({
+          displayType: visualization,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        }),
+        errors: undefined,
+        loading: false,
+        dashboards: [],
+        userHasModified: false,
+        dataSet: widgetFromDashboard.widgetType
+          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
+          : DataSet.EVENTS,
+        limit: widgetFromDashboard.limit,
+      });
+      setWidgetToBeUpdated(widgetFromDashboard);
+    }
+  }, []);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -281,9 +287,10 @@ function WidgetBuilder({
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
-    pathname: currentDashboardId
-      ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
-      : `/organizations/${orgId}/dashboards/new/`,
+    pathname:
+      currentDashboardId === NEW_DASHBOARD_ID
+        ? `/organizations/${orgId}/dashboards/new/`
+        : `/organizations/${orgId}/dashboard/${currentDashboardId}/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
@@ -594,7 +601,7 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndex, 1);
+    nextWidgetList.splice(widgetIndexNum, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -786,7 +793,7 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && widgetIndex >= dashboard.widgets.length) {
+  if (isEditing && !isValidWidgetIndex) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
