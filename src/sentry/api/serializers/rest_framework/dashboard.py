@@ -447,6 +447,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.orderby = data.get("orderby", query.orderby)
         query.aggregates = data.get("aggregates", query.aggregates)
         query.columns = data.get("columns", query.columns)
+        query.fieldAliases = data.get("fieldAliases", query.fieldAliases)
         query.order = order
         query.save()
 

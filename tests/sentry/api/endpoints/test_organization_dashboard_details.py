@@ -39,6 +39,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.anon_users_query["fields"],
             columns=self.anon_users_query["columns"],
             aggregates=self.anon_users_query["aggregates"],
+            fieldAliases=self.anon_users_query["fieldAliases"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -123,6 +124,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["limit"] is None
         assert response.data["widgets"][1]["limit"] == 5
+
+    def test_dashboard_widget_query_returns_fieldAliases(self):
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
+        assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -287,6 +294,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+
+    def test_add_widget_with_fieldAliases(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "columns": ["project"],
+                            "fieldAliases": ["Errors quantity"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
 
     def test_add_widget_with_aggregates_and_columns(self):
         data = {

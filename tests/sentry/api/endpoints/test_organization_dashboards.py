@@ -578,6 +578,43 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
+    def test_add_widget_with_fieldAliases_succeeds(self):
+        data = {
+            "title": "Dashboard with fieldAliases in the query",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": ["transaction"],
+                            "aggregates": ["count()"],
+                            "fieldAliases": ["Count Alias"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard with fieldAliases in the query"
+        )
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        for expected_widget, actual_widget in zip(data["widgets"], widgets):
+            self.assert_serialized_widget(expected_widget, actual_widget)
+            queries = actual_widget.dashboardwidgetquery_set.all()
+            for expected_query, actual_query in zip(expected_widget["queries"], queries):
+                self.assert_serialized_widget_query(expected_query, actual_query)
+
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
         data = {
             "title": "Dashboard with null agg and cols",

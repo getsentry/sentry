@@ -1351,6 +1351,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()"],
             "aggregates": ["count()"],
             "columns": [],
+            "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
