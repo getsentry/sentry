@@ -76,7 +76,6 @@ function renderTestComponent({
       params={{
         orgId: organization.slug,
         dashboardId: dashboard?.id ?? 'new',
-        widgetIndex: 'new',
         ...params,
       }}
     />,
