@@ -139,7 +139,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api, selection} = this.props;
+    const {isEditing, organization, api, selection, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
@@ -151,6 +151,9 @@ class Dashboard extends Component<Props, State> {
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
+    }
+
+    if (newWidget) {
       this.addNewWidget();
     }
 

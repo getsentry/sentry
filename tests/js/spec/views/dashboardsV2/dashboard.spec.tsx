@@ -65,7 +65,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
-        isEditing
+        isEditing={false}
       />,
       initialData.routerContext
     );
