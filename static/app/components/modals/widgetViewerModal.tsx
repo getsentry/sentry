@@ -26,7 +26,7 @@ import Pagination from 'sentry/components/pagination';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
+import {IconInfo, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -74,6 +74,7 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
+const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
@@ -238,7 +239,7 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !!!name ? parseSearch(conditions) : null;
+    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
@@ -342,11 +343,11 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <Alert type="info" icon={<IconInfo />}>
+          <StyledAlert type="info" icon={<IconInfo />}>
             {t(
               'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
             )}
-          </Alert>
+          </StyledAlert>
         )}
         <StyledSelectControl
           value={selectedQueryIndex}
@@ -375,11 +376,15 @@ function WidgetViewerModal(props: Props) {
                 <components.SingleValue
                   {...containerProps}
                   // Overwrites some of the default styling that interferes with highlighted query text
-                  getStyles={() => ({wordBreak: 'break-word'})}
+                  getStyles={() => ({wordBreak: 'break-word', flex: 1, display: 'flex'})}
                 >
+                  <StyledIconSearch />
                   {queryOptions[selectedQueryIndex].getHighlightedQuery({
                     display: 'block',
-                  }) ?? queryOptions[selectedQueryIndex].label}
+                  }) ??
+                    (queryOptions[selectedQueryIndex].label || (
+                      <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                    ))}
                 </components.SingleValue>
               );
             },
@@ -393,13 +398,16 @@ function WidgetViewerModal(props: Props) {
                   {...(highlightedQuery
                     ? {
                         ...containerProps,
-                        label: '',
-                        data: {
-                          ...containerProps.data,
-                          leadingItems: highlightedQuery,
-                        },
+                        label: highlightedQuery,
                       }
-                    : containerProps)}
+                    : containerProps.label
+                    ? containerProps
+                    : {
+                        ...containerProps,
+                        label: (
+                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                        ),
+                      })}
                 />
               );
             },
@@ -675,10 +683,12 @@ const Container = styled('div')<{height?: number | null}>`
     padding: ${space(1.5)} 0px;
   }
 `;
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)} 0 0 0;
+`;
 
 const StyledSelectControl = styled(SelectControl)`
-  padding-top: 10px ${space(1.5)};
-  max-height: 40px;
+  margin-top: ${space(2)};
   display: flex;
   & > div {
     width: 100%;
@@ -713,6 +723,7 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
+  flex: 1;
   display: ${p => p.display};
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
@@ -737,4 +748,11 @@ const StyledButtonBar = styled(ButtonBar)`
   width: fit-content;
 `;
 
+const EmptyQueryContainer = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin: auto ${space(1.5)} auto 0;
+`;
 export default withRouter(withPageFilters(WidgetViewerModal));
