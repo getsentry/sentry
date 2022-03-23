@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence, cast
 
 from sentry import features
 from sentry.api.serializers import serialize
@@ -11,6 +11,7 @@ from sentry.roles import organization_roles, team_roles
 
 from .. import OrganizationMemberWithTeamsSerializer
 from ...role import OrganizationRoleSerializer, TeamRoleSerializer
+from ..response import OrganizationMemberWithRolesResponse
 
 
 def is_retired_role_hidden(role: OrganizationRole, member: OrganizationMember) -> bool:
@@ -30,14 +31,17 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         super().__init__(expand)
         self.allowed_roles = allowed_roles
 
-    def serialize(  # type: ignore
+    def serialize(
         self,
         obj: OrganizationMember,
         attrs: Mapping[str, Any],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[str, Any]:
-        context = {**super().serialize(obj, attrs, user, **kwargs)}
+    ) -> OrganizationMemberWithRolesResponse:
+        context = cast(
+            OrganizationMemberWithRolesResponse,
+            super().serialize(obj, attrs, user, **kwargs),
+        )
 
         if self.allowed_roles:
             context["invite_link"] = obj.get_invite_link()
