@@ -17,6 +17,7 @@ const {
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
   JOB_CONTAINER_NETWORK,
+  JOB_CONTAINER_ID,
   JOB_STATUS,
 } = process.env;
 
@@ -214,6 +215,7 @@ const config: Config.InitialOptions = {
           commit: GITHUB_PR_SHA,
           job_container_network: JOB_CONTAINER_NETWORK,
           job_status: JOB_STATUS,
+          job_container_id: JOB_CONTAINER_ID,
         },
       },
     },
