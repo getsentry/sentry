@@ -90,8 +90,7 @@ def _create_api_access_log(
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
             rate_limited=rate_limited,
-            rate_limit_category=str(getattr(request, "rate_limit_category", None)),  # XXX?
-            # ^ still not sure how to pass this through if it's not on the request
+            rate_limit_category=str(getattr(response, "rate_limit_category", None)),
             request_duration_seconds=access_log_metadata.get_request_duration(),
             **_get_rate_limit_stats_dict(request),
         )

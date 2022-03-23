@@ -76,7 +76,8 @@ class RatelimitMiddlewareTest(TestCase):
 
     def test_process_response_fails_open(self):
         # TODO rewrite this since we no longer call process_response
-        request = self.factory.get("/")
+        # and __call__ doesn't take a response
+        request = self.factory.get("/middleware/")
         bad_response = object()
         assert self.middleware.process_response(request, bad_response) is bad_response
 
@@ -125,21 +126,21 @@ class RatelimitMiddlewareTest(TestCase):
     def test_rate_limit_category(self):
         request = self.factory.get("/middleware/")
         request.META["REMOTE_ADDR"] = None
-        self.middleware(request)
-        assert request.rate_limit_category is None
+        resp = self.middleware(request)
+        assert resp is None
 
         request = self.factory.get("/middleware/")
-        self.middleware(request)
-        assert request.rate_limit_category == "ip"
+        resp = self.middleware(request)
+        assert resp.get("rate_limit_category") == "ip"
 
         request.session = {}
         request.user = self.user
-        self.middleware(request)
-        assert request.rate_limit_category == "user"
+        resp = self.middleware(request)
+        assert resp.get("rate_limit_category") == "user"
 
         self.populate_sentry_app_request(request)
-        self.middleware(request)
-        assert request.rate_limit_category == "org"
+        resp = self.middleware(request)
+        assert resp["rate_limit_category"] == "org"
 
     def test_get_rate_limit_key(self):
         # Import an endpoint

@@ -35,19 +35,16 @@ class RatelimitMiddleware:
         rate_limit_metadata = None
         rate_limit_key = None
         rate_limit_uid = None
+        category_str = None
 
         # First, check if the endpoint call will violate.
         try:
-            request.rate_limit_category = None
-            # CEO: idk how to not put this on the request object
-            # and still have it in the access logs and test for it
             rate_limit_uid = uuid.uuid4().hex
             view_func = resolve(request.path).func
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return
             category_str = rate_limit_key.split(":", 1)[0]
-            request.rate_limit_category = category_str
 
             rate_limit = get_rate_limit_value(
                 http_method=request.method,
@@ -77,6 +74,7 @@ class RatelimitMiddleware:
                         status=429,
                     )
                     self.add_headers(response, rate_limit_metadata)
+                    response["rate_limit_category"] = category_str
                     return response
 
         except Exception:
@@ -88,9 +86,10 @@ class RatelimitMiddleware:
         # Process the response
         self.add_headers(response, rate_limit_metadata)
         finish_request(rate_limit_key, rate_limit_uid)
+        response["rate_limit_category"] = category_str
         return response
 
-    def add_headers(self, response, rate_limit_metadata=None):
+    def add_headers(self, response, rate_limit_metadata):
         if not rate_limit_metadata:
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
             return response
