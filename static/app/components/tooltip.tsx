@@ -11,7 +11,7 @@ import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
+import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
 import * as PopperJS from 'popper.js';
 
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
@@ -22,6 +22,25 @@ import testableTransition from 'sentry/utils/testableTransition';
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
 export const OPEN_DELAY = 50;
+
+const TOOLTIP_ANIMATION: MotionProps = {
+  transition: {duration: 0.2},
+  initial: {opacity: 0},
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: testableTransition({
+      type: 'linear',
+      ease: [0.5, 1, 0.89, 1],
+      duration: 0.2,
+    }),
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    transition: testableTransition({type: 'spring', delay: 0.1}),
+  },
+};
 
 /**
  * How long to wait before closing the tooltip when isHoverable is set
@@ -253,30 +272,15 @@ export function DO_NOT_USE_TOOLTIP({
                 <PositionWrapper style={style}>
                   <TooltipContent
                     id={tooltipId}
-                    initial={{opacity: 0}}
-                    animate={{
-                      opacity: 1,
-                      scale: 1,
-                      transition: testableTransition({
-                        type: 'linear',
-                        ease: [0.5, 1, 0.89, 1],
-                        duration: 0.2,
-                      }),
-                    }}
-                    exit={{
-                      opacity: 0,
-                      scale: 0.95,
-                      transition: testableTransition({type: 'spring', delay: 0.1}),
-                    }}
+                    data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
-                    transition={{duration: 0.2}}
                     className="tooltip-content"
                     aria-hidden={false}
                     ref={ref}
-                    data-placement={placement}
                     popperStyle={popperStyle}
                     onMouseEnter={() => isHoverable && handleOpen()}
                     onMouseLeave={() => isHoverable && handleClose()}
+                    {...TOOLTIP_ANIMATION}
                   >
                     {title}
                     <TooltipArrow
