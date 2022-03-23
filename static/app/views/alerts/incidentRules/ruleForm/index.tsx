@@ -54,6 +54,7 @@ import {
   Trigger,
   UnsavedIncidentRule,
 } from '../types';
+import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
@@ -669,7 +670,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
+      query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
@@ -686,7 +687,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            {dataset !== Dataset.SESSIONS && (
+            {isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>
