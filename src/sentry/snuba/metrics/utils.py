@@ -18,14 +18,21 @@ __all__ = (
     "MetricMeta",
     "MetricMetaWithTagKeys",
     "OPERATIONS",
+    "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
+    "DerivedMetricException",
     "DerivedMetricParseException",
+    "MetricDoesNotExistException",
+    "MetricDoesNotExistInIndexer",
+    "NotSupportedOverCompositeEntityException",
     "TimeRange",
+    "MetricEntity",
 )
 
 
 import re
+from abc import ABC
 from datetime import datetime
 from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
 
@@ -104,7 +111,7 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-_OPERATIONS_PERCENTILES = (
+OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
@@ -119,7 +126,7 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
-) + _OPERATIONS_PERCENTILES
+) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
     "avg": None,
@@ -134,11 +141,7 @@ DEFAULT_AGGREGATES = {
     "sum": 0,
     "percentage": None,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
-
-
-class DerivedMetricParseException(Exception):
-    ...
+UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 
 
 class MetricDoesNotExistException(Exception):
@@ -146,6 +149,18 @@ class MetricDoesNotExistException(Exception):
 
 
 class MetricDoesNotExistInIndexer(Exception):
+    ...
+
+
+class DerivedMetricException(Exception, ABC):
+    ...
+
+
+class DerivedMetricParseException(DerivedMetricException):
+    ...
+
+
+class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
 
 
