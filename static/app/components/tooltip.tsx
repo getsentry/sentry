@@ -126,7 +126,7 @@ export function DO_NOT_USE_TOOLTIP({
   // Delayed open and close time handles
   const delayOpenTimeoutRef = useRef<number | null>(null);
   const delayHideTimeoutRef = useRef<number | null>(null);
-  
+
   // When the component is unmounted, make sure to stop the timeouts
   useEffect(
     () => () => {
@@ -155,7 +155,7 @@ export function DO_NOT_USE_TOOLTIP({
       },
     };
   }, []);
-  
+
   function handleOpen() {
     if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
       return;
