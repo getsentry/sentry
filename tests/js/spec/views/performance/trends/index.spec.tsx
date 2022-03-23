@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
