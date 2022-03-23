@@ -54,6 +54,10 @@ jobs:
       # This handles Python's cache
       - name: Setup Python & cache
         uses: ./.github/actions/setup-python
+        # Remove this block when 3.8.13 becomes available in:
+        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+        with:
+          python-version: 3.8.12
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
@@ -86,8 +90,7 @@ jobs:
 
       - name: Install pyenv
         run: |
-          # This should match the recommendation in pyenv_setup.sh
-          brew update && brew uninstall pyenv && brew install pyenv
+          brew update && brew install pyenv
 
       # Only after we source ~/.zprofile that the right Python will be selected
       - name: Set up pyenv
