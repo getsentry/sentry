@@ -113,7 +113,6 @@ function buildProfile(
     e => e.ph === 'B' || e.ph === 'E' || e.ph === 'X' || e.ph === 'M'
   );
 
-  // @TODO use a heap so we dont need to sort this again afterwards
   const beginQueue: Array<ChromeTrace.Event> = [];
   const endQueue: Array<ChromeTrace.Event> = [];
 
@@ -202,8 +201,19 @@ function buildProfile(
     if (next === 'E') {
       const item = endQueue.pop()!;
       let frameInfo = createFrameInfoFromEvent(item);
+
+      if (stack[stack.length - 1] === undefined) {
+        throw new Error(
+          `Unable to close frame from an empty stack, attempting to close ${JSON.stringify(
+            item
+          )}`
+        );
+      }
       const topFrameInfo = createFrameInfoFromEvent(stack[stack.length - 1]);
 
+      // We check frames with the same ts and look for a match. We do this because
+      // chronological sort will not break ties on frames that end at the same time,
+      // but may not be in the same order as they were opened.
       for (let i = endQueue.length - 2; i > 0; i--) {
         if (endQueue[i].ts > endQueue[endQueue.length - 1].ts) {
           break;
