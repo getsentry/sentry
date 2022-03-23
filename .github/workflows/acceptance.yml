@@ -65,8 +65,6 @@ jobs:
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          echo '${{ toJSON(job) }}'
-          echo '${{ toJSON(runner) }}'
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --verbose
 
       - name: Save HTML artifacts
