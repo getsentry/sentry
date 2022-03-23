@@ -267,6 +267,15 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('33,323,612')).toBeInTheDocument();
     });
+
+    it('renders highlighted query text and multiple queries in select dropdown', async function () {
+      const {container} = await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+      userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
+      expect(container).toSnapshot();
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {

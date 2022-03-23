@@ -42,16 +42,28 @@ class ConcurrentRateLimiter:
 
     def start_request(self, key: str, limit: int, request_uid: str) -> ConcurrentLimitInfo:
         redis_key = self.namespaced_key(key)
+        current_executions, request_allowed, cleaned_up_requests = (-1, True, 0)
         try:
-            current_executions, request_allowed = rate_limit_info(
+            current_executions, request_allowed, cleaned_up_requests = rate_limit_info(
                 self.client, [redis_key], [limit, request_uid, time(), self.max_ttl_seconds]
             )
-            return ConcurrentLimitInfo(limit, int(current_executions), not bool(request_allowed))
         except Exception:
             logger.exception(
                 "Could not start request", dict(key=redis_key, limit=limit, request_uid=request_uid)
             )
             return ConcurrentLimitInfo(limit, -1, False)
+
+        logger.info(
+            "Cleaned up concurrent executions: %s",
+            cleaned_up_requests,
+            extra={
+                "cleaned_up_requests": cleaned_up_requests,
+                "key": key,
+                "limit": limit,
+                "request_uid": request_uid,
+            },
+        )
+        return ConcurrentLimitInfo(limit, int(current_executions), not bool(request_allowed))
 
     def get_concurrent_requests(self, key: str) -> int:
         redis_key = self.namespaced_key(key)

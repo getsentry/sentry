@@ -70,7 +70,6 @@ type Props = {
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
   location: Location;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -352,14 +351,11 @@ class Dashboard extends Component<Props, State> {
       router,
       location,
       paramDashboardId,
-      onSetWidgetToBeUpdated,
       handleAddCustomWidget,
       isEditing,
     } = this.props;
 
     if (organization.features.includes('new-widget-builder-experience') && isEditing) {
-      onSetWidgetToBeUpdated(widget);
-
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
         organization,
       });

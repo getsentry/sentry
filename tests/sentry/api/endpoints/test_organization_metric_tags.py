@@ -78,7 +78,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
 
         response = self.get_success_response(
             self.organization.slug,
-            metric=["session.crash_free_rate", "session.init"],
+            metric=["session.crash_free_rate", "session.all"],
         )
         assert response.data == [
             {"key": "environment"},
