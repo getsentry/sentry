@@ -77,7 +77,7 @@ import {
 import {WidgetLibrary} from './widgetLibrary';
 
 // Both dashboards and widgets use the 'new' keyword when creating
-const NEW_ID = 'new';
+const NEW_DASHBOARD_ID = 'new';
 
 function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
   return {
@@ -288,7 +288,7 @@ function WidgetBuilder({
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname:
-      currentDashboardId === NEW_ID
+      currentDashboardId === NEW_DASHBOARD_ID
         ? `/organizations/${orgId}/dashboards/new/`
         : `/organizations/${orgId}/dashboard/${currentDashboardId}/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
@@ -654,7 +654,7 @@ function WidgetBuilder({
 
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
-      goToDashboards(dashboardId ?? NEW_ID);
+      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
         organization,
       });
@@ -663,7 +663,7 @@ function WidgetBuilder({
 
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
-    goToDashboards(dashboardId ?? NEW_ID);
+    goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
     trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
@@ -680,7 +680,7 @@ function WidgetBuilder({
             ({title, id}) =>
               title === state.selectedDashboard?.label &&
               id === state.selectedDashboard?.value
-          ) || state.selectedDashboard.value === NEW_ID
+          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
         )
       ) {
         setState({
@@ -771,7 +771,7 @@ function WidgetBuilder({
           }
         : undefined;
 
-    if (id === NEW_ID) {
+    if (id === NEW_DASHBOARD_ID) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
         query: pathQuery,
