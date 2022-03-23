@@ -4,6 +4,7 @@ import pytest
 from snuba_sdk import Direction, OrderBy
 
 from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
     DerivedMetricParseException,
@@ -19,13 +20,11 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.testutils import TestCase
 
 
-def get_single_metric_info_mocked(_, metric_name):
+def get_entity_of_metric_mocked(_, metric_name):
     return {
-        "type": {
-            "sentry.sessions.session": "counter",
-            "sentry.sessions.session.error": "set",
-        }[metric_name]
-    }
+        "sentry.sessions.session": EntityKey.MetricsCounters,
+        "sentry.sessions.session.error": EntityKey.MetricsSets,
+    }[metric_name]
 
 
 class SingleEntityDerivedMetricTestCase(TestCase):
@@ -41,7 +40,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         DERIVED_METRICS.update({"crash_free_fake": self.crash_free_fake})
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(self):
         """
@@ -67,16 +66,17 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             self.crash_free_fake.get_entity(projects=[self.project])
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_select_snql_of_derived_metric(self):
         """
         Test that ensures that method generate_select_statements generates the equivalent SnQL
         required to query for the instance of DerivedMetric
         """
+        org_id = self.project.organization_id
         for status in ("init", "crashed"):
-            indexer.record(status)
-        session_ids = [indexer.record("sentry.sessions.session")]
+            indexer.record(org_id, status)
+        session_ids = [indexer.record(org_id, "sentry.sessions.session")]
 
         derived_name_snql = {
             "session.init": (init_sessions, session_ids),
@@ -84,7 +84,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.errored_preaggregated": (errored_preaggr_sessions, session_ids),
             "session.errored_set": (
                 sessions_errored_set,
-                [indexer.record("sentry.sessions.session.error")],
+                [indexer.record(org_id, "sentry.sessions.session.error")],
             ),
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
@@ -98,7 +98,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             percentage(
                 crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
                 init_sessions(metric_ids=session_ids, alias="session.init"),
-                metric_ids=session_ids,
                 alias="session.crash_free_rate",
             )
         ]
@@ -109,11 +108,12 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             self.crash_free_fake.generate_select_statements([self.project])
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_metric_ids(self):
-        session_metric_id = indexer.record("sentry.sessions.session")
-        session_error_metric_id = indexer.record("sentry.sessions.session.error")
+        org_id = self.project.organization_id
+        session_metric_id = indexer.record(org_id, "sentry.sessions.session")
+        session_error_metric_id = indexer.record(org_id, "sentry.sessions.session.error")
 
         for derived_metric_name in [
             "session.init",
@@ -127,7 +127,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         }
 
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_single_metric_info", get_single_metric_info_mocked
+        "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     def test_generate_order_by_clause(self):
         for derived_metric_name in DERIVED_METRICS.keys():

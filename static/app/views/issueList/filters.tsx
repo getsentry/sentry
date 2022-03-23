@@ -1,12 +1,11 @@
 import * as React from 'react';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -29,6 +28,7 @@ type Props = {
   organization: Organization;
 
   query: string;
+  queryCount: number;
   savedSearch: SavedSearch;
   selectedProjects: number[];
   sort: string;
@@ -40,6 +40,7 @@ function IssueListFilters({
   organization,
   savedSearch,
   query,
+  queryCount,
   isSearchDisabled,
   sort,
   display,
@@ -51,7 +52,6 @@ function IssueListFilters({
   tagValueLoader,
   tags,
 }: Props) {
-  const isAssignedQuery = /\bassigned:/.test(query);
   const hasIssuePercentDisplay = organization.features.includes('issue-percent-display');
   const hasMultipleProjectsSelected =
     !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
@@ -66,36 +66,24 @@ function IssueListFilters({
         hasPageFilters={hasPageFilters}
         hasIssuePercentDisplay={hasIssuePercentDisplay}
       >
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="assigned_or_suggested_query"
-              disabled={!isAssignedQuery}
-              containerClassName={css`
-                width: 100%;
-              `}
-            >
-              <IssueListSearchBar
-                organization={organization}
-                query={query || ''}
-                sort={sort}
-                onSearch={onSearch}
-                disabled={isSearchDisabled}
-                excludeEnvironment
-                supportedTags={tags}
-                tagValueLoader={tagValueLoader}
-                savedSearch={savedSearch}
-                onSidebarToggle={onSidebarToggle}
-              />
-            </GuideAnchor>
-          )}
-        </ClassNames>
+        <IssueListSearchBar
+          organization={organization}
+          query={query || ''}
+          sort={sort}
+          onSearch={onSearch}
+          disabled={isSearchDisabled}
+          excludeEnvironment
+          supportedTags={tags}
+          tagValueLoader={tagValueLoader}
+          savedSearch={savedSearch}
+          onSidebarToggle={onSidebarToggle}
+        />
 
         {hasPageFilters ? (
           <PageFilterBar>
             <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter hidePin alignDropdown="right" />
+            <EnvironmentPageFilter alignDropdown="right" />
+            <DatePageFilter alignDropdown="right" />
           </PageFilterBar>
         ) : (
           <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
@@ -112,17 +100,28 @@ function IssueListFilters({
         )}
       </SearchContainer>
       {hasPageFilters && (
-        <IssueListDropdownsWrapper>
-          {hasIssuePercentDisplay && (
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-              hasSessions={hasSessions}
+        <ResultsRow>
+          <QueryCount>
+            {queryCount > 0 && tct('[queryCount] results found', {queryCount})}
+          </QueryCount>
+          <DisplayOptionsBar>
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+                hasPageFilters
+              />
+            )}
+            <IssueListSortOptions
+              sort={sort}
+              query={query}
+              onSelect={onSortChange}
+              hasPageFilters
             />
-          )}
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-        </IssueListDropdownsWrapper>
+          </DisplayOptionsBar>
+        </ResultsRow>
       )}
     </FilterContainer>
   );
@@ -131,7 +130,7 @@ function IssueListFilters({
 const FilterContainer = styled('div')`
   display: grid;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const SearchContainer = styled('div')<{
@@ -141,6 +140,7 @@ const SearchContainer = styled('div')<{
   display: inline-grid;
   gap: ${space(1)};
   width: 100%;
+  margin-bottom: ${space(1)};
 
   ${p =>
     p.hasPageFilters
@@ -178,11 +178,30 @@ const DropdownsWrapper = styled('div')<{hasIssuePercentDisplay?: boolean}>`
   }
 `;
 
-const IssueListDropdownsWrapper = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-auto-columns: max-content;
-  grid-auto-flow: column;
+const QueryCount = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: 600;
+  color: ${p => p.theme.headingColor};
+  margin-bottom: 0;
+`;
+
+const DisplayOptionsBar = styled(PageFilterBar)`
+  height: auto;
+
+  /* make sure the border is on top of the trigger buttons */
+  &::after {
+    z-index: ${p => p.theme.zIndex.issuesList.displayOptions + 1};
+  }
+
+  button[aria-haspopup='listbox'] {
+    font-weight: 600;
+  }
+`;
+
+const ResultsRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 export default IssueListFilters;

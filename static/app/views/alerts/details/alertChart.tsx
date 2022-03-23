@@ -139,7 +139,7 @@ class AlertChart extends AsyncComponent<Props, State> {
       <Panel>
         <StyledPanelBody withPadding>
           <ChartHeader>
-            <HeaderTitleLegend>{t('Total Alerts')}</HeaderTitleLegend>
+            <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
           </ChartHeader>
           {getDynamicText({
             value: this.renderChart(),
@@ -147,7 +147,7 @@ class AlertChart extends AsyncComponent<Props, State> {
           })}
         </StyledPanelBody>
         <ChartFooter>
-          <FooterHeader>{t('Alerts Triggered')}</FooterHeader>
+          <FooterHeader>{t('Total Alerts')}</FooterHeader>
           <FooterValue>{totalAlertsTriggered}</FooterValue>
         </ChartFooter>
       </Panel>

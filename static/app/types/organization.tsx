@@ -1,4 +1,4 @@
-import {Actor, Avatar, Scope} from './core';
+import {Actor, Avatar, ObjectStatus, Scope} from './core';
 import {OrgExperiments} from './experiments';
 import {ExternalTeam} from './integrations';
 import {OnboardingTaskStatus} from './onboarding';
@@ -19,8 +19,7 @@ export type OrganizationSummary = {
   require2FA: boolean;
   slug: string;
   status: {
-    // TODO(ts): Are these fields == `ObjectStatus`?
-    id: string;
+    id: ObjectStatus;
     name: string;
   };
 };
@@ -192,6 +191,7 @@ export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isMetricsData?: boolean;
   order?: number;
   start?: number;
   totals?: {count: number};

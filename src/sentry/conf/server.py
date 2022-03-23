@@ -587,6 +587,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.profiles.task",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -653,6 +654,8 @@ CELERY_QUEUES = [
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -924,8 +927,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable obtaining and using API keys.
-    "organizations:alert-rule-ui-component": False,
     # Enable issue alert status page
     "organizations:alert-rule-status-page": False,
     # Alert wizard redesign version 3
@@ -1068,6 +1069,8 @@ SENTRY_FEATURES = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
+    # Enable autogrouping of sibling spans
+    "organizations:performance-autogroup-sibling-spans": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1890,7 +1893,7 @@ SENTRY_DEVSERVICES = {
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
-            "only_if": settings.SENTRY_USE_RELAY,
+            "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
             "with_devserver": True,
         }
     ),
@@ -2228,6 +2231,7 @@ KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
+KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2261,6 +2265,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    # Topic for receiving profiles from Relay
+    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2511,3 +2517,6 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+
+
+LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")

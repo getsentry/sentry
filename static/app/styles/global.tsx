@@ -32,6 +32,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
     border-top-color: ${theme.border};
   }
 
+  pre,
+  code {
+    color: ${theme.textColor};
+  }
+
+  pre {
+    background-color: ${theme.backgroundSecondary};
+  }
+
+  code {
+    background-color: transparent;
+  }
+
   /**
    * See https://web.dev/prefers-reduced-motion/
    */
@@ -63,6 +76,28 @@ const styles = (theme: Theme, isDark: boolean) => css`
     ? css`
         .box {
           background: ${theme.background};
+
+          .box-content,
+          .box-header {
+            background: ${theme.background};
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+              color: ${theme.headingColor};
+            }
+
+            a {
+              color: ${theme.textColor};
+            }
+          }
+
+          .box-header {
+            border-bottom-color: ${theme.border};
+          }
         }
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
@@ -162,11 +197,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header a.help-link,
         .nav-header span.help-link a {
           color: ${theme.subText};
-        }
-        pre,
-        code {
-          background-color: ${theme.backgroundSecondary};
-          color: ${theme.textColor};
         }
         .search .search-input {
           background: ${theme.background};
