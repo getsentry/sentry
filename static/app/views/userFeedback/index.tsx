@@ -129,6 +129,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                 <PageHeading>{t('User Feedback')}</PageHeading>
               </Header>
               <Filters>
+                <PageFilterBar>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="right" />
+                </PageFilterBar>
                 <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
                   <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
                     {t('Unresolved')}
@@ -137,11 +142,6 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                     {t('All Issues')}
                   </Button>
                 </ButtonBar>
-                <PageFilterBar>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
-                </PageFilterBar>
               </Filters>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
