@@ -38,9 +38,9 @@ from sentry.snuba.metrics import (
     resolve_tags,
 )
 from sentry.snuba.metrics.fields.snql import (
+    all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
-    init_sessions,
     percentage,
     sessions_errored_set,
 )
@@ -293,7 +293,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "field": [
                 "session.errored",
                 "session.crash_free_rate",
-                "session.init",
+                "session.all",
             ],
             "interval": ["1d"],
             "statsPeriod": ["2d"],
@@ -306,7 +306,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         "metrics_counters": [
             (None, "session.errored_preaggregated"),
             (None, "session.crash_free_rate"),
-            (None, "session.init"),
+            (None, "session.all"),
         ],
         "metrics_sets": [
             (None, "session.errored_set"),
@@ -328,14 +328,14 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                             metric_ids=[resolve_weak("sentry.sessions.session")],
                             alias="session.crashed",
                         ),
-                        init_sessions(
+                        all_sessions(
                             metric_ids=[resolve_weak("sentry.sessions.session")],
-                            alias="session.init",
+                            alias="session.all",
                         ),
                         alias="session.crash_free_rate",
                     ),
-                    init_sessions(
-                        metric_ids=[resolve_weak("sentry.sessions.session")], alias="session.init"
+                    all_sessions(
+                        metric_ids=[resolve_weak("sentry.sessions.session")], alias="session.all"
                     ),
                 ],
                 groupby=groupby,
@@ -648,7 +648,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "field": [
                 "session.errored",
                 "session.crash_free_rate",
-                "session.init",
+                "session.all",
             ],
             "interval": ["1d"],
             "statsPeriod": ["2d"],
@@ -659,7 +659,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
         "metrics_counters": [
             (None, "session.errored_preaggregated"),
             (None, "session.crash_free_rate"),
-            (None, "session.init"),
+            (None, "session.all"),
         ],
         "metrics_sets": [
             (None, "session.errored_set"),
@@ -673,7 +673,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                 "data": [
                     {
                         "session.crash_free_rate": 0.5,
-                        "session.init": 8.0,
+                        "session.all": 8.0,
                         "session.errored_preaggregated": 3,
                     }
                 ],
@@ -683,13 +683,13 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                     {
                         "bucketed_time": "2021-08-24T00:00Z",
                         "session.crash_free_rate": 0.5,
-                        "session.init": 4,
+                        "session.all": 4,
                         "session.errored_preaggregated": 1,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
                         "session.crash_free_rate": 0.5,
-                        "session.init": 4,
+                        "session.all": 4,
                         "session.errored_preaggregated": 2,
                     },
                 ],
@@ -718,12 +718,12 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
         {
             "by": {},
             "totals": {
-                "session.init": 8,
+                "session.all": 8,
                 "session.crash_free_rate": 0.5,
                 "session.errored": 6,
             },
             "series": {
-                "session.init": [4, 4],
+                "session.all": [4, 4],
                 "session.crash_free_rate": [0.5, 0.5],
                 "session.errored": [3, 3],
             },

@@ -22,9 +22,9 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
+    all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
-    init_sessions,
     percentage,
     sessions_errored_set,
 )
@@ -482,10 +482,10 @@ DERIVED_METRICS = {
     derived_metric.metric_name: derived_metric
     for derived_metric in [
         SingularEntityDerivedMetric(
-            metric_name="session.init",
+            metric_name="session.all",
             metrics=["sentry.sessions.session"],
             unit="sessions",
-            snql=lambda *_, metric_ids, alias=None: init_sessions(metric_ids, alias=alias),
+            snql=lambda *_, metric_ids, alias=None: all_sessions(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crashed",
@@ -495,7 +495,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crash_free_rate",
-            metrics=["session.crashed", "session.init"],
+            metrics=["session.crashed", "session.all"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"
