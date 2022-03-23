@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-describe('Onboarding', function () {
+describe('OnboardingController', function () {
   it('Shows targeted onboarding with experiment active', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
@@ -77,5 +77,30 @@ describe('Onboarding', function () {
       }
     );
     expect(screen.queryByTestId('targeted-onboarding')).not.toBeInTheDocument();
+  });
+  it('Shows targeted onboarding with multi-select experiment active', function () {
+    const {organization, router, routerContext} = initializeOrg({
+      organization: {
+        experiments: {
+          TargetedOnboardingMultiSelectExperiment: 1,
+        },
+      },
+      router: {
+        params: {
+          step: 'setup-docs',
+        },
+      },
+    });
+
+    const {container} = render(
+      <OrganizationContext.Provider value={organization}>
+        <OnboardingController {...router} />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
+    expect(screen.getByTestId('targeted-onboarding')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 });
