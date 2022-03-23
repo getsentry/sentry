@@ -35,6 +35,9 @@ jobs:
         run: |
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
+      # Trick for unattended Docker installations
+      # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
+      # NOTE: This can sometimes take up to 10 minutes
       - name: Install Docker
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
@@ -77,7 +80,7 @@ jobs:
   pyenv-setup:
     name: pyenv set up
     runs-on: macos-11
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
       SHELL: /bin/zsh
@@ -88,11 +91,14 @@ jobs:
 
       - name: Install pyenv
         run: |
-          brew update && brew install pyenv
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
 
       # Only after we source ~/.zprofile that the right Python will be selected
+      # XXX: We hack the .python-version since installing 3.8.13 would require a complete
+      # brew update and that will make this job take 10 more minutes
       - name: Set up pyenv
         run: |
+          echo "3.8.12" > .python-version
           make setup-pyenv
           [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
           source ~/.zprofile
