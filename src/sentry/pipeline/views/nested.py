@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Type
 
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
+from sentry.pipeline import Pipeline
 from sentry.pipeline.views.base import PipelineView
 
 
@@ -21,18 +22,18 @@ class NestedPipelineView(PipelineView):
     def __init__(
         self,
         bind_key: str,
-        pipeline_cls,
+        pipeline_cls: Type[Pipeline],
         provider_key: str,
         config: Mapping[str, Any] | None = None,
     ) -> None:
         self.provider_key = provider_key
         self.config = config or {}
 
-        class NestedPipeline(pipeline_cls):
-            def set_parent_pipeline(self, parent_pipeline) -> None:
+        class NestedPipeline(pipeline_cls):  # type: ignore
+            def set_parent_pipeline(self, parent_pipeline: Pipeline) -> None:
                 self.parent_pipeline = parent_pipeline
 
-            def finish_pipeline(self) -> Response:
+            def finish_pipeline(self) -> HttpResponseBase:
                 self.parent_pipeline.bind_state(bind_key, self.fetch_state())
                 self.clear_session()
 
@@ -40,7 +41,7 @@ class NestedPipelineView(PipelineView):
 
         self.pipeline_cls = NestedPipeline
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         nested_pipeline = self.pipeline_cls(
             organization=pipeline.organization,
             request=request,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import logging
 from types import LambdaType
 from typing import Any, Mapping, Sequence
@@ -7,7 +8,6 @@ from typing import Any, Mapping, Sequence
 from django.http.response import HttpResponseBase
 from django.views import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.db.models import Model
@@ -16,11 +16,12 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
 from .constants import INTEGRATION_EXPIRATION_TTL
+from .provider import PipelineProvider
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 
 
-class Pipeline:
+class Pipeline(abc.ABC):
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -46,9 +47,9 @@ class Pipeline:
     using the ``update_config`` method.
     """
 
-    pipeline_name = None
-    provider_manager = None
-    provider_model_cls = None
+    pipeline_name: str
+    provider_manager: Any
+    provider_model_cls: Model
     session_store_cls = PipelineSessionStore
 
     @classmethod
@@ -84,8 +85,9 @@ class Pipeline:
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str):
-        return self.provider_manager.get(provider_key)
+    def get_provider(self, provider_key: str) -> PipelineProvider:
+        provider: PipelineProvider = self.provider_manager.get(provider_key)
+        return provider
 
     def __init__(
         self,
@@ -126,14 +128,16 @@ class Pipeline:
         return self.provider.get_pipeline_views()
 
     def is_valid(self) -> bool:
-        return self.state.is_valid() and self.state.signature == self.signature
+        _is_valid: bool = self.state.is_valid() and self.state.signature == self.signature
+        return _is_valid
 
     def initialize(self) -> None:
         self.state.regenerate(self.get_initial_state())
 
     def get_initial_state(self) -> Mapping[str, Any]:
+        user: Any = self.request.user
         return {
-            "uid": self.request.user.id if self.request.user.is_authenticated else None,
+            "uid": user.id if user.is_authenticated else None,
             "provider_model_id": self.provider_model.id if self.provider_model else None,
             "provider_key": self.provider.key,
             "org_id": self.organization.id if self.organization else None,
@@ -146,7 +150,7 @@ class Pipeline:
     def clear_session(self) -> None:
         self.state.clear()
 
-    def current_step(self) -> Response:
+    def current_step(self) -> HttpResponseBase:
         """
         Render the current step.
         """
@@ -163,8 +167,9 @@ class Pipeline:
 
         return self.dispatch_to(step)
 
-    def dispatch_to(self, step: View) -> Response:
-        """Dispatch to a view expected by this pipeline.
+    def dispatch_to(self, step: View) -> HttpResponseBase:
+        """
+        Dispatch to a view expected by this pipeline.
 
         A subclass may override this if its views take other parameters.
         """
@@ -186,22 +191,21 @@ class Pipeline:
             request=self.request,
         )
 
-    def render_warning(self, message: str) -> Response:
-        """For situations when we want to display an error without triggering an issue"""
+    def render_warning(self, message: str) -> HttpResponseBase:
+        """For situations when we want to display an error without triggering an issue."""
         context = {"error": message}
         return render_to_response("sentry/pipeline-provider-error.html", context, self.request)
 
-    def next_step(self, step_size: int = 1) -> Response:
-        """
-        Render the next step.
-        """
+    def next_step(self, step_size: int = 1) -> HttpResponseBase:
+        """Render the next step."""
         self.state.step_index += step_size
 
         analytics_entry = self.get_analytics_entry()
         if analytics_entry and self.organization:
+            user: Any = self.request.user
             analytics.record(
                 analytics_entry.event_type,
-                user_id=self.request.user.id,
+                user_id=user.id,
                 organization_id=self.organization.id,
                 integration=self.provider.key,
                 step_index=self.state.step_index,
@@ -214,11 +218,10 @@ class Pipeline:
         """Return analytics attributes for this pipeline."""
         return None
 
-    def finish_pipeline(self) -> None:
-        """
-        Called when the pipeline completes the final step.
-        """
-        raise NotImplementedError
+    @abc.abstractmethod
+    def finish_pipeline(self) -> HttpResponseBase:
+        """Called when the pipeline completes the final step."""
+        pass
 
     def bind_state(self, key: str, value: Any) -> None:
         data = self.state.data or {}
