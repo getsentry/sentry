@@ -14,11 +14,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import * as PopperJS from 'popper.js';
 
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
-
-import {IS_ACCEPTANCE_TEST} from '../constants/index';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
@@ -28,7 +27,7 @@ export const OPEN_DELAY = 50;
  * How long to wait before closing the tooltip when isHoverable is set
  */
 const CLOSE_DELAY = 50;
-export interface TooltipProps {
+export interface InternalTooltipProps {
   children: React.ReactNode;
   /**
    * The content to show in the tooltip popover
@@ -125,7 +124,7 @@ export function DO_NOT_USE_TOOLTIP({
   disabled = false,
   position = 'top',
   containerDisplayMode = 'inline-block',
-}: TooltipProps) {
+}: InternalTooltipProps) {
   const [isOpen, setOpen] = useState(false);
 
   // Tooltip ID is stable accross renders
@@ -240,12 +239,15 @@ export function DO_NOT_USE_TOOLTIP({
     return <Fragment>{children}</Fragment>;
   }
 
+  // The tooltip open/closed state can be controlled from the forceShowProp
+  const isOpenOrControlled = typeof forceShow === 'boolean' ? forceShow : isOpen;
+
   return (
     <Manager>
       <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
       {createPortal(
         <AnimatePresence>
-          {forceShow || isOpen ? (
+          {isOpenOrControlled ? (
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <PositionWrapper style={style}>
@@ -307,7 +309,9 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<{popperStyle: TooltipProps['popperStyle']}>`
+const TooltipContent = styled(motion.div)<{
+  popperStyle: InternalTooltipProps['popperStyle'];
+}>`
   will-change: transform, opacity;
   position: relative;
   background: ${p => p.theme.backgroundElevated};
@@ -388,7 +392,7 @@ const TooltipArrow = styled('span')`
   }
 `;
 
-interface AcceptanceTestTooltipProxyProps extends TooltipProps {
+interface TooltipProps extends InternalTooltipProps {
   /**
    * Stops tooltip from being opened during tooltip visual acceptance.
    * Should be set to true if tooltip contains unisolated data (eg. dates)
@@ -397,11 +401,11 @@ interface AcceptanceTestTooltipProxyProps extends TooltipProps {
 }
 
 /**
- * AcceptanceTestTooltipProxy will enhance the regular tooltip with the open/close
+ * Tooltip will enhance the internal tooltip with the open/close
  * functionality used in src/sentry/utils/pytest/selenium.py so that tooltips
  * can be opened and closed for specific snapshots.
  */
-function Tooltip({disableForVisualTest, ...props}: AcceptanceTestTooltipProxyProps) {
+function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? (
       <Fragment>{props.children}</Fragment>
@@ -413,5 +417,4 @@ function Tooltip({disableForVisualTest, ...props}: AcceptanceTestTooltipProxyPro
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-// Rename for better typescript language-server importing
 export default Tooltip;

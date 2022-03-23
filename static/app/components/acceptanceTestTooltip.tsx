@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react';
 
-import {DO_NOT_USE_TOOLTIP, TooltipProps} from 'sentry/components/tooltip';
+import {DO_NOT_USE_TOOLTIP, InternalTooltipProps} from 'sentry/components/tooltip';
 import {tooltipStore} from 'sentry/stores/tooltipStore';
 import domId from 'sentry/utils/domId';
 
-export function AcceptanceTestTooltip(props: TooltipProps) {
+export function AcceptanceTestTooltip(props: InternalTooltipProps) {
   const [open, setOpen] = useState<undefined | boolean>(undefined);
 
   useEffect(() => {
