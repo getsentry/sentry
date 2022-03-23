@@ -196,7 +196,7 @@ def _fetch_tags_or_values_per_ids(
     """
     assert len({p.organization_id for p in projects}) == 1
     try:
-        metric_ids = _get_metrics_filter_ids(projects, metric_names)
+        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_names)
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
