@@ -52,22 +52,28 @@ jobs:
       - name: Build CSS
         run: NODE_ENV=production yarn build-css
 
+      - name: Dump job context
+        run: echo '${{ toJSON(job) }}'
+
+      - name: Dump runner context
+        run: echo '${{ toJSON(runner) }}'
+
       - name: jest
+        id: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          JOB_CONTAINER_NETWORK: ${{ job.container.network }}
-          JOB_CONTAINER_ID: ${{ job.container.id }}
-          JOB_STATUS: ${{ job.status }}
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          echo '${{ toJSON(job) }}'
-          echo '${{ toJSON(runner) }}'
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --verbose
+
+      - name: Dump steps context
+        run: echo '${{ toJSON(steps) }}'
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
