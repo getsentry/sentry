@@ -411,6 +411,8 @@ function WidgetViewerModal(props: Props) {
                 />
               );
             },
+            // Hide the dropdown indicator if there is only one option
+            ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
           }}
           isSearchable={false}
           isDisabled={widget.queries.length < 2}
