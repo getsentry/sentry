@@ -37,32 +37,39 @@ def _get_superuser():
     return click.confirm("Should this user be a superuser?", default=False)
 
 
+def _get_superadmin():
+    return click.confirm(
+        "Should this user have Super Admin role? (This grants them all permissions available)",
+        default=False,
+    )
+
+
 def _get_staff():
     return click.confirm("Should this user be staff?", default=False)
 
 
-def _set_user_permissions(user):
+def _set_superadmin(user):
     from sentry.models import UserRole, UserRoleUser
 
-    if click.confirm(
-        "Should this user have Super Admin role? (This grants them all permissions available)",
-        default=False,
-    ):
-        role = UserRole.objects.get(name="Super Admin")
-        UserRoleUser.objects.create(user=user, role=role)
+    role = UserRole.objects.get(name="Super Admin")
+    UserRoleUser.objects.create(user=user, role=role)
 
 
 @click.command()
 @click.option("--email")
 @click.option("--password")
 @click.option("--superuser/--no-superuser", default=None, is_flag=True)
+@click.option("--superadmin/--no-superadmin", default=False, is_flag=True)
 @click.option("--staff/--no-staff", default=None, is_flag=True)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
 @click.option("--force-update", default=False, is_flag=True)
 @configuration
-def createuser(email, password, superuser, staff, no_password, no_input, force_update):
+def createuser(email, password, superuser, superadmin, staff, no_password, no_input, force_update):
     "Create a new user."
+
+    from django.conf import settings
+
     if not no_input:
         if not email:
             email = _get_email()
@@ -72,6 +79,10 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
 
         if superuser is None:
             superuser = _get_superuser()
+
+        # for self hosted to give superusers admin permissions
+        if superuser and settings.SENTRY_SELF_HOSTED and superadmin is None:
+            superadmin = _get_superadmin()
 
         if staff is None:
             staff = _get_staff()
@@ -88,8 +99,6 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
     # TODO(mattrobenolt): Accept password over stdin?
     if not no_password and not password:
         raise click.ClickException("No password set and --no-password not passed.")
-
-    from django.conf import settings
 
     from sentry import roles
     from sentry.models import User
@@ -137,8 +146,7 @@ def createuser(email, password, superuser, staff, no_password, no_input, force_u
         user.set_password(password)
         user.save()
 
-    # for self hosted to give superusers admin permissions
-    if superuser is True and settings.SENTRY_SELF_HOSTED and not no_input:
-        _set_user_permissions(user)
+    if superadmin:
+        _set_superadmin(user)
 
     click.echo(f"User {verb}: {email}")
