@@ -333,13 +333,14 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
+    @staticmethod
     def translate_sessions_tag_keys_and_values(
-        self, data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
+        data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
     ) -> Tuple[int, int]:
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key(self.org_id, "session.status")
+            session_status = resolve_tag_key(org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve(row[session_status])
                 translated_data[tag_value] = row[value_col_name]
