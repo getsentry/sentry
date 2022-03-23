@@ -211,7 +211,7 @@ const SidebarDropdownRoot = styled('div')`
 
 // So that long org names and user names do not overflow
 const OrgAndUserWrapper = styled('div')`
-  overflow: hidden;
+  overflow-x: hidden;
   text-align: left;
 `;
 const OrgOrUserName = styled(TextOverflow)`

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Theme} from 'sentry/utils/theme';
 
 import SidebarMenuItemLink from './sidebarMenuItemLink';
-import {OrgSummary} from './sidebarOrgSummary';
+import SidebarOrgSummary from './sidebarOrgSummary';
 
 type Props = {
   children: React.ReactNode;
@@ -41,7 +41,7 @@ const menuItemStyles = (
     outline: none;
   }
 
-  ${OrgSummary} {
+  ${SidebarOrgSummary} {
     padding-left: 0;
     padding-right: 0;
   }

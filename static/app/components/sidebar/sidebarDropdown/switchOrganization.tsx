@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import DropdownMenu from 'sentry/components/dropdownMenu';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
@@ -49,8 +50,8 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             data-test-id="sidebar-switch-org-menu"
             {...getMenuProps({})}
           >
-            <OrganizationList>
-              {organizations.map(organization => {
+            <OrganizationList role="list">
+              {sortBy(organizations, ['status.id']).map(organization => {
                 const url = `/organizations/${organization.slug}/`;
 
                 return (
