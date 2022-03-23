@@ -209,18 +209,17 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(status=400)
         result = serializer.validated_data
 
-        if "role" in result:
-            if features.has("organizations:team-roles", organization):
-                new_role_id = result["role"]
-                try:
-                    new_role = team_roles.get(new_role_id)
-                except KeyError:
-                    return Response(status=400)
+        if "role" in result and features.has("organizations:team-roles", organization):
+            new_role_id = result["role"]
+            try:
+                new_role = team_roles.get(new_role_id)
+            except KeyError:
+                return Response(status=400)
 
-                if not self._can_set_team_role(request, team, new_role):
-                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+            if not self._can_set_team_role(request, team, new_role):
+                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
-                omt.update_team_role(new_role)
+            omt.update_team_role(new_role)
 
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=200)
 
