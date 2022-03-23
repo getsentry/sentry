@@ -381,6 +381,22 @@ class SubscriptionProcessor:
                 },
             )
 
+        if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
+            try:
+                # Temporarily logging results from session updates for comparison with data from metric
+                # updates
+                logger.info(
+                    "subscription_processor.message",
+                    extra={
+                        "subscription_id": self.subscription.id,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
+                    },
+                )
+            except Exception:
+                logger.exception("Failed to log subscription results for session subscription")
+
         aggregation_value = self.get_aggregation_value(subscription_update)
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
