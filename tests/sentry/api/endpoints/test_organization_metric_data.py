@@ -1074,10 +1074,51 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set"],
+            field=["session.errored_preaggregated", "session.errored_set", "session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.errored_set"] == 3
         assert group["totals"]["session.errored_preaggregated"] == 4
+        assert group["totals"]["session.errored"] == 7
+        assert group["series"]["session.errored_set"] == [0, 0, 0, 0, 0, 3]
+        assert group["series"]["session.errored_preaggregated"] == [0, 4, 0, 0, 0, 0]
+        assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"session.errored": 7},
+            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
+        }
+
+    def test_orderby_composite_entity_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["session.errored"],
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "It is not possible to orderBy field session.errored as it does not "
+            "have a direct mapping to a query alias"
+        )
