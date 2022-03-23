@@ -55,15 +55,12 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(
-  fields: Readonly<Field[]>,
-  columnAliases?: string[]
-): TableColumn<string>[] {
+export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   let equations = 0;
-  return fields.map((f: Field, index: number) => {
+  return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
-    const col = explodeFieldString(f.field);
+    const col = explodeFieldString(f.field, f.alias);
     const columnName = f.field;
     if (isEquation(f.field)) {
       column.key = `equation[${equations}]`;
@@ -95,7 +92,7 @@ export function decodeColumnOrder(
     }
     column.column = col;
 
-    column.name = columnAliases?.[index] ?? column.name;
+    column.name = col.alias || column.name;
 
     return column;
   });
@@ -250,7 +247,7 @@ export function getExpandedResults(
   // Expand any functions in the resulting column, and dedupe the result.
   // Mark any column as null to remove it.
   const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
-    const exploded = explodeFieldString(field.field);
+    const exploded = explodeFieldString(field.field, field.alias);
     const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
     if (
@@ -305,7 +302,7 @@ function generateAdditionalConditions(
   }
 
   eventView.fields.forEach((field: Field) => {
-    const column = explodeFieldString(field.field);
+    const column = explodeFieldString(field.field, field.alias);
 
     // Skip aggregate fields
     if (column.kind === 'function') {

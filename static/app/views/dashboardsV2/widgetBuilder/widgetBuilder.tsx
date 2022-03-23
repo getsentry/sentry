@@ -84,6 +84,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: ['count()'],
       columns: [],
+      fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? '-count' : '',
@@ -92,6 +93,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: ['issue', 'assignee', 'title'] as string[],
       columns: ['issue', 'assignee', 'title'],
+      fieldAliases: [],
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
@@ -100,6 +102,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: [`sum(${SessionMetric.SESSION})`],
       columns: [],
+      fieldAliases: [],
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
       orderby: '',
@@ -530,7 +533,7 @@ function WidgetBuilder({
           newQuery.orderby = aggregateAliasFieldStrings[0];
         }
 
-        newQuery.columnAliases = columnsAndAggregates?.columnAliases ?? [];
+        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
       }
 
       set(newState, `queries.${queryIndex}`, newQuery);
@@ -621,6 +624,10 @@ function WidgetBuilder({
       widgetData.queries.forEach(query => {
         query.orderby = '';
       });
+    }
+
+    if (!widgetBuilderNewDesign) {
+      widgetData.queries.forEach(query => omit(query, 'fieldAliases'));
     }
 
     // Only Time Series charts shall have a limit
@@ -814,11 +821,17 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
-  const {columns, aggregates, fields} = state.queries[0];
-  const explodedColumns = columns.map(field => explodeField({field}));
-  const explodedAggregates = aggregates.map(field => explodeField({field}));
+  const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
+
+  const explodedColumns = columns.map((field, index) =>
+    explodeField({field, alias: fieldAliases[index]})
+  );
+  const explodedAggregates = aggregates.map((field, index) =>
+    explodeField({field, alias: fieldAliases[index]})
+  );
+
   const explodedFields = defined(fields)
-    ? fields.map(field => explodeField({field}))
+    ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
   return (
@@ -906,7 +919,9 @@ function WidgetBuilder({
                     <GroupByStep
                       columns={columns
                         .filter(field => !(field === 'equation|'))
-                        .map(field => explodeField({field}))}
+                        .map((field, index) =>
+                          explodeField({field, alias: fieldAliases[index]})
+                        )}
                       onGroupByChange={handleGroupByChange}
                       organization={organization}
                       tags={tags}

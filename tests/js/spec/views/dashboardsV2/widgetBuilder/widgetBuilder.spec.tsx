@@ -1271,7 +1271,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('Update table header value (column alias)', async function () {
+  it('Update table header valuess (field alias)', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({
@@ -1281,14 +1281,20 @@ describe('WidgetBuilder', function () {
 
     await screen.findByText('Table');
 
-    userEvent.type(screen.getByPlaceholderText('Alias'), 'Test Alias{enter}');
+    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+
+    userEvent.click(screen.getByLabelText('Add a Column'));
+
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
 
     userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
-          queries: [expect.objectContaining({columnAliases: ['Test Alias']})],
+          queries: [
+            expect.objectContaining({fieldAliases: ['First Alias', 'Second Alias']}),
+          ],
         }),
       ]);
     });

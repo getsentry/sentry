@@ -15,6 +15,7 @@ export type Sort = {
 // Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
+  alias?: string;
   width?: number;
 };
 
@@ -930,9 +931,9 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function explodeFieldString(field: string): Column {
+export function explodeFieldString(field: string, alias?: string): Column {
   if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
+    return {kind: 'equation', field: getEquation(field), alias};
   }
 
   const results = parseFunction(field);
@@ -946,10 +947,11 @@ export function explodeFieldString(field: string): Column {
         results.arguments[1] as AggregationRefinement,
         results.arguments[2] as AggregationRefinement,
       ],
+      alias,
     };
   }
 
-  return {kind: 'field', field};
+  return {kind: 'field', field, alias};
 }
 
 export function generateFieldAsString(value: QueryFieldValue): string {
@@ -967,7 +969,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
 }
 
 export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field);
+  const results = explodeFieldString(field.field, field.alias);
 
   return results;
 }
@@ -1017,12 +1019,12 @@ export function getColumnsAndAggregates(fields: string[]): {
 
 export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
   aggregates: string[];
-  columnAliases: string[];
   columns: string[];
+  fieldAliases: string[];
 } {
   const aggregateFields: string[] = [];
   const nonAggregateFields: string[] = [];
-  const columnAliases: string[] = [];
+  const fieldAliases: string[] = [];
 
   for (const field of fields) {
     const fieldString = generateFieldAsString(field);
@@ -1038,10 +1040,10 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
       nonAggregateFields.push(fieldString);
     }
 
-    columnAliases.push(field.alias ?? '');
+    fieldAliases.push(field.alias ?? '');
   }
 
-  return {aggregates: aggregateFields, columns: nonAggregateFields, columnAliases};
+  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**

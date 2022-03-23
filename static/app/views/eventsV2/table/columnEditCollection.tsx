@@ -488,7 +488,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               <AliasInput
                 name="alias"
                 placeholder={t('Alias')}
-                value={col.alias}
+                value={col.alias ?? ''}
                 onChange={value => {
                   this.handleUpdateColumn(i, {
                     ...col,

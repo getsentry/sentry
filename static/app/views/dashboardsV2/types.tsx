@@ -32,7 +32,9 @@ export type WidgetQuery = {
   conditions: string;
   name: string;
   orderby: string;
-  columnAliases?: string[];
+  // Table column alias.
+  // We may want to have alias for y-axis in the future too
+  fieldAliases?: string[];
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.
