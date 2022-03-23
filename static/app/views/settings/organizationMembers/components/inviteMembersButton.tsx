@@ -27,11 +27,11 @@ function InviteMembersButton({disabled, onClick}: InviteMembersButtonProps) {
 
   return disabled ? (
     <Hovercard
-      position="left"
       body={
         <FeatureDisabled
-          features={['organizations:invite-members']}
           featureName="Invite Members"
+          features={['organizations:invite-members']}
+          hideHelpToggle
         />
       }
     >
