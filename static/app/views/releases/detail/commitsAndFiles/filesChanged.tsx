@@ -121,7 +121,7 @@ class FilesChanged extends AsyncView<Props, State> {
                     <StyledFileChange
                       key={filename}
                       filename={filename}
-                      authors={Object.values(repoData[filename].authors ?? {})}
+                      authors={Object.values(repoData[filename]?.authors ?? {})}
                     />
                   );
                 })}
