@@ -358,15 +358,6 @@ describe('ProjectAlertsCreate', function () {
           },
         });
 
-        // Change target environment
-        await selectEvent.select(screen.getByText('All Environments'), ['production']);
-
-        // Change actionMatch and filterMatch dropdown
-        const allDropdowns = screen.getAllByText('all');
-        expect(allDropdowns).toHaveLength(2);
-        await selectEvent.select(allDropdowns[0], ['any']);
-        await selectEvent.select(allDropdowns[1], ['any']);
-
         // Change name of alert rule
         userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
@@ -382,8 +373,8 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'any',
-              filterMatch: 'any',
+              actionMatch: 'all',
+              filterMatch: 'all',
               filters: [
                 {
                   id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
@@ -394,7 +385,6 @@ describe('ProjectAlertsCreate', function () {
               ],
               actions: [],
               conditions: [],
-              environment: 'production',
               frequency: 30,
               name: 'My Rule Name',
               owner: null,
@@ -418,15 +408,6 @@ describe('ProjectAlertsCreate', function () {
           },
         });
 
-        // Change target environment
-        await selectEvent.select(screen.getByText('All Environments'), ['production']);
-
-        // Change actionMatch and filterMatch dropdown
-        const allDropdowns = screen.getAllByText('all');
-        expect(allDropdowns).toHaveLength(2);
-        await selectEvent.select(allDropdowns[0], ['any']);
-        await selectEvent.select(allDropdowns[1], ['any']);
-
         // Change name of alert rule
         userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
 
@@ -444,8 +425,8 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'any',
-              filterMatch: 'any',
+              actionMatch: 'all',
+              filterMatch: 'all',
               actions: [
                 {
                   id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
@@ -454,7 +435,6 @@ describe('ProjectAlertsCreate', function () {
               ],
               conditions: [],
               filters: [],
-              environment: 'production',
               frequency: '60',
               name: 'My Rule Name',
               owner: null,
