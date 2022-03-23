@@ -1177,3 +1177,89 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["by"]["release"] == "bar"
         assert bar_group["totals"] == {"session.abnormal": 3}
         assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_crashed_user_sessions(self):
+        org_id = self.organization.id
+        indexer.record(org_id, "sentry.sessions.session.duration")
+        users_metric_id = indexer.record(org_id, "sentry.sessions.user")
+        session_status_tag = indexer.record(org_id, "session.status")
+        release_tag = indexer.record(org_id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {
+                        session_status_tag: indexer.record(org_id, "crashed"),
+                        release_tag: indexer.record(org_id, "bar"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8, 9, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crashed_user"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.crashed_user"],
+        )
+        foo_group, bar_group = response.data["groups"][1], response.data["groups"][0]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.crashed_user": 3}
+        assert foo_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 3]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.crashed_user": 6}
+        assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_all_user_sessions(self):
+        indexer.record(self.organization.id, "sentry.sessions.session.duration")
+        users_metric_id = indexer.record(self.organization.id, "sentry.sessions.user")
+        session_status_tag = indexer.record(self.organization.id, "session.status")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": users_metric_id,
+                    "timestamp": user_ts,
+                    "tags": {session_status_tag: indexer.record(self.organization.id, "init")},
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.all_user"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"] == {"session.all_user": 3}
+        assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
