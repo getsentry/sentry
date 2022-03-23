@@ -724,6 +724,10 @@ const TableContainer = styled('div')`
   & td:first-child {
     padding: ${space(1)} ${space(2)};
   }
+
+  & table {
+    overflow-y: hidden;
+  }
 `;
 
 const WidgetTitle = styled('h4')`
