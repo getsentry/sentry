@@ -20,9 +20,6 @@ EOF
 }
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    # The developer is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
-    # Let's assume that they know what they're doing
-
     # Let's make sure they know that they're not using a different version by mistake
     query-valid-python-version || exit 1
 else

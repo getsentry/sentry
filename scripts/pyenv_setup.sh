@@ -109,7 +109,7 @@ setup_pyenv() {
   # Sets up PATH for pyenv
   eval "$(pyenv init --path)"
   python_version=$(python -V | sed s/Python\ //g)
-  [[ $python_version == "$(cat .python-version)" ]] ||
+  [[ ! $python_version < "$(cat .python-version)" ]] ||
     (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)
 }
 
