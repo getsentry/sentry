@@ -45,6 +45,8 @@ export type Widget = {
   title: string;
   id?: string;
   layout?: WidgetLayout | null;
+  // Used to define 'topEvents' when fetching time-series data for a widget
+  limit?: number;
   tempId?: string;
   widgetType?: WidgetType;
 };

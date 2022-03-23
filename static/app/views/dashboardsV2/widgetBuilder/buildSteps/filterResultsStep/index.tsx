@@ -44,8 +44,8 @@ export function FilterResultsStep({
 }: Props) {
   const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
 
-  function handleSearch(queryIndex) {
-    return field => {
+  function handleSearch(queryIndex: number) {
+    return (field: string) => {
       // SearchBar will call handlers for both onSearch and onBlur
       // when selecting a value from the autocomplete dropdown. This can
       // cause state issues for the search bar in our use case. To prevent
@@ -62,12 +62,13 @@ export function FilterResultsStep({
         ...queries[queryIndex],
         conditions: field,
       };
+
       onQueryChange(queryIndex, newQuery);
     };
   }
 
-  function handleBlur(queryIndex) {
-    return field => {
+  function handleBlur(queryIndex: number) {
+    return (field: string) => {
       if (!blurTimeout) {
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
