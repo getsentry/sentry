@@ -56,6 +56,8 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          JOB_CONTAINER_NETWORK: ${{ job.container.network }}
+          JOB_STATUS: ${{ job.status }}
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
