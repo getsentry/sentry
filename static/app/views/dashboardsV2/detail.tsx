@@ -72,11 +72,11 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
   initialState: DashboardState;
-  onSetNewWidget: () => void;
   organization: Organization;
   route: PlainRoute;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+  onSetNewWidget?: () => void;
 };
 
 type State = {
