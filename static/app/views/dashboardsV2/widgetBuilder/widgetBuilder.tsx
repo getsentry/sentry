@@ -173,8 +173,8 @@ function WidgetBuilder({
     location.query.defaultWidgetQuery
   );
 
-  const isEditing = defined(widgetIndex) && widgetIndex !== NEW_ID;
-  const widgetIndexNum: number = Number(widgetIndex);
+  const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
     widgetIndexNum < dashboard.widgets.length &&
