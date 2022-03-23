@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -155,8 +157,44 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
-      actionType: 'external',
-      location: 'https://docs.sentry.io/product/performance/getting-started/',
+      actionType: 'action',
+      action: ({router}) => {
+        if (!organization.features?.includes('performance-onboarding-checklist')) {
+          window.open(
+            'https://docs.sentry.io/product/performance/getting-started/',
+            '_blank'
+          );
+          return;
+        }
+
+        // TODO: add analytics here for this specific action.
+
+        if (!projects) {
+          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          return;
+        }
+
+        const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
+          filterProjects(projects);
+
+        if (projectsWithoutFirstTransactionEvent.length <= 0) {
+          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          return;
+        }
+
+        if (projectsForOnboarding.length) {
+          navigateTo(
+            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            router
+          );
+          return;
+        }
+
+        navigateTo(
+          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          router
+        );
+      },
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (

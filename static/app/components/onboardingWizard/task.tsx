@@ -1,5 +1,4 @@
 import {forwardRef} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
@@ -16,6 +15,7 @@ import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SkipConfirm from './skipConfirm';
@@ -33,7 +33,7 @@ const recordAnalytics = (
     action,
   });
 
-type Props = WithRouterProps & {
+type Props = {
   forwardedRef: React.Ref<HTMLDivElement>;
   /**
    * Fired when a task is completed. This will typically happen if there is a
@@ -52,7 +52,10 @@ type Props = WithRouterProps & {
   task: OnboardingTask;
 };
 
-function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}: Props) {
+function Task(props: Props) {
+  const {task, onSkip, onMarkComplete, forwardedRef, organization} = props;
+  const routeContext = useRouteContext();
+  const {router} = routeContext;
   const handleSkip = () => {
     recordAnalytics(task, organization, 'skipped');
     onSkip(task.task);
@@ -67,7 +70,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'action') {
-      task.action();
+      task.action(routeContext);
     }
 
     if (task.actionType === 'app') {
@@ -285,7 +288,7 @@ TaskBlankAvatar.defaultProps = {
   transition,
 };
 
-const WrappedTask = withOrganization(withRouter(Task));
+const WrappedTask = withOrganization(Task);
 
 export default forwardRef<
   HTMLDivElement,

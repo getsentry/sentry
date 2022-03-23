@@ -7,6 +7,7 @@ import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import {
   IconChevron,
   IconDashboard,
@@ -54,6 +55,10 @@ type Props = {
   organization?: Organization;
 };
 
+function activatePanel(panel: SidebarPanelKey) {
+  SidebarPanelStore.activatePanel(panel);
+}
+
 function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
@@ -100,9 +105,14 @@ function Sidebar({location, organization}: Props) {
   // Trigger panels depending on the location hash
   useEffect(() => {
     if (location?.hash === '#welcome') {
-      togglePanel(SidebarPanelKey.OnboardingWizard);
+      activatePanel(SidebarPanelKey.OnboardingWizard);
+    } else if (
+      location?.hash === '#performance-sidequest' &&
+      organization?.features?.includes('performance-onboarding-checklist')
+    ) {
+      activatePanel(SidebarPanelKey.PerformanceOnboarding);
     }
-  }, [location?.hash]);
+  }, [location?.hash, organization]);
 
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;
@@ -339,6 +349,12 @@ function Sidebar({location, organization}: Props) {
 
       {hasOrganization && (
         <SidebarSectionGroup>
+          <PerformanceOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
           <SidebarSection noMargin noPadding>
             <OnboardingStatus
               org={organization}
