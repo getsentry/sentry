@@ -413,5 +413,5 @@ function Tooltip({disableForVisualTest, ...props}: AcceptanceTestTooltipProxyPro
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-// Rename for better language support
+// Rename for better typescript language-server importing
 export default Tooltip;
