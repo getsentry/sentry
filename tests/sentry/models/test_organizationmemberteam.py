@@ -1,6 +1,7 @@
 from sentry.models import OrganizationMemberTeam
 from sentry.roles import team_roles
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTest(TestCase):
@@ -9,6 +10,7 @@ class OrganizationMemberTest(TestCase):
         self.team = self.create_team(organization=organization)
         self.member = self.create_member(organization=organization, user=self.create_user())
 
+    @with_feature("organizations:team-roles")
     def test_get_team_role(self):
         omt = OrganizationMemberTeam(organizationmember=self.member, team=self.team)
         assert omt.get_team_role() == team_roles.get("contributor")
@@ -16,6 +18,7 @@ class OrganizationMemberTest(TestCase):
         omt.role = "admin"
         assert omt.get_team_role() == team_roles.get("admin")
 
+    @with_feature("organizations:team-roles")
     def test_get_team_role_derives_entry_role(self):
         omt = OrganizationMemberTeam(organizationmember=self.member, team=self.team)
 

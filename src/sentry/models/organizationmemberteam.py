@@ -45,7 +45,9 @@ class OrganizationMemberTeam(BaseModel):
         member's organization role.
         """
         entry_role = roles.get_entry_role(self.organizationmember.role)
-        if self.role:
+        if self.role and features.has(
+            "organizations:team-roles", self.organizationmember.organization
+        ):
             team_role = team_roles.get(self.role)
             if team_role.priority > entry_role.priority:
                 return team_role
