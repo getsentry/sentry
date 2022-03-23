@@ -146,7 +146,7 @@ def createuser(email, password, superuser, superadmin, staff, no_password, no_in
         user.set_password(password)
         user.save()
 
-    if superadmin:
+    if superuser and superadmin:
         _set_superadmin(user)
 
     click.echo(f"User {verb}: {email}")
