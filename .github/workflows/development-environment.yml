@@ -86,7 +86,7 @@ jobs:
 
       - name: Install pyenv
         run: |
-          brew install pyenv
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
 
       # Only after we source ~/.zprofile that the right Python will be selected
       - name: Set up pyenv
