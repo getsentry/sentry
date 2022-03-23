@@ -237,15 +237,9 @@ describe('ProjectAlertsCreate', function () {
     });
 
     describe('updates and saves', function () {
-      let wrapper, mock;
+      let mock;
 
       beforeEach(function () {
-        wrapper = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
-
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
@@ -258,6 +252,12 @@ describe('ProjectAlertsCreate', function () {
       });
 
       it('new condition', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
@@ -315,6 +315,12 @@ describe('ProjectAlertsCreate', function () {
       });
 
       it('new filter', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
@@ -369,6 +375,12 @@ describe('ProjectAlertsCreate', function () {
       });
 
       it('new action', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
         // Change target environment
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
