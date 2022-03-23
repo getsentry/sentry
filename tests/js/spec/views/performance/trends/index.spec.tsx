@@ -174,12 +174,15 @@ function initializeTrendsData(
     projects: _projects,
     project: projects ? projects[0] : undefined,
   });
+
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+
   return initialData;
 }
 
 describe('Performance > Trends', function () {
   let trendsStatsMock;
+  // const originalHook = window._legacyStoreHookUpdate;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
