@@ -22,6 +22,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
+    abnormal_sessions,
     all_sessions,
     crashed_sessions,
     errored_preaggr_sessions,
@@ -486,6 +487,12 @@ DERIVED_METRICS = {
             metrics=["sentry.sessions.session"],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: all_sessions(metric_ids, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name="session.abnormal",
+            metrics=["sentry.sessions.session"],
+            unit="sessions",
+            snql=lambda *_, metric_ids, alias=None: abnormal_sessions(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crashed",

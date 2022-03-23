@@ -1122,3 +1122,58 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "It is not possible to orderBy field session.errored as it does not "
             "have a direct mapping to a query alias"
         )
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
+    def test_abnormal_sessions(self):
+        session_metric = indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
+        indexer.record(self.organization.id, "sentry.sessions.session.duration")
+        indexer.record(self.organization.id, "sentry.sessions.user")
+        session_status_tag = indexer.record(self.organization.id, "session.status")
+        release_tag = indexer.record(self.organization.id, "release")
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        release_tag: indexer.record(self.organization.id, "bar"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.abnormal"],
+        )
+        foo_group, bar_group = response.data["groups"][0], response.data["groups"][1]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.abnormal": 4}
+        assert foo_group["series"] == {"session.abnormal": [0, 4, 0, 0, 0, 0]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.abnormal": 3}
+        assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
