@@ -84,7 +84,7 @@ type ReleaseData = {
   newGroups: number;
   versionInfo: VersionInfo;
   adoptionStages?: Record<
-    'string',
+    string,
     {
       adopted: string | null;
       stage: string | null;

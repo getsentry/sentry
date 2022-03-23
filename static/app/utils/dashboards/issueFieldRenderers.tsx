@@ -312,7 +312,7 @@ export function getIssueFieldRenderer(
   field: keyof typeof SPECIAL_FIELDS | string
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    return SPECIAL_FIELDS[field].renderFunc;
+    return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].renderFunc;
   }
 
   // Return null if there is no field renderer for this field

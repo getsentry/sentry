@@ -42,7 +42,7 @@ function parseBucket(bucket: string): number {
     .valueOf();
 }
 
-const bucketLabels = {
+const bucketLabels: Record<string, string> = {
   '< 1 hour': t('1 hour'),
   '< 4 hour': t('4 hours'),
   '< 12 hour': t('12 hours'),

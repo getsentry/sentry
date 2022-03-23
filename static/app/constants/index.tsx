@@ -189,7 +189,7 @@ export const DEFAULT_QUERY = 'is:unresolved';
 
 export const DEFAULT_USE_UTC = true;
 
-export const DEFAULT_RELATIVE_PERIODS = {
+export const DEFAULT_RELATIVE_PERIODS: Record<string, string> = {
   '1h': t('Last hour'),
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
@@ -198,7 +198,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '90d': t('Last 90 days'),
 };
 
-export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
+export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER: Record<string, string> = {
   '1h': t('1H'),
   '24h': t('24H'),
   '7d': t('7D'),
@@ -206,7 +206,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-export const DATA_CATEGORY_NAMES = {
+export const DATA_CATEGORY_NAMES: Record<string, string> = {
   [DataCategory.ERRORS]: t('Errors'),
   [DataCategory.TRANSACTIONS]: t('Transactions'),
   [DataCategory.ATTACHMENTS]: t('Attachments'),

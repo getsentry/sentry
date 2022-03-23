@@ -33,7 +33,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export const projectProcessingIssuesMessages = {
+export const projectProcessingIssuesMessages: Record<string, string> = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
   native_bad_dsym: t('The debug information file used was broken.'),
@@ -51,7 +51,7 @@ export const projectProcessingIssuesMessages = {
   proguard_missing_lineno: t('A proguard mapping file does not contain line info.'),
 };
 
-const HELP_LINKS = {
+const HELP_LINKS: Record<string, string> = {
   native_missing_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
   native_bad_dsym: 'https://docs.sentry.io/platforms/apple/dsym/',
   native_missing_system_dsym: 'https://develop.sentry.dev/self-hosted/',

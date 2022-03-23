@@ -107,6 +107,7 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   const responseFeatures = response?.features;
 
   const result: {[key in T[number]]?: PromptData} = {};
+
   if (!responseFeatures) {
     return result as {[key in T[number]]: PromptData};
   }

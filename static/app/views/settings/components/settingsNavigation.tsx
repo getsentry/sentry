@@ -38,9 +38,7 @@ class SettingsNavigation extends React.Component<Props> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Sentry.withScope(scope => {
-      Object.keys(errorInfo).forEach(key => {
-        scope.setExtra(key, errorInfo[key]);
-      });
+      scope.setExtra('componentStack', errorInfo.componentStack);
       scope.setExtra('url', window.location.href);
       Sentry.captureException(error);
     });

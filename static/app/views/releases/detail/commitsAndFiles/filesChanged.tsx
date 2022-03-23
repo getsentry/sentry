@@ -117,12 +117,11 @@ class FilesChanged extends AsyncView<Props, State> {
               </PanelHeader>
               <PanelBody>
                 {files.map(filename => {
-                  const {authors} = repoData[filename];
                   return (
                     <StyledFileChange
                       key={filename}
                       filename={filename}
-                      authors={Object.values(authors)}
+                      authors={Object.values(repoData[filename].authors ?? {})}
                     />
                   );
                 })}

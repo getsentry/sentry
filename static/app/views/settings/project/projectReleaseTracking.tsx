@@ -56,7 +56,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
         'data',
         `/projects/${orgId}/${projectId}/releases/token/`,
         {},
-        {allowError: err => err && err.status === 403},
+        {allowError: () => err && err.status === 403},
       ],
     ];
   }

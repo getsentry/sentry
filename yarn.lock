@@ -4374,6 +4374,13 @@
   dependencies:
     "@types/react" "*"
 
+"@types/react-lazyload@^3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@types/react-lazyload/-/react-lazyload-3.2.0.tgz#b763f8f0c724df2c969d7e0b3a56c6aa2720fa1f"
+  integrity sha512-4+r+z8Cf7L/mgxA1vl5uHx5GS/8gY2jqq2p5r5WCm+nUsg9KilwQ+8uaJA3EUlLj57AOzOfGGwwRJ5LOVl8fwA==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-mentions@4.1.2":
   version "4.1.2"
   resolved "https://registry.yarnpkg.com/@types/react-mentions/-/react-mentions-4.1.2.tgz#00d29feb42ec69566495efb8a6ea08b443ef8af8"

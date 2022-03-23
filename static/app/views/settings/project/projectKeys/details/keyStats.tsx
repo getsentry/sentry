@@ -61,10 +61,13 @@ class KeyStats extends Component<Props, State> {
         until: this.state.until,
         resolution: '1d',
       },
-      success: data => {
+      success: (
+        data: {accepted: number; dropped: number; total: number; ts: number}[]
+      ) => {
         let emptyStats = true;
         const dropped: Series['data'] = [];
         const accepted: Series['data'] = [];
+
         data.forEach(p => {
           if (p.total) {
             emptyStats = false;

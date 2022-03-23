@@ -89,7 +89,8 @@ function ReleaseCardProjectRow({
     adoptionStages?.[project.slug].stage;
 
   const adoptionStageLabel =
-    Boolean(get24hCountByProject && adoptionStage && isMobileRelease(project.platform)) &&
+    Boolean(get24hCountByProject && isMobileRelease(project.platform)) &&
+    typeof adoptionStage === 'string' &&
     ADOPTION_STAGE_LABELS[adoptionStage];
 
   return (
