@@ -17,7 +17,8 @@ describe('BaseChart', function () {
       />,
       routerContext
     );
-    const series = wrapper.find('ChartContainer').props().children.props.option.series;
+    const series = (wrapper.find('ChartContainer').props() as any).children.props.option
+      .series;
     expect(series.length).toEqual(1);
     expect(series[0].lineStyle.color).toEqual(theme.gray200);
     expect(series[0].lineStyle.type).toEqual('dotted');
@@ -41,7 +42,8 @@ describe('BaseChart', function () {
       />,
       routerContext
     );
-    const series = wrapper.find('ChartContainer').props().children.props.option.series;
+    const series = (wrapper.find('ChartContainer').props() as any).children.props.option
+      .series;
     expect(series.length).toEqual(3);
     expect(series[0].lineStyle.color).toEqual('rgb(98, 100, 146)');
     expect(series[0].lineStyle.type).toEqual('dotted');

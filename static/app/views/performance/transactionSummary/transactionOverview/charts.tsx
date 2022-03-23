@@ -69,7 +69,7 @@ const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
   })
 );
 
-type Props = {
+export type TransactionSummaryChartsProps = {
   currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
   location: Location;
@@ -85,7 +85,7 @@ function TransactionSummaryCharts({
   location,
   currentFilter,
   withoutZerofill,
-}: Props) {
+}: TransactionSummaryChartsProps) {
   function handleDisplayChange(value: string) {
     browserHistory.push({
       pathname: location.pathname,

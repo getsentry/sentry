@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
+import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 type Data = {
@@ -178,7 +179,8 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 
-    const columnTitles = wrapper.find('EventsTable').props().columnTitles;
+    const columnTitles = (wrapper.find('EventsTable').props() as EventsTable['props'])
+      .columnTitles;
     expect(columnTitles).toEqual([
       t('event id'),
       t('user'),
@@ -213,7 +215,8 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 
-    const columnTitles = wrapper.find('EventsTable').props().columnTitles;
+    const columnTitles = (wrapper.find('EventsTable').props() as EventsTable['props'])
+      .columnTitles;
     expect(columnTitles).toEqual([
       t('event id'),
       t('user'),

@@ -23,7 +23,9 @@ const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
 async function renderComponent() {
-  const wrapper = mountWithTheme(<GlobalModal />);
+  const wrapper = mountWithTheme<GlobalModal, GlobalModal['props'], GlobalModal['state']>(
+    <GlobalModal />
+  );
 
   openModal(modalProps => (
     <Add
@@ -60,7 +62,7 @@ describe('Add Modal', () => {
     expect(methodGroup.find('Tooltip').prop('title')).toEqual(methodFieldHelp);
     const methodField = methodGroup.find('SelectField');
     expect(methodField.exists()).toBe(true);
-    const methodFieldProps = methodField.props();
+    const methodFieldProps = methodField.props() as any;
     expect(methodFieldProps.value).toEqual(MethodType.MASK);
     const methodFieldOptions = sortBy(Object.values(MethodType)).map(value => ({
       ...getMethodLabel(value),
@@ -77,7 +79,7 @@ describe('Add Modal', () => {
     expect(typeGroup.find('Tooltip').prop('title')).toEqual(typeFieldHelp);
     const typeField = typeGroup.find('SelectField');
     expect(typeField.exists()).toBe(true);
-    const typeFieldProps = typeField.props();
+    const typeFieldProps = typeField.props() as any;
     expect(typeFieldProps.value).toEqual(RuleType.CREDITCARD);
 
     const typeFieldOptions = sortBy(Object.values(RuleType)).map(value => ({

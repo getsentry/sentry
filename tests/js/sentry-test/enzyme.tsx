@@ -1,4 +1,4 @@
-import {ReactElement} from 'react';
+import {Component, ReactElement} from 'react';
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
@@ -16,18 +16,27 @@ export {ReactWrapper, ReactElement};
  * As we are migrating our tests to React Testing Library,
  * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/render` instead.
  */
-export const mountWithTheme: typeof mount = (
-  tree: ReactElement,
-  options: MountRendererProps = {}
-) => {
+
+export function mountWithTheme<C extends Component, P = C['props'], S = C['state']>(
+  node: ReactElement<P>,
+  options?: MountRendererProps
+): ReactWrapper<P, S, C>;
+export function mountWithTheme<P>(
+  node: ReactElement<P>,
+  options?: MountRendererProps
+): ReactWrapper<P, any>;
+export function mountWithTheme<P, S>(
+  tree: ReactElement<P>,
+  options?: MountRendererProps
+): ReactWrapper<P, S> {
   const WrappingThemeProvider = (props: {children: React.ReactNode}) => (
     <CacheProvider value={cache}>
       <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
     </CacheProvider>
   );
 
-  return mount(tree, {wrappingComponent: WrappingThemeProvider, ...options});
-};
+  return mount(tree, {wrappingComponent: WrappingThemeProvider, ...(options ?? {})});
+}
 
 /**
  * @deprecated

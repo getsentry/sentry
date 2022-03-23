@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import EventsRequest from 'sentry/components/charts/eventsRequest';
 import EventView from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/eventsV2/miniGraph';
 
@@ -75,7 +76,9 @@ describe('EventsV2 > MiniGraph', function () {
       />,
       initialData.routerContext
     );
-    const eventsRequestProps = wrapper.find('EventsRequest').props();
+    const eventsRequestProps = wrapper
+      .find('EventsRequest')
+      .props() as EventsRequest['props'];
     expect(eventsRequestProps.yAxis).toEqual(yAxis);
   });
 
@@ -91,7 +94,9 @@ describe('EventsV2 > MiniGraph', function () {
       />,
       initialData.routerContext
     );
-    const eventsRequestProps = wrapper.find('EventsRequest').props();
+    const eventsRequestProps = wrapper
+      .find('EventsRequest')
+      .props() as EventsRequest['props'];
     expect(eventsRequestProps.interval).toEqual('12h');
   });
 
@@ -107,7 +112,7 @@ describe('EventsV2 > MiniGraph', function () {
       />,
       initialData.routerContext
     );
-    const worldMapChartProps = wrapper.find('WorldMapChart').props();
+    const worldMapChartProps = wrapper.find('WorldMapChart').props() as any;
     expect(worldMapChartProps.series).toEqual([
       {
         data: [

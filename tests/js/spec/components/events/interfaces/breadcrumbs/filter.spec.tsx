@@ -7,6 +7,8 @@ import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/typ
 import SearchBarActionFilter from 'sentry/components/events/interfaces/searchBarAction/searchBarActionFilter';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
+import {CheckboxFancyProps} from '../../../../../../../static/app/components/checkboxFancy/checkboxFancy';
+
 const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
   ['Types']: [
     {
@@ -61,15 +63,9 @@ const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
 };
 
 describe('SearchBarActionFilter', () => {
-  let handleFilter;
-
-  beforeEach(() => {
-    handleFilter = jest.fn();
-  });
-
   it('default render', () => {
     const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={options} onChange={handleFilter} />
+      <SearchBarActionFilter options={options} onChange={jest.fn()} />
     );
 
     const filterDropdownMenu = wrapper.find('StyledContent');
@@ -91,7 +87,7 @@ describe('SearchBarActionFilter', () => {
 
   it('Without Options', () => {
     const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{}} onChange={handleFilter} />
+      <SearchBarActionFilter options={{}} onChange={jest.fn()} />
     );
     expect(wrapper.find('Header').exists()).toBe(false);
     expect(wrapper.find('StyledListItem').exists()).toBe(false);
@@ -99,8 +95,9 @@ describe('SearchBarActionFilter', () => {
 
   it('With Option Type only', () => {
     const {Types} = options;
+    const onFilterChange = jest.fn();
     const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{Types}} onChange={handleFilter} />
+      <SearchBarActionFilter options={{Types}} onChange={onFilterChange} />
     );
 
     const filterDropdownMenu = wrapper.find('StyledContent');
@@ -121,16 +118,19 @@ describe('SearchBarActionFilter', () => {
     expect(firstItem.find('Description').text()).toBe(options.Types[0].description);
 
     // Check Item
-    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    expect(
+      (firstItem.find('CheckboxFancy').props() as CheckboxFancyProps).isChecked
+    ).toBeTruthy();
     firstItem.simulate('click');
 
-    expect(handleFilter).toHaveBeenCalledTimes(1);
+    expect(onFilterChange).toHaveBeenCalledTimes(1);
   });
 
   it('With Option Level only', () => {
     const {Levels} = options;
+    const onFilterChange = jest.fn();
     const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{Levels}} onChange={handleFilter} />
+      <SearchBarActionFilter options={{Levels}} onChange={onFilterChange} />
     );
 
     const filterDropdownMenu = wrapper.find('StyledContent');
@@ -151,10 +151,12 @@ describe('SearchBarActionFilter', () => {
     expect(firstItem.text()).toBe('Info');
 
     // Check Item
-    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    expect(
+      (firstItem.find('CheckboxFancy').props() as CheckboxFancyProps).isChecked
+    ).toBeTruthy();
 
     firstItem.simulate('click');
 
-    expect(handleFilter).toHaveBeenCalledTimes(1);
+    expect(onFilterChange).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,9 +3,11 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import TransactionsList from 'sentry/components/discover/transactionsList';
 import EventView from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {TransactionSummaryChartsProps} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
@@ -147,7 +149,11 @@ describe('Transaction Summary Content', function () {
     expect(wrapper.find('SidebarCharts')).toHaveLength(1);
     expect(wrapper.find('DiscoverQuery')).toHaveLength(2);
 
-    const transactionListProps = wrapper.find('TransactionsList').first().props();
+    const transactionListProps = wrapper
+      .find('TransactionsList')
+      .first()
+      .props() as unknown as TransactionsList['props'];
+
     expect(transactionListProps.generateDiscoverEventView).toBeUndefined();
     expect(transactionListProps.handleOpenInDiscoverClick).toBeUndefined();
     expect(transactionListProps.generatePerformanceTransactionEventsView).toBeDefined();
@@ -189,7 +195,8 @@ describe('Transaction Summary Content', function () {
     const transactionSummaryChartsProps = wrapper
       .find('TransactionSummaryCharts')
       .first()
-      .props();
+      .props() as unknown as TransactionSummaryChartsProps;
+
     expect(transactionSummaryChartsProps.withoutZerofill).toEqual(true);
   });
 });

@@ -7,12 +7,14 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
+import {SourceSuggestion} from '../../../../../../../static/app/views/settings/components/dataScrubbing/types';
+
 function renderComponent({
   value = '$string',
   onChange = jest.fn(),
   ...props
 }: Partial<SourceField['props']>) {
-  return mountWithTheme(
+  return mountWithTheme<SourceField, SourceField['props'], SourceField['state']>(
     <SourceField
       isRegExMatchesSelected={false}
       suggestions={valueSuggestions}
@@ -145,7 +147,9 @@ describe('Source', () => {
       .children();
 
     suggestions.at(1).simulate('click');
-    expect(wrapper.state().fieldValues[2].value).toBe(valueSuggestions[1].value);
+    expect((wrapper.state().fieldValues[2] as SourceSuggestion).value).toBe(
+      valueSuggestions[1].value
+    );
   });
 
   it('suggestions keyDown and keyUp should work', () => {
@@ -170,7 +174,7 @@ describe('Source', () => {
     expect(wrapper.state().activeSuggestion).toBe(1);
     input.simulate('keyDown', {keyCode: 13});
     expect(wrapper.state().activeSuggestion).toBe(0);
-    expect(wrapper.state().fieldValues[1].value).toBe('||');
+    expect((wrapper.state().fieldValues[1] as SourceSuggestion).value).toBe('||');
 
     expect(handleOnChange).toHaveBeenCalledWith('foo ||');
 

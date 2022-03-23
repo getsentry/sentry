@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
 import {Theme} from 'sentry/utils/theme';
 
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
+export interface CheckboxFancyProps extends React.HTMLAttributes<HTMLDivElement> {
   isChecked?: boolean;
   isDisabled?: boolean;
   isIndeterminate?: boolean;
   size?: string;
 }
 
-const disabledStyles = (p: Props & {theme: Theme}) =>
+const disabledStyles = (p: CheckboxFancyProps & {theme: Theme}) =>
   p.isDisabled &&
   css`
     background: ${p.isChecked || p.isIndeterminate
@@ -21,7 +21,7 @@ const disabledStyles = (p: Props & {theme: Theme}) =>
     border-color: ${p.theme.border};
   `;
 
-const hoverStyles = (p: Props & {theme: Theme}) =>
+const hoverStyles = (p: CheckboxFancyProps & {theme: Theme}) =>
   !p.isDisabled &&
   css`
     border: 2px solid
@@ -29,7 +29,13 @@ const hoverStyles = (p: Props & {theme: Theme}) =>
   `;
 
 const CheckboxFancy = styled(
-  ({isDisabled, isChecked, isIndeterminate, size: _size, ...props}: Props) => (
+  ({
+    isDisabled,
+    isChecked,
+    isIndeterminate,
+    size: _size,
+    ...props
+  }: CheckboxFancyProps) => (
     <div
       data-test-id="checkbox-fancy"
       role="checkbox"

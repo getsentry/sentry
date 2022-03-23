@@ -3,6 +3,7 @@ import {act} from 'react-dom/test-utils';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ErrorItem from 'sentry/components/events/errorItem';
 import {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
 import {EntryType, Event} from 'sentry/types/event';
@@ -88,8 +89,8 @@ describe('GroupEventEntries', function () {
         `There were ${errors.length} problems processing this event`
       );
       expect(errorItem.length).toBe(2);
-      expect(errorItem.at(0).props().error).toEqual(errors[0]);
-      expect(errorItem.at(1).props().error).toEqual(errors[1]);
+      expect((errorItem.at(0).props() as ErrorItem['props']).error).toEqual(errors[0]);
+      expect((errorItem.at(1).props() as ErrorItem['props']).error).toEqual(errors[1]);
     });
 
     describe('Proguard erros', function () {
@@ -117,7 +118,7 @@ describe('GroupEventEntries', function () {
           );
 
           expect(errorItem.length).toBe(1);
-          expect(errorItem.at(0).props().error).toEqual({
+          expect((errorItem.at(0).props() as ErrorItem['props']).error).toEqual({
             type: 'proguard_missing_mapping',
             message: 'A proguard mapping file was missing.',
             data: {mapping_uuid: proGuardUuid},
@@ -153,7 +154,7 @@ describe('GroupEventEntries', function () {
         );
 
         expect(errorItem.length).toBe(1);
-        expect(errorItem.at(0).props().error).toEqual({
+        expect((errorItem.at(0).props() as ErrorItem['props']).error).toEqual({
           type: 'proguard_missing_mapping',
           message: 'A proguard mapping file was missing.',
           data: {mapping_uuid: proGuardUuid},
@@ -207,7 +208,7 @@ describe('GroupEventEntries', function () {
           );
 
           expect(errorItem.length).toBe(1);
-          const {type, message} = errorItem.at(0).props().error;
+          const {type, message} = (errorItem.at(0).props() as ErrorItem['props']).error;
           expect(type).toEqual('proguard_potentially_misconfigured_plugin');
           expect(message).toBeTruthy();
         });
@@ -281,7 +282,7 @@ describe('GroupEventEntries', function () {
           );
 
           expect(errorItem.length).toBe(1);
-          const {type, message} = errorItem.at(0).props().error;
+          const {type, message} = (errorItem.at(0).props() as ErrorItem['props']).error;
           expect(type).toEqual('proguard_potentially_misconfigured_plugin');
           expect(message).toBeTruthy();
         });

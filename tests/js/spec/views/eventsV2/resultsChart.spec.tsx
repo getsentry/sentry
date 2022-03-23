@@ -47,7 +47,7 @@ describe('EventsV2 > ResultsChart', function () {
       />,
       initialData.routerContext
     );
-    const displayOptions = wrapper.find('ChartFooter').props().displayOptions;
+    const displayOptions = (wrapper.find('ChartFooter').props() as any).displayOptions;
     displayOptions.forEach(({value, disabled}) => {
       if (
         ![
@@ -100,7 +100,7 @@ describe('EventsV2 > ResultsChart', function () {
       />,
       initialData.routerContext
     );
-    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
+    const yAxisOptions = (wrapper.find('ChartFooter').props() as any).yAxisOptions;
     yAxisOptions.forEach(({value, disabled}) => {
       if (value !== 'count()') {
         expect(disabled).toBe(true);
@@ -130,7 +130,7 @@ describe('EventsV2 > ResultsChart', function () {
       />,
       initialData.routerContext
     );
-    const yAxisOptions = wrapper.find('ChartFooter').props().yAxisOptions;
+    const yAxisOptions = (wrapper.find('ChartFooter').props() as any).yAxisOptions;
     expect(yAxisOptions.length).toEqual(2);
     expect(yAxisOptions[0].value).toEqual('count()');
     expect(yAxisOptions[1].value).toEqual('count_unique(user)');

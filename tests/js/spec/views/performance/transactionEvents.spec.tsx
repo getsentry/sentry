@@ -214,7 +214,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     function keyAt(index) {
-      return wrapper.find('CellAction').at(index).props().column.key;
+      return (wrapper.find('CellAction').at(index).props() as any).column.key;
     }
 
     function valueAt(index, element = 'div') {
@@ -251,7 +251,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     function keyAt(index) {
-      return wrapper.find('CellAction').at(index).props().column.key;
+      return (wrapper.find('CellAction').at(index).props() as any).column.key;
     }
 
     function valueAt(index, element = 'div') {

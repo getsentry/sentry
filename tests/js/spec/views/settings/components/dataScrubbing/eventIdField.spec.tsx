@@ -58,7 +58,7 @@ describe('EventIdField', () => {
     expect(eventIdField.find('CloseIcon')).toHaveLength(0);
     const iconCheckmark = eventIdField.find('IconCheckmark');
     expect(iconCheckmark).toHaveLength(1);
-    const iconCheckmarkColor = iconCheckmark.prop('color');
+    const iconCheckmarkColor = iconCheckmark.prop('color') as string;
     expect(theme[iconCheckmarkColor]).toBe(theme.green300);
   });
 
