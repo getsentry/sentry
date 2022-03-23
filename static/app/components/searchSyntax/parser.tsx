@@ -536,8 +536,13 @@ export class TokenConverter {
 
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
-    const checkAggregate = (check: (s: string) => boolean) =>
-      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
+    const checkAggregate = (check: (s: string) => boolean) => {
+      if (aggregateKey.args === null) {
+        // Aggregate keys without args will rely on default values
+        return true;
+      }
+      return aggregateKey.args.args.some(arg => check(arg?.value?.value ?? ''));
+    };
 
     switch (type) {
       case FilterType.Numeric:
