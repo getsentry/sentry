@@ -44,8 +44,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
+        org_id = 666
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert sessions_errored_set(org_id, self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -61,9 +62,10 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_percentage_in_snql(self):
+        org_id = 666
         alias = "foo.percentage"
-        init_session_snql = init_sessions(self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.metric_ids, "crashed_sessions")
+        init_session_snql = init_sessions(org_id, self.metric_ids, "init_sessions")
+        crashed_session_snql = crashed_sessions(org_id, self.metric_ids, "crashed_sessions")
 
         assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
