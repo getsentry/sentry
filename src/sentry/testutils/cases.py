@@ -1413,6 +1413,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["aggregates"] == widget_data_source.aggregates
         if "columns" in data:
             assert data["columns"] == widget_data_source.columns
+        if "fieldAliases" in data:
+            assert data["fieldAliases"] == widget_data_source.fieldAliases
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
