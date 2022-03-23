@@ -251,7 +251,7 @@ describe('ProjectAlertsCreate', function () {
         jest.clearAllMocks();
       });
 
-      it('new condition', async function () {
+      it('environment, action and filter match', async function () {
         const wrapper = createWrapper({
           organization: {
             features: ['alert-filters'],
@@ -266,6 +266,44 @@ describe('ProjectAlertsCreate', function () {
         expect(allDropdowns).toHaveLength(2);
         await selectEvent.select(allDropdowns[0], ['any']);
         await selectEvent.select(allDropdowns[1], ['any']);
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'any',
+              filterMatch: 'any',
+              conditions: [],
+              actions: [],
+              filters: [],
+              environment: 'production',
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new condition', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
 
         // Change name of alert rule
         userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
@@ -285,8 +323,8 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'any',
-              filterMatch: 'any',
+              actionMatch: 'all',
+              filterMatch: 'all',
               conditions: [
                 {
                   id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
@@ -297,7 +335,6 @@ describe('ProjectAlertsCreate', function () {
               ],
               actions: [],
               filters: [],
-              environment: 'production',
               frequency: 30,
               name: 'My Rule Name',
               owner: null,
