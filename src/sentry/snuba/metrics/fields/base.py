@@ -24,6 +24,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     all_sessions,
+    all_users,
     crashed_sessions,
     crashed_users,
     errored_preaggr_sessions,
@@ -522,6 +523,12 @@ DERIVED_METRICS = {
             metrics=["sentry.sessions.session.error"],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: sessions_errored_set(metric_ids, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name="session.all_user",
+            metrics=["sentry.sessions.user"],
+            unit="users",
+            snql=lambda *_, metric_ids, alias=None: all_users(metric_ids, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_name="session.crashed_user",
