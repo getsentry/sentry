@@ -37,6 +37,7 @@ import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types'
 import {
   getMeasurementBounds,
   getMeasurements,
+  getSpanGroupBounds,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
@@ -274,18 +275,19 @@ export default function SpanSiblingGroupBar(props: Props) {
                       toggleSiblingSpanGroup?.(spanGrouping[0].span);
                     }}
                   >
-                    {
-                      <React.Fragment>
-                        {spanGrouping.map((_, index) => (
-                          <SpanRectangle
-                            key={index}
-                            spanGrouping={spanGrouping}
-                            index={index}
-                            generateBounds={generateBounds}
-                          />
-                        ))}{' '}
-                      </React.Fragment>
-                    }
+                    {spanGrouping.map((_, index) => (
+                      <SpanRectangle
+                        key={index}
+                        spanGrouping={spanGrouping}
+                        bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
+                      />
+                    ))}
+                    <SpanRectangle
+                      spanGrouping={spanGrouping}
+                      bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
+                      isOverlayRectangle
+                    />
+
                     {renderMeasurements()}
                     <SpanBarCursorGuide />
                   </RowCell>
