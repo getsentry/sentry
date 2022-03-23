@@ -10,6 +10,7 @@ import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
@@ -68,8 +69,9 @@ class ReplayDetails extends AsyncView<Props, State> {
     return `Replays - ${this.props.params.orgId}`;
   }
 
-  onUpdate = (data: Event) =>
-    this.setState(state => ({event: {...state.event, ...data}}));
+  renderLoading() {
+    return <PageContent>{super.renderLoading()}</PageContent>;
+  }
 
   generateTagUrl = () => {
     return ''; // todo
