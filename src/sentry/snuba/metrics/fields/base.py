@@ -495,6 +495,7 @@ class DerivedMetricKey(Enum):
     SESSION_ERRORED_SET = "session.errored_set"
     SESSION_ERRORED = "session.errored"
     SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
+    SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -541,6 +542,15 @@ DERIVED_METRICS = {
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
             metrics=[DerivedMetricKey.SESSION_CRASHED.value, DerivedMetricKey.SESSION_ALL.value],
+            unit="percentage",
+            snql=lambda *args, metric_ids, alias=None: percentage(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_CRASH_FREE_USER_RATE.value,
+            metrics=[
+                DerivedMetricKey.SESSION_CRASHED_USER.value,
+                DerivedMetricKey.SESSION_ALL_USER.value,
+            ],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(*args, alias=alias),
         ),
