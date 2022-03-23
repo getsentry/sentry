@@ -24,7 +24,7 @@ type State = {
    */
   isLoading: boolean;
   isReloading: boolean;
-  remainingRequests?: number;
+  remainingRequests: number;
 
   /**
    * Indicates that Team results (from API) are paginated and there are more
@@ -33,23 +33,19 @@ type State = {
 };
 
 type Result = {
-  renderComponent: (_child: React.ReactNode) => React.ReactNode;
+  renderComponent: (_child: React.ReactElement) => React.ReactElement;
 } & State;
-
-type Options = {
-  disableErrorReport: boolean;
-  reloadOnVisible: boolean;
-  shouldReload: boolean;
-  shouldReloadOnVisible: boolean;
-  shouldRenderBadRequests: boolean;
-};
 
 type Props = {
   endpoints: Array<[string, string, any?, any?]>;
+  disableErrorReport?: boolean;
   onLoadAllEndpointsSuccess?: () => void;
   onRequestError?: (_err, _args) => void;
   onRequestSuccess?: (_data) => void;
-  options?: Options;
+  reloadOnVisible?: boolean;
+  shouldReload?: boolean;
+  shouldReloadOnVisible?: boolean;
+  shouldRenderBadRequests?: boolean;
 };
 
 type MetricsState = {
@@ -60,13 +56,11 @@ type MetricsState = {
 
 function useAsync({
   endpoints = [],
-  options = {
-    reloadOnVisible: false,
-    shouldReloadOnVisible: false,
-    shouldReload: false,
-    shouldRenderBadRequests: false,
-    disableErrorReport: true,
-  },
+  reloadOnVisible = false,
+  shouldReloadOnVisible = false,
+  shouldReload = false,
+  shouldRenderBadRequests = false,
+  disableErrorReport = true,
   onLoadAllEndpointsSuccess = () => {},
   onRequestSuccess = _data => {},
   onRequestError = (_err, _args) => {},
@@ -88,18 +82,24 @@ function useAsync({
     hasError: false,
     isReloading: false,
     errors: {},
+    remainingRequests: endpoints.length,
   };
   const [state, setState] = useState<State>({...initialState});
 
   useEffect(() => {
     const mount = async () => {
-      await fetchData();
+      try {
+        await fetchData();
+      } catch (error) {
+        setState(prevState => ({...prevState, hasError: true}));
+        throw error;
+      }
     };
     if (routes && routes.length) {
       metric.mark({name: `async-component-${getRouteStringFromRoutes(routes)}`});
     }
 
-    if (options.reloadOnVisible) {
+    if (reloadOnVisible) {
       document.addEventListener('visibilitychange', visibilityReloader);
     }
 
@@ -137,7 +137,7 @@ function useAsync({
     if (endpoints.length && state.remainingRequests === 0 && !state.hasError) {
       onLoadAllEndpointsSuccess();
     }
-  }, [state]);
+  }, [state.remainingRequests, state.hasError]);
 
   // Check if we should measure render time for this component
   function markShouldMeasure({
@@ -154,7 +154,7 @@ function useAsync({
   }
 
   function remountComponent() {
-    if (options.shouldReload) {
+    if (shouldReload) {
       return async () => {
         await reloadData();
       };
@@ -166,12 +166,7 @@ function useAsync({
   }
 
   function visibilityReloader() {
-    return (
-      options.shouldReloadOnVisible &&
-      !state.isLoading &&
-      !document.hidden &&
-      reloadData()
-    );
+    return shouldReloadOnVisible && !state.isLoading && !document.hidden && reloadData();
   }
 
   async function reloadData() {
@@ -235,31 +230,35 @@ function useAsync({
   }
   async function fetchData(extraState = {}) {
     if (!endpoints.length) {
-      setState({...state, isLoading: false, hasError: false});
+      setState(prevState => ({
+        ...prevState,
+        isLoading: false,
+        hasError: false,
+      }));
       return;
     }
 
     // Cancel any in flight requests
     api.clear();
 
-    setState({
-      ...state,
+    setState(prevState => ({
+      ...prevState,
       isLoading: true,
       hasError: false,
       remainingRequests: endpoints.length,
       ...extraState,
-    });
+    }));
 
     await Promise.all(
-      endpoints.map(async ([stateKey, endpoint, parameters, opts]) => {
-        opts = opts || {};
+      endpoints.map(async ([stateKey, endpoint, parameters, options]) => {
+        options = options || {};
         // If you're using nested async components/views make sure to pass the
         // props through so that the child component has access to props.location
         const locationQuery = (location && location.query) || {};
         let query = (parameters && parameters.query) || {};
         // If paginate option then pass entire `query` object to API call
         // It should only be expecting `query.cursor` for pagination
-        if ((opts.paginate || locationQuery.cursor) && !opts.disableEntireQuery) {
+        if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
           query = {...locationQuery, ...query};
         }
         try {
@@ -272,21 +271,21 @@ function useAsync({
           const [data, _, resp] = results;
           handleRequestSuccess({stateKey, data, resp}, true);
         } catch (error) {
-          handleError(error, [stateKey, endpoint, parameters, opts]);
+          handleError(error, [stateKey, endpoint, parameters, options]);
         }
       })
     );
   }
 
   function shouldRenderLoading() {
-    return state.isLoading && (!options.shouldReload || !state.isReloading);
+    return state.isLoading && (!shouldReload || !state.isReloading);
   }
 
   function renderLoading() {
     return <LoadingIndicator />;
   }
 
-  function renderError(error?: Error, disableLog = false): React.ReactNode {
+  function renderError(error?: Error, disableLog = false): React.ReactElement {
     const {errors} = state;
 
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
@@ -310,7 +309,7 @@ function useAsync({
       return <PermissionDenied />;
     }
 
-    if (options.shouldRenderBadRequests) {
+    if (shouldRenderBadRequests) {
       const badRequests = Object.values(errors)
         .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
         .map(resp => resp.responseJSON.detail);
@@ -324,17 +323,17 @@ function useAsync({
       <RouteError
         error={error}
         disableLogSentry={!shouldLogSentry}
-        disableReport={options.disableErrorReport}
+        disableReport={disableErrorReport}
       />
     );
   }
 
-  function renderBody(elem: React.ReactNode) {
+  function renderBody(elem: React.ReactElement) {
     // Allow children to implement this
     return elem;
   }
 
-  function renderComponent(elem: React.ReactNode) {
+  function renderComponent(elem: React.ReactElement) {
     return shouldRenderLoading()
       ? renderLoading()
       : state.hasError
