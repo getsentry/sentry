@@ -229,7 +229,7 @@ class Pipeline(abc.ABC):
 
         self.state.data = data
 
-    def fetch_state(self, key: str | None = None) -> Mapping[str, Any] | None:
+    def fetch_state(self, key: str | None = None) -> Any | None:
         data = self.state.data
         if not data:
             return None

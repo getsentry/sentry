@@ -484,7 +484,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         )
 
 
-class AccountConfigView(PipelineView):  # type: ignore
+class AccountConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
         if "account" in request.POST:
             account_id = request.POST.get("account")
