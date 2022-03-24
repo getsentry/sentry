@@ -1,12 +1,13 @@
 {% load sentry_helpers %}
-
-{% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit %}
+<!--# -->
+{% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit extra_params=link_params_for_rule %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
+  {% with extra_param=extra_params|get_item:rule.id %}
   {% if type == "error" %}
     <div class="event-type error">
       <h3>
         {% if metadata.type %}
-          <a href="{{group.get_absolute_url}}">{{metadata.type|truncatechars:40}}</a>
+          <a href="{{group.get_absolute_url}}{{extra_param}}">{{metadata.type|truncatechars:40}}</a>
           {% if transaction %}
             <span class="event-subtitle">{{ transaction }}</span>
           {% endif %}
@@ -15,7 +16,7 @@
             <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
           {% endif %}
           {% else %}
-          <a href="{{group.get_absolute_url}}">{{metadata.value|truncatechars:40}}</a>
+          <a href="{{group.get_absolute_url}}{{extra_param}}">{{metadata.value|truncatechars:40}}</a>
           <br />
           {% if transaction %}
           <span class="event-subtitle">{{ transaction }}</span>
@@ -26,7 +27,7 @@
   {% elif type == "csp" %}
     <div class="event-type csp">
       <h3>
-        <a href="{{group.get_absolute_url}}">{{metadata.directive|truncatechars:40}}</a>
+        <a href="{{group.get_absolute_url}}{{extra_param}}">{{metadata.directive|truncatechars:40}}</a>
         <br />
         {% if metadata.uri %}
           <span class="event-subtitle">{{ metadata.uri }}</span>
@@ -36,7 +37,7 @@
   {% else %}
     <div class="event-type default">
       <h3>
-        <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
+        <a href="{{group.get_absolute_url}}{{extra_param}}">{{group.title|truncatechars:40}}</a>
         <br />
         {% if transaction %}
           <span class="event-subtitle">{{ transaction }}</span>
@@ -44,5 +45,6 @@
       </h3>
     </div>
   {% endif %}
+  {% endwith %}
 </div>
 {% endwith %}
