@@ -5,16 +5,16 @@ import {tooltipStore} from 'sentry/stores/tooltipStore';
 import domId from 'sentry/utils/domId';
 
 export function AcceptanceTestTooltip(props: InternalTooltipProps) {
-  const [open, setOpen] = useState<undefined | boolean>(undefined);
+  const [forceVisible, setForceVisible] = useState<undefined | boolean>(undefined);
 
   useEffect(() => {
     const tooltipId = domId('tooltip-');
-    tooltipStore.addTooltip(tooltipId, setOpen);
+    tooltipStore.addTooltip(tooltipId, setForceVisible);
 
     return () => {
       tooltipStore.removeTooltip(tooltipId);
     };
   }, []);
 
-  return <DO_NOT_USE_TOOLTIP forceVisible={open} {...props} />;
+  return <DO_NOT_USE_TOOLTIP forceVisible={forceVisible} {...props} />;
 }

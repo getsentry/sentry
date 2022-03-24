@@ -258,8 +258,8 @@ export function DO_NOT_USE_TOOLTIP({
     return <Fragment>{children}</Fragment>;
   }
 
-  // The tooltip visibility state can be controlled by the forceVisible
-  const isVisible = typeof forceVisible === 'boolean' ? forceVisible : visible;
+  // The tooltip visibility state can be controlled through the forceVisible prop
+  const isVisible = forceVisible || visible;
 
   return (
     <Manager>
@@ -271,12 +271,11 @@ export function DO_NOT_USE_TOOLTIP({
               {({ref, style, placement, arrowProps}) => (
                 <PositionWrapper style={style}>
                   <TooltipContent
+                    ref={ref}
                     id={tooltipId}
                     data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
                     className="tooltip-content"
-                    aria-hidden={false}
-                    ref={ref}
                     popperStyle={popperStyle}
                     onMouseEnter={() => isHoverable && handleMouseEnter()}
                     onMouseLeave={() => isHoverable && handleMouseLeave()}
