@@ -125,7 +125,6 @@ describe('GroupActions', function () {
 
       const menu = await screen.findByLabelText('More Actions');
       userEvent.click(menu);
-      await tick();
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
@@ -150,7 +149,6 @@ describe('GroupActions', function () {
 
       const menu = await screen.findByLabelText('More Actions');
       userEvent.click(menu);
-      await tick();
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
