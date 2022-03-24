@@ -14,37 +14,66 @@ import useRoutes from 'sentry/utils/useRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
+import RequestError from './requestError/requestError';
+
 type State = {
   data: {[key: string]: any};
-
-  errors: {[key: string]: ResponseMeta};
+  errors: {[key: string]: RequestError};
   hasError: boolean;
-  /**
-   * This is state for when fetching data from API
-   */
   isLoading: boolean;
   isReloading: boolean;
   remainingRequests: number;
-
-  /**
-   * Indicates that Team results (from API) are paginated and there are more
-   * Teams that are not in the initial response.
-   */
 };
 
 type Result = {
   renderComponent: (_child: React.ReactElement) => React.ReactElement;
 } & State;
 
-type Props = {
-  endpoints: Array<[string, string, any?, any?]>;
+type Options = {
+  endpoints: Array<
+    [
+      string,
+      string,
+      {query?: string}?,
+      {allowError?: (_err) => void; disableEntireQuery?: boolean; paginate?: boolean}?
+    ]
+  >;
+  /**
+   * If a request fails and is not a bad request, and if `disableErrorReport` is set to false,
+   * the UI will display an error modal.
+   *
+   * It is recommended to enable this property ideally only when the subclass is used by a top level route.
+   */
   disableErrorReport?: boolean;
   onLoadAllEndpointsSuccess?: () => void;
-  onRequestError?: (_err, _args) => void;
-  onRequestSuccess?: (_data) => void;
+  onRequestError?: (error: RequestError, args: Options['endpoints'][0]) => void;
+  onRequestSuccess?: (data: {data: any; stateKey: string; resp?: ResponseMeta}) => void;
+  /**
+   * Override this flag to have the component reload its state when the window
+   * becomes visible again. This will set the loading and reloading state, but
+   * will not render a loading state during reloading.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   reloadOnVisible?: boolean;
+  /**
+   * This affects how the component behaves when `remountComponent` is called
+   * By default, the component gets put back into a "loading" state when re-fetching data.
+   * If this is true, then when we fetch data, the original ready component remains mounted
+   * and it will need to handle any additional "reloading" states
+   */
   shouldReload?: boolean;
+  /**
+   * When enabling reloadOnVisible, this flag may be used to turn on and off
+   * the reloading. This is useful if your component only needs to reload when
+   * becoming visible during certain states.
+   *
+   * eslint-disable-next-line react/sort-comp
+   */
   shouldReloadOnVisible?: boolean;
+  /**
+   * should `renderError` render the `detail` attribute of a 400 error
+   */
   shouldRenderBadRequests?: boolean;
 };
 
@@ -63,8 +92,8 @@ function useAsync({
   disableErrorReport = true,
   onLoadAllEndpointsSuccess = () => {},
   onRequestSuccess = _data => {},
-  onRequestError = (_err, _args) => {},
-}: Props): Result {
+  onRequestError = (_error, _args) => {},
+}: Options): Result {
   const api = useApi();
   const location = useLocation();
   const routes = useRoutes();
@@ -173,7 +202,10 @@ function useAsync({
     return fetchData({reloading: true});
   }
 
-  function handleRequestSuccess({stateKey, data, resp}, initialRequest?: boolean) {
+  function handleRequestSuccess(
+    {stateKey, data, resp}: {data: any; stateKey: string; resp?: ResponseMeta},
+    initialRequest?: boolean
+  ) {
     setState(prevState => {
       const newState = {
         ...prevState,
@@ -198,7 +230,7 @@ function useAsync({
     onRequestSuccess({stateKey, data, resp});
   }
 
-  function handleError(error, args) {
+  function handleError(error: RequestError, args: Options['endpoints'][0]) {
     const [stateKey] = args;
     if (error && error.responseText) {
       Sentry.addBreadcrumb({
