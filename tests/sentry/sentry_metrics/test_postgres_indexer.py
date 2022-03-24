@@ -1,4 +1,5 @@
-from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer, indexer_cache
+from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2
 from sentry.testutils.cases import TestCase

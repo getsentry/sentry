@@ -1,12 +1,12 @@
 from collections import defaultdict
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Set, Union
+from typing import List, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
-from sentry.sentry_metrics.indexer.models import indexer_cache
 from sentry.utils import metrics
 from sentry.utils.services import Service
 
@@ -50,7 +50,7 @@ class PGStringIndexerV2(Service):
         assert results
         return results
 
-    def _get_db_ids_and_set_cache(self, keys: Sequence[str]) -> Union[Mapping[str, int], None]:
+    def _get_db_ids_and_set_cache(self, keys: Sequence[str]) -> Mapping[str, int]:
         """
         Query the db for the org_id and string pairs given by the keys (e.g "1:release")
 
@@ -75,19 +75,15 @@ class PGStringIndexerV2(Service):
         query_statement = reduce(or_, conditions)
 
         db_results = {}
-        reverse_db_results = {}
         db_objs = StringIndexerTable.objects.filter(query_statement)
-        if not db_objs:
-            return None
 
         for db_obj in db_objs:
             key = f"{db_obj.organization_id}:{db_obj.string}"
-
             db_results[key] = db_obj.id
-            reverse_db_results[db_obj.id] = db_obj.string
 
-        indexer_cache.set_many(db_results)
-        indexer_cache.set_many(reverse_db_results)
+        if len(db_results) > 1:
+            indexer_cache.set_many(db_results)
+
         return db_results
 
     def _get_many_ids(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
@@ -202,21 +198,9 @@ class PGStringIndexerV2(Service):
 
         Returns None if the entry cannot be found.
         """
-        result = indexer_cache.get(id)
-        if result and isinstance(result, str):
-            metrics.incr(
-                _INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "reverse_resolve"}
-            )
-            return result
-
-        metrics.incr(
-            _INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "reverse_resolve"}
-        )
         try:
-            string: str = StringIndexerTable.objects.get(id=id).string
+            string: str = StringIndexerTable.objects.get_from_cache(id=id).string
         except StringIndexerTable.DoesNotExist:
             return None
-
-        indexer_cache.set(id, string)
 
         return string
