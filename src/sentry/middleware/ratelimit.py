@@ -88,7 +88,7 @@ class RatelimitMiddleware:
         return response
 
     def add_headers(self, response, rate_limit_metadata):
-        if not rate_limit_metadata or type(response) != Response:
+        if not rate_limit_metadata or type(response) not in (Response, HttpResponse):
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
             return response
 

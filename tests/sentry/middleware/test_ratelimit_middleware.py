@@ -75,15 +75,9 @@ class RatelimitMiddlewareTest(TestCase):
             self.middleware(request)
 
     def test_bad_request_bad_response_fails_open(self):
-        # TODO rewrite this since we no longer call process_response
-        # and __call__ doesn't take a response
-
         # Ensure it doesn't blow up if it returns a bad response
-        # confused how it would return a bad response, we know it either returns None or the response
-        # struggling to patch __call__
         bad_response = object()
-        middleware = self.middleware
-        middleware.get_response = Mock()
+        middleware = RatelimitMiddleware(Mock())
         middleware.get_response.return_value = bad_response
         request = self.factory.get("/middleware/")
         assert middleware(request) is bad_response
@@ -94,8 +88,7 @@ class RatelimitMiddlewareTest(TestCase):
                 raise Exception("nope")
 
         bad_request = BadRequest()
-        # can we assert that log statements were hit?
-        assert self.middleware(bad_request).status_code == 200
+        assert middleware(bad_request) == bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
