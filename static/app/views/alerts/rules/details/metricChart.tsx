@@ -54,6 +54,7 @@ import {
   AlertRuleTriggerType,
   Dataset,
   IncidentRule,
+  TimePeriod,
 } from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -69,7 +70,7 @@ import {
   shouldScaleAlertChart,
 } from '../../utils';
 
-import {TimePeriodType} from './constants';
+import {TIME_WINDOWS, TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -765,6 +766,16 @@ class MetricChart extends React.PureComponent<Props, State> {
   render() {
     const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
+
+    if (
+      interval === '1m' &&
+      moment.utc(timePeriod.end).diff(moment.utc(timePeriod.start)) ===
+        TIME_WINDOWS[TimePeriod.SEVEN_DAYS]
+    ) {
+      timePeriod.start = getUtcDateString(
+        moment(moment.utc(timePeriod.end).subtract(10000 - 10, 'minutes'))
+      );
+    }
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
