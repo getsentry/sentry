@@ -131,7 +131,7 @@ class RoleManagerTest(TestCase):
     def test_team_mapping_to_legacy_roles(self, mock_warnings):
         # Check that RoleManager provides sensible defaults in case the default org
         # roles have been overridden by unfamiliar values, leaving behind default
-        # team roles that with mapping keys that point to nothing
+        # team roles with mapping keys that point to nothing
 
         legacy_roles = [
             {"id": "legionary", "name": "Legionary"},
