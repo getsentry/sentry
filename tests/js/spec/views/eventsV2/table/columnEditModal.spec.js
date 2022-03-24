@@ -7,14 +7,13 @@ import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({tagKeys, columns, onApply}, initialData) {
+function mountModal({columns, onApply}, initialData) {
   return mountWithTheme(
     <ColumnEditModal
       Header={stubEl}
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      tagKeys={tagKeys}
       columns={columns}
       onApply={onApply}
       closeModal={() => void 0}
@@ -39,7 +38,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       features: ['performance-view'],
     },
   });
-  const tagKeys = ['browser.name', 'custom-field', 'user'];
   const columns = [
     {
       kind: 'field',
@@ -76,7 +74,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns,
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -107,7 +104,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'field', field: 'user-def'},
         ],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -140,7 +136,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'field', field: 'tags[count]'},
         ],
         onApply: () => void 0,
-        tagKeys: ['project', 'count'],
       },
       initialData
     );
@@ -178,7 +173,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
         ],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -205,7 +199,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -356,7 +349,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -391,7 +383,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -438,7 +429,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -471,7 +461,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -506,7 +495,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -543,7 +531,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -575,7 +562,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -604,7 +590,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0]],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -624,7 +609,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0], columns[1]],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -657,7 +641,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply: () => void 0,
-          tagKeys,
         },
         initialData
       );
@@ -690,7 +673,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             columns[1],
           ],
           onApply: () => void 0,
-          tagKeys,
         },
         initialData
       );
@@ -713,7 +695,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0], columns[1]],
         onApply,
-        tagKeys,
       },
       initialData
     );

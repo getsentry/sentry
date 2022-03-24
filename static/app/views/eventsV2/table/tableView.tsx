@@ -327,13 +327,8 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {
-      organization,
-      eventView,
-      tagKeys,
-      measurementKeys,
-      spanOperationBreakdownKeys,
-    } = this.props;
+    const {organization, eventView, measurementKeys, spanOperationBreakdownKeys} =
+      this.props;
 
     const hasBreakdownFeature = organization.features.includes(
       'performance-ops-breakdown'
@@ -344,7 +339,6 @@ class TableView extends Component<TableViewProps> {
         <ColumnEditModal
           {...modalProps}
           organization={organization}
-          tagKeys={tagKeys}
           measurementKeys={measurementKeys}
           spanOperationBreakdownKeys={
             hasBreakdownFeature ? spanOperationBreakdownKeys : undefined

@@ -25,7 +25,6 @@ type Props = {
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
   organization: Organization;
-  tagKeys: null | string[];
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
