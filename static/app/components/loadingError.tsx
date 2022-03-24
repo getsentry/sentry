@@ -40,7 +40,7 @@ class LoadingError extends React.Component<Props> {
           )
         }
       >
-        <div data-test-id="loading-error-message">{message}</div>
+        {message}
       </StyledAlert>
     );
   }
