@@ -204,11 +204,13 @@ function WidgetViewerModal(props: Props) {
     columns.unshift('title');
   }
 
+  let equationFieldsCount = 0;
+  // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
-    // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
       if (Array.isArray(fields) && !fields.includes(term)) {
+        equationFieldsCount++;
         fields.unshift(term);
       }
       if (isAggregateField(term) && !aggregates.includes(term)) {
@@ -234,8 +236,15 @@ function WidgetViewerModal(props: Props) {
     }
   });
 
-  const columnOrder = eventView.getColumns();
+  let columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
+
+  // Filter out equation terms from columnOrder so we don't clutter the table
+  if (shouldReplaceTableColumns && equationFieldsCount) {
+    columnOrder = columnOrder.filter(
+      (_, index) => index === 0 || index > equationFieldsCount
+    );
+  }
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
