@@ -13,7 +13,7 @@ from sentry.api.utils import (
     is_member_disabled_from_limit,
 )
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import (
     ApiKey,
     Authenticator,
@@ -193,6 +193,23 @@ class OrganizationEndpoint(Endpoint):
             project_ids = self.get_requested_project_ids_unchecked(request)
         return self._get_projects_by_id(
             project_ids, request, organization, force_global_perms, include_all_accessible
+        )
+
+    def get_projects_by_slugs(self, request, organization, **kwargs):
+        slugs = request.GET.getlist("projectSlug")
+        if slugs == ALL_ACCESS_PROJECTS_SLUG:
+            p_ids = ALL_ACCESS_PROJECTS
+        else:
+            projects = Project.objects.filter(
+                organization=organization, slug__in=slugs
+            ).values_list("id", flat=True)
+            p_ids = set(projects)
+
+        return self.get_projects(
+            request,
+            organization,
+            project_ids=p_ids,
+            **kwargs,
         )
 
     def _get_projects_by_id(
