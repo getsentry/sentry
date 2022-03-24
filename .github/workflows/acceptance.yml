@@ -274,3 +274,22 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+  visual-diff:
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, frontend, chartcuterie]
+    name: triggers visual snapshot
+    # Do not execute on forks or on master
+    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
