@@ -155,6 +155,16 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
         ]
 
+        assert MOCKED_DERIVED_METRICS["session.healthy_user"].generate_select_statements(
+            [self.project]
+        ) == [
+            subtraction(
+                all_users(session_user_ids, alias="session.all_user"),
+                errored_all_users(session_user_ids, alias="session.errored_user_all"),
+                alias="session.healthy_user",
+            )
+        ]
+
         assert MOCKED_DERIVED_METRICS["session.crash_free_rate"].generate_select_statements(
             [self.project]
         ) == [
