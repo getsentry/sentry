@@ -43,8 +43,9 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   },
   {
     id: 'select-platform',
-    title: t('Select a platform'),
+    title: t('Select platforms'),
     Component: PlatformSelection,
+    hasFooter: true,
   },
   {
     id: 'setup-docs',
@@ -117,7 +118,7 @@ function Onboarding(props: Props) {
 
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
-      <SentryDocumentTitle title={t('Welcome')} />
+      <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
         <Hook name="onboarding:targeted-onboarding-header" />
