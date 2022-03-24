@@ -168,7 +168,7 @@ class Dashboard extends Component<Props, State> {
     if (prevProps.isEditing !== isEditing && isEditing) {
       this.fetchTags();
     }
-    if (newWidget !== prevProps.newWidget) {
+    if (newWidget && newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
