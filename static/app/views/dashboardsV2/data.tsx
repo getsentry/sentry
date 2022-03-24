@@ -130,7 +130,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         interval: '5m',
         queries: [
           {
-            name: t('Error counts'),
+            name: '',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: [],
