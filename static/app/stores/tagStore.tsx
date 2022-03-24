@@ -4,6 +4,8 @@ import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
+import {CommonStoreInterface} from './types';
+
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
 // contexts.key and contexts.value omitted on purpose.
@@ -50,7 +52,7 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-type TagStoreInterface = {
+type TagStoreInterface = CommonStoreInterface<TagCollection> & {
   getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
@@ -158,6 +160,10 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
   getAllTags() {
     return this.state;
+  },
+
+  getState() {
+    return this.getAllTags();
   },
 
   onLoadTagsSuccess(data) {
