@@ -761,43 +761,65 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     def _dispatch_call_inner(
         self,
         fn_name: str,
-        should_compare: Union[bool, Callable[[Any], bool]],
+        should_compare: Union[bool, Callable[[], bool]],
         rollup: Optional[int],
         organization: Optional[Organization],
         schema: Optional[Schema],
         *args: Any,
     ) -> ReleaseHealthResult:
+        # Note: having both featureflags enabled at once is deadly for endpoint
+        # performance, but does work.
+        should_return_metrics = organization is not None and features.has(
+            "organizations:release-health-return-metrics", organization
+        )
+        should_check_metrics = organization is not None and features.has(
+            "organizations:release-health-check-metrics", organization
+        )
+        if not isinstance(should_compare, bool):
+            try:
+                should_compare = should_compare()  # type: ignore
+            except Exception:
+                capture_exception()
+                should_compare = False
+
+            if not should_compare:
+                # if should_compare=False, then we already know the metrics result is bad and shouldn't return it.
+                should_return_metrics = False
+
         sessions_fn = getattr(self.sessions, fn_name)
+        metrics_fn = getattr(self.metrics, fn_name)
 
         now = datetime.now(pytz.utc)
         tags = {"method": fn_name, "rollup": str(rollup)}
-        with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
-            ret_val = sessions_fn(*args)
+        incr(
+            "releasehealth.metrics.should_return",
+            tags={"should_return": should_return_metrics, **tags},
+        )
+        if should_check_metrics or not should_return_metrics:
+            with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
+                sessions_result = sessions_fn(*args)
 
-        if organization is not None and features.has(
-            "organizations:release-health-check-metrics", organization
-        ):
-            if not isinstance(should_compare, bool):
-                # should compare depends on the session result
-                # evaluate it now
-                should_compare = should_compare(ret_val)
-
+        if should_check_metrics:
             try:
                 run_comparison.delay(
                     fn_name,
-                    getattr(self.metrics, fn_name),
+                    metrics_fn,
                     should_compare,
                     rollup,
                     organization,
                     schema,
                     function_args=args,
-                    sessions_result=ret_val,
+                    sessions_result=sessions_result,  # type: ignore
                     sessions_time=now,
                 )
             except Exception:
                 capture_exception()
 
-        return ret_val
+        if should_return_metrics:
+            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                return metrics_fn(*args)
+
+        return sessions_result  # type: ignore
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
@@ -827,7 +849,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "previousCrashFreeRate": ComparatorType.Ratio,
             }
         }
-        should_compare = lambda _: _coerce_utc(previous_start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(previous_start) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -868,7 +890,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(hours=24) > self.metrics_start
+        should_compare = lambda: now - timedelta(hours=24) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -931,7 +953,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "query": ComparatorType.Exact,
         }
 
-        should_compare = lambda _: _coerce_utc(query.start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(query.start) > self.metrics_start
 
         organization = self._org_from_id(org_id)
         return self._dispatch_call(  # type: ignore
@@ -958,12 +980,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "sessions_upper_bound": ComparatorType.DateTime,
         }
 
-        def should_compare(val: ReleaseSessionsTimeBounds) -> bool:
-            lower_bound = val.get("sessions_lower_bound")
-            if lower_bound is not None:
-                lower_bound_d = parser.parse(lower_bound)
-                return lower_bound_d > self.metrics_start
-            return True
+        now = datetime.now(pytz.utc)
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
 
         organization = self._org_from_id(org_id)
 
@@ -989,7 +1007,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(projects_list)
         return self._dispatch_call(  # type: ignore
             "check_has_health_data",
@@ -1011,7 +1029,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Set[ReleaseName]:
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
 
         organization = self._org_from_id(organization_id)
 
@@ -1050,7 +1068,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(days=1) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=1) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
@@ -1087,7 +1105,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "crash_free_sessions": ComparatorType.Ratio,
             }
         ]
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
             "get_crash_free_breakdown",
@@ -1139,7 +1157,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # TODO check if this is correct ?
         schema = {"*": ComparatorType.DateTime}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
@@ -1168,7 +1186,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             stats_period = "24h"
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
-        should_compare = lambda _: _coerce_utc(stats_start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(stats_start) > self.metrics_start
 
         organization = self._org_from_id(organization_id)
 
@@ -1210,7 +1228,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "*": ComparatorType.Counter,
             },
         )
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
             "get_project_release_stats",
@@ -1265,7 +1283,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         rollup: Optional[int] = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
         schema = [(ComparatorType.Exact, ComparatorType.Counter)]
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects(project_ids)
         return self._dispatch_call(  # type: ignore
             "get_num_sessions_per_project",
@@ -1306,7 +1324,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now = datetime.now(pytz.utc)
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
-        should_compare = lambda _: now > self.metrics_start
+        should_compare = lambda: now > self.metrics_start
         organization = self._org_from_projects(project_ids)
 
         return self._dispatch_call(  # type: ignore
