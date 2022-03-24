@@ -302,7 +302,7 @@ class Superuser:
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None):
+    def set_logged_in(self, user, current_datetime=None, su_access_json=None):
         """
         Mark a session as superuser-enabled.
         """
@@ -326,11 +326,12 @@ class Superuser:
             )
             return
 
-        try:
-            # need to use json loads as the data is no longer in request.data
-            su_access_json = json.loads(request.body)
-        except AttributeError:
-            su_access_json = {}
+        if not su_access_json:
+            try:
+                # need to use json loads as the data is no longer in request.data
+                su_access_json = json.loads(request.body)
+            except AttributeError:
+                su_access_json = {}
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
