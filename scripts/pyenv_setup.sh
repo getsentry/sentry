@@ -82,10 +82,11 @@ append_to_config() {
 
 install_pyenv() {
   if require pyenv; then
+    pyenv_version=$(pyenv -v | awk '{print $2}')
     # NOTE: We're dropping support for older pyenv versions
-    if [[ "$(pyenv -v | awk '{print $2}')" < 2.0.0 ]]; then
-      echo >&2 "!!! We've dropped support for pyenv v1." \
-        "Run the following (this is slow) and try again."
+    if [[ "${pyenv_version}" < 2.2.5 ]]; then
+      echo >&2 "!!! We've dropped support for pyenv version ${pyenv_version}." \
+        "Run the following steps (this is slow) and try again."
       # brew upgrade does not quite do the right thing
       # > ~/.pyenv/shims/python: line 8: /usr/local/Cellar/pyenv/1.2.26/libexec/pyenv: No such file or directory
       echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
