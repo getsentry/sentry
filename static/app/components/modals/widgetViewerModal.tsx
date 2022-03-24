@@ -423,9 +423,7 @@ function WidgetViewerModal(props: Props) {
             isDisabled={widget.queries.length < 2}
           />
           <StyledQuestionTooltip
-            title={t(
-              'Widget queries can be edited by clicking "Edit Widget" or "Open in Discover".'
-            )}
+            title={t('Widget queries can be edited by clicking "Edit Widget".')}
             size="sm"
           />
         </StyledSelectControlRowContainer>
