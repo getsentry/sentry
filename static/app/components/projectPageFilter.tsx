@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
+import Badge from 'sentry/components/badge';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
@@ -105,14 +106,15 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
     const title = hasSelected
-      ? selectedProjects.map(({slug}) => slug).join(', ')
+      ? selectedProjects[0]?.slug
       : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
       ? t('All Projects')
       : t('My Projects');
+
     const icon = hasSelected ? (
       <PlatformList
-        platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
-        max={5}
+        platforms={selectedProjects.map(p => p.platform ?? 'other')}
+        max={1}
       />
     ) : (
       <IconProject />
@@ -126,6 +128,9 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
         <DropdownTitle>
           {icon}
           <TitleContainer>{title}</TitleContainer>
+          {selectedProjects.length > 1 && (
+            <StyledBadge text={`+${selectedProjects.length - 1}`} />
+          )}
         </DropdownTitle>
       </PageFilterDropdownButton>
     );
@@ -169,9 +174,12 @@ const TitleContainer = styled('div')`
 const DropdownTitle = styled('div')`
   width: max-content;
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 export default withRouter(ProjectPageFilter);
