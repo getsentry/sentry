@@ -358,74 +358,80 @@ function WidgetViewerModal(props: Props) {
             )}
           </StyledAlert>
         )}
-        <StyledSelectControl
-          value={selectedQueryIndex}
-          options={queryOptions}
-          onChange={(option: SelectValue<number>) => {
-            router.replace({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                [WidgetViewerQueryField.QUERY]: option.value,
-                [WidgetViewerQueryField.PAGE]: undefined,
-                [WidgetViewerQueryField.CURSOR]: undefined,
-              },
-            });
-
-            trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.select_query', {
-              organization,
-              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-              display_type: widget.displayType,
-            });
-          }}
-          components={{
-            // Replaces the displayed selected value
-            SingleValue: containerProps => {
-              return (
-                <components.SingleValue
-                  {...containerProps}
-                  // Overwrites some of the default styling that interferes with highlighted query text
-                  getStyles={() => ({wordBreak: 'break-word', flex: 1, display: 'flex'})}
-                >
-                  <StyledIconSearch />
-                  {queryOptions[selectedQueryIndex].getHighlightedQuery({
-                    display: 'block',
-                  }) ??
-                    (queryOptions[selectedQueryIndex].label || (
-                      <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                    ))}
-                </components.SingleValue>
-              );
-            },
-            // Replaces the dropdown options
-            Option: containerProps => {
-              const highlightedQuery = containerProps.data.getHighlightedQuery({
-                display: 'flex',
+        {(widget.queries.length > 1 || widget.queries[0].conditions) && (
+          <StyledSelectControl
+            value={selectedQueryIndex}
+            options={queryOptions}
+            onChange={(option: SelectValue<number>) => {
+              router.replace({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  [WidgetViewerQueryField.QUERY]: option.value,
+                  [WidgetViewerQueryField.PAGE]: undefined,
+                  [WidgetViewerQueryField.CURSOR]: undefined,
+                },
               });
-              return (
-                <Option
-                  {...(highlightedQuery
-                    ? {
-                        ...containerProps,
-                        label: highlightedQuery,
-                      }
-                    : containerProps.label
-                    ? containerProps
-                    : {
-                        ...containerProps,
-                        label: (
-                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                        ),
-                      })}
-                />
-              );
-            },
-            // Hide the dropdown indicator if there is only one option
-            ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
-          }}
-          isSearchable={false}
-          isDisabled={widget.queries.length < 2}
-        />
+
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.select_query', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+            components={{
+              // Replaces the displayed selected value
+              SingleValue: containerProps => {
+                return (
+                  <components.SingleValue
+                    {...containerProps}
+                    // Overwrites some of the default styling that interferes with highlighted query text
+                    getStyles={() => ({
+                      wordBreak: 'break-word',
+                      flex: 1,
+                      display: 'flex',
+                    })}
+                  >
+                    <StyledIconSearch />
+                    {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                      display: 'block',
+                    }) ??
+                      (queryOptions[selectedQueryIndex].label || (
+                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                      ))}
+                  </components.SingleValue>
+                );
+              },
+              // Replaces the dropdown options
+              Option: containerProps => {
+                const highlightedQuery = containerProps.data.getHighlightedQuery({
+                  display: 'flex',
+                });
+                return (
+                  <Option
+                    {...(highlightedQuery
+                      ? {
+                          ...containerProps,
+                          label: highlightedQuery,
+                        }
+                      : containerProps.label
+                      ? containerProps
+                      : {
+                          ...containerProps,
+                          label: (
+                            <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                          ),
+                        })}
+                  />
+                );
+              },
+              // Hide the dropdown indicator if there is only one option
+              ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
+            }}
+            isSearchable={false}
+            isDisabled={widget.queries.length < 2}
+          />
+        )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
             <IssueWidgetQueries
