@@ -1,5 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
@@ -150,9 +150,7 @@ describe('GroupActions', function () {
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
       userEvent.click(reprocessActionButton);
-      await tick();
-
-      expect(onReprocessEventFunc).toHaveBeenCalled();
+      await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
     });
   });
 });
