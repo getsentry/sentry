@@ -361,12 +361,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for j in range(random.randint(1, 10)):
+        for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
