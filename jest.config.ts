@@ -211,7 +211,7 @@ const config: Config.InitialOptions = {
         tags: {
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
-          run_id: GITHUB_RUN_ID,
+          github_action_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
         },
       },
     },
