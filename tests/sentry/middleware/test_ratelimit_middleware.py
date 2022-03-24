@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from before_after import before
 from django.conf.urls import url
@@ -77,18 +77,25 @@ class RatelimitMiddlewareTest(TestCase):
     def test_bad_request_bad_response_fails_open(self):
         # TODO rewrite this since we no longer call process_response
         # and __call__ doesn't take a response
+
+        # Ensure it doesn't blow up if it returns a bad response
+        # confused how it would return a bad response, we know it either returns None or the response
+        # struggling to patch __call__
         bad_response = object()
-        middleware = Mock()
-        middleware.__call__.return_value = bad_response
+        middleware = self.middleware
+        middleware.get_response = Mock()
+        middleware.get_response.return_value = bad_response
         request = self.factory.get("/middleware/")
         assert middleware(request) is bad_response
 
+        # Ensure it doesn't blow up if it receives a bad request
         class BadRequest:
             def __getattr__(self, attr):
                 raise Exception("nope")
 
         bad_request = BadRequest()
-        assert self.middleware(bad_request) is bad_response
+        # can we assert that log statements were hit?
+        assert self.middleware(bad_request).status_code == 200
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
@@ -125,7 +132,8 @@ class RatelimitMiddlewareTest(TestCase):
             resp = self.middleware(request)
             assert resp.status_code == 200
 
-    def test_rate_limit_category(self):
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
+    def test_rate_limit_category(self, mock_get_rate_limit_value):
         request = self.factory.get("/middleware/")
         request.META["REMOTE_ADDR"] = None
         resp = self.middleware(request)
@@ -133,16 +141,22 @@ class RatelimitMiddlewareTest(TestCase):
 
         request = self.factory.get("/middleware/")
         resp = self.middleware(request)
-        assert resp.get("rate_limit_category") == "ip"
+        mock_get_rate_limit_value.assert_called_with(
+            http_method=request.method, endpoint=ANY, category=RateLimitCategory.IP
+        )
 
         request.session = {}
         request.user = self.user
         resp = self.middleware(request)
-        assert resp.get("rate_limit_category") == "user"
+        mock_get_rate_limit_value.assert_called_with(
+            http_method=request.method, endpoint=ANY, category=RateLimitCategory.USER
+        )
 
         self.populate_sentry_app_request(request)
         resp = self.middleware(request)
-        assert resp["rate_limit_category"] == "org"
+        mock_get_rate_limit_value.assert_called_with(
+            http_method=request.method, endpoint=ANY, category=RateLimitCategory.ORGANIZATION
+        )
 
     def test_get_rate_limit_key(self):
         # Import an endpoint

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
+    get_category_str,
     get_rate_limit_key,
     get_rate_limit_value,
 )
@@ -44,8 +45,7 @@ class RatelimitMiddleware:
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return
-            category_str = rate_limit_key.split(":", 1)[0]
-
+            category_str = get_category_str(rate_limit_key)
             rate_limit = get_rate_limit_value(
                 http_method=request.method,
                 endpoint=view_func.view_class,
@@ -74,7 +74,6 @@ class RatelimitMiddleware:
                         status=429,
                     )
                     self.add_headers(response, rate_limit_metadata)
-                    response["rate_limit_category"] = category_str
                     return response
 
         except Exception:
@@ -86,11 +85,10 @@ class RatelimitMiddleware:
         # Process the response
         self.add_headers(response, rate_limit_metadata)
         finish_request(rate_limit_key, rate_limit_uid)
-        response["rate_limit_category"] = category_str
         return response
 
     def add_headers(self, response, rate_limit_metadata):
-        if not rate_limit_metadata:
+        if not rate_limit_metadata or type(response) != Response:
             logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
             return response
 
