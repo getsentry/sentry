@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, FrozenSet, Optional, Sequence
 
-from django.db import DataError, connection
+from django.db import DataError, connections, router
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -354,7 +354,7 @@ def _run_latest_release_query(
         ) sr
         WHERE rank = 1
     """
-    cursor = connection.cursor()
+    cursor = connections[router.db_for_read(Release, replica=True)].cursor()
     query_args = [organization_id, tuple(project_ids)]
     if environments:
         query_args.append(tuple(e.id for e in environments))
