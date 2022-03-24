@@ -64,10 +64,7 @@ jobs:
           CI_NODE_INDEX: ${{ matrix.instance }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          JEST_TESTS=$(yarn -s jest tests/js/spec/views/alerts/create.spec.jsx --listTests --json) yarn test-ci --forceExit --verbose
-
-      - name: Dump steps context
-        run: echo '${{ toJSON(steps) }}'
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --verbose
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
