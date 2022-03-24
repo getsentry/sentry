@@ -81,7 +81,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
         # a chain of transactions that are orphans
         self.task_transactions = []
         last_transaction_id = make_span_id()
-        for i in range(5):
+        for i in range(3):
             transaction_id = make_span_id()
             timestamp = self.day_ago + timedelta(seconds=i, microseconds=30000)
             self.create_error(
