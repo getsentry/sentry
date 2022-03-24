@@ -475,8 +475,18 @@ def _get_snuba_query_data(
             query_data = []
         else:
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
-            limit_state.update(snuba_query.groupby, query_data)
 
+        if not query_data:
+            # If the first totals query returned empty results,
+            # 1. there is no need to query time series,
+            # 2. we do not update the LimitState. This gives the next query
+            #    the chance to populate the groups.
+            #    For example: if the first totals query fetches count_uniq(users),
+            #    but a project does not track users at all, we should order by
+            #    the results of the second totals query instead.
+            break
+
+        limit_state.update(snuba_query.groupby, query_data)
         yield (metric_key, query_data)
 
 
