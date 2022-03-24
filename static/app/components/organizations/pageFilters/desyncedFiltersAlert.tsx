@@ -36,17 +36,10 @@ export default function DesyncedFilterAlert({router}: Props) {
       system
       trailingItems={
         <Fragment>
-          <RevertButton
-            key="revert-button"
-            priority="link"
-            size="zero"
-            onClick={onRevertClick}
-            borderless
-          >
+          <RevertButton priority="link" size="zero" onClick={onRevertClick} borderless>
             {t('Revert')}
           </RevertButton>
           <Button
-            key="close-button"
             priority="link"
             size="zero"
             icon={<IconClose color="purple300" />}

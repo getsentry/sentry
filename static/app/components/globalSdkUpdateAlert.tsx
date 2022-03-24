@@ -97,17 +97,11 @@ function InnerGlobalSdkUpdateAlert(
             size="zero"
             title={t('Dismiss for the next two weeks')}
             onClick={handleSnoozePrompt}
-            key="dismiss-button"
           >
             {t('Remind me later')}
           </Button>
-          <span key="divider">|</span>
-          <Button
-            priority="link"
-            size="zero"
-            onClick={handleReviewUpdatesClick}
-            key="review-button"
-          >
+          <span>|</span>
+          <Button priority="link" size="zero" onClick={handleReviewUpdatesClick}>
             {t('Review updates')}
           </Button>
         </Fragment>

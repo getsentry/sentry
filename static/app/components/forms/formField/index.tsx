@@ -408,18 +408,13 @@ class FormField extends React.Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <React.Fragment>
-                        <Button
-                          onClick={this.handleCancelField}
-                          size="xsmall"
-                          key="cancel-button"
-                        >
+                        <Button onClick={this.handleCancelField} size="xsmall">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
                           size="xsmall"
                           onClick={this.handleSaveField}
-                          key="save-button"
                         >
                           {t('Save')}
                         </Button>
