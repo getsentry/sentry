@@ -22,6 +22,7 @@ const Heading = styled('h5')`
 const Subheading = styled('h6')`
   color: ${p => p.theme.gray300};
   display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
