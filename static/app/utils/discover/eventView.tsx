@@ -268,6 +268,7 @@ class EventView {
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
+  utc?: string | boolean | undefined;
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
@@ -296,6 +297,7 @@ class EventView {
     yAxis: string | undefined;
     expired?: boolean;
     interval?: string;
+    utc?: string | boolean | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -334,6 +336,7 @@ class EventView {
     this.start = props.start;
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
+    this.utc = props.utc;
     this.environment = environment;
     this.yAxis = props.yAxis;
     this.display = props.display;
@@ -411,10 +414,11 @@ class EventView {
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = EventView.getFields(saved);
     // normalize datetime selection
-    const {start, end, statsPeriod} = normalizeDateTimeParams({
+    const {start, end, statsPeriod, utc} = normalizeDateTimeParams({
       start: saved.start,
       end: saved.end,
       statsPeriod: saved.range,
+      utc: saved.utc,
     });
 
     return new EventView({
@@ -427,6 +431,7 @@ class EventView {
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
+      utc,
       sorts: fromSorts(saved.orderby),
       environment: collectQueryStringByKey(
         {
@@ -449,7 +454,7 @@ class EventView {
     location: Location
   ): EventView {
     let fields = decodeFields(location);
-    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
+    const {start, end, statsPeriod, utc} = normalizeDateTimeParams(location.query);
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
@@ -493,6 +498,7 @@ class EventView {
         start: decodeScalar(start),
         end: decodeScalar(end),
         statsPeriod: decodeScalar(statsPeriod),
+        utc,
       });
     }
     return EventView.fromLocation(location);
