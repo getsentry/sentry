@@ -486,6 +486,7 @@ def _get_snuba_query_data(
             #    the results of the second totals query instead.
             break
 
+        assert snuba_query is not None
         limit_state.update(snuba_query.groupby, query_data)
         yield (metric_key, query_data)
 
