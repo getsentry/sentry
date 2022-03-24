@@ -66,19 +66,6 @@ function IssueListFilters({
         hasPageFilters={hasPageFilters}
         hasIssuePercentDisplay={hasIssuePercentDisplay}
       >
-        <IssueListSearchBar
-          organization={organization}
-          query={query || ''}
-          sort={sort}
-          onSearch={onSearch}
-          disabled={isSearchDisabled}
-          excludeEnvironment
-          supportedTags={tags}
-          tagValueLoader={tagValueLoader}
-          savedSearch={savedSearch}
-          onSidebarToggle={onSidebarToggle}
-        />
-
         {hasPageFilters ? (
           <PageFilterBar>
             <ProjectPageFilter />
@@ -98,6 +85,18 @@ function IssueListFilters({
             <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
           </DropdownsWrapper>
         )}
+        <IssueListSearchBar
+          organization={organization}
+          query={query || ''}
+          sort={sort}
+          onSearch={onSearch}
+          disabled={isSearchDisabled}
+          excludeEnvironment
+          supportedTags={tags}
+          tagValueLoader={tagValueLoader}
+          savedSearch={savedSearch}
+          onSidebarToggle={onSidebarToggle}
+        />
       </SearchContainer>
       {hasPageFilters && (
         <ResultsRow>
@@ -144,18 +143,7 @@ const SearchContainer = styled('div')<{
 
   ${p =>
     p.hasPageFilters
-      ? `
-    grid-template-columns: 1fr 32rem;
-
-    @media (max-width: ${p.theme.breakpoints[2]}) {
-      grid-template-columns: 1fr 28rem;
-    }
-
-    @media (max-width: ${p.theme.breakpoints[1]}) {
-      grid-template-columns: 1fr 24rem;
-    }
-
-  `
+      ? `grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);`
       : `
     @media (min-width: ${p.theme.breakpoints[p.hasIssuePercentDisplay ? 1 : 0]}) {
       grid-template-columns: 1fr auto;
