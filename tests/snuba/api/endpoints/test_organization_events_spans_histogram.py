@@ -278,7 +278,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data[0]["bin"] == min
         assert response.data[-1]["bin"] == max - 1
 
-    def test_histogram_simple_using_given_min_above_queried_max(self):
+    def test_histogram_using_given_min_above_queried_max(self):
         self.create_event()
         num_buckets = 10
         min = 12
@@ -295,8 +295,9 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
         for bucket in response.data:
             assert bucket["count"] == 0
         assert response.data[0] == {"bin": min, "count": 0}
+        assert len(response.data) == 1
 
-    def test_histogram_simple_using_given_max_below_queried_min(self):
+    def test_histogram_using_given_max_below_queried_min(self):
         self.create_event()
         num_buckets = 10
         max = 2
