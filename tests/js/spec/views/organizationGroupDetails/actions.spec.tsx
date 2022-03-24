@@ -92,8 +92,7 @@ describe('GroupActions', function () {
         />
       );
 
-      const menu = await screen.findByLabelText('More Actions');
-      userEvent.click(menu);
+      userEvent.click(screen.getByLabelText('More Actions'));
 
       const bookmark = await screen.findByTestId('bookmark');
       userEvent.click(bookmark);
@@ -123,8 +122,7 @@ describe('GroupActions', function () {
         />
       );
 
-      const menu = await screen.findByLabelText('More Actions');
-      userEvent.click(menu);
+      userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
@@ -147,8 +145,7 @@ describe('GroupActions', function () {
 
       const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
 
-      const menu = await screen.findByLabelText('More Actions');
-      userEvent.click(menu);
+      userEvent.click(screen.getByLabelText('More Actions'));
 
       const reprocessActionButton = await screen.findByTestId('reprocess');
       expect(reprocessActionButton).toBeInTheDocument();
