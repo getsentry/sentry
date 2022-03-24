@@ -39,7 +39,9 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = indexer.resolve(constants.METRICS_MAP.get(value, value))
+        metric_id = indexer.resolve(
+            self.builder.organization_id, constants.METRICS_MAP.get(value, value)
+        )
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
 
@@ -361,7 +363,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = indexer.resolve(self.builder.organization_id, constants.METRIC_TRUE_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_true is None:
@@ -404,7 +406,7 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = indexer.resolve(self.builder.organization_id, constants.METRIC_TRUE_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_true is None:
@@ -471,7 +473,10 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [indexer.resolve(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [
+            indexer.resolve(self.builder.organization_id, status)
+            for status in constants.NON_FAILURE_STATUS
+        ]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -534,7 +539,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         measurement_rating = self.builder.resolve_column("measurement_rating")
 
-        quality_id = indexer.resolve(quality)
+        quality_id = indexer.resolve(self.builder.organization_id, quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
