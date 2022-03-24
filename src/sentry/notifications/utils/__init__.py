@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
 
 from django.db.models import Count
+from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
@@ -127,6 +128,29 @@ def summarize_issues(
 
         rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
     return rv
+
+
+def get_email_link_extra_params(
+    referrer: str = "alert_email",
+    rule_details: Sequence[NotificationRuleDetails] | None = None,
+    alert_timestamp: int | None = None,
+) -> dict[int, str]:
+    return {
+        rule_detail.id: "?"
+        + str(
+            urlencode(
+                {
+                    "referrer": referrer,
+                    "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
+                    "alert_timestamp": str(round(time.time() * 1000))
+                    if not alert_timestamp
+                    else str(alert_timestamp),
+                    "alert_rule_id": rule_detail.id,
+                }
+            )
+        )
+        for rule_detail in rule_details
+    }
 
 
 def get_group_settings_link(
