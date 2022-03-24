@@ -9,6 +9,7 @@ import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
+import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
@@ -33,6 +34,9 @@ env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+
+// Check if we should inject bundle-analyze plugin
+const ANALYZE_BUNDLE = !!env.ANALYZE_BUNDLE;
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -294,12 +298,7 @@ let appConfig: Configuration = {
     ],
   },
   plugins: [
-    // Do not bundle moment's locale files as we will lazy load them using
-    // dynamic imports in the application code
-    new webpack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    ...(ANALYZE_BUNDLE ? [new BundleAnalyzerPlugin()] : []),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
