@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import ratelimits, roles
+from sentry import features, ratelimits, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import (
@@ -37,7 +37,8 @@ from sentry.models import (
     TeamStatus,
     UserOption,
 )
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.utils import metrics
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
@@ -125,8 +126,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             context["user"] = serialize(member.user, request.user, DetailedUserSerializer())
 
         context["isOnlyOwner"] = member.is_only_owner()
+
+        def is_retired_role_hidden(role: OrganizationRole) -> bool:
+            return (
+                role.is_retired
+                and role.id != member.role
+                and features.has("organizations:team-roles", member.organization)
+            )
+
+        organization_role_list = [
+            role for role in organization_roles.get_all() if not is_retired_role_hidden(role)
+        ]
         context["roles"] = serialize(
-            roles.get_all(), serializer=RoleSerializer(), allowed_roles=allowed_roles
+            organization_role_list, serializer=RoleSerializer(), allowed_roles=allowed_roles
         )
 
         return context
@@ -266,6 +278,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
             if member.user == request.user and (result["role"] != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
+
+            if organization_roles.get(result["role"]).is_retired and features.has(
+                "organizations:team-roles", organization
+            ):
+                return Response({"detail": "This role is no longer in use."}, status=400)
 
             self._change_org_member_role(member, result["role"])
 

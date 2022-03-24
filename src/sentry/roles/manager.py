@@ -54,6 +54,7 @@ class Role(abc.ABC):
 @dataclass(frozen=True, eq=True)
 class OrganizationRole(Role):
     is_global: bool = False
+    is_retired: bool = False
 
     def can_manage(self, other: OrganizationRole) -> bool:
         return self.priority >= other.priority
