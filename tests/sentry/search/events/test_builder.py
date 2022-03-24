@@ -1309,7 +1309,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             query="transaction:foo_transaction",
-            allow_metric_aggregate_conditions=False,
+            allow_metric_aggregates=False,
             use_aggregate_conditions=False,
         )
 
@@ -1468,6 +1468,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=900,
             query="p50(transaction.duration):>100",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+            allow_metric_aggregates=True,
         )
         # Aggregate conditions should be dropped
         assert query.having == []
