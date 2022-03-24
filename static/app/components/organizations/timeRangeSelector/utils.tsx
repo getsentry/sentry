@@ -53,7 +53,7 @@ export function parseStatsPeriod(
 export function getRelativeSummary(
   relative: string,
   relativeOptions?: Record<string, React.ReactNode>
-): string {
+) {
   const defaultRelativePeriodString =
     relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
 
