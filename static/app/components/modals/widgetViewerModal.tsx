@@ -600,7 +600,7 @@ function WidgetViewerModal(props: Props) {
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...primaryWidget, queries: tableWidget.queries},
+        {...primaryWidget, queries: [primaryWidget.queries[selectedQueryIndex]]},
         modalSelection,
         organization
       );
