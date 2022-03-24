@@ -16,9 +16,6 @@ const {
   CI_NODE_INDEX,
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
-  JOB_CONTAINER_NETWORK,
-  JOB_CONTAINER_ID,
-  JOB_STATUS,
 } = process.env;
 
 /**
@@ -213,9 +210,6 @@ const config: Config.InitialOptions = {
         tags: {
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
-          job_container_network: JOB_CONTAINER_NETWORK,
-          job_status: JOB_STATUS,
-          job_container_id: JOB_CONTAINER_ID,
         },
       },
     },
