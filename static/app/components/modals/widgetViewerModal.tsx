@@ -1,30 +1,39 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
+import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
 
+import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconInfo, IconSearch} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -65,6 +74,7 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
+const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
@@ -84,6 +94,29 @@ const MemoizedWidgetCardChartContainer = React.memo(
   }
 );
 
+async function fetchDiscoverTotal(
+  api: Client,
+  organization: Organization,
+  location: Location,
+  eventView: EventView
+): Promise<string | undefined> {
+  if (!eventView.isValid()) {
+    return undefined;
+  }
+
+  try {
+    const total = await fetchTotalCount(
+      api,
+      organization.slug,
+      eventView.getEventsAPIPayload(location)
+    );
+    return total.toLocaleString();
+  } catch (err) {
+    Sentry.captureException(err);
+    return undefined;
+  }
+}
+
 function WidgetViewerModal(props: Props) {
   const {
     organization,
@@ -101,6 +134,7 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const isTableWidget = widget.displayType === DisplayType.TABLE;
   const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
@@ -170,11 +204,13 @@ function WidgetViewerModal(props: Props) {
     columns.unshift('title');
   }
 
+  let equationFieldsCount = 0;
+  // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
-    // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
       if (Array.isArray(fields) && !fields.includes(term)) {
+        equationFieldsCount++;
         fields.unshift(term);
       }
       if (isAggregateField(term) && !aggregates.includes(term)) {
@@ -200,13 +236,35 @@ function WidgetViewerModal(props: Props) {
     }
   });
 
-  const columnOrder = eventView.getColumns();
+  let columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
 
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
-    label: truncate(name || conditions, 120),
-    value: index,
-  }));
+  // Filter out equation terms from columnOrder so we don't clutter the table
+  if (shouldReplaceTableColumns && equationFieldsCount) {
+    columnOrder = columnOrder.filter(
+      (_, index) => index === 0 || index > equationFieldsCount
+    );
+  }
+
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+    // Creates the highlighted query elements to be used in the Query Select
+    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      return parsedQuery !== null ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <HighlightQuery parsedQuery={parsedQuery} />
+        </HighlightContainer>
+      ) : undefined;
+    };
+
+    return {
+      label: truncate(name || conditions, 120),
+      value: index,
+      getHighlightedQuery,
+    };
+  });
 
   const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
@@ -223,6 +281,16 @@ function WidgetViewerModal(props: Props) {
       },
     });
   };
+
+  // Get discover result totals
+  React.useEffect(() => {
+    const getDiscoverTotals = async () => {
+      if (widget.widgetType !== WidgetType.ISSUE) {
+        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
+      }
+    };
+    getDiscoverTotals();
+  }, [selectedQueryIndex]);
 
   function renderWidgetViewer() {
     return (
@@ -284,38 +352,80 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <React.Fragment>
-            <Alert type="info" icon={<IconInfo />}>
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-              )}
-            </Alert>
-            <StyledSelectControl
-              value={selectedQueryIndex}
-              options={queryOptions}
-              onChange={(option: SelectValue<number>) => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.QUERY]: option.value,
-                    [WidgetViewerQueryField.PAGE]: undefined,
-                    [WidgetViewerQueryField.CURSOR]: undefined,
-                  },
-                });
-
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.select_query',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
-              }}
-            />
-          </React.Fragment>
+          <StyledAlert type="info" icon={<IconInfo />}>
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+            )}
+          </StyledAlert>
         )}
+        <StyledSelectControl
+          value={selectedQueryIndex}
+          options={queryOptions}
+          onChange={(option: SelectValue<number>) => {
+            router.replace({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [WidgetViewerQueryField.QUERY]: option.value,
+                [WidgetViewerQueryField.PAGE]: undefined,
+                [WidgetViewerQueryField.CURSOR]: undefined,
+              },
+            });
+
+            trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.select_query', {
+              organization,
+              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+              display_type: widget.displayType,
+            });
+          }}
+          components={{
+            // Replaces the displayed selected value
+            SingleValue: containerProps => {
+              return (
+                <components.SingleValue
+                  {...containerProps}
+                  // Overwrites some of the default styling that interferes with highlighted query text
+                  getStyles={() => ({wordBreak: 'break-word', flex: 1, display: 'flex'})}
+                >
+                  <StyledIconSearch />
+                  {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                    display: 'block',
+                  }) ??
+                    (queryOptions[selectedQueryIndex].label || (
+                      <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                    ))}
+                </components.SingleValue>
+              );
+            },
+            // Replaces the dropdown options
+            Option: containerProps => {
+              const highlightedQuery = containerProps.data.getHighlightedQuery({
+                display: 'flex',
+              });
+              return (
+                <Option
+                  {...(highlightedQuery
+                    ? {
+                        ...containerProps,
+                        label: highlightedQuery,
+                      }
+                    : containerProps.label
+                    ? containerProps
+                    : {
+                        ...containerProps,
+                        label: (
+                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                        ),
+                      })}
+                />
+              );
+            },
+            // Hide the dropdown indicator if there is only one option
+            ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
+          }}
+          isSearchable={false}
+          isDisabled={widget.queries.length < 2}
+        />
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
             <IssueWidgetQueries
@@ -330,7 +440,10 @@ function WidgetViewerModal(props: Props) {
               }
               cursor={cursor}
             >
-              {({transformedResults, loading, pageLinks}) => {
+              {({transformedResults, loading, pageLinks, totalCount}) => {
+                if (totalResults === undefined) {
+                  setTotalResults(totalCount);
+                }
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -497,38 +610,61 @@ function WidgetViewerModal(props: Props) {
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
-        <ButtonBar gap={1}>
-          {onEdit && widget.id && (
+        <TotalResultsContainer>
+          {totalResults &&
+            (widget.widgetType === WidgetType.ISSUE ? (
+              <span>
+                {tct('[description:Total Issues:] [total]', {
+                  description: <strong />,
+                  total: totalResults === '1000' ? '1000+' : totalResults,
+                })}
+              </span>
+            ) : (
+              <span>
+                {tct('[description:Total Events:] [total]', {
+                  description: <strong />,
+                  total: totalResults,
+                })}
+              </span>
+            ))}
+        </TotalResultsContainer>
+        <ButtonBarContainer>
+          <StyledButtonBar gap={1}>
+            {onEdit && widget.id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  });
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
             <Button
+              to={path}
+              priority="primary"
               type="button"
               onClick={() => {
-                closeModal();
-                onEdit();
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.open_source',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             >
-              {t('Edit Widget')}
+              {openLabel}
             </Button>
-          )}
-          <Button
-            to={path}
-            priority="primary"
-            type="button"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
-                organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          >
-            {openLabel}
-          </Button>
-        </ButtonBar>
+          </StyledButtonBar>
+        </ButtonBarContainer>
       </StyledFooter>
     </React.Fragment>
   );
@@ -546,6 +682,7 @@ const headerCss = css`
 `;
 const footerCss = css`
   margin: 0px -${space(4)} -${space(4)};
+  flex-wrap: wrap;
 `;
 
 const Container = styled('div')<{height?: number | null}>`
@@ -557,13 +694,18 @@ const Container = styled('div')<{height?: number | null}>`
     padding: ${space(1.5)} 0px;
   }
 `;
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)} 0 0 0;
+`;
 
 const StyledSelectControl = styled(SelectControl)`
-  padding-top: 10px ${space(1.5)};
-  max-height: 40px;
+  margin-top: ${space(2)};
   display: flex;
   & > div {
     width: 100%;
+  }
+  & input {
+    height: 0;
   }
 `;
 
@@ -591,4 +733,37 @@ const StyledPagination = styled(Pagination)`
   padding-top: ${space(2)};
 `;
 
+const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
+  flex: 1;
+  display: ${p => p.display};
+  gap: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${space(1.5)};
+  line-height: 2;
+`;
+
+const TotalResultsContainer = styled('span')`
+  margin-top: auto;
+  margin-bottom: ${space(1)};
+  font-size: 0.875rem;
+  text-align: right;
+`;
+
+const ButtonBarContainer = styled('span')`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: row-reverse;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  width: fit-content;
+`;
+
+const EmptyQueryContainer = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin: auto ${space(1.5)} auto 0;
+`;
 export default withRouter(withPageFilters(WidgetViewerModal));

@@ -12,7 +12,7 @@ MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
             metric_name="derived_metric.multiple_metrics",
-            metrics=["metric_foo_doe", "session.init"],
+            metrics=["metric_foo_doe", "session.all"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"
@@ -86,14 +86,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
 
     def test_metric_details_metric_does_not_have_data(self):
-        indexer.record("foo.bar")
+        indexer.record(self.organization.id, "foo.bar")
         response = self.get_response(
             self.organization.slug,
             "foo.bar",
         )
         assert response.status_code == 404
 
-        indexer.record("sentry.sessions.session")
+        indexer.record(self.organization.id, "sentry.sessions.session")
         response = self.get_response(
             self.organization.slug,
             "session.crash_free_rate",
@@ -174,16 +174,16 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "Not all the requested metrics or the constituent metrics in "
             "['derived_metric.multiple_metrics'] have data in the dataset"
         )
-
+        org_id = self.organization.id
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("metric_foo_doe"),
+                    "metric_id": indexer.record(org_id, "metric_foo_doe"),
                     "timestamp": int(time.time()),
                     "tags": {
-                        resolve_weak("release"): indexer.record("foo"),
+                        resolve_weak("release"): indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 1,
