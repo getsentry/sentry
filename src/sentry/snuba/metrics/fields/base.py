@@ -507,6 +507,7 @@ class DerivedMetricKey(Enum):
     SESSION_CRASHED_AND_ABNORMAL_USER = "session.crashed_and_abnormal_user"
     SESSION_ERRORED_USER = "session.errored_user"
     SESSION_HEALTHY = "session.healthy"
+    SESSION_HEALTHY_USER = "session.healthy_user"
     SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
     SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
 
@@ -627,6 +628,16 @@ DERIVED_METRICS = {
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_HEALTHY_USER.value,
+            metrics=[
+                DerivedMetricKey.SESSION_ALL_USER.value,
+                DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
+            ],
+            unit="users",
+            snql=lambda *args, metric_ids, alias=None: subtraction(*args, alias=alias),
+            post_query_func=lambda *args: max(0, *args),
         ),
     ]
 }

@@ -882,6 +882,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
 
+@freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -919,7 +920,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Derived Metric crash_free_fake cannot be calculated from a single entity"
         )
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
@@ -942,7 +942,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage_with_orderby(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
@@ -1123,7 +1122,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "have a direct mapping to a query alias"
         )
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_abnormal_sessions(self):
         user_ts = time.time()
         self._send_buckets(
@@ -1173,7 +1171,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["totals"] == {"session.abnormal": 3}
         assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_crashed_user_sessions(self):
         org_id = self.organization.id
         user_ts = time.time()
@@ -1224,7 +1221,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["totals"] == {"session.crashed_user": 6}
         assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_all_user_sessions(self):
         user_ts = time.time()
         self._send_buckets(
@@ -1252,7 +1248,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"session.all_user": 3}
         assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=0, second=0))
     def test_abnormal_user_sessions(self):
         user_ts = time.time()
         self._send_buckets(
@@ -1292,7 +1287,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"session.abnormal_user": 3}
         assert group["series"] == {"session.abnormal_user": [0, 0, 0, 0, 0, 3]}
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_user_percentage_with_orderby(self):
         user_ts = time.time()
         org_id = self.organization.id
@@ -1358,7 +1352,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_free_user_rate"] == 0.5
         assert group["series"]["session.crash_free_user_rate"] == [0.5]
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
     def test_crash_free_user_rate_orderby_crash_free_rate(self):
         user_ts = time.time()
         org_id = self.organization.id
@@ -1488,7 +1481,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_free_rate"] == 0.25
         assert group["totals"]["session.crash_free_user_rate"] == 1.0
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
     def test_healthy_sessions(self):
         user_ts = time.time()
         org_id = self.organization.id
@@ -1665,3 +1657,79 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.errored_user"] == 0
         assert group["series"]["session.errored_user"] == [0]
+
+    def test_healthy_user_sessions(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # init = 7
+        # errored_all = 5
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 5, 7, 8, 9],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [22, 33, 44],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy_user"] == 4
+        assert group["series"]["session.healthy_user"] == [4]
+
+    def test_healthy_user_sessions_clamped_to_zero(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # init = 0
+        # errored_all = 1
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [1],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy_user"] == 0
+        assert group["series"]["session.healthy_user"] == [0]
