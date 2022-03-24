@@ -588,6 +588,10 @@ class SnubaResultConverter:
                 totals[metric_name] = metric_obj.run_post_query_function(totals)
                 # Series
                 for idx in range(0, len(self._intervals)):
+                    series.setdefault(
+                        metric_name,
+                        [metric_obj.generate_default_null_values()] * len(self._intervals),
+                    )
                     series[metric_name][idx] = metric_obj.run_post_query_function(series, idx)
 
         # Remove the extra fields added due to the constituent metrics that were added

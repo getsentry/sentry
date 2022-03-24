@@ -48,6 +48,7 @@ from sentry.snuba.metrics.utils import (
     MetricEntity,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
 
@@ -413,10 +414,13 @@ class CompositeEntityDerivedMetric(DerivedMetric):
                 entities_and_metric_names.setdefault(entity, []).append(
                     constituent_metric_obj.metric_name
                 )
-            entities_and_metric_names.update(
+            # This is necessary because we don't want to override entity lists but rather append
+            # to them
+            entities_and_metric_names = combine_dictionary_of_list_values(
+                entities_and_metric_names,
                 cls.__recursively_generate_singular_entity_constituents(
                     projects, constituent_metric_obj
-                )
+                ),
             )
 
         return entities_and_metric_names
@@ -494,6 +498,7 @@ class DerivedMetricKey(Enum):
     SESSION_ERRORED_PREAGGREGATED = "session.errored_preaggregated"
     SESSION_ERRORED_SET = "session.errored_set"
     SESSION_ERRORED = "session.errored"
+    SESSION_HEALTHY = "session.healthy"
     SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
     SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
 
@@ -576,6 +581,15 @@ DERIVED_METRICS = {
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+        ),
+        CompositeEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_HEALTHY.value,
+            metrics=[
+                DerivedMetricKey.SESSION_ALL.value,
+                DerivedMetricKey.SESSION_ERRORED.value,
+            ],
+            unit="sessions",
+            post_query_func=lambda init, errored: max(0, init - errored),
         ),
     ]
 }
