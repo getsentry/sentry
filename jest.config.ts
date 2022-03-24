@@ -16,6 +16,7 @@ const {
   CI_NODE_INDEX,
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
+  GITHUB_RUN_ID,
 } = process.env;
 
 /**
@@ -210,6 +211,7 @@ const config: Config.InitialOptions = {
         tags: {
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
+          run_id: GITHUB_RUN_ID,
         },
       },
     },
