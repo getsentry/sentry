@@ -69,6 +69,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
+        "rawHistogram": "histogramIf(250)",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -126,6 +127,7 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
+    "rawHistogram",
 ) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
@@ -140,6 +142,7 @@ DEFAULT_AGGREGATES = {
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "rawHistogram": None,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 

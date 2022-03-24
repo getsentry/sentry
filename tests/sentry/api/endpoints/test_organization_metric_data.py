@@ -881,6 +881,58 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    def test_histogram(self):
+        # Record some strings
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="rawHistogram(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+        hist = [
+            [1.0, 1.5, 1.0],
+            [1.5, 2.5, 1.0],
+            [2.5, 3.5, 1.0],
+            [3.5, 4.5, 1.0],
+            [4.5, 5.5, 1.0],
+            [5.5, 6.0, 1.0],
+        ]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "series": {"rawHistogram(sentry.transactions.measurements.lcp)": [hist]},
+                "totals": {"rawHistogram(sentry.transactions.measurements.lcp)": hist},
+            }
+        ]
+
 
 @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
