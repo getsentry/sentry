@@ -99,12 +99,30 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "unit": "percentage",
             },
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {
+                "name": "session.crashed_and_abnormal_user",
+                "operations": [],
+                "type": "numeric",
+                "unit": "users",
+            },
             {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.errored_preaggregated",
                 "type": "numeric",
                 "operations": [],
                 "unit": "sessions",
+            },
+            {
+                "name": "session.errored_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
+            {
+                "name": "session.errored_user_all",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
             },
         ]
 
