@@ -16,5 +16,5 @@ export function AcceptanceTestTooltip(props: InternalTooltipProps) {
     };
   }, []);
 
-  return <DO_NOT_USE_TOOLTIP forceShow={open} {...props} />;
+  return <DO_NOT_USE_TOOLTIP forceVisible={open} {...props} />;
 }

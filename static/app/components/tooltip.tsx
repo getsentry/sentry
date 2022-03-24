@@ -73,7 +73,7 @@ export interface InternalTooltipProps {
   /**
    * Force the tooltip to be visible without hovering
    */
-  forceShow?: boolean;
+  forceVisible?: boolean;
 
   /**
    * If true, user is able to hover tooltip without it disappearing.
@@ -134,7 +134,7 @@ export function DO_NOT_USE_TOOLTIP({
   children,
   className,
   delay,
-  forceShow,
+  forceVisible,
   isHoverable,
   popperStyle,
   showOnlyOnOverflow,
@@ -144,9 +144,7 @@ export function DO_NOT_USE_TOOLTIP({
   position = 'top',
   containerDisplayMode = 'inline-block',
 }: InternalTooltipProps) {
-  const [isOpen, setOpen] = useState(false);
-
-  // Tooltip ID is stable accross renders
+  const [visible, setVisible] = useState(false);
   const tooltipId = useMemo(() => domId('tooltip-'), []);
 
   // Delayed open and close time handles
@@ -154,17 +152,53 @@ export function DO_NOT_USE_TOOLTIP({
   const delayHideTimeoutRef = useRef<number | null>(null);
 
   // When the component is unmounted, make sure to stop the timeouts
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    return () => {
       if (delayOpenTimeoutRef.current) {
         window.clearTimeout(delayOpenTimeoutRef.current);
       }
       if (delayHideTimeoutRef.current) {
         window.clearTimeout(delayHideTimeoutRef.current);
       }
-    },
-    []
-  );
+    };
+  }, []);
+
+  function handleMouseEnter() {
+    if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
+      return;
+    }
+
+    if (delayHideTimeoutRef.current) {
+      window.clearTimeout(delayHideTimeoutRef.current);
+      delayHideTimeoutRef.current = null;
+    }
+
+    if (delay === 0) {
+      setVisible(true);
+      return;
+    }
+
+    delayOpenTimeoutRef.current = window.setTimeout(
+      () => setVisible(true),
+      delay ?? OPEN_DELAY
+    );
+  }
+
+  function handleMouseLeave() {
+    if (delayOpenTimeoutRef.current) {
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      delayOpenTimeoutRef.current = null;
+    }
+
+    if (isHoverable) {
+      delayHideTimeoutRef.current = window.setTimeout(
+        () => setVisible(false),
+        CLOSE_DELAY
+      );
+    } else {
+      setVisible(false);
+    }
+  }
 
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -182,47 +216,13 @@ export function DO_NOT_USE_TOOLTIP({
     };
   }, []);
 
-  function handleOpen() {
-    if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
-      return;
-    }
-
-    if (delayHideTimeoutRef.current) {
-      window.clearTimeout(delayHideTimeoutRef.current);
-      delayHideTimeoutRef.current = null;
-    }
-
-    if (delay === 0) {
-      setOpen(true);
-      return;
-    }
-
-    delayOpenTimeoutRef.current = window.setTimeout(
-      () => setOpen(true),
-      delay ?? OPEN_DELAY
-    );
-  }
-
-  function handleClose() {
-    if (delayOpenTimeoutRef.current) {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      delayOpenTimeoutRef.current = null;
-    }
-
-    if (isHoverable) {
-      delayHideTimeoutRef.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY);
-    } else {
-      setOpen(false);
-    }
-  }
-
   function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const propList: Partial<React.ComponentProps<typeof Container>> = {
+    const containerProps: Partial<React.ComponentProps<typeof Container>> = {
       'aria-describedby': tooltipId,
-      onFocus: handleOpen,
-      onBlur: handleClose,
-      onPointerEnter: handleOpen,
-      onPointerLeave: handleClose,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
     };
 
     const setRef = (el: HTMLElement) => {
@@ -242,13 +242,13 @@ export function DO_NOT_USE_TOOLTIP({
       (skipWrapper || typeof triggerChildren.type === 'string')
     ) {
       // Basic DOM nodes can be cloned and have more props applied.
-      return cloneElement(triggerChildren, {...propList, ref: setRef});
+      return cloneElement(triggerChildren, {...containerProps, ref: setRef});
     }
 
-    propList.containerDisplayMode = containerDisplayMode;
+    containerProps.containerDisplayMode = containerDisplayMode;
 
     return (
-      <Container {...propList} className={className} ref={setRef}>
+      <Container {...containerProps} className={className} ref={setRef}>
         {triggerChildren}
       </Container>
     );
@@ -258,15 +258,15 @@ export function DO_NOT_USE_TOOLTIP({
     return <Fragment>{children}</Fragment>;
   }
 
-  // The tooltip open/closed state can be controlled from the forceShowProp
-  const isOpenOrControlled = typeof forceShow === 'boolean' ? forceShow : isOpen;
+  // The tooltip visibility state can be controlled by the forceVisible
+  const isVisible = typeof forceVisible === 'boolean' ? forceVisible : visible;
 
   return (
     <Manager>
       <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
       {createPortal(
         <AnimatePresence>
-          {isOpenOrControlled ? (
+          {isVisible ? (
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <PositionWrapper style={style}>
@@ -278,8 +278,8 @@ export function DO_NOT_USE_TOOLTIP({
                     aria-hidden={false}
                     ref={ref}
                     popperStyle={popperStyle}
-                    onMouseEnter={() => isHoverable && handleOpen()}
-                    onMouseLeave={() => isHoverable && handleClose()}
+                    onMouseEnter={() => isHoverable && handleMouseEnter()}
+                    onMouseLeave={() => isHoverable && handleMouseLeave()}
                     {...TOOLTIP_ANIMATION}
                   >
                     {title}
