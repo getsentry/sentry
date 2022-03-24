@@ -135,6 +135,9 @@ def get_email_link_extra_params(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
 ) -> dict[int, str]:
+    alert_timestamp_str = (
+        str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
+    )
     return {
         rule_detail.id: "?"
         + str(
@@ -142,9 +145,7 @@ def get_email_link_extra_params(
                 {
                     "referrer": referrer,
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
-                    "alert_timestamp": str(round(time.time() * 1000))
-                    if not alert_timestamp
-                    else str(alert_timestamp),
+                    "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
                 }
             )
@@ -170,7 +171,7 @@ def get_group_settings_link(
         query_params["environment"] = environment
     if alert_type:
         query_params["alert_type"] = alert_type
-    if alert_timestamp:
+    if alert_timestamp_str:
         query_params["alert_timestamp"] = alert_timestamp_str
     if alert_rule_id:
         query_params["alert_rule_id"] = alert_rule_id
