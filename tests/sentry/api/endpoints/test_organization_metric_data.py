@@ -1550,3 +1550,118 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy"] == 3
         assert group["series"]["session.healthy"] == [3]
+
+    def test_errored_user_sessions(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # Crashed 3
+        # Abnormal 6
+        # Errored all 9
+        # Errored = 3
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
+                    },
+                    "type": "s",
+                    "value": [99, 3, 6, 8, 9, 5],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [99, 3, 6, 8, 9, 5],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [22, 33, 44],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.errored_user"] == 3
+        assert group["series"]["session.errored_user"] == [3]
+
+    def test_errored_user_sessions_clamped_to_zero(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # Crashed 3
+        # Errored all 0
+        # Errored = -3
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.errored_user"] == 0
+        assert group["series"]["session.errored_user"] == [0]

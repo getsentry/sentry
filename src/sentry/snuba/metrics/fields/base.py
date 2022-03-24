@@ -27,13 +27,16 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
+    addition,
     all_sessions,
     all_users,
     crashed_sessions,
     crashed_users,
+    errored_all_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
+    subtraction,
 )
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
@@ -364,7 +367,9 @@ class SingularEntityDerivedMetric(DerivedMetric):
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [data[self.metric_name] if idx is None else data[self.metric_name][idx]]
         result = self.post_query_func(*compute_func_args)
-        return result[0] if len(result) == 1 else result
+        if isinstance(result, tuple) and len(result) == 1:
+            result = result[0]
+        return result
 
 
 class CompositeEntityDerivedMetric(DerivedMetric):
@@ -498,6 +503,9 @@ class DerivedMetricKey(Enum):
     SESSION_ERRORED_PREAGGREGATED = "session.errored_preaggregated"
     SESSION_ERRORED_SET = "session.errored_set"
     SESSION_ERRORED = "session.errored"
+    SESSION_ERRORED_USER_ALL = "session.errored_user_all"
+    SESSION_CRASHED_AND_ABNORMAL_USER = "session.crashed_and_abnormal_user"
+    SESSION_ERRORED_USER = "session.errored_user"
     SESSION_HEALTHY = "session.healthy"
     SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
     SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
@@ -566,12 +574,14 @@ DERIVED_METRICS = {
             snql=lambda *_, metric_ids, alias=None: errored_preaggr_sessions(
                 metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_ERRORED_SET.value,
             metrics=[SessionMetricKey.SESSION_ERROR.value],
             unit="sessions",
             snql=lambda *_, metric_ids, alias=None: sessions_errored_set(metric_ids, alias=alias),
+            is_private=True,
         ),
         CompositeEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_ERRORED.value,
@@ -581,6 +591,33 @@ DERIVED_METRICS = {
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
+            metrics=[SessionMetricKey.USER.value],
+            unit="users",
+            snql=lambda *_, metric_ids, alias=None: errored_all_users(metric_ids, alias=alias),
+            is_private=True,
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+            metrics=[
+                DerivedMetricKey.SESSION_CRASHED_USER.value,
+                DerivedMetricKey.SESSION_ABNORMAL_USER.value,
+            ],
+            unit="users",
+            snql=lambda *args, metric_ids, alias=None: addition(*args, alias=alias),
+            is_private=True,
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.SESSION_ERRORED_USER.value,
+            metrics=[
+                DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
+                DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+            ],
+            unit="users",
+            snql=lambda *args, metric_ids, alias=None: subtraction(*args, alias=alias),
+            post_query_func=lambda *args: max(0, *args),
         ),
         CompositeEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_HEALTHY.value,
@@ -620,4 +657,6 @@ def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
         # need to be computed post query which is practically when this function is called
         if isinstance(derived_metric, CompositeEntityDerivedMetric):
             dependency_list.extend(derived_metric.generate_bottom_up_derived_metrics_dependencies())
+        elif isinstance(derived_metric, SingularEntityDerivedMetric):
+            dependency_list.append((None, derived_metric.metric_name))
     return dependency_list
