@@ -532,12 +532,9 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
-    def resolve_function_result_type(
+    def get_function_result_type(
         self,
         function: str,
-        match: Optional[Match[str]] = None,
-        resolve_only: bool = False,
-        overwrite_alias: Optional[str] = None,
     ) -> Optional[str]:
         """Given a function, resolve it and then get the result_type
 
@@ -550,7 +547,7 @@ class QueryBuilder:
             # can be removed
             return TREND_FUNCTION_TYPE_MAP.get(function)
 
-        resolved_function = self.resolve_function(function, match, resolve_only, overwrite_alias)
+        resolved_function = self.resolve_function(function, resolve_only=True)
 
         if not isinstance(resolved_function, Function) or resolved_function.alias is None:
             return None

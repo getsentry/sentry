@@ -716,7 +716,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.builder.resolve_function_result_type(search_key.name)
+            result_type = self.builder.get_function_result_type(search_key.name)
 
             if result_type == "duration":
                 aggregate_value = parse_duration(*search_value)
@@ -744,7 +744,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
-            result_type = self.builder.resolve_function_result_type(search_key.name)
+            result_type = self.builder.get_function_result_type(search_key.name)
             if result_type == "percentage":
                 aggregate_value = parse_percentage(search_value)
         except ValueError:
