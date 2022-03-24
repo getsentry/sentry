@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-const popular = [
+export const popular = [
   'javascript',
   'javascript-react',
   'javascript-nextjs',

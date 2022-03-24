@@ -5,12 +5,15 @@ import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion'
 
 import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
+import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -52,7 +55,10 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
 ];
 
 function Onboarding(props: Props) {
-  const stepId = props.params.step;
+  const {
+    organization,
+    params: {step: stepId},
+  } = props;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   if (!stepObj) {
     return <div>Can't find</div>;
@@ -65,6 +71,18 @@ function Onboarding(props: Props) {
   };
 
   React.useEffect(updateCornerVariant, []);
+  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+
+  const addPlatform = (platform: PlatformKey) => {
+    const newPlatforms = [...platforms];
+    newPlatforms.push(platform);
+    setPlatforms(newPlatforms);
+  };
+
+  const removePlatform = (platform: PlatformKey) => {
+    const newPlatforms = platforms.filter(p => p !== platform);
+    setPlatforms(newPlatforms);
+  };
 
   const goNextStep = (step: StepDescriptor) => {
     const stepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
@@ -78,6 +96,23 @@ function Onboarding(props: Props) {
   const handleGoBack = () => {
     const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
     browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
+  };
+
+  const genSkipOnboardingLink = () => {
+    const source = `targeted-onboarding-${stepId}`;
+    return (
+      <SkipOnboardingLink
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+            organization,
+            source,
+          })
+        }
+        to={`/organizations/${organization.slug}/issues/`}
+      >
+        {t('Skip Onboarding')}
+      </SkipOnboardingLink>
+    );
   };
 
   return (
@@ -105,6 +140,10 @@ function Onboarding(props: Props) {
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
+                platforms={platforms}
+                addPlatform={addPlatform}
+                removePlatform={removePlatform}
+                genSkipOnboardingLink={genSkipOnboardingLink}
               />
             )}
           </OnboardingStep>
@@ -232,6 +271,10 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
   button {
     font-size: ${p => p.theme.fontSizeSmall};
   }
+`;
+
+const SkipOnboardingLink = styled(Link)`
+  margin: auto ${space(4)};
 `;
 
 export default withOrganization(withProjects(Onboarding));

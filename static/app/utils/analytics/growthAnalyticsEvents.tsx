@@ -62,6 +62,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_set_up_your_project': PlatformParam;
+  'growth.onboarding_set_up_your_projects': {platforms: string};
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
@@ -119,6 +120,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
+  'growth.onboarding_set_up_your_projects':
+    'Growth: Onboarding Click Set Up Your Projects',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
