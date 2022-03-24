@@ -18,7 +18,6 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
-  GITHUB_JOB,
 } = process.env;
 
 /**
@@ -214,8 +213,7 @@ const config: Config.InitialOptions = {
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
           gitub_run_attempt: GITHUB_RUN_ATTEMPT,
-          github_run_id: GITHUB_RUN_ID,
-          github_actions_job: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_JOB}`,
+          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
         },
       },
     },
