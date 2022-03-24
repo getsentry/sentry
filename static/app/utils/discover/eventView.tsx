@@ -268,7 +268,7 @@ class EventView {
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
-  utc?: string | undefined;
+  utc?: string | boolean | undefined;
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
@@ -297,7 +297,7 @@ class EventView {
     yAxis: string | undefined;
     expired?: boolean;
     interval?: string;
-    utc?: string | undefined;
+    utc?: string | boolean | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
