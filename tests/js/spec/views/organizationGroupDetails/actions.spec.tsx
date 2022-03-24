@@ -81,9 +81,15 @@ describe('GroupActions', function () {
       });
     });
 
-    it('can bookmark', function () {
+    it('can bookmark', async function () {
       const wrapper = renderComponent();
-      const btn = wrapper.find('button[aria-label="Bookmark"]');
+      const menu = wrapper.find('button[aria-label="more-actions"]');
+      menu.simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      const btn = wrapper.find('li[data-test-id="bookmark"]');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(
@@ -96,10 +102,16 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2', function () {
+    it('renders ReprocessAction component if org has feature flag reprocessing-v2', async function () {
       const wrapper = renderComponent();
 
-      const reprocessActionButton = wrapper.find('ReprocessAction button');
+      const menu = wrapper.find('button[aria-label="more-actions"]');
+      menu.simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      const reprocessActionButton = wrapper.find('li[data-test-id="reprocess"]');
       expect(reprocessActionButton).toBeTruthy();
     });
 
@@ -112,7 +124,13 @@ describe('GroupActions', function () {
 
       const wrapper = renderComponent(event);
 
-      const reprocessActionButton = wrapper.find('ReprocessAction button');
+      const menu = wrapper.find('button[aria-label="more-actions"]');
+      menu.simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      const reprocessActionButton = wrapper.find('li[data-test-id="reprocess"]');
       expect(reprocessActionButton).toBeTruthy();
 
       reprocessActionButton.simulate('click');
