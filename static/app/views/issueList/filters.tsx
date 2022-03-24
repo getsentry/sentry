@@ -66,24 +66,12 @@ function IssueListFilters({
         hasPageFilters={hasPageFilters}
         hasIssuePercentDisplay={hasIssuePercentDisplay}
       >
-        {hasPageFilters ? (
+        {hasPageFilters && (
           <PageFilterBar>
             <ProjectPageFilter />
             <EnvironmentPageFilter alignDropdown="right" />
             <DatePageFilter alignDropdown="right" />
           </PageFilterBar>
-        ) : (
-          <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
-            {hasIssuePercentDisplay && (
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
-                hasSessions={hasSessions}
-              />
-            )}
-            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          </DropdownsWrapper>
         )}
         <IssueListSearchBar
           organization={organization}
@@ -97,6 +85,19 @@ function IssueListFilters({
           savedSearch={savedSearch}
           onSidebarToggle={onSidebarToggle}
         />
+        {!hasPageFilters && (
+          <DropdownsWrapper hasIssuePercentDisplay={hasIssuePercentDisplay}>
+            {hasIssuePercentDisplay && (
+              <IssueListDisplayOptions
+                onDisplayChange={onDisplayChange}
+                display={display}
+                hasMultipleProjectsSelected={hasMultipleProjectsSelected}
+                hasSessions={hasSessions}
+              />
+            )}
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </DropdownsWrapper>
+        )}
       </SearchContainer>
       {hasPageFilters && (
         <ResultsRow>
