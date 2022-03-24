@@ -24,7 +24,8 @@ const Subheading = styled('h6')`
   display: flex;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  margin-bottom: 0;
+  margin-bottom: ${space(1)};
+  line-height: 1;
 `;
 
 interface SidebarSectionProps
@@ -50,6 +51,7 @@ function SidebarSection({title, children, secondary, ...props}: SidebarSectionPr
 
 const SectionContent = styled('div')<{secondary?: boolean}>`
   margin-bottom: ${p => (p.secondary ? space(4) : space(4))};
+  line-height: 1;
 `;
 
 export default SidebarSection;
