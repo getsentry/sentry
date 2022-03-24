@@ -124,6 +124,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "operations": [],
                 "unit": "users",
             },
+            {
+                "name": "session.healthy_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
         ]
 
     def test_metrics_index(self):
