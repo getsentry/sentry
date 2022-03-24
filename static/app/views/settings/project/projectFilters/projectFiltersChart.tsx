@@ -28,7 +28,7 @@ type State = {
 
 type RawStats = Record<string, [timestamp: number, value: number][]>;
 
-const STAT_OPS = {
+const STAT_OPS: Record<string, {color: string; title: string}> = {
   'browser-extensions': {title: t('Browser Extension'), color: theme.gray200},
   cors: {title: 'CORS', color: theme.yellow300},
   'error-message': {title: t('Error Message'), color: theme.purple300},

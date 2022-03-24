@@ -62,7 +62,7 @@ type IndexedMembersByProject = Record<string, Member['user'][]>;
  * into a object that maps project slugs : users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce((acc, member) => {
+  return members.reduce<IndexedMembersByProject>((acc, member) => {
     for (const project of member.projects) {
       if (!acc.hasOwnProperty(project)) {
         acc[project] = [];

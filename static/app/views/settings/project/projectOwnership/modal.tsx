@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import uniq from 'lodash/uniq';
 
+import {ResponseMeta} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
 import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
@@ -39,7 +40,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
         `/issues/${issueId}/tags/url/`,
         {},
         {
-          allowError: error =>
+          allowError: (error: ResponseMeta) =>
             // Allow for 404s
             error.status === 404,
         },

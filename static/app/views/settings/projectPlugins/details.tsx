@@ -74,7 +74,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
   }
 
-  trimSchema(value) {
+  trimSchema(value: string): string | undefined {
     return value.split('//')[1];
   }
 

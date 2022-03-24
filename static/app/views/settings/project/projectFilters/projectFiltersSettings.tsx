@@ -23,7 +23,10 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {Project} from 'sentry/types';
 
-const LEGACY_BROWSER_SUBFILTERS = {
+const LEGACY_BROWSER_SUBFILTERS: Record<
+  string,
+  {helpText: string; icon: string; title: string}
+> = {
   ie_pre_9: {
     icon: 'internet-explorer',
     helpText: 'Version 8 and lower',
@@ -89,15 +92,17 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
-  constructor(props) {
+  constructor(props: RowProps) {
     super(props);
-    let initialSubfilters;
+
+    let initialSubfilters: Set<string>;
+
     if (props.data.active === true) {
-      initialSubfilters = new Set(LEGACY_BROWSER_KEYS);
+      initialSubfilters = new Set<string>(LEGACY_BROWSER_KEYS);
     } else if (props.data.active === false) {
-      initialSubfilters = new Set();
+      initialSubfilters = new Set<string>();
     } else {
-      initialSubfilters = new Set(props.data.active);
+      initialSubfilters = new Set<string>(props.data.active);
     }
 
     this.state = {
@@ -107,13 +112,13 @@ class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
     };
   }
 
-  handleToggleSubfilters = (subfilter, e) => {
+  handleToggleSubfilters = (subfilter: boolean, e) => {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
-      subfilters = new Set(LEGACY_BROWSER_KEYS);
+      subfilters = new Set<string>(LEGACY_BROWSER_KEYS);
     } else if (subfilter === false) {
-      subfilters = new Set();
+      subfilters = new Set<string>();
     } else if (subfilters.has(subfilter)) {
       subfilters.delete(subfilter);
     } else {

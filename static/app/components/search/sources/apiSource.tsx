@@ -389,7 +389,10 @@ class ApiSource extends React.Component<Props, State> {
     this.handleSearchRequest(searchRequests, directRequests);
   }, 150);
 
-  handleRequestError = (err: ResponseMeta, {url, orgId}) => {
+  handleRequestError = (
+    err: ResponseMeta,
+    {url, orgId}: {orgId: Organization['slug']; url: string}
+  ) => {
     Sentry.withScope(scope => {
       scope.setExtra(
         'url',

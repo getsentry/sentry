@@ -31,24 +31,23 @@ export type CommitsByRepository = {
  */
 export function getFilesByRepository(fileList: CommitFile[]) {
   return fileList.reduce<FilesByRepository>((filesByRepository, file) => {
-    const {filename, repoName, author, type} = file;
-
-    if (!filesByRepository.hasOwnProperty(repoName)) {
-      filesByRepository[repoName] = {};
+    if (!filesByRepository.hasOwnProperty(file.repoName)) {
+      filesByRepository[file.repoName] = {};
     }
 
-    if (!filesByRepository[repoName].hasOwnProperty(filename)) {
-      filesByRepository[repoName][filename] = {
+    if (!filesByRepository[file.repoName].hasOwnProperty(file.filename)) {
+      filesByRepository[file.repoName][file.filename] = {
         authors: {},
-        types: new Set(),
+        types: new Set<string>(),
       };
     }
 
-    if (author.email) {
-      filesByRepository[repoName][filename].authors[author.email] = author;
+    if (file.author.email) {
+      filesByRepository[file.repoName][file.filename].authors[file.author.email] =
+        file.author;
     }
 
-    filesByRepository[repoName][filename].types.add(type);
+    filesByRepository[file.repoName][file.filename].types?.add(file.type);
 
     return filesByRepository;
   }, {});
@@ -58,7 +57,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
  * Convert list of individual commits into a summary grouped by repository
  */
 export function getCommitsByRepository(commitList: Commit[]): CommitsByRepository {
-  return commitList.reduce((commitsByRepository, commit) => {
+  return commitList.reduce<CommitsByRepository>((commitsByRepository, commit) => {
     const repositoryName = commit.repository?.name ?? t('unknown');
 
     if (!commitsByRepository.hasOwnProperty(repositoryName)) {

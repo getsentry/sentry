@@ -65,8 +65,7 @@ export class OrganizationStats extends Component<Props> {
   }
 
   get dataCategoryName(): string {
-    const dataCategory = this.dataCategory;
-    return DATA_CATEGORY_NAMES[dataCategory] ?? t('Unknown Data Category');
+    return DATA_CATEGORY_NAMES[this.dataCategory] ?? t('Unknown Data Category');
   }
 
   get dataDatetime(): DateTimeObject {

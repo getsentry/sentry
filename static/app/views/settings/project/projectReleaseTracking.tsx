@@ -1,6 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ResponseMeta} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
@@ -56,7 +57,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
         'data',
         `/projects/${orgId}/${projectId}/releases/token/`,
         {},
-        {allowError: err => err && err.status === 403},
+        {allowError: (err: ResponseMeta) => err && err.status === 403},
       ],
     ];
   }

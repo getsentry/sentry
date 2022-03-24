@@ -48,7 +48,7 @@ class MonitorForm extends Component<Props> {
   form = new MonitorModel();
 
   formDataFromConfig(type: MonitorTypes, config: MonitorConfig) {
-    const rv = {};
+    const rv: Record<string, ScheduleType | number | unknown> = {};
     switch (type) {
       case 'cron_job':
         rv['config.schedule_type'] = config.schedule_type;

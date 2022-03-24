@@ -7,7 +7,7 @@ import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampl
 export const DYNAMIC_SAMPLING_DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/filtering/';
 
-export const LEGACY_BROWSER_LIST = {
+export const LEGACY_BROWSER_LIST: Record<string, {icon: string; title: string}> = {
   [LegacyBrowser.IE_PRE_9]: {
     icon: 'internet-explorer',
     title: t('Internet Explorer version 8 and lower'),
