@@ -52,6 +52,12 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
 
   const yAxis = ['spans_exclusive_time'];
 
+  // TODO data jumping
+  // TODO total count not updating in chart
+  // TODO zooming
+  // TODO more tests?
+  // TODO color of the histogram
+
   return (
     <Fragment>
       <HeaderTitleLegend>
@@ -163,7 +169,7 @@ export function Chart(props: ChartProps) {
   } = props;
 
   if (!chartData) {
-    return null;
+    return <Placeholder height="200px" />;
   }
   const theme = useTheme();
 
@@ -190,43 +196,41 @@ export function Chart(props: ChartProps) {
   };
 
   return (
-    <Fragment>
-      <BarChartZoom
-        minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
-        location={location}
-        // TODO (udameli): use real values here
-        paramStart="SpansExclusiveTimeStart"
-        paramEnd="SpansExclusiveTimeEnd"
-        xAxisIndex={[0]}
-        buckets={computeBuckets(chartData)}
-      >
-        {/* TODO (udameli): enable zooming */}
-        {zoomRenderProps => {
-          return (
-            <BarChartContainer>
-              <MaskContainer>
-                <TransparentLoadingMask visible={isLoading} />
-                {getDynamicText({
-                  value: (
-                    <BarChart
-                      height={height ?? 200}
-                      series={[series]}
-                      xAxis={disableXAxis ? {show: false} : xAxis}
-                      yAxis={yAxis}
-                      colors={colors}
-                      grid={grid}
-                      stacked
-                      {...(disableZoom ? {} : zoomRenderProps)}
-                    />
-                  ),
-                  fixed: <Placeholder height="200px" />,
-                })}
-              </MaskContainer>
-            </BarChartContainer>
-          );
-        }}
-      </BarChartZoom>
-    </Fragment>
+    <BarChartZoom
+      minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
+      location={location}
+      // TODO (udameli): use real values here
+      paramStart="SpansExclusiveTimeStart"
+      paramEnd="SpansExclusiveTimeEnd"
+      xAxisIndex={[0]}
+      buckets={computeBuckets(chartData)}
+    >
+      {/* TODO (udameli): enable zooming */}
+      {zoomRenderProps => {
+        return (
+          <BarChartContainer>
+            <MaskContainer>
+              <TransparentLoadingMask visible={isLoading} />
+              {getDynamicText({
+                value: (
+                  <BarChart
+                    height={height ?? 200}
+                    series={[series]}
+                    xAxis={disableXAxis ? {show: false} : xAxis}
+                    yAxis={yAxis}
+                    colors={colors}
+                    grid={grid}
+                    stacked
+                    {...(disableZoom ? {} : zoomRenderProps)}
+                  />
+                ),
+                fixed: <Placeholder height="200px" />,
+              })}
+            </MaskContainer>
+          </BarChartContainer>
+        );
+      }}
+    </BarChartZoom>
   );
 }
 
