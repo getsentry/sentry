@@ -1,7 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
 
+import TagStore from 'sentry/stores/tagStore';
 import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
@@ -23,6 +24,16 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 }
 
 describe('EventsV2 -> ColumnEditModal', function () {
+  enforceActOnUseLegacyStoreHook();
+
+  beforeEach(() => {
+    TagStore.reset();
+    TagStore.onLoadTagsSuccess([
+      {name: 'browser.name', key: 'browser.name', count: 1},
+      {name: 'custom-field', key: 'custom-field', count: 1},
+      {name: 'user', key: 'user', count: 1},
+    ]);
+  });
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view'],
@@ -133,6 +144,13 @@ describe('EventsV2 -> ColumnEditModal', function () {
       },
       initialData
     );
+    beforeEach(() => {
+      TagStore.reset();
+      TagStore.onLoadTagsSuccess([
+        {name: 'project', key: 'project', count: 1},
+        {name: 'count', key: 'count', count: 1},
+      ]);
+    });
 
     it('selects tag expressions that overlap fields', function () {
       const funcRow = wrapper.find('QueryField').first();
