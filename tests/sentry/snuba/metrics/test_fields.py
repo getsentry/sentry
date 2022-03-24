@@ -26,6 +26,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
 )
 from sentry.testutils import TestCase
+from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 
 
 def get_entity_of_metric_mocked(_, metric_name):
@@ -43,8 +44,8 @@ MOCKED_DERIVED_METRICS.update(
             metric_name="crash_free_fake",
             metrics=["session.crashed", "session.errored_set"],
             unit="percentage",
-            snql=lambda *args, entity, metric_ids, alias=None: percentage(
-                *args, entity, metric_ids, alias="crash_free_fake"
+            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
+                *args, org_id, metric_ids, alias="crash_free_fake"
             ),
         ),
         "random_composite": CompositeEntityDerivedMetric(
@@ -118,15 +119,20 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_name].generate_select_statements([self.project]) == [
-                func(metric_ids=metric_ids_list, alias=metric_name),
+                func(
+                    org_id=self.project.organization_id,
+                    metric_ids=metric_ids_list,
+                    alias=metric_name,
+                ),
             ]
 
         assert MOCKED_DERIVED_METRICS["session.crash_free_rate"].generate_select_statements(
             [self.project]
         ) == [
             percentage(
-                crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
-                all_sessions(metric_ids=session_ids, alias="session.all"),
+                org_id,
+                crashed_sessions(org_id, metric_ids=session_ids, alias="session.crashed"),
+                all_sessions(org_id, metric_ids=session_ids, alias="session.all"),
                 alias="session.crash_free_rate",
             )
         ]
@@ -139,6 +145,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     @mock.patch(
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
+    @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
     def test_generate_metric_ids(self):
         org_id = self.project.organization_id
         session_metric_id = indexer.record(org_id, "sentry.sessions.session")
@@ -152,17 +159,17 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.crash_free_rate",
             "session.errored_preaggregated",
         ]:
-            assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {
+            assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids([]) == {
                 session_metric_id
             }
         for derived_metric_name in [
             "session.all_user",
             "session.crashed_user",
         ]:
-            assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {
+            assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids([]) == {
                 session_user_id
             }
-        assert MOCKED_DERIVED_METRICS["session.errored_set"].generate_metric_ids() == {
+        assert MOCKED_DERIVED_METRICS["session.errored_set"].generate_metric_ids([]) == {
             session_error_metric_id
         }
 
@@ -242,7 +249,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         of SingleEntityDerivedMetric, we are still validating that they exist
         """
         with pytest.raises(MetricDoesNotExistException):
-            assert self.sessions_errored.get_entity(projects=[1]) == {
+            assert self.sessions_errored.get_entity(projects=[PseudoProject(1, 1)]) == {
                 "metrics_counters": ["session.errored_preaggregated"],
                 "metrics_sets": ["session.errored_set"],
             }

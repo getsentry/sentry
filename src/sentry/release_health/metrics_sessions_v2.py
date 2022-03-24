@@ -409,7 +409,7 @@ def _get_snuba_query(
             continue
 
         try:
-            groupby[field] = Column(resolve_tag_key(field))
+            groupby[field] = Column(resolve_tag_key(org_id, field))
         except MetricIndexNotFound:
             # exclude unresolved keys from groupby
             pass
@@ -513,7 +513,7 @@ def _fetch_data_for_field(
     limit_state: _LimitState,
     columns_fetched: Set[SelectableExpression],  # output param
 ) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
-    tag_key_session_status = resolve_tag_key("session.status")
+    tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
     data: _SnubaDataByMetric = []
 
@@ -684,9 +684,9 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = resolve_tag_key("release")
-    tag_key_environment = resolve_tag_key("environment")
-    tag_key_session_status = resolve_tag_key("session.status")
+    tag_key_release = resolve_tag_key(org_id, "release")
+    tag_key_environment = resolve_tag_key(org_id, "environment")
+    tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
     for metric_key, metric_data in data:
         for row in metric_data:
@@ -849,7 +849,7 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        return Column(resolve_tag_key(input_.name))
+        return Column(resolve_tag_key(org_id, input_.name))
 
     if isinstance(input_, str):
         # Assuming this is the right-hand side, we need to fetch a tag value.

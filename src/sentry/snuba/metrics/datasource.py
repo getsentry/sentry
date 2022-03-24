@@ -21,6 +21,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import DERIVED_METRICS, run_metrics_query
+from sentry.snuba.metrics.fields.base import org_id_from_projects
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
@@ -57,6 +58,7 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
 
 
 def get_available_derived_metrics(
+    projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
     derived_metric_names: Optional[Set[str]] = None,
 ) -> Set[str]:
@@ -78,7 +80,7 @@ def get_available_derived_metrics(
     found_derived_metrics = set()
     for derived_metric_name, derived_metric_obj in requested_derived_metrics.items():
         try:
-            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects)
         except NotSupportedOverCompositeEntityException:
             # ToDo(ahmed): Handle instances of CompositeEntityDerivedMetrics in upcoming PR
             continue
@@ -123,7 +125,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # ToDo(ahmed): When CompositeEntityDerivedMetrics are introduced we need to do these checks
     #  not on the instance of the CompositeEntityDerivedMetric but rather on its
     #  SingularEntityDerivedMetric constituents
-    found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
+    found_derived_metrics = get_available_derived_metrics(projects, metric_ids_in_entities)
     for derived_metric_name in found_derived_metrics:
         derived_metric_obj = DERIVED_METRICS[derived_metric_name]
         metrics_meta.append(
@@ -137,7 +139,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     return sorted(metrics_meta, key=itemgetter("name"))
 
 
-def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
+def _get_metrics_filter_ids(projects: Sequence[Project], metric_names: Sequence[str]) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
@@ -145,11 +147,12 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
     if not metric_names:
         return set()
     metric_ids = set()
+    org_id = org_id_from_projects(projects)
     for name in metric_names:
         if name not in DERIVED_METRICS:
-            metric_ids.add(indexer.resolve(name))
+            metric_ids.add(indexer.resolve(org_id, name))
         else:
-            metric_ids |= DERIVED_METRICS[name].generate_metric_ids()
+            metric_ids |= DERIVED_METRICS[name].generate_metric_ids(projects)
     if None in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
@@ -158,7 +161,9 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
 
 
 def _validate_requested_derived_metrics_in_input_metrics(
-    metric_names: Sequence[str], supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]]
+    projects: Sequence[Project],
+    metric_names: Sequence[str],
+    supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
 ) -> None:
     """
     Function that takes metric_names list and a mapping of entity to its metric ids, and ensures
@@ -171,7 +176,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
         metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
     }
     found_derived_metrics = get_available_derived_metrics(
-        supported_metric_ids_in_entities, requested_derived_metrics
+        projects, supported_metric_ids_in_entities, requested_derived_metrics
     )
     if requested_derived_metrics != found_derived_metrics:
         raise DerivedMetricParseException(
@@ -194,8 +199,9 @@ def _fetch_tags_or_values_per_ids(
     values available for those projects. In addition, when exactly one metric name is passed in
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
+    assert len({p.organization_id for p in projects}) == 1
     try:
-        metric_ids = _get_metrics_filter_ids(metric_names)
+        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_names)
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -257,6 +263,7 @@ def _fetch_tags_or_values_per_ids(
         # (if any are requested) are setup correctly i.e. constituent of
         # SingularEntityDerivedMetric actually span a single entity
         _validate_requested_derived_metrics_in_input_metrics(
+            projects,
             metric_names=metric_names,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
@@ -335,9 +342,8 @@ def get_tag_values(
     projects: Sequence[Project], tag_name: str, metric_names: Optional[Sequence[str]]
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
-    assert projects
-
-    tag_id = indexer.resolve(tag_name)
+    org_id = org_id_from_projects(projects)
+    tag_id = indexer.resolve(org_id, tag_name)
     if tag_id is None:
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
@@ -357,6 +363,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
     results = {}
+    org_id = org_id_from_projects(projects)
     fields_in_entities = {}
 
     if not query.groupby:
@@ -426,7 +433,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # will be used to filter down and order the results of the 2nd query.
             # For example, (project_id, transaction) is translated to (project_id, tags[3])
             groupby_tags = tuple(
-                resolve_tag_key(field) if field not in ALLOWED_GROUPBY_COLUMNS else field
+                resolve_tag_key(org_id, field) if field not in ALLOWED_GROUPBY_COLUMNS else field
                 for field in query.groupby
             )
 
