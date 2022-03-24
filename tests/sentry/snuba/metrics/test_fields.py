@@ -82,6 +82,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.abnormal": "metrics_counters",
             "session.abnormal_user": "metrics_sets",
             "session.crash_free_rate": "metrics_counters",
+            "session.crash_free_user_rate": "metrics_sets",
             "session.errored_preaggregated": "metrics_counters",
             "session.errored_set": "metrics_sets",
         }
@@ -133,6 +134,15 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 alias="session.crash_free_rate",
             )
         ]
+        assert MOCKED_DERIVED_METRICS["session.crash_free_user_rate"].generate_select_statements(
+            [self.project]
+        ) == [
+            percentage(
+                crashed_users(metric_ids=session_user_ids, alias="session.crashed_user"),
+                all_users(metric_ids=session_user_ids, alias="session.all_user"),
+                alias="session.crash_free_user_rate",
+            )
+        ]
 
         # Test that ensures that even if `generate_select_statements` is called before
         # `get_entity` is called, and thereby the entity validation logic, we throw an exception
@@ -162,6 +172,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.all_user",
             "session.crashed_user",
             "session.abnormal_user",
+            "session.crash_free_user_rate",
         ]:
             assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {
                 session_user_id
@@ -206,7 +217,11 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]:
             assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_default_null_values() == 0
 
-        for derived_metric_name in ["session.crash_free_rate", "crash_free_fake"]:
+        for derived_metric_name in [
+            "session.crash_free_rate",
+            "crash_free_fake",
+            "session.crash_free_user_rate",
+        ]:
             assert (
                 MOCKED_DERIVED_METRICS[derived_metric_name].generate_default_null_values() is None
             )

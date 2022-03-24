@@ -1291,3 +1291,199 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"] == {"session.abnormal_user": 3}
         assert group["series"] == {"session.abnormal_user": [0, 0, 0, 0, 0, 3]}
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
+    def test_crash_free_user_percentage_with_orderby(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@2.0"),
+                    },
+                    "type": "s",
+                    "value": [3, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_user_rate"],
+            statsPeriod="6m",
+            interval="6m",
+            groupBy="release",
+            orderBy="-session.crash_free_user_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.crash_free_user_rate"] == 1
+        assert group["series"]["session.crash_free_user_rate"] == [1]
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.crash_free_user_rate"] == 0.5
+        assert group["series"]["session.crash_free_user_rate"] == [0.5]
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
+    def test_crash_free_user_rate_orderby_crash_free_rate(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        # Users crash free rate
+        # foobar@1.0 -> 0.5
+        # foobar@2.0 -> 1
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@2.0"),
+                    },
+                    "type": "s",
+                    "value": [3, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        # Crash free rate
+        # foobar@1.0 -> 0.75
+        # foobar@2.0 -> 0.25
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@1.0"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@1.0"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@2.0"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@2.0"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_user_rate", "session.crash_free_rate"],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="-session.crash_free_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.crash_free_rate"] == 0.75
+        assert group["totals"]["session.crash_free_user_rate"] == 0.5
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.crash_free_rate"] == 0.25
+        assert group["totals"]["session.crash_free_user_rate"] == 1.0
