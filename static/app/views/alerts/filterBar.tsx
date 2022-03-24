@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -15,17 +14,10 @@ type Props = {
   location: Location<any>;
   onChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   onChangeSearch: (query: string) => void;
-  hasEnvironmentFilter?: boolean;
   hasStatusFilters?: boolean;
 };
 
-function FilterBar({
-  location,
-  onChangeSearch,
-  onChangeFilter,
-  hasEnvironmentFilter,
-  hasStatusFilters,
-}: Props) {
+function FilterBar({location, onChangeSearch, onChangeFilter, hasStatusFilters}: Props) {
   const selectedTeams = new Set(getTeamParams(location.query.team));
 
   const selectedStatus = hasStatusFilters
@@ -42,7 +34,6 @@ function FilterBar({
           handleChangeFilter={onChangeFilter}
         />
         <ProjectPageFilter />
-        {hasEnvironmentFilter && <EnvironmentPageFilter />}
       </FilterButtons>
       <SearchBar
         placeholder={t('Search by name')}
