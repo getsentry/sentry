@@ -82,20 +82,48 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "operations": ["count_unique"],
                 "unit": None,
             },
+            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
+            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
+            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
                 "operations": [],
                 "unit": "percentage",
             },
+            {
+                "name": "session.crash_free_user_rate",
+                "type": "numeric",
+                "operations": [],
+                "unit": "percentage",
+            },
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {
+                "name": "session.crashed_and_abnormal_user",
+                "operations": [],
+                "type": "numeric",
+                "unit": "users",
+            },
+            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.errored_preaggregated",
                 "type": "numeric",
                 "operations": [],
                 "unit": "sessions",
             },
-            {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
+            {
+                "name": "session.errored_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
+            {
+                "name": "session.errored_user_all",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
         ]
 
     def test_metrics_index(self):

@@ -7,7 +7,6 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 
 import TeamFilter from './rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';
@@ -16,7 +15,6 @@ type Props = {
   location: Location<any>;
   onChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
   onChangeSearch: (query: string) => void;
-  organization: Organization;
   hasEnvironmentFilter?: boolean;
   hasStatusFilters?: boolean;
 };
@@ -25,13 +23,10 @@ function FilterBar({
   location,
   onChangeSearch,
   onChangeFilter,
-  organization,
   hasEnvironmentFilter,
   hasStatusFilters,
 }: Props) {
   const selectedTeams = new Set(getTeamParams(location.query.team));
-
-  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
   const selectedStatus = hasStatusFilters
     ? new Set(getQueryStatus(location.query.status))
@@ -46,8 +41,8 @@ function FilterBar({
           selectedStatus={selectedStatus}
           handleChangeFilter={onChangeFilter}
         />
-        {hasPageFilters && <ProjectPageFilter />}
-        {hasPageFilters && hasEnvironmentFilter && <EnvironmentPageFilter />}
+        <ProjectPageFilter />
+        {hasEnvironmentFilter && <EnvironmentPageFilter />}
       </FilterButtons>
       <SearchBar
         placeholder={t('Search by name')}
