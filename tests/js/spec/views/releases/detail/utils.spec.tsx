@@ -87,5 +87,16 @@ describe('releases/detail/utils', () => {
 
       expect(marklines.map(markline => markline.seriesName)).toEqual([adopted]);
     });
+
+    it('does not generate out-of-bounds marklines on ancient/clamped releases', () => {
+      const marklines = generateReleaseMarkLines(
+        {...release, dateCreated: '2010-03-24T01:00:30Z'},
+        project,
+        lightTheme,
+        router.location
+      );
+
+      expect(marklines).toEqual([]);
+    });
   });
 });
