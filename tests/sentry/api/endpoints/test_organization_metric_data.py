@@ -1487,3 +1487,66 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["by"]["release"] == "foobar@2.0"
         assert group["totals"]["session.crash_free_rate"] == 0.25
         assert group["totals"]["session.crash_free_user_rate"] == 1.0
+
+    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
+    def test_healthy_sessions(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_error_metric,
+                    "timestamp": user_ts,
+                    "tags": {tag: value},
+                    "type": "s",
+                    "value": numbers,
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (self.release_tag, indexer.record(org_id, "foo"), list(range(3))),
+                )
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy", "session.errored", "session.all"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy"] == 3
+        assert group["series"]["session.healthy"] == [3]

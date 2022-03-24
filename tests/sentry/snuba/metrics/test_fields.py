@@ -275,6 +275,12 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "metrics_counters": ["session.errored_preaggregated"],
             "metrics_sets": ["session.errored_set"],
         }
+        component_entities = DERIVED_METRICS["session.healthy"].get_entity(projects=[1])
+        assert sorted(component_entities["metrics_counters"]) == [
+            "session.all",
+            "session.errored_preaggregated",
+        ]
+        assert sorted(component_entities["metrics_sets"]) == ["session.errored_set"]
 
     def test_generate_metric_ids(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):
