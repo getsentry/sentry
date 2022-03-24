@@ -64,7 +64,6 @@ export type TableViewProps = {
   projects: Project[];
   showTags: boolean;
   tableData: TableData | null | undefined;
-  tagKeys: null | string[];
 
   title: string;
   spanOperationBreakdownKeys?: string[];
