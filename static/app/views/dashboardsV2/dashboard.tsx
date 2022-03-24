@@ -208,7 +208,7 @@ class Dashboard extends Component<Props, State> {
       try {
         await validateWidget(api, organization.slug, newWidget);
         handleAddCustomWidget(newWidget);
-        onSetNewWidget && onSetNewWidget();
+        onSetNewWidget?.();
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
