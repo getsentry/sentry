@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth import access
+from sentry.auth.access import Access
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -264,95 +265,71 @@ class FromUserTest(TestCase):
 
 
 class FromRequestTest(TestCase):
-    def test_superuser(self):
-        user = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=user, permission="test.permission")
+    def setUp(self) -> None:
+        self.superuser = self.create_user(is_superuser=True)
+        UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
-        request = self.make_request(user=user, is_superuser=False)
+        self.org = self.create_organization()
+        AuthProvider.objects.create(organization=self.org)
+
+        self.team1 = self.create_team(organization=self.org)
+        self.project1 = self.create_project(organization=self.org, teams=[self.team1])
+        self.team2 = self.create_team(organization=self.org)
+        self.project2 = self.create_project(organization=self.org, teams=[self.team2])
+
+    def test_superuser(self):
+        request = self.make_request(user=self.superuser, is_superuser=False)
         result = access.from_request(request)
         assert not result.has_permission("test.permission")
 
-        request = self.make_request(user=user, is_superuser=True)
+        request = self.make_request(user=self.superuser, is_superuser=True)
         result = access.from_request(request)
         assert result.has_permission("test.permission")
 
     def test_superuser_in_organization(self):
-        org = self.create_organization()
-        AuthProvider.objects.create(organization=org)
-        team = self.create_team(organization=org)
-        project = self.create_project(organization=org, teams=[team])
+        self.create_member(
+            user=self.superuser, organization=self.org, role="admin", teams=[self.team1]
+        )
 
-        user = self.create_user(is_superuser=True)
-        self.create_member(user=user, organization=org, role="admin")
-        UserPermission.objects.create(user=user, permission="test.permission")
+        def assert_memberships(result: Access) -> None:
+            assert result.role == "admin"
 
-        request = self.make_request(user=user, is_superuser=False)
-        result = access.from_request(request, org)
+            assert result.teams == frozenset({self.team1})
+            assert result.has_team_access(self.team1)
+            assert result.projects == frozenset({self.project1})
+            assert result.has_project_access(self.project1)
+            assert result.has_project_membership(self.project1)
+            assert not result.has_project_membership(self.project2)
+
+            # Even if not superuser, still has these because of role.is_global
+            assert result.has_global_access
+            assert result.has_team_access(self.team2)
+            assert result.has_project_access(self.project2)
+
+        request = self.make_request(self.superuser, is_superuser=False)
+        result = access.from_request(request, self.org)
+        assert_memberships(result)
         assert not result.has_permission("test.permission")
-        assert not result.teams
-        assert not result.projects
 
-        request = self.make_request(user=user, is_superuser=True)
-        result = access.from_request(request, org)
+        request = self.make_request(user=self.superuser, is_superuser=True)
+        result = access.from_request(request, self.org)
+        assert_memberships(result)
         assert result.has_permission("test.permission")
-
-        assert result.role == "admin"
-        assert result.has_global_access
-
-        assert result.teams == frozenset({team})
-        assert result.has_team_access(team)
-        assert result.projects == frozenset({project})
-        assert result.has_project_access(project)
-
         assert result.requires_sso
         assert not result.sso_is_valid
 
     def test_superuser_with_organization_without_membership(self):
-        org = self.create_organization()
-        AuthProvider.objects.create(organization=org)
-        team = self.create_team(organization=org)
-        project = self.create_project(organization=org, teams=[team])
-
-        user = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=user, permission="test.permission")
-
-        request = self.make_request(user=user, is_superuser=True)
-        result = access.from_request(request, org)
+        request = self.make_request(user=self.superuser, is_superuser=True)
+        result = access.from_request(request, self.org)
         assert result.has_permission("test.permission")
 
         assert not result.requires_sso
         assert result.sso_is_valid
 
-        assert result.teams == frozenset({team})
-        assert result.has_team_access(team)
-        assert result.projects == frozenset({project})
-        assert result.has_project_access(project)
-
-    def test_superuser_with_team_membership(self):
-        org = self.create_organization()
-        AuthProvider.objects.create(organization=org)
-
-        member_team = self.create_team(organization=org)
-        member_project = self.create_project(organization=org, teams=[member_team])
-        non_member_team = self.create_team(organization=org)
-        non_member_project = self.create_project(organization=org, teams=[non_member_team])
-
-        user = self.create_user(is_superuser=True)
-        self.create_member(user=user, organization=org, role="admin", teams=[member_team])
-
-        request = self.make_request(user=user, is_superuser=True)
-        result = access.from_request(request, org)
-
-        assert result.teams == frozenset({member_team, non_member_team})
-        assert result.has_team_access(member_team)
-        assert result.has_team_access(non_member_team)
-        assert result.projects == frozenset({member_project, non_member_project})
-        assert result.has_project_access(member_project)
-        assert result.has_project_access(non_member_project)
-        assert result.has_project_membership(member_project)
-
-        # TODO: This should actually be false per the has_project_membership docstring
-        assert result.has_project_membership(non_member_project)
+        assert result.teams == frozenset()
+        assert result.has_team_access(self.team1)
+        assert result.projects == frozenset()
+        assert result.has_project_access(self.project1)
 
 
 class FromSentryAppTest(TestCase):
@@ -395,7 +372,7 @@ class FromSentryAppTest(TestCase):
         result = access.from_request(request, self.org)
         assert result.has_global_access
         assert result.has_team_access(self.team)
-        assert result.teams == frozenset({self.team})
+        assert result.teams == frozenset()
         assert result.scopes == frozenset()
         assert result.has_project_access(self.project)
         assert not result.has_project_access(self.out_of_scope_project)
@@ -438,11 +415,6 @@ class FromSentryAppTest(TestCase):
         assert result.has_project_access(deleted_project) is False
         assert result.has_project_membership(deleted_project) is False
 
-        # result.projects also contains other projects created by
-        # self.create_sentry_app_installation
-        assert deleted_project not in result.projects
-        assert self.project in result.projects
-
     def test_no_deleted_teams(self):
         deleted_team = self.create_team(organization=self.org, status=TeamStatus.PENDING_DELETION)
         self.create_member(
@@ -451,7 +423,6 @@ class FromSentryAppTest(TestCase):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.org)
         assert result.has_team_access(deleted_team) is False
-        assert result.teams == frozenset({self.team})
 
     def test_has_app_scopes(self):
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
