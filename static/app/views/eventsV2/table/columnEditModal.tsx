@@ -8,6 +8,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import TagStore from 'sentry/stores/tagStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -32,7 +34,6 @@ function ColumnEditModal(props: Props) {
     Header,
     Body,
     Footer,
-    tagKeys,
     measurementKeys,
     spanOperationBreakdownKeys,
     organization,
@@ -48,6 +49,9 @@ function ColumnEditModal(props: Props) {
       organization_id: parseInt(organization.id, 10),
     });
   }, []);
+
+  const tags = useLegacyStore(TagStore);
+  const tagKeys = Object.values(tags).map(({key}) => key);
 
   const [columns, setColumns] = useState<Column[]>(props.columns);
 
