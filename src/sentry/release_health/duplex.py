@@ -1125,7 +1125,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
             organization,
             schema,
-            project_ids,
+            list(project_ids),
             now,
         )
 
