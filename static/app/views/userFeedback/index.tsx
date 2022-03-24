@@ -129,6 +129,11 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                 <PageHeading>{t('User Feedback')}</PageHeading>
               </Header>
               <Filters>
+                <PageFilterBar>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="right" />
+                </PageFilterBar>
                 <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
                   <Button barId="unresolved" to={{pathname, query: unresolvedQuery}}>
                     {t('Unresolved')}
@@ -137,11 +142,6 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                     {t('All Issues')}
                   </Button>
                 </ButtonBar>
-                <PageFilterBar>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
-                </PageFilterBar>
               </Filters>
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
@@ -164,13 +164,13 @@ const Header = styled('div')`
 
 const Filters = styled('div')`
   display: grid;
-  grid-template-columns: max-content minmax(0, max-content);
+  grid-template-columns: minmax(0, max-content) max-content;
   justify-content: start;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
