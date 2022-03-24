@@ -38,7 +38,7 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
     return _CONCURRENT_RATE_LIMITER
 
 
-def get_category_str(rate_limit_key=None):
+def get_category_str(rate_limit_key: str | None = None):
     if not rate_limit_key:
         return None
 
