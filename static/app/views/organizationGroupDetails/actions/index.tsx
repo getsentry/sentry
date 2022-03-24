@@ -364,7 +364,7 @@ class Actions extends Component<Props, State> {
                 <GuideAnchor target="open_in_discover">
                   <DropdownMenuControlV2
                     triggerProps={{
-                      'aria-label': t('More actions'),
+                      'aria-label': t('more-actions'),
                       icon: <IconEllipsis size="xs" />,
                       showChevron: false,
                       size: 'xsmall',
