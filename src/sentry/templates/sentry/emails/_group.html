@@ -1,5 +1,4 @@
 {% load sentry_helpers %}
-<!--# -->
 {% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit extra_params=link_params_for_rule %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">
   {% with extra_param=extra_params|get_item:rule.id %}
