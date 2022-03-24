@@ -13,6 +13,7 @@ import {
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -25,7 +26,7 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   spanSlug: SpanSlug;
-  totalCount: number;
+  totalCount?: number;
 };
 
 enum DisplayModes {
@@ -76,7 +77,9 @@ function Chart(props: Props) {
         <ChartControls>
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>
-            <SectionValue data-test-id="total-value">{props.totalCount}</SectionValue>
+            <SectionValue data-test-id="total-value">
+              {defined(props.totalCount) ? props.totalCount : '\u2014'}
+            </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
             <OptionSelector
