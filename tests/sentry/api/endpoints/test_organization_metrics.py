@@ -83,6 +83,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "unit": None,
             },
             {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
+            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
             {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
