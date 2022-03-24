@@ -141,6 +141,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             )
 
             metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
 
         def get_event_stats(
@@ -177,6 +178,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
+                allow_metric_aggregates=allow_metric_aggregates,
                 use_snql=discover_snql,
             )
 

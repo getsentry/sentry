@@ -209,6 +209,7 @@ def query(
     referrer=None,
     auto_fields=False,
     auto_aggregations=False,
+    allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
     extra_snql_condition=None,
@@ -236,6 +237,7 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     auto_aggregations (bool) Whether aggregates should be added automatically if they're used
                     in conditions, and there's at least one aggregate already.
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
@@ -483,6 +485,7 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
+    allow_metric_aggregates=False,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -506,6 +509,7 @@ def timeseries_query(
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_snql (bool) Whether to directly build the query in snql, instead of using the older
                     json construction
     """

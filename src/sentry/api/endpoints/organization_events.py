@@ -56,6 +56,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             "organizations:performance-use-metrics", organization=organization, actor=request.user
         )
         metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+        allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
@@ -74,6 +75,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                allow_metric_aggregates=allow_metric_aggregates,
                 use_snql=features.has(
                     "organizations:discover-use-snql", organization, actor=request.user
                 ),
