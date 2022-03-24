@@ -777,7 +777,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         )
         if not isinstance(should_compare, bool):
             try:
-                should_compare = should_compare()  # type: ignore
+                should_compare = should_compare()
             except Exception:
                 capture_exception()
                 should_compare = False
@@ -789,11 +789,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         sessions_fn = getattr(self.sessions, fn_name)
         metrics_fn = getattr(self.metrics, fn_name)
 
+        sessions_result = None  # get rid of unbound warnings -- this line shouldn't be necessary
+
         now = datetime.now(pytz.utc)
         tags = {"method": fn_name, "rollup": str(rollup)}
         incr(
             "releasehealth.metrics.should_return",
-            tags={"should_return": should_return_metrics, **tags},
+            tags={"should_return": str(should_return_metrics), **tags},
         )
         if should_check_metrics or not should_return_metrics:
             with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
@@ -809,7 +811,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     organization,
                     schema,
                     function_args=args,
-                    sessions_result=sessions_result,  # type: ignore
+                    sessions_result=sessions_result,
                     sessions_time=now,
                 )
             except Exception:
@@ -819,7 +821,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                 return metrics_fn(*args)
 
-        return sessions_result  # type: ignore
+        return sessions_result
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
@@ -1129,9 +1131,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         schema = ListSet(schema=ComparatorType.Exact, index_by=identity)
 
-        should_compare = (
-            lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
-        )
+        should_compare = lambda: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
 
         if now is None:
             now = datetime.now(pytz.utc)
