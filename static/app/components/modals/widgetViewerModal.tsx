@@ -197,20 +197,13 @@ function WidgetViewerModal(props: Props) {
     DisplayType.BAR,
   ].includes(widget.displayType);
 
-  if (shouldReplaceTableColumns) {
-    if (fields.length === 1) {
-      tableWidget.queries[0].orderby =
-        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
-    }
-    fields.unshift('title');
-    columns.unshift('title');
-  }
-
+  let equationFieldsCount = 0;
+  // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
-    // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
       if (Array.isArray(fields) && !fields.includes(term)) {
+        equationFieldsCount++;
         fields.unshift(term);
       }
       if (isAggregateField(term) && !aggregates.includes(term)) {
@@ -222,6 +215,15 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  if (shouldReplaceTableColumns) {
+    if (fields.length === 1) {
+      tableWidget.queries[0].orderby =
+        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    }
+    fields.unshift('title');
+    columns.unshift('title');
+  }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
@@ -229,13 +231,22 @@ function WidgetViewerModal(props: Props) {
     tableWidget.displayType
   );
 
-  const columnOrder = decodeColumnOrder(
-    tableWidget.queries[0].fields?.map((field, index) => ({
+  let columnOrder = decodeColumnOrder(
+    tableWidget.queries[0].fields?.map(field => ({
       field,
-      width: parseInt(widths[index], 10),
     })) ?? []
   );
   const columnSortBy = eventView.getSorts();
+  // Filter out equation terms from columnOrder so we don't clutter the table
+  if (shouldReplaceTableColumns && equationFieldsCount) {
+    columnOrder = columnOrder.filter(
+      (_, index) => index === 0 || index > equationFieldsCount
+    );
+  }
+  columnOrder = columnOrder.map((column, index) => ({
+    ...column,
+    width: parseInt(widths[index], 10) || -1,
+  }));
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
