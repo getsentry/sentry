@@ -26,7 +26,7 @@ class EntitySubscriptionTestCase(TestCase):
             "init",
             "crashed",
         ]:
-            indexer.record(tag)
+            indexer.record(self.organization.id, tag)
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
