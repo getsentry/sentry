@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
-import Badge from 'sentry/components/badge';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import Badge from 'sentry/components/badge';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PlatformList from 'sentry/components/platformList';
@@ -17,6 +17,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
+import {trimSlug} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -106,7 +107,7 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
     const title = hasSelected
-      ? selectedProjects[0]?.slug
+      ? trimSlug(selectedProjects[0]?.slug, 20)
       : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
       ? t('All Projects')
       : t('My Projects');
