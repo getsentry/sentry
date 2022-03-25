@@ -161,7 +161,6 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Issue Widgets', () => {
     beforeEach(() => {
-      // @ts-ignore
       MemberListStore.init();
     });
     afterEach(() => {

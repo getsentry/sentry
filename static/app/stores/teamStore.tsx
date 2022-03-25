@@ -26,15 +26,11 @@ type TeamStoreInterface = CommonStoreInterface<State> & {
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
-  safeListenTo(action: Reflux.ActionsDefinition, callback: (...data: any) => void);
 
   state: State;
-  teardown(): void;
-  unsubscribeListeners: (() => void)[];
 };
 
 const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
-  unsubscribeListeners: [],
   initialized: false,
   state: {
     teams: [],
@@ -47,31 +43,12 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   init() {
     this.reset();
 
-    this.safeListenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
-    this.safeListenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
-    this.safeListenTo(TeamActions.loadTeams, this.loadInitialData);
-    this.safeListenTo(TeamActions.loadUserTeams, this.loadUserTeams);
-    this.safeListenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
-    this.safeListenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
-  },
-
-  safeListenTo(action, callback) {
-    this.unsubscribeListeners.push(this.listenTo(action), callback);
-  },
-
-  teardown() {
-    while (this.unsubscribeListeners.length > 0) {
-      const unsubscribeListener = this.unsubscribeListeners.pop();
-
-      if (typeof unsubscribeListener !== 'function') {
-        throw new Error(
-          `Attempting to call ${JSON.stringify(
-            unsubscribeListener
-          )}. A falsy unsubscribe listener was stored, unsubscribe listeners should only include function calls`
-        );
-      }
-      unsubscribeListener();
-    }
+    this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
+    this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
+    this.listenTo(TeamActions.loadTeams, this.loadInitialData);
+    this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams);
+    this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
+    this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
   },
 
   reset() {

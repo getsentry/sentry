@@ -13,6 +13,7 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});

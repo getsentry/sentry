@@ -6,6 +6,7 @@ export interface SafeRefluxStore extends Reflux.Store {
 export function makeSafeRefluxStore<T extends Reflux.Store>(
   store: T
 ): SafeRefluxStore & T {
+  const originalListenTo = store.listenTo.bind(store);
   const safeStore = store as SafeRefluxStore & T;
 
   // Warning: We are going to be overriding instance methods here!
@@ -21,7 +22,7 @@ export function makeSafeRefluxStore<T extends Reflux.Store>(
     action: Reflux.Listenable,
     callback: (...data: any) => void
   ) {
-    const unsubscribeListener = store.listenTo(action, callback);
+    const unsubscribeListener = originalListenTo(action, callback);
     this.unsubscribeListeners.push(unsubscribeListener);
     return unsubscribeListener;
   }
@@ -42,8 +43,8 @@ export function makeSafeRefluxStore<T extends Reflux.Store>(
     }
   }
 
-  safeStore.listenTo = listenTo.bind(store);
-  safeStore.teardown = teardown.bind(store);
+  safeStore.listenTo = listenTo.bind(safeStore);
+  safeStore.teardown = teardown.bind(safeStore);
 
   return safeStore;
 }

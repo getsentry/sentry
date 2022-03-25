@@ -8,6 +8,7 @@ type MemberListStoreInterface = {
   getAll(): User[];
   getByEmail(email: string): User | undefined;
   getById(id: string): User | undefined;
+  init(): void;
   isLoaded(): boolean;
   loadInitialData(items: User[]): void;
   loaded: boolean;
