@@ -489,10 +489,7 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
+    const newQueries = state.queries.map(query => {
       const descending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
@@ -532,9 +529,12 @@ function WidgetBuilder({
         }
       }
 
-      set(newState, `queries.${queryIndex}`, newQuery);
-    }
+      return newQuery;
+    });
 
+    set(newState, 'queries', newQueries);
+
+    // Running this is due to a user modification
     set(newState, 'userHasModified', true);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
