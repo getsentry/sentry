@@ -640,6 +640,7 @@ def run_comparison(
     schema: Optional[Schema],
     function_args: Tuple[Any],
     sessions_result: Any,
+    metrics_result: Any,
     sessions_time: datetime,
     **kwargs,
 ) -> None:
@@ -664,9 +665,10 @@ def run_comparison(
         set_extra("delay", delay)
         timing("releasehealth.metrics.delay", delay)
 
-        # We read from the metrics source even if there is no need to compare.
-        with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-            metrics_val = metrics_fn(*function_args)
+        if metrics_result is None:
+            # We read from the metrics source even if there is no need to compare.
+            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                metrics_result = metrics_fn(*function_args)
 
         incr(
             "releasehealth.metrics.check_should_compare",
@@ -679,10 +681,10 @@ def run_comparison(
 
         copy = deepcopy(sessions_result)
 
-        set_context("release-health-duplex-metrics", {"metrics": metrics_val})
+        set_context("release-health-duplex-metrics", {"metrics": metrics_result})
 
         with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
-            errors = compare_results(copy, metrics_val, rollup, None, schema)
+            errors = compare_results(copy, metrics_result, rollup, None, schema)
         set_context("release-health-duplex-errors", {"errors": [str(error) for error in errors]})
 
         should_report = features.has(
@@ -801,6 +803,15 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
                 sessions_result = sessions_fn(*args)
 
+        metrics_result = None
+
+        if should_return_metrics:
+            try:
+                with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                    metrics_result = metrics_fn(*args)
+            except Exception:
+                capture_exception()
+
         if should_check_metrics:
             try:
                 run_comparison.delay(
@@ -812,14 +823,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     schema,
                     function_args=args,
                     sessions_result=sessions_result,
+                    metrics_result=metrics_result,
                     sessions_time=now,
                 )
             except Exception:
                 capture_exception()
 
-        if should_return_metrics:
-            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                return metrics_fn(*args)
+        if metrics_result is not None:
+            return metrics_result
 
         return sessions_result
 
