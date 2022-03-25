@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'sentry/components/deprecatedforms/input';
+import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -115,8 +115,9 @@ const InputWrapper = styled('div')`
 
 const StyledInput = styled(Input)`
   border: none;
-  border-bottom: 1px solid transparent;
   border-radius: 0;
+  border-bottom: solid 1px ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
