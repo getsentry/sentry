@@ -11,7 +11,9 @@ runs:
   using: "composite"
   steps:
     - shell: bash
-      run: mkdir -p .artifacts/coverage
+      run: |
+        mkdir -p .artifacts/coverage
+        ls .artifacts/coverage
 
     - name: Upload to codecov
       uses: codecov/codecov-action@v2
