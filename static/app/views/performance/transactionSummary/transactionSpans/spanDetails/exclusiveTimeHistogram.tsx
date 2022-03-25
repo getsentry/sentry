@@ -77,6 +77,7 @@ export default function ExclusiveTimeHistogram(props: Props) {
             <TransitionChart loading={isLoading} reloading={isLoading}>
               <TransparentLoadingMask visible={isLoading} />
               <BarChartZoom
+                minZoomWidth={1}
                 location={location}
                 paramStart="min"
                 paramEnd="max"
