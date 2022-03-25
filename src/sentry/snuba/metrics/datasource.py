@@ -8,7 +8,7 @@ efficient, we only look at the past 24 hours.
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from copy import copy
 from operator import itemgetter
 from typing import Any, Dict, Mapping, Optional, Sequence, Set, Tuple, Union
@@ -58,26 +58,20 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
 
 def get_available_derived_metrics(
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    derived_metric_names: Optional[Set[str]] = None,
 ) -> Set[str]:
     """
-    Function that takes as input a dictionary of the available ids in each entity,
-    and an optional derived metric names set, and in turn goes through each derived metric (or
-    each derived metric from the input set of provided), and returns back a set of the derived
-    metrics that have data in the dataset.
+    Function that takes as input a dictionary of the available ids in each entity, , and in turn
+    goes through each derived metric, and returns back the set of the derived metrics that have
+    data in the dataset in respect to the project filter. For instances of
+    SingularEntityDerivedMetrics, it is enough to make sure that the constituent metric ids span
+    a single entity and are present in the passed in dictionary. On the other hand, the available
+    instances of CompositeEntityDerivedMetrics are computed from the found constituent instances
+    of SingularEntityDerivedMetric
     """
-    requested_derived_metrics = (
-        {
-            derived_metric_name: DERIVED_METRICS[derived_metric_name]
-            for derived_metric_name in derived_metric_names
-        }
-        if derived_metric_names is not None
-        else DERIVED_METRICS
-    )
-
     found_derived_metrics = set()
     composite_entity_derived_metrics = set()
-    for derived_metric_name, derived_metric_obj in requested_derived_metrics.items():
+
+    for derived_metric_name, derived_metric_obj in DERIVED_METRICS.items():
         try:
             derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
         except NotSupportedOverCompositeEntityException:
@@ -85,6 +79,7 @@ def get_available_derived_metrics(
             # entities then we store it in this set
             composite_entity_derived_metrics.add(derived_metric_obj.metric_name)
             continue
+
         for ids_per_entity in supported_metric_ids_in_entities.values():
             if derived_metric_obj_ids.intersection(ids_per_entity) == derived_metric_obj_ids:
                 found_derived_metrics.add(derived_metric_name)
@@ -96,13 +91,11 @@ def get_available_derived_metrics(
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = DERIVED_METRICS[composite_derived_metric_name]
-
         single_entity_constituents = set(
             list(
                 composite_derived_metric_obj.naively_generate_singular_entity_constituents().values()
             ).pop()
         )
-
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_name)
     return found_derived_metrics
@@ -158,12 +151,24 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
     """
     if not metric_names:
         return set()
+
     metric_ids = set()
-    for name in metric_names:
+    metric_names_deque = deque(metric_names)
+    while metric_names_deque:
+        name = metric_names_deque.popleft()
         if name not in DERIVED_METRICS:
             metric_ids.add(indexer.resolve(name))
         else:
-            metric_ids |= DERIVED_METRICS[name].generate_metric_ids()
+            derived_metric_obj = DERIVED_METRICS[name]
+            try:
+                metric_ids |= derived_metric_obj.generate_metric_ids()
+            except NotSupportedOverCompositeEntityException:
+                single_entity_constituents = set(
+                    list(
+                        derived_metric_obj.naively_generate_singular_entity_constituents().values()
+                    ).pop()
+                )
+                metric_names_deque.extend(single_entity_constituents)
     if None in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
@@ -184,10 +189,8 @@ def _validate_requested_derived_metrics_in_input_metrics(
     requested_derived_metrics = {
         metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
     }
-    found_derived_metrics = get_available_derived_metrics(
-        supported_metric_ids_in_entities, requested_derived_metrics
-    )
-    if requested_derived_metrics != found_derived_metrics:
+    found_derived_metrics = get_available_derived_metrics(supported_metric_ids_in_entities)
+    if not requested_derived_metrics.issubset(found_derived_metrics):
         raise DerivedMetricParseException(
             f"The following metrics {requested_derived_metrics - found_derived_metrics} "
             f"cannot be computed from single entities. Please revise the definition of these "

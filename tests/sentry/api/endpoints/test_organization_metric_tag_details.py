@@ -80,6 +80,23 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == [{"key": "release", "value": "foobar"}]
 
+    def test_tag_values_for_composite_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            "release",
+            metric=["session.healthy"],
+        )
+        assert response.data == [{"key": "release", "value": "foobar@2.0"}]
+
     def test_tag_not_available_in_the_indexer(self):
         response = self.get_response(
             self.organization.slug,
