@@ -418,7 +418,7 @@ class SpanTreeModel {
           const key = getSiblingGroupKey(group[0].span);
           if (this.expandedSiblingGroups.has(key)) {
             // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
-            // In this case, we must add only the specificied span into the accumulator's descendants
+            // In this case, we must add only the specified span into the accumulator's descendants
             group.forEach((spanModel, index) => {
               if (this.isSpanFilteredOut(props, spanModel)) {
                 acc.descendants.push({
