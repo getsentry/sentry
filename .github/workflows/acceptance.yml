@@ -86,9 +86,6 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # TEMP
-      - run: mkdir -p .artifacts/coverage && ls .artifacts/coverage
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
@@ -223,18 +220,9 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Handle artifacts (frontend)
-        uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.frontend == 'true' }}
-        with:
-          files: ./artifacts/coverage/*
-          type: frontend
-
-      - name: Handle artifacts (backend)
+      - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: ${{ steps.changes.outputs.backend == 'true' }}
-        with:
-          type: backend
 
   chartcuterie:
     name: chartcuterie integration

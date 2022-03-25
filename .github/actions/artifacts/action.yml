@@ -7,8 +7,8 @@ inputs:
     default: ".artifacts/*.coverage.xml"
     required: true
   type:
-    description: "The type of change (frontend, python)"
-    default: "python"
+    description: "The type of change (frontend, backend)"
+    default: "backend"
     required: false
 
 runs:
