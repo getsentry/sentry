@@ -258,12 +258,14 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
 
     @cached_property
     def teams(self) -> FrozenSet[Team]:
-        return frozenset(Team.objects.filter(organization=self._organization))
+        return frozenset(
+            Team.objects.filter(organization=self._organization, status=TeamStatus.VISIBLE)
+        )
 
     @cached_property
     def projects(self) -> FrozenSet[Project]:
         return frozenset(
-            Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=self.teams).distinct()
+            Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
         )
 
     def has_project_membership(self, project: Project) -> bool:
