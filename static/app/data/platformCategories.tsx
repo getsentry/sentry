@@ -229,7 +229,7 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
 };
 
 export type PlatformKey =
-  | typeof popular[number]
+  | typeof popularPlatformCategories[number]
   | typeof frontend[number]
   | typeof mobile[number]
   | typeof backend[number]

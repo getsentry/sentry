@@ -57,7 +57,8 @@ export default function CreateProjectsFooter({
   };
 
   const renderPlatform = (platform: PlatformKey) => {
-    return <SelectedPlatformIcon platform={platform || 'other'} size={23} />;
+    platform = platform || 'other';
+    return <SelectedPlatformIcon key={platform} platform={platform} size={23} />;
   };
 
   return (
