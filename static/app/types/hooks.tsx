@@ -134,6 +134,8 @@ export type AnalyticsHooks = {
   'metrics:event': MetricsEvent;
 };
 
+bump;
+
 /**
  * feature-disabled:<feature-flag> hooks return components that will be
  * rendered in place for Feature components when the feature is not enabled.
