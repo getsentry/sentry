@@ -687,7 +687,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            {isCrashFreeAlert(dataset) && (
+            {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>
