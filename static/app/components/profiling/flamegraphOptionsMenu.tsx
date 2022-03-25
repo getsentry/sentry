@@ -6,7 +6,7 @@ import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
 
 interface FlamegraphOptionsMenuProps {
@@ -39,7 +39,7 @@ function FlamegraphOptionsMenu({
               onSelect={() =>
                 dispatch({
                   type: 'set color coding',
-                  value: value as FlamegraphPreferences['colorCoding'],
+                  payload: value as FlamegraphPreferences['colorCoding'],
                 })
               }
               eventKey={value}

@@ -57,7 +57,6 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
@@ -81,7 +80,6 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
@@ -103,7 +101,6 @@ describe('Dashboards > Dashboard', () => {
         dashboard={dashboardWithOneWidget}
         organization={initialData.organization}
         onUpdate={() => undefined}
-        onSetWidgetToBeUpdated={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={() => undefined}
         router={initialData.router}

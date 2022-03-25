@@ -45,6 +45,7 @@ type Props = {
     loading: boolean;
     transformedResults: TableDataRow[];
     pageLinks?: null | string;
+    totalCount?: string;
   }) => React.ReactNode;
   organization: OrganizationSummary;
   selection: PageFilters;
@@ -266,7 +267,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, errorMessage, memberListStoreLoaded, pageLinks} = this.state;
+    const {loading, errorMessage, memberListStoreLoaded, pageLinks, totalCount} =
+      this.state;
     const transformedResults = this.transformTableResults();
     return getDynamicText({
       value: children({
@@ -274,6 +276,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         transformedResults,
         errorMessage,
         pageLinks,
+        totalCount: totalCount ?? undefined,
       }),
       fixed: <div />,
     });

@@ -9,7 +9,7 @@ interface FooterWithButtonsProps
   extends Partial<Pick<ButtonProps, 'disabled' | 'onClick' | 'href'>> {
   buttonText: string;
   formFields?: Array<{name: string; value: any}>;
-  formProps?: Omit<React.HTMLProps<HTMLFormElement>, 'as'>;
+  formProps?: React.FormHTMLAttributes<HTMLFormElement>;
 }
 
 export default function FooterWithButtons({

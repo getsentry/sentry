@@ -223,6 +223,8 @@ function Chart({
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
+              yAxis={areaChartProps.yAxes[0]}
+              tooltip={areaChartProps.tooltip}
             />
           );
         }
