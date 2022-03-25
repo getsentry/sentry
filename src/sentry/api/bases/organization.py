@@ -197,7 +197,7 @@ class OrganizationEndpoint(Endpoint):
 
     def get_projects_by_slugs(self, request, organization, **kwargs):
         slugs = request.GET.getlist("projectSlug")
-        if slugs == ALL_ACCESS_PROJECTS_SLUG:
+        if ALL_ACCESS_PROJECTS_SLUG in slugs:
             p_ids = ALL_ACCESS_PROJECTS
         else:
             projects = Project.objects.filter(
