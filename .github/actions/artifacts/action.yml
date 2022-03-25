@@ -1,13 +1,21 @@
 name: 'Sentry Artifacts'
 description: 'Handles uploading coverage/test artifacts to codecov'
 
+inputs:
+  type:
+    description: "The type of change (frontend, python)"
+    default: "python"
+    required: false
+
 runs:
   using: "composite"
   steps:
+    - shell: bash
+      run: ls .artifacts/coverage
+
     - name: Upload to codecov
-      shell: bash
-      run: |
-        coverage_files=$(ls .artifacts/*coverage.xml || true)
-        if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
-          bash <(curl -s https://codecov.io/bash) -v
-        fi
+      uses: codecov/codecov-action@v2
+      with:
+        flags: ${{ inputs.type }}
+        directory: .artifacts/coverage
+        verbose: true

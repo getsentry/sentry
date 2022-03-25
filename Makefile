@@ -88,7 +88,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
+	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/coverage/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml"
 	@echo ""
 
 test-cli:
@@ -126,12 +126,12 @@ test-python:
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/coverage/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/coverage/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 backend-typing:
@@ -141,12 +141,12 @@ backend-typing:
 
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/coverage/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
 test-chartcuterie:
 	@echo "--> Running chartcuterie tests"
-	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
+	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/coverage/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -156,7 +156,7 @@ test-acceptance: node-version-check
 
 test-plugins:
 	@echo "--> Running plugin tests"
-	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/coverage/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
 
 test-relay-integration:

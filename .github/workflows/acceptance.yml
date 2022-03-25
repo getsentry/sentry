@@ -88,6 +88,8 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          type: frontend
 
   webpack:
     name: create frontend bundle
@@ -209,8 +211,25 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      - name: Handle artifacts
+      # We use the below to determine the flag to use in codecov
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Handle artifacts (frontend)
         uses: ./.github/actions/artifacts
+        if: ${{ steps.changes.outputs.frontend == 'true' }}
+        with:
+          type: frontend
+
+      - name: Handle artifacts (backend)
+        uses: ./.github/actions/artifacts
+        if: ${{ steps.changes.outputs.backend == 'true' }}
+        with:
+          type: backend
 
   chartcuterie:
     name: chartcuterie integration
