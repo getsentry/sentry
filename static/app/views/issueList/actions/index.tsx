@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {alertStyles} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {t, tct, tn} from 'sentry/locale';
+import {tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import space from 'sentry/styles/space';
@@ -121,8 +120,6 @@ class IssueListActions extends React.Component<Props, State> {
     const orgId = organization.slug;
 
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes\u2026'));
-
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
@@ -147,9 +144,7 @@ class IssueListActions extends React.Component<Props, State> {
           ...selection.datetime,
         },
         {
-          complete: () => {
-            clearIndicators();
-          },
+          complete: () => {},
         }
       );
     });
@@ -158,8 +153,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleDelete = () => {
     const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       bulkDelete(
@@ -174,7 +167,6 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
             onDelete();
           },
         }
@@ -185,8 +177,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleMerge = () => {
     const {selection, api, organization, query} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       mergeGroups(
@@ -200,9 +190,7 @@ class IssueListActions extends React.Component<Props, State> {
           ...selection.datetime,
         },
         {
-          complete: () => {
-            clearIndicators();
-          },
+          complete: () => {},
         }
       );
     });

@@ -358,6 +358,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 
   onDeleteSuccess(_changeId, itemIds, _response) {
+    const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
     itemIds = this._itemIdsOrAll(itemIds);
     const itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
@@ -365,7 +366,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
-    showAlert(t('The selected events have been scheduled for deletion.'), 'success');
+    if (itemIds.length > 1) {
+      showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
+    } else {
+      showAlert(t(`Deleted ${shortId}`), 'success');
+    }
     this.trigger(new Set(itemIds));
   },
 
@@ -427,7 +432,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
         (response && response.merge && item.id === response.merge.parent)
     );
 
-    showAlert(t('The selected events have been scheduled for merge.'), 'success');
+    showAlert(t(`Merged ${mergedIds.length} Issues`), 'success');
     this.trigger(new Set(mergedIds));
   },
 
