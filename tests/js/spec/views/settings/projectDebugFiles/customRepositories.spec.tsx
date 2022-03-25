@@ -89,6 +89,7 @@ describe('Custom Repositories', function () {
   };
 
   beforeAll(async function () {
+    // TODO: figure out why this transpile is so slow
     // transpile the modal upfront so the test runs fast
     await import('sentry/components/modals/debugFileCustomRepository');
   });
