@@ -1269,7 +1269,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         # We verified the correctness of the metrics implementation manually.
         # The results still differ because the sessions impl gets its results
         # from hourly aggregations.
-        should_compare = False
+        schema = ComparatorType.Ignore
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
 
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
