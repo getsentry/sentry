@@ -69,7 +69,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
-        "rawHistogram": "histogramIf(250)",
+        "raw_histogram": "histogramIf(250)",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
