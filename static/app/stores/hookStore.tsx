@@ -52,7 +52,7 @@ const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
  */
 
 const HookStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig)
-) as HookStoreInterface & SafeRefluxStore;
+  Reflux.createStore(storeConfig) as HookStoreInterface & SafeRefluxStore
+);
 
 export default HookStore;

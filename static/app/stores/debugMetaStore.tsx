@@ -45,7 +45,7 @@ const storeConfig: Reflux.StoreDefinition & DebugMetaStoreInterface & Internals 
 };
 
 const DebugMetaStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & DebugMetaStoreInterface & Internals
+  Reflux.createStore(storeConfig) as Reflux.Store & DebugMetaStoreInterface
 );
 
 export {DebugMetaActions, DebugMetaStore};
