@@ -298,6 +298,9 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
             Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
         )
 
+    def has_team_membership(self, team: Team) -> bool:
+        return self.has_team_access(team)
+
     def has_project_membership(self, project: Project) -> bool:
         return self.has_project_access(project)
 
