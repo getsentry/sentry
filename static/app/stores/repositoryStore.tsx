@@ -2,8 +2,7 @@ import Reflux from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
 import {Repository} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type RepositoryStoreInterface = {
   get(): {

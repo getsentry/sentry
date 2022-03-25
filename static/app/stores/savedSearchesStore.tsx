@@ -3,8 +3,7 @@ import Reflux from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;

@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 const DebugMetaActions = Reflux.createActions(['updateFilter']);
 

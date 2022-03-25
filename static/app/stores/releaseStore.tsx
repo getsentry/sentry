@@ -3,8 +3,7 @@ import Reflux from 'reflux';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ReleaseActions from 'sentry/actions/releaseActions';
 import {Deploy, Organization, Release} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;

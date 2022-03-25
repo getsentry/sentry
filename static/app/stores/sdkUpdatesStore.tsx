@@ -2,8 +2,7 @@ import Reflux from 'reflux';
 
 import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type SdkUpdatesStoreInterface = {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;

@@ -3,8 +3,7 @@ import isArray from 'lodash/isArray';
 import Reflux from 'reflux';
 
 import {Event} from 'sentry/types/event';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type Internals = {
   items: Event[];

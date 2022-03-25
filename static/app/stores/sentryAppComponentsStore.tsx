@@ -2,8 +2,7 @@ import Reflux from 'reflux';
 
 import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type SentryAppComponentsStoreInterface = {
   get: (uuid: string) => SentryAppComponent | undefined;

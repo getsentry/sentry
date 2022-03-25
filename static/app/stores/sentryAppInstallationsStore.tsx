@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
 
 import {SentryAppInstallation} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type SentryAppInstallationStoreInterface = {
   getInitialState(): SentryAppInstallation[];

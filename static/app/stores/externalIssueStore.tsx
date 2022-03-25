@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
 
 import {PlatformExternalIssue} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type ExternalIssueStoreInterface = {
   add(issue: PlatformExternalIssue): void;

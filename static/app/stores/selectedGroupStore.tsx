@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type SelectedGroupStoreInterface = {
   add(ids: string[]): void;

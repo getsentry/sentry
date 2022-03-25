@@ -2,8 +2,7 @@ import Reflux from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type ProjectsStatsStoreInterface = {
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];

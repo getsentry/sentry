@@ -11,8 +11,7 @@ import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

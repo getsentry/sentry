@@ -2,8 +2,7 @@ import Reflux from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type OrganizationsStoreInterface = {
   add(item: Organization): void;

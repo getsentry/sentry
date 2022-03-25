@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
 
 import {User} from 'sentry/types';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type MemberListStoreInterface = {
   getAll(): User[];

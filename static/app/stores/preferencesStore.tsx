@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
 
 import PreferencesActions from 'sentry/actions/preferencesActions';
-
-import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
