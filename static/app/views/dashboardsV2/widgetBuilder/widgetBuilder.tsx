@@ -30,6 +30,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
@@ -362,8 +363,9 @@ function WidgetBuilder({
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
-              query.columns = [...defaultWidgetQuery.columns];
-              query.aggregates = [...defaultWidgetQuery.aggregates];
+              const tableQuery = getColumnsAndAggregates(defaultTableColumns);
+              query.columns = [...tableQuery.columns];
+              query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
             });
           } else if (newDisplayType === displayType) {

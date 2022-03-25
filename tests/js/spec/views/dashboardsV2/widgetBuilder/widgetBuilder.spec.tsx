@@ -106,6 +106,7 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsv2Mock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -123,7 +124,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       method: 'GET',
       statusCode: 200,
@@ -751,6 +752,43 @@ describe('WidgetBuilder', function () {
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should properly query for table fields ', async function () {
+    const defaultWidgetQuery = {
+      name: '',
+      fields: ['title', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultTableColumns = ['title', 'count()', 'count_unique(user)', 'epm()'];
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+        defaultTableColumns,
+      },
+    });
+
+    expect(await screen.findByText('Line Chart')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    await waitFor(() => {
+      expect(eventsv2Mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: defaultTableColumns,
+          }),
+        })
+      );
+    });
   });
 
   it('should automatically add columns for top n widget charts according to the URL params', async function () {
