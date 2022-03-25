@@ -16,4 +16,16 @@ module.exports = {
     },
     'import/extensions': ['.js', '.jsx'],
   },
+  overrides: [
+    {
+      files: ['**/*.stories.js'],
+      rules: {
+        // XXX(epurkhiser): The storybook CSF requires anonymous default
+        // exportsthis, see [0].
+        //
+        // [0]: https://github.com/storybookjs/storybook/issues/12914
+        'import/no-anonymous-default-export': 'off',
+      },
+    },
+  ],
 };
