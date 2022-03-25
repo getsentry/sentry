@@ -160,9 +160,12 @@ describe('Dashboards > Dashboard', () => {
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
+    beforeEach(() => {
       // @ts-ignore
       MemberListStore.init();
+    });
+    afterEach(() => {
+      MemberListStore.teardown();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(

@@ -2,6 +2,7 @@ import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironment
 
 describe('OrganizationEnvironmentsStore', function () {
   afterEach(function () {
+    OrganizationEnvironmentsStore.teardown();
     OrganizationEnvironmentsStore.init();
   });
 

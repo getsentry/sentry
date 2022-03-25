@@ -1,4 +1,4 @@
-interface SafeRefluxStore extends Reflux.Store {
+export interface SafeRefluxStore extends Reflux.Store {
   teardown(): void;
   unsubscribeListeners: Reflux.Subscription[];
 }
@@ -6,28 +6,41 @@ interface SafeRefluxStore extends Reflux.Store {
 export function makeSafeRefluxStore<T extends Reflux.Store>(
   store: T
 ): SafeRefluxStore & T {
-  return {
-    ...store,
-    listenTo(action: Reflux.Listenable, callback: (...data: any) => void) {
-      const unsubscribeListener = store.listenTo(action, callback);
-      this.unsubscribeListeners.push(unsubscribeListener);
-    },
-    teardown() {
-      while (this.unsubscribeListeners.length > 0) {
-        const unsubscribeListener = this.unsubscribeListeners.pop();
+  const storeCopy: SafeRefluxStore & T = Object.assign(
+    Object.create(Object.getPrototypeOf(store)),
+    store
+  );
 
-        if (unsubscribeListener !== undefined && 'stop' in unsubscribeListener) {
-          unsubscribeListener.stop();
-          return;
-        }
+  storeCopy.unsubscribeListeners = [];
 
-        throw new Error(
-          `Attempting to call ${JSON.stringify(
-            unsubscribeListener
-          )}. Unsubscribe listeners should only include function calls`
-        );
+  function listenTo(
+    this: SafeRefluxStore,
+    action: Reflux.Listenable,
+    callback: (...data: any) => void
+  ) {
+    const unsubscribeListener = store.listenTo(action, callback);
+    this.unsubscribeListeners.push(unsubscribeListener);
+    return unsubscribeListener;
+  }
+  function teardown(this: SafeRefluxStore) {
+    while (this.unsubscribeListeners.length > 0) {
+      const unsubscribeListener = this.unsubscribeListeners.pop();
+
+      if (unsubscribeListener !== undefined && 'stop' in unsubscribeListener) {
+        unsubscribeListener.stop();
+        return;
       }
-    },
-    unsubscribeListeners: [],
-  };
+
+      throw new Error(
+        `Attempting to call ${JSON.stringify(
+          unsubscribeListener
+        )}. Unsubscribe listeners should only include function calls`
+      );
+    }
+  }
+
+  storeCopy.listenTo = listenTo.bind(storeCopy);
+  storeCopy.teardown = teardown.bind(storeCopy);
+
+  return storeCopy;
 }
