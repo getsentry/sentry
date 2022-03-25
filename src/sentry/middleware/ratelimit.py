@@ -42,7 +42,7 @@ class RatelimitMiddleware:
             view_func = resolve(request.path).func
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
-                return
+                pass
 
             category_str = rate_limit_key.split(":", 1)[0]
             rate_limit = get_rate_limit_value(

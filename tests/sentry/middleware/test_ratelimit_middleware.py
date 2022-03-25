@@ -130,7 +130,7 @@ class RatelimitMiddlewareTest(TestCase):
         request = self.factory.get("/middleware/")
         request.META["REMOTE_ADDR"] = None
         resp = self.middleware(request)
-        assert resp is None
+        assert resp.status_code == 200
 
         request = self.factory.get("/middleware/")
         resp = self.middleware(request)
