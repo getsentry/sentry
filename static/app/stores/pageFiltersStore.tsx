@@ -6,6 +6,8 @@ import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/u
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 type State = {
@@ -145,7 +147,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 };
 
-const PageFiltersStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PageFiltersStoreInterface;
+const PageFiltersStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & PageFiltersStoreInterface
+);
 
 export default PageFiltersStore;

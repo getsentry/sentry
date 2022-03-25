@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type PluginStoreInterface = {
   plugins: Map<string, Plugin> | null;
   state: {
@@ -121,7 +123,8 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   },
 };
 
-const PluginStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PluginStoreInterface;
+const PluginStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & PluginStoreInterface
+);
 
 export default PluginStore;

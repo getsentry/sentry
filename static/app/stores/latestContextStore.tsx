@@ -5,6 +5,8 @@ import OrganizationsActions from 'sentry/actions/organizationsActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type OrgTypes = Organization | null;
 
 type State = {
@@ -130,7 +132,8 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
   },
 };
 
-const LatestContextStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  LatestContextStoreInterface;
+const LatestContextStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & LatestContextStoreInterface
+);
 
 export default LatestContextStore;

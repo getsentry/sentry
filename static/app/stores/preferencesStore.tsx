@@ -2,6 +2,8 @@ import Reflux from 'reflux';
 
 import PreferencesActions from 'sentry/actions/preferencesActions';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 type Preferences = {
@@ -62,7 +64,8 @@ const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PreferenceStoreInterface;
+const PreferenceStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & PreferenceStoreInterface
+);
 
 export default PreferenceStore;

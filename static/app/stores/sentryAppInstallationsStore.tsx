@@ -2,6 +2,8 @@ import Reflux from 'reflux';
 
 import {SentryAppInstallation} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type SentryAppInstallationStoreInterface = {
   getInitialState(): SentryAppInstallation[];
   load(items: SentryAppInstallation[]): void;
@@ -31,7 +33,8 @@ const storeConfig: Reflux.StoreDefinition & SentryAppInstallationStoreInterface 
   },
 };
 
-const SentryAppInstallationStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  SentryAppInstallationStoreInterface;
+const SentryAppInstallationStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & SentryAppInstallationStoreInterface
+);
 
 export default SentryAppInstallationStore;

@@ -5,6 +5,8 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 type UpdateOptions = {
@@ -87,7 +89,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
   },
 };
 
-const OrganizationStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  OrganizationStoreInterface;
+const OrganizationStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & OrganizationStoreInterface
+);
 
 export default OrganizationStore;

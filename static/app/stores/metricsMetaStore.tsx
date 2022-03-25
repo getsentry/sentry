@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 type State = {
@@ -49,7 +51,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & MetricsMetaStoreInterfac
   },
 };
 
-const MetricsMetaStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricsMetaStoreInterface;
+const MetricsMetaStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & MetricsMetaStoreInterface
+);
 
 export default MetricsMetaStore;

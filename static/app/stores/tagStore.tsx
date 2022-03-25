@@ -4,6 +4,8 @@ import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 // This list is only used on issues. Events/discover
@@ -181,6 +183,8 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 };
 
-const TagStore = Reflux.createStore(storeConfig) as Reflux.Store & TagStoreInterface;
+const TagStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & TagStoreInterface
+);
 
 export default TagStore;

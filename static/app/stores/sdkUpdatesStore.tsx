@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type SdkUpdatesStoreInterface = {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
@@ -37,7 +39,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & SdkUpdatesStoreInterface
   },
 };
 
-const SdkUpdatesStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  SdkUpdatesStoreInterface;
+const SdkUpdatesStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & SdkUpdatesStoreInterface
+);
 
 export default SdkUpdatesStore;

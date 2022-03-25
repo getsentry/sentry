@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import Reflux from 'reflux';
 
 import {Config} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -77,7 +78,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   },
 };
 
-const ConfigStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  ConfigStoreInterface;
+const ConfigStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & ConfigStoreInterface
+);
 
 export default ConfigStore;

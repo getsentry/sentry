@@ -2,6 +2,8 @@ import Reflux from 'reflux';
 
 import {PlatformExternalIssue} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type ExternalIssueStoreInterface = {
   add(issue: PlatformExternalIssue): void;
   getInitialState(): PlatformExternalIssue[];
@@ -38,7 +40,8 @@ const storeConfig: Reflux.StoreDefinition & ExternalIssueStoreInterface = {
   },
 };
 
-const ExternalIssueStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  ExternalIssueStoreInterface;
+const ExternalIssueStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & ExternalIssueStoreInterface
+);
 
 export default ExternalIssueStore;

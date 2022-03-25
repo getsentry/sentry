@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import CommitterActions from 'sentry/actions/committerActions';
 import {Committer} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type State = {
   // Use `getCommitterStoreKey` to generate key
   [key: string]: {
@@ -104,7 +106,8 @@ export function getCommitterStoreKey(
   return `${orgSlug} ${projectSlug} ${eventId}`;
 }
 
-const CommitterStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  CommitterStoreInterface;
+const CommitterStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & CommitterStoreInterface
+);
 
 export default CommitterStore;

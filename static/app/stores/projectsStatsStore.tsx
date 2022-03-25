@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type ProjectsStatsStoreInterface = {
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
 
@@ -101,7 +103,8 @@ const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
   },
 };
 
-const ProjectsStatsStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  ProjectsStatsStoreInterface;
+const ProjectsStatsStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & ProjectsStatsStoreInterface
+);
 
 export default ProjectsStatsStore;

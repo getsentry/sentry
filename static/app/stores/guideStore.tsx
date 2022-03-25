@@ -9,6 +9,8 @@ import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistan
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
   const b_priority = b.priority ?? Number.MAX_SAFE_INTEGER;
@@ -250,6 +252,8 @@ const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
+const GuideStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface
+);
 
 export default GuideStore;

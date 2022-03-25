@@ -4,6 +4,8 @@ import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type EnhancedEnvironment = Environment & {
   displayName: string;
   urlRoutingName: string;
@@ -76,7 +78,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterfa
   },
 };
 
-const OrganizationEnvironmentsStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  OrganizationEnvironmentsStoreInterface;
+const OrganizationEnvironmentsStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & OrganizationEnvironmentsStoreInterface
+);
 
 export default OrganizationEnvironmentsStore;

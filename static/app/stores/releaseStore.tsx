@@ -4,6 +4,8 @@ import OrganizationActions from 'sentry/actions/organizationActions';
 import ReleaseActions from 'sentry/actions/releaseActions';
 import {Deploy, Organization, Release} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
 type StoreLoading = Map<string, boolean>;
@@ -222,7 +224,8 @@ const storeConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 };
 
-const ReleaseStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  ReleaseStoreInterface;
+const ReleaseStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & ReleaseStoreInterface
+);
 
 export default ReleaseStore;

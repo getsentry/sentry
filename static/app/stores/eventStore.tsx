@@ -4,6 +4,8 @@ import Reflux from 'reflux';
 
 import {Event} from 'sentry/types/event';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type Internals = {
   items: Event[];
   itemsById: Record<string, Event>;
@@ -98,6 +100,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
   },
 };
 
-const EventStore = Reflux.createStore(storeConfig) as Reflux.Store & EventStoreInterface;
+const EventStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & EventStoreInterface
+);
 
 export default EventStore;

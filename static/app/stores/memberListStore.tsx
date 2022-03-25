@@ -2,6 +2,8 @@ import Reflux from 'reflux';
 
 import {User} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type MemberListStoreInterface = {
   getAll(): User[];
   getByEmail(email: string): User | undefined;
@@ -67,7 +69,8 @@ const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
   },
 };
 
-const MemberListStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MemberListStoreInterface;
+const MemberListStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & MemberListStoreInterface
+);
 
 export default MemberListStore;

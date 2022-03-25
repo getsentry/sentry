@@ -3,6 +3,8 @@ import Reflux from 'reflux';
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {MetricsTag, MetricsTagCollection} from 'sentry/types';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 import {CommonStoreInterface} from './types';
 
 type State = {
@@ -49,7 +51,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & MetricsTagStoreInterface
   },
 };
 
-const MetricsTagStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricsTagStoreInterface;
+const MetricsTagStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & MetricsTagStoreInterface
+);
 
 export default MetricsTagStore;

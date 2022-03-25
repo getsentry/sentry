@@ -4,6 +4,8 @@ import Reflux from 'reflux';
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 type UpdateData = {
   routes: PlainRoute<any>[];
   title: string;
@@ -54,7 +56,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & SettingsBreadcrumbStoreI
     },
   };
 
-const SettingsBreadcrumbStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  SettingsBreadcrumbStoreInterface;
+const SettingsBreadcrumbStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & SettingsBreadcrumbStoreInterface
+);
 
 export default SettingsBreadcrumbStore;
