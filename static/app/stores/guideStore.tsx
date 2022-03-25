@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {History} from 'history';
 import Reflux from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
@@ -65,33 +66,53 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-type GuideStoreInterface = {
+interface GuideStoreInterface extends Reflux.StoreDefinition {
   onFetchSucceeded(data: GuidesServerData): void;
-
   onRegisterAnchor(target: string): void;
   onUnregisterAnchor(target: string): void;
-  recordCue(guide: string): void;
-  state: GuideStoreState;
-  updatePrevGuide(nextGuide: Guide | null): void;
-};
 
-const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+  recordCue(guide: string): void;
+  safeListenTo(action: Reflux.ActionsDefinition, callback: (...data: any) => void);
+  state: GuideStoreState;
+  teardown(): void;
+  unsubscribeListeners: (() => void)[];
+  updatePrevGuide(nextGuide: Guide | null): void;
+  clearHistoryListener?: null | ReturnType<History['listen']>;
+}
+
+const storeConfig: GuideStoreInterface = {
   state: defaultState,
+  unsubscribeListeners: [],
 
   init() {
     this.state = defaultState;
-
     this.api = new Client();
-    this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
-    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
-    this.listenTo(GuideActions.nextStep, this.onNextStep);
-    this.listenTo(GuideActions.toStep, this.onToStep);
-    this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
-    this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
-    this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+
+    this.safeListenTo(GuideActions.closeGuide, this.onCloseGuide);
+    this.safeListenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
+    this.safeListenTo(GuideActions.nextStep, this.onNextStep);
+    this.safeListenTo(GuideActions.toStep, this.onToStep);
+    this.safeListenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
+    this.safeListenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
+    this.safeListenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
 
     window.addEventListener('load', this.onURLChange, false);
-    browserHistory.listen(() => this.onURLChange());
+    this.clearHistoryListener = browserHistory.listen(() => this.onURLChange());
+  },
+
+  safeListenTo(action, callback) {
+    this.unsubscribeListeners.push(this.listenTo(action), callback);
+  },
+
+  teardown() {
+    for (const unsubscribeListener of this.unsubscribeListeners) {
+      unsubscribeListener();
+    }
+
+    if (this.clearHistoryListener) {
+      this.clearHistoryListener();
+    }
+    window.removeEventListener('load', this.onURLChange);
   },
 
   onURLChange() {
