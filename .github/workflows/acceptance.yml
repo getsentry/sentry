@@ -86,9 +86,13 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # TEMP
+      - run: mkdir -p .artifacts/coverage && ls .artifacts/coverage
+
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
+          files: ./artifacts/coverage/*
           type: frontend
 
   webpack:
