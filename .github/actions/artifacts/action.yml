@@ -2,6 +2,10 @@ name: 'Sentry Artifacts'
 description: 'Handles uploading coverage/test artifacts to codecov'
 
 inputs:
+  files:
+    description: "Path to coverage file(s) - comma separated for multiple files"
+    default: ".artifacts/*.coverage.xml"
+    required: true
   type:
     description: "The type of change (frontend, python)"
     default: "python"
@@ -10,14 +14,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - shell: bash
-      run: |
-        mkdir -p .artifacts/coverage
-        ls .artifacts/coverage
-
     - name: Upload to codecov
       uses: codecov/codecov-action@v2
       with:
         flags: ${{ inputs.type }}
-        directory: .artifacts/coverage
+        files: ${{ inputs.files }}
         verbose: true

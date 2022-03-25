@@ -223,6 +223,7 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ steps.changes.outputs.frontend == 'true' }}
         with:
+          files: ./artifacts/coverage/*
           type: frontend
 
       - name: Handle artifacts (backend)
