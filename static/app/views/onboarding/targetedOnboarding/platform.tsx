@@ -13,7 +13,9 @@ import {StepProps} from './types';
 function OnboardingPlatform(props: StepProps) {
   return (
     <Wrapper>
-      <StepHeading step={1}>{t('Select all your projects platform')}</StepHeading>
+      <StepHeading step={props.stepIndex}>
+        {t('Select all your projects platform')}
+      </StepHeading>
       <motion.div
         transition={testableTransition()}
         variants={{

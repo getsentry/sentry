@@ -68,21 +68,21 @@ function Onboarding(props: Props) {
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay thhe corner animation
-    setTimeout(() => cornerVariantControl.start('top-right'), 1000);
+    setTimeout(
+      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      1000
+    );
   };
 
   React.useEffect(updateCornerVariant, []);
   const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
 
   const addPlatform = (platform: PlatformKey) => {
-    const newPlatforms = [...platforms];
-    newPlatforms.push(platform);
-    setPlatforms(newPlatforms);
+    setPlatforms([...platforms, platform]);
   };
 
   const removePlatform = (platform: PlatformKey) => {
-    const newPlatforms = platforms.filter(p => p !== platform);
-    setPlatforms(newPlatforms);
+    setPlatforms(platforms.filter(p => p !== platform));
   };
 
   const goNextStep = (step: StepDescriptor) => {
@@ -121,6 +121,11 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
+        <ProgressBar>
+          {ONBOARDING_STEPS.map((step, index) => (
+            <ProgressStep active={activeStepIndex === index} key={step.id} />
+          ))}
+        </ProgressBar>
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
@@ -137,6 +142,7 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
+                stepIndex={activeStepIndex}
                 onComplete={() => goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
@@ -279,3 +285,33 @@ const SkipOnboardingLink = styled(Link)`
 `;
 
 export default withOrganization(withProjects(Onboarding));
+
+const ProgressBar = styled('div')`
+  margin: 0 ${space(4)};
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 120px;
+  justify-content: space-between;
+
+  &:before {
+    position: absolute;
+    display: block;
+    content: '';
+    height: 4px;
+    background: ${p => p.theme.border};
+    left: 2px;
+    right: 2px;
+    top: 50%;
+    margin-top: -2px;
+  }
+`;
+
+const ProgressStep = styled('div')<{active: boolean}>`
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
+  background: ${p => p.theme.background};
+`;

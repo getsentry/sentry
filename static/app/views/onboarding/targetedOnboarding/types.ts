@@ -16,6 +16,7 @@ export type StepProps = {
   platforms: PlatformKey[];
   removePlatform: (platform: PlatformKey) => void;
   search: string;
+  stepIndex: number;
 };
 
 export type StepDescriptor = {

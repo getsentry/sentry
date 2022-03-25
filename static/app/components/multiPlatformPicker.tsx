@@ -11,7 +11,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   filterAliases,
   PlatformKey,
-  popular,
+  popularPlatformCategories,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject, IconSearch} from 'sentry/icons';
@@ -25,7 +25,9 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
 const isPopular = (platform: PlatformIntegration) =>
-  popular.includes(platform.id as typeof popular[number]);
+  popularPlatformCategories.includes(
+    platform.id as typeof popularPlatformCategories[number]
+  );
 
 const PlatformList = styled('div')`
   display: grid;
@@ -50,6 +52,7 @@ interface PlatformPickerProps {
 }
 
 function PlatformPicker(props: PlatformPickerProps) {
+  const {organization, source} = props;
   const [category, setCategory] = React.useState<Category>(
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
   );
@@ -98,8 +101,8 @@ function PlatformPicker(props: PlatformPickerProps) {
       trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
         search: filter.toLowerCase(),
         num_results: platformList.length,
-        source: props.source,
-        organization: props.organization,
+        source,
+        organization,
       });
     }
   }, DEFAULT_DEBOUNCE_DURATION);
@@ -116,8 +119,8 @@ function PlatformPicker(props: PlatformPickerProps) {
               onClick={(e: React.MouseEvent) => {
                 trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
                   category: id,
-                  source: props.source,
-                  organization: props.organization,
+                  source,
+                  organization,
                 });
                 setCategory(id);
                 setFilter('');
@@ -130,18 +133,18 @@ function PlatformPicker(props: PlatformPickerProps) {
             </ListLink>
           ))}
         </CategoryNav>
+        <SearchBar>
+          <IconSearch size="xs" />
+          <input
+            type="text"
+            value={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={e => {
+              setFilter(e.target.value);
+            }}
+          />
+        </SearchBar>
       </NavContainer>
-      <SearchBar>
-        <IconSearch size="xs" />
-        <input
-          type="text"
-          value={filter}
-          placeholder={t('Filter Platforms')}
-          onChange={e => {
-            setFilter(e.target.value);
-          }}
-        />
-      </SearchBar>
       <PlatformList className={listClassName} {...listProps}>
         {platformList.map(platform => (
           <PlatformCard
@@ -156,8 +159,8 @@ function PlatformPicker(props: PlatformPickerProps) {
             onClick={() => {
               trackAdvancedAnalyticsEvent('growth.select_platform', {
                 platform_id: platform.id,
-                source: props.source,
-                organization: props.organization,
+                source,
+                organization,
               });
               addPlatform(platform.id as PlatformKey);
             }}
