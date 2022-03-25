@@ -10,7 +10,8 @@ class RoleSerializer(Serializer):
             "name": obj.name,
             "desc": obj.desc,
             "scopes": obj.scopes,
-            "is_global": obj.is_global,
-            "is_retired": obj.is_retired,
+            "is_global": obj.is_global,  # backward compatibility
+            "isGlobal": obj.is_global,
+            "isRetired": obj.is_retired,
             "allowed": obj in allowed_roles,
         }
