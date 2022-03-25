@@ -163,8 +163,8 @@ def get_group_settings_link(
     alert_timestamp: int | None = None,
 ) -> str:
     alert_rule_id: int = rule_details[0].id if rule_details and rule_details[0].id else None
-    return (
-        group.get_absolute_url() + ""
+    return group.get_absolute_url() + (
+        ""
         if not alert_rule_id
         else get_email_link_extra_params("alert_email", environment, rule_details, alert_timestamp)[
             alert_rule_id
