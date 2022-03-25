@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping, Optional
+from typing import Any, MutableMapping, NamedTuple, Optional
 
 from django.conf import settings
 
@@ -12,6 +12,7 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     "sasl.username",
     "sasl.password",
     "security.protocol",
+    "session.timeout.ms",
     "socket.timeout.ms",
     "ssl.ca.location",
     "ssl.ca.certificate.stores",
@@ -77,11 +78,33 @@ def get_kafka_producer_cluster_options(cluster_name):
     return _get_kafka_cluster_options(cluster_name, PRODUCERS_SECTION)
 
 
+class ConsumerKey(NamedTuple):
+    """
+    Identifies a consumer instance for what concerns the broker settings.
+    This is made of broker and consumer group but does not include the topic
+    generally. This is because the topic is not necessarily known at the time
+    we instantiate a Consumer object and pass the settings to the broker, but
+    at subscription time.
+    """
+
+    cluster_name: str
+    consumer_group: str
+
+    def __str__(self) -> str:
+        return f"{self.cluster_name}_{self.consumer_group}"
+
+
 def get_kafka_consumer_cluster_options(
-    cluster_name: str, override_params: Optional[MutableMapping[str, Any]] = None
+    consumer_key: ConsumerKey,
+    override_params: Optional[MutableMapping[str, Any]] = None,
 ) -> MutableMapping[Any, Any]:
+    consumer_options = settings.KAFKA_CONSUMERS.get(str(consumer_key), {})
+    consumer_options.update(override_params or {})
     return _get_kafka_cluster_options(
-        cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=override_params
+        consumer_key.cluster_name,
+        CONSUMERS_SECTION,
+        only_bootstrap=True,
+        override_params=consumer_options,
     )
 
 

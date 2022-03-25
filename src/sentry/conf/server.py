@@ -2214,6 +2214,15 @@ KAFKA_CLUSTERS = {
     }
 }
 
+# Allows individual consumers to override their Kafka broker settings.
+# KAFKA_CLUSTER instead is used to apply settings across the board for
+# all consumers/producers for a broker.
+#
+# Consumers are identified by "[cluster]_[consumer_group]". In code
+# this is managed by kafka_config.ConsumerKey
+KAFKA_CONSUMERS = {"default_snuba-post-processor": {}}
+
+
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"

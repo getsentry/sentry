@@ -87,8 +87,10 @@ class QuerySubscriptionConsumer:
         self.offsets: Dict[int, Optional[int]] = {}
         self.consumer: Consumer = None
         self.cluster_options = kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
-            {
+            consumer_key=kafka_config.ConsumerKey(
+                cluster_name=cluster_name, consumer_group=self.group_id
+            ),
+            override_params={
                 "group.id": self.group_id,
                 "session.timeout.ms": 6000,
                 "auto.offset.reset": self.initial_offset_reset,

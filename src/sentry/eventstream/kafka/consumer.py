@@ -62,7 +62,9 @@ def run_commit_log_consumer(
     # partitions of the commit log topic and get a comprehensive view of the
     # state of the consumer groups it is tracking.
     consumer_config = kafka_config.get_kafka_consumer_cluster_options(
-        cluster_name,
+        consumer_key=kafka_config.ConsumerKey(
+            cluster_name=cluster_name, consumer_group=consumer_group
+        ),
         override_params={
             "group.id": consumer_group,
             "enable.auto.commit": "false",
@@ -189,7 +191,9 @@ class SynchronizedConsumer(KafkaConsumerFacade):
                 return on_commit(error, partitions)
 
         consumer_configuration = kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
+            consumer_key=kafka_config.ConsumerKey(
+                cluster_name=cluster_name, consumer_group=self.consumer_group
+            ),
             override_params={
                 "group.id": self.consumer_group,
                 "enable.auto.commit": "false",

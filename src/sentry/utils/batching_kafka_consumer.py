@@ -281,7 +281,9 @@ class BatchingKafkaConsumer:
         queued_min_messages,
     ):
         consumer_config = kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
+            consumer_key=kafka_config.ConsumerKey(
+                cluster_name=cluster_name, consumer_group=group_id
+            ),
             override_params={
                 "enable.auto.commit": False,
                 "group.id": group_id,
