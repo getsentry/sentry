@@ -145,10 +145,10 @@ def get_email_link_extra_params(
             urlencode(
                 {
                     "referrer": referrer,
-                    **dict([] if environment is None else [("environment", environment)]),
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
+                    **dict([] if environment is None else [("environment", environment)]),
                 }
             )
         )
