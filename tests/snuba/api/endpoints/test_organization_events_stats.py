@@ -1156,6 +1156,22 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "event.type:transaction OR transaction:foo_transaction"
         ), "boolean with mep filter"
 
+    def test_having_condition_with_preventing_aggregates(self):
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "query": "p95():<5s",
+                "yAxis": ["epm()"],
+                "metricsEnhanced": "1",
+                "preventMetricAggregates": "1",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert not response.data["isMetricsData"]
+
     def test_explicit_not_mep(self):
         response = self.do_request(
             data={
