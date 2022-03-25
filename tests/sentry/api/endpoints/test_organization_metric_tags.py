@@ -106,6 +106,28 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             {"key": "release"},
         ]
 
+    def test_private_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        for private_name in [
+            "session.crashed_and_abnormal_user",
+            "session.errored_preaggregated",
+            "session.errored_set",
+            "session.errored_user_all",
+        ]:
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=[private_name],
+            )
+            assert response.data == []
+
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_incorrectly_setup_derived_metric(self):
