@@ -417,7 +417,8 @@ class SpanTreeModel {
 
           const key = getSiblingGroupKey(group[0].span);
           if (this.expandedSiblingGroups.has(key)) {
-            // Check if any of the spans in the sibling group are filtered out (possible when filtering by span ID)
+            // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
+            // In this case, we must add only the specificied span into the accumulator's descendants
             group.forEach((spanModel, index) => {
               if (this.isSpanFilteredOut(props, spanModel)) {
                 acc.descendants.push({
@@ -454,7 +455,9 @@ class SpanTreeModel {
             return acc;
           }
 
-          // Check if the sibling group is filtered out
+          // Since we are not recursively traversing elements in this group, need to check
+          // if the spans are filtered or out of bounds here
+
           if (this.isSpanFilteredOut(props, group[0])) {
             group.forEach(spanModel =>
               acc.descendants.push({
@@ -465,7 +468,6 @@ class SpanTreeModel {
             return acc;
           }
 
-          // Check if the sibling group is out of bounds
           const bounds = generateBounds({
             startTimestamp: group[0].span.start_timestamp,
             endTimestamp: group[group.length - 1].span.timestamp,
