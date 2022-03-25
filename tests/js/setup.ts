@@ -3,7 +3,7 @@
 import {TextDecoder, TextEncoder} from 'util';
 
 import {InjectedRouter} from 'react-router';
-import {configure} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {configure, getConfig} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
@@ -36,9 +36,6 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  *
  * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
  */
-<<<<<<< Updated upstream
-configure({testIdAttribute: 'data-test-id'});
-=======
 const currentRTLConfig = getConfig();
 configure({
   testIdAttribute: 'data-test-id',
@@ -121,6 +118,7 @@ function testIsolationChecks() {
 
     const remainingInflight = _inflightTestPromises.length;
     if (remainingInflight) {
+      // eslint-disable-next-line no-console
       console.log(
         _inflightTestPromises.map(p => p.__promiseCreationStack).join('\n\n\n')
       );
@@ -143,7 +141,6 @@ process.on('unhandledRejection', reason => {
   // eslint-disable-next-line no-console
   console.error(reason);
 });
->>>>>>> Stashed changes
 
 /**
  * Enzyme configuration
