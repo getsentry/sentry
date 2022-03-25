@@ -28,4 +28,5 @@ export type TimePeriodType = {
   period: string;
   start: string;
   custom?: boolean;
+  utc?: boolean;
 };
