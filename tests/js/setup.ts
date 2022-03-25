@@ -110,8 +110,6 @@ function testIsolationChecks() {
   });
 
   afterEach(() => {
-    global._lastTest = expect.getState().currentTestName;
-
     _resolveFns.forEach(resolve =>
       resolve('If you are seeing this then you are outside the bounds of a test')
     );
@@ -132,15 +130,6 @@ function testIsolationChecks() {
 }
 
 testIsolationChecks();
-
-process.on('unhandledRejection', reason => {
-  if (global._lastTest) {
-    // eslint-disable-next-line no-console
-    console.error('Last run test: ', global._lastTest);
-  }
-  // eslint-disable-next-line no-console
-  console.error(reason);
-});
 
 /**
  * Enzyme configuration
