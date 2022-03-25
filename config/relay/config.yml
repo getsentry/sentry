@@ -16,3 +16,4 @@ processing:
     # messages will never get larger than 2MB in total.
     - {name: 'message.max.bytes', value: 2097176}
   redis: redis://sentry_redis:6379
+
