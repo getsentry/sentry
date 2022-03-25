@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -50,9 +51,7 @@ function Chart(props: Props) {
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
-        // TODO (udameli) implement removeHistogramQueryStrings here
-        // once histogram is displaying correctly
+        ...removeHistogramQueryStrings(location, ['min', 'max']),
         display: value,
       },
     });

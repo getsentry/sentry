@@ -41,13 +41,6 @@ export default function ExclusiveTimeHistogram(props: Props) {
   const start = location.query.min;
   const end = location.query.max;
 
-  // TODO data jumping
-  // TODO total count not updating in chart
-  // TODO zooming
-  // TODO
-  // TODO more tests?
-  // TODO color of the histogram
-
   return (
     <Fragment>
       <HeaderTitleLegend>
@@ -133,7 +126,7 @@ export function Chart(props: ChartProps) {
       top: '40px',
       bottom: '0px',
     },
-    colors: theme.charts.getColorPalette(1 - 2),
+    colors: theme.charts.getColorPalette(1),
     seriesOptions: {
       showSymbol: false,
     },
