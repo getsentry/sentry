@@ -65,7 +65,7 @@ jobs:
           CI_NODE_TOTAL: 1
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest tests/js/spec/components/modals/inviteMembersModal.spec.jsx tests/js/spec/views/settings/projectDebugFiles/customRepositories.spec.tsx --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn -s jest tests/js/spec/views/settings/projectDebugFiles/customRepositories.spec.tsx --listTests --json) yarn test-ci --forceExit --verbose
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
