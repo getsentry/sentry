@@ -366,6 +366,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
+
     if (itemIds.length > 1) {
       showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
     } else {

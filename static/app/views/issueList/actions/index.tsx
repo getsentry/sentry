@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {alertStyles} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {tct, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import space from 'sentry/styles/space';
@@ -118,8 +119,16 @@ class IssueListActions extends React.Component<Props, State> {
   handleUpdate = (data?: any) => {
     const {selection, api, organization, query, onMarkReviewed} = this.props;
     const orgId = organization.slug;
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     this.actionSelectedGroups(itemIds => {
+      // TODO(Kelly): remove once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
+
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
@@ -144,7 +153,11 @@ class IssueListActions extends React.Component<Props, State> {
           ...selection.datetime,
         },
         {
-          complete: () => {},
+          complete: () => {
+            if (!hasIssueListRemovalAction) {
+              clearIndicators();
+            }
+          },
         }
       );
     });
