@@ -216,7 +216,12 @@ export async function openDebugFileSourceModal({
   onClose,
   ...restOptions
 }: DebugFileSourceModalOptions) {
+  const start = performance.now();
   const mod = await import('sentry/components/modals/debugFileCustomRepository');
+  const stop = performance.now();
+
+  // eslint-disable-next-line
+  console.log('import took', stop - start);
 
   const {default: Modal, modalCss} = mod;
   openModal(deps => <Modal {...deps} {...restOptions} />, {
