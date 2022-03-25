@@ -96,6 +96,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # Symbolication Low Priority Queue stats reads two killswitches
         expected_queries += 8
 
+        # Queries to sentry_organizationmember_teams for team roles
+        expected_queries += 3
+
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
 
