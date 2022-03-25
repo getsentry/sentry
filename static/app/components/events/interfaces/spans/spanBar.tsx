@@ -61,10 +61,10 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
-import {GroupType} from './spanGroupBar';
 import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
+  GroupType,
   ParsedTraceType,
   ProcessedSpanType,
   SpanType,

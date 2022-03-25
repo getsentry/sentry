@@ -10,11 +10,13 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar, {GroupType} from './spanGroupBar';
+import SpanGroupBar from './spanGroupBar';
+import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
+  GroupType,
   ParsedTraceType,
   SpanType,
 } from './types';
@@ -217,17 +219,15 @@ class SpanTree extends React.Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
-              groupType={GroupType.DESCENDANTS}
-              isLastSibling={false}
             />
           );
           acc.spanNumber = spanNumber + 1;
           return acc;
         }
 
-        if (payload.type === 'span_group_sibling') {
+        if (payload.type === 'span_group_siblings') {
           acc.spanTree.push(
-            <SpanGroupBar
+            <SpanSiblingGroupBar
               key={`${spanNumber}-span-sibling`}
               event={waterfallModel.event}
               span={span}
@@ -236,9 +236,7 @@ class SpanTree extends React.Component<PropType> {
               continuingTreeDepths={continuingTreeDepths}
               spanNumber={spanNumber}
               spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
-              toggleSpanGroup={payload.toggleSiblingSpanGroup as () => void}
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
-              groupType={GroupType.SIBLINGS}
               isLastSibling={payload.isLastSibling ?? false}
             />
           );
