@@ -236,6 +236,8 @@ class OrganizationMemberAccess(Access):
 
 
 class OrganizationGlobalAccess(Access):
+    """Access to all an organization's teams and projects."""
+
     def __init__(self, organization: Organization, scopes: Iterable[str], **kwargs):
         self._organization = organization
 
@@ -249,6 +251,23 @@ class OrganizationGlobalAccess(Access):
             project.organization_id == self._organization.id
             and project.status == ProjectStatus.VISIBLE
         )
+
+
+class OrganizationGlobalMembership(OrganizationGlobalAccess):
+    """Access to all an organization's teams and projects with simulated membership."""
+
+    @cached_property
+    def teams(self) -> FrozenSet[Team]:
+        return frozenset(Team.objects.filter(organization=self._organization))
+
+    @cached_property
+    def projects(self) -> FrozenSet[Project]:
+        return frozenset(
+            Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=self.teams).distinct()
+        )
+
+    def has_project_membership(self, project: Project) -> bool:
+        return self.has_project_access(project)
 
 
 class OrganizationlessAccess(Access):
@@ -331,7 +350,7 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    return OrganizationGlobalAccess(organization, sentry_app.scope_list, sso_is_valid=True)
+    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
 
 
 def from_user(
