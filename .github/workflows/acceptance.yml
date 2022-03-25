@@ -92,7 +92,7 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
-          files: ./artifacts/coverage/*
+          files: .artifacts/coverage/*
           type: frontend
 
   webpack:
