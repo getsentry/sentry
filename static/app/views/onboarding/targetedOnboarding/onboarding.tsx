@@ -121,11 +121,6 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        <ProgressBar>
-          {ONBOARDING_STEPS.map((step, index) => (
-            <ProgressStep active={activeStepIndex === index} key={step.id} />
-          ))}
-        </ProgressBar>
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
@@ -285,33 +280,3 @@ const SkipOnboardingLink = styled(Link)`
 `;
 
 export default withOrganization(withProjects(Onboarding));
-
-const ProgressBar = styled('div')`
-  margin: 0 ${space(4)};
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 120px;
-  justify-content: space-between;
-
-  &:before {
-    position: absolute;
-    display: block;
-    content: '';
-    height: 4px;
-    background: ${p => p.theme.border};
-    left: 2px;
-    right: 2px;
-    top: 50%;
-    margin-top: -2px;
-  }
-`;
-
-const ProgressStep = styled('div')<{active: boolean}>`
-  position: relative;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.border)};
-  background: ${p => p.theme.background};
-`;
