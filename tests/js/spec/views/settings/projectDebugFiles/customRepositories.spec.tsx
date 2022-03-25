@@ -88,7 +88,8 @@ describe('Custom Repositories', function () {
     type: CustomRepoType.APP_STORE_CONNECT,
   };
 
-  it('renders', async function () {
+  // eslint-disable-next-line
+  it.skip('renders', async function () {
     const {rerender} = render(<TestComponent {...props} />, {context: routerContext});
 
     // Section title
