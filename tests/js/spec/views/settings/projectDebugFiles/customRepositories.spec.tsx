@@ -88,6 +88,11 @@ describe('Custom Repositories', function () {
     type: CustomRepoType.APP_STORE_CONNECT,
   };
 
+  beforeAll(async function () {
+    // transpile the modal upfront so the test runs fast
+    await import('sentry/components/modals/debugFileCustomRepository');
+  });
+
   it('renders', async function () {
     const {rerender} = render(<TestComponent {...props} />, {context: routerContext});
 
