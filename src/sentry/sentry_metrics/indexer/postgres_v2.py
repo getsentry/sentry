@@ -1,7 +1,7 @@
 from collections import defaultdict
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Any, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.db.models import Q
 
@@ -13,6 +13,110 @@ from sentry.utils.services import Service
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 
 
+class KeyCollection:
+    """
+    A KeyCollection is a way of keeping track of a group of keys
+    used to fetch ids, which are stored as results. There are
+    three potential steps to fetching the ids, and each step
+    can utilize a new KeyCollection:
+        1. ids from cache
+        2. ids from existing db records
+        3. ids from newly created db records
+
+    A key is a org_id, string pair, either represented as a
+    tuple e.g (1, "a"), or a string "1:a".
+
+    Initial mapping is org_id's to sets of strings:
+        { 1: {"a", "b", "c"}, 2: {"e", "f"} }
+
+    Resulting ids will be stored in self.results, which is a
+    mapping of org_id to string -> int mapping:
+        {
+            1: {"a": 10, "b": 11, "c": 12},
+            2: {"e": 13},
+        }
+
+    For any keys that we didn't find ids for in the current
+    step (and therefore weren't added to the results) , use
+    `get_unmapped_keys` to return a new KeyCollection that
+    can be used for the next step in getting those ids.
+    """
+
+    def __init__(self, mapping: MutableMapping[int, Set[str]]):
+        self.mapping = mapping
+        self.results: MutableMapping[int, MutableMapping[str, int]] = {}
+
+    def as_tuples(self) -> Sequence[Tuple[int, str]]:
+        """
+        Returns all the keys, each key represented as tuple -> (1, "a")
+        """
+        key_pairs: Sequence[Tuple[int, str]] = []
+        for org_id in self.mapping:
+            key_pairs.extend([(org_id, string) for string in self.mapping[org_id]])
+
+        return key_pairs
+
+    def as_strings(self) -> Sequence[str]:
+        """
+        Returns all the keys, each key represented as string -> "1:a"
+        """
+        keys: Sequence[str] = []
+        for org_id in self.mapping:
+            keys.extend([f"{org_id}:{string}" for string in self.mapping[org_id]])
+
+        return keys
+
+    def add_key_result(self, key_pair: Tuple[int, str], result: int) -> None:
+        """
+        For a given key, add the id to the results.
+        """
+        org_id, string = key_pair
+        try:
+            self.results[org_id][string] = result
+        except KeyError:
+            self.results[org_id] = {string: result}
+
+    def get_unmapped_keys(self):
+        """
+        Return a new KeyCollection for any keys that don't have corresponding
+        ids in results.
+        """
+        unmapped_org_strings: MutableMapping[int, Set[str]] = defaultdict(set)
+        for org_id, strings in self.mapping.items():
+            for string in strings:
+                try:
+                    self.results[org_id][string]
+                except KeyError:
+                    unmapped_org_strings[org_id].add(string)
+
+        return KeyCollection(unmapped_org_strings)
+
+    def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
+        """
+        Return the results.
+        """
+        return self.results
+
+    def get_mapped_key_strings_to_ints(self) -> MutableMapping[str, int]:
+        """
+        Return the results, but formatted as the following:
+            {
+                "1:a": 10,
+                "1:b": 11,
+                "1:c", 12,
+                "2:e": 13
+            }
+        This is for when we use indexer_cache.set_many()
+        """
+        cache_key_results: MutableMapping[str, int] = {}
+        for org_id, result_dict in self.results.items():
+            for string, id in result_dict.items():
+                key = f"{org_id}:{string}"
+                cache_key_results[key] = id
+
+        return cache_key_results
+
+
 class PGStringIndexerV2(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -21,100 +125,40 @@ class PGStringIndexerV2(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def _record_many_strings(self, keys: Sequence[str]) -> Mapping[str, int]:
-        """
-        Bulk create db records for org_id:string pairs. As noted below, bulk_create with
-        ignore_conflicts=True returns objects that don't have the pk set on them (aka the `id`
-        that we need), so that's why we use `_get_db_ids_and_set_cache` to look up the records
-        and return a mapping of org_id:string -> id:
-            {
-                "1:release": 3,
-                "2:v1": 4
-            }
-        """
-        records = []
-        for key in keys:
-            organization_id, string = key.split(":")
-            records.append(StringIndexerTable(organization_id=int(organization_id), string=string))
-
-        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-            # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
-            # records might have be created between when we queried in `bulk_record` and the
-            # attempt to create the rows down below.
-            StringIndexerTable.objects.bulk_create(records, ignore_conflicts=True)
-
-        # We re-query the database to fetch the rows (which should all exist point at this point),
-        # in addition to setting the results in the cache
-        results = self._get_db_ids_and_set_cache(keys)
-        # we _just_ created this records, there is no reason for results to be None
-        assert results
-        return results
-
-    def _get_db_ids_and_set_cache(self, keys: Sequence[str]) -> Mapping[str, int]:
-        """
-        Query the db for the org_id and string pairs given by the keys (e.g "1:release")
-
-        If we find no records out of the entire list of keys, return None. Otherwise, we
-        return a mapping of org_id:string key -> id:
-            {
-                "1:release": 3,
-                "2:v1": 4
-            }
-
-        When setting values in the cache we need to cache both ways:
-            * "org_id:string" -> id
-            * id -> "string"
-        The id doesn't need the org_id as part of the cache key because it's unique
-        across the StringIndexerTable.
-        """
+    def _get_db_records(self, db_keys: KeyCollection) -> Any:
         conditions = []
-        for key in keys:
-            organization_id, string = key.split(":")
+        for pair in db_keys.as_tuples():
+            organization_id, string = pair
             conditions.append(Q(organization_id=int(organization_id), string=string))
 
         query_statement = reduce(or_, conditions)
 
-        db_results = {}
-        db_objs = StringIndexerTable.objects.filter(query_statement)
+        return StringIndexerTable.objects.filter(query_statement)
 
-        for db_obj in db_objs:
-            key = f"{db_obj.organization_id}:{db_obj.string}"
-            db_results[key] = db_obj.id
-
-        if len(db_results) > 1:
-            indexer_cache.set_many(db_results)
-
-        return db_results
-
-    def _get_many_ids(self, keys: Sequence[str]) -> MutableMapping[str, Optional[int]]:
+    def bulk_record(
+        self, org_strings: MutableMapping[int, Set[str]]
+    ) -> MutableMapping[int, MutableMapping[str, int]]:
         """
-        Takes a list of keys formatted as such "org_string:string". Ex. "1:release"
-
-        Returns a mapping of the key to the id (or None if the id doesn't exist):
-            {
-                "1:release": 3,
-                "2:v1": None
-            }
-
-        This method first attempts to check memcache to see if we have the id
-        there and if not, we attempt to look up records in the db. We record
-        the cache hits and misses here, but the misses don't mean that the
-        records were in the db, just means they weren't in the cache.
+        TODO(meredith): add doc string
         """
-        final_results: MutableMapping[str, Optional[int]] = {}
-        cache_results = indexer_cache.get_many(keys)
+        mapped_results: MutableMapping[int, MutableMapping[str, int]] = {}
 
-        db_look_up_keys = set()
-        for key in keys:
-            result = cache_results.get(key)
-            if isinstance(result, int):
-                final_results[key] = result
+        cache_keys = KeyCollection(org_strings)
+
+        # Step 1: Lookup ids in the cache and add them to the
+        # cache KeyCollection results.
+        cache_hits = 0
+        cache_misses = 0
+        cache_key_strs = cache_keys.as_strings()
+        cache_results = indexer_cache.get_many(cache_key_strs)
+        for cache_key in cache_key_strs:
+            result = cache_results.get(cache_key)
+            org_id, string = cache_key.split(":")
+            if result:
+                cache_keys.add_key_result((int(org_id), string), result)
+                cache_hits += 1
             else:
-                final_results[key] = None
-                db_look_up_keys.add(key)
-
-        cache_hits = len(final_results.keys())
-        cache_misses = len(db_look_up_keys)
+                cache_misses += 1
 
         metrics.incr(
             _INDEXER_CACHE_METRIC,
@@ -127,45 +171,57 @@ class PGStringIndexerV2(Service):
             amount=cache_misses,
         )
 
-        # if we found everything we need in the cache, return early
-        # otherwise attempt to look up records in db (and cache results
-        # if we find them in the db)
-        if len(db_look_up_keys) == 0:
-            return final_results
+        mapped_results.update(cache_keys.get_mapped_results())
 
-        db_results = self._get_db_ids_and_set_cache(list(db_look_up_keys))
-        if db_results:
-            final_results.update(db_results)
+        db_read_keys = cache_keys.get_unmapped_keys()
 
-        return final_results
+        if not db_read_keys.as_strings():
+            return mapped_results
 
-    def bulk_record(
-        self, org_strings: MutableMapping[int, Set[str]]
-    ) -> MutableMapping[int, MutableMapping[str, int]]:
-        keys: List[str] = []
-        for org_id in org_strings:
-            keys.extend([f"{org_id}:{string}" for string in org_strings[org_id]])
+        # Step 2: Lookup ids in the db and add them to the
+        # db_read KeyCollection results.
+        for db_obj in self._get_db_records(db_read_keys):
+            db_read_keys.add_key_result((db_obj.organization_id, db_obj.string), db_obj.id)
 
-        results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        keys_to_ids = self._get_many_ids(keys)
+        db_read_key_results = db_read_keys.get_mapped_results()
 
-        unmapped: List[str] = []
-        for key, id in keys_to_ids.items():
-            if id is None:
-                unmapped.append(key)
-                continue
-            org, string = key.split(":")
-            results[int(org)][string] = id
+        if len(db_read_key_results) > 1:
+            results_to_cache = db_read_keys.get_mapped_key_strings_to_ints()
+            indexer_cache.set_many(results_to_cache)
+            mapped_results.update(db_read_key_results)
 
-        if not unmapped:
-            return results
+        db_write_keys = db_read_keys.get_unmapped_keys()
 
-        new_mapped = self._record_many_strings(unmapped)
-        for key, id in new_mapped.items():
-            org, string = key.split(":")
-            results[int(org)][string] = id
+        if not db_write_keys.as_strings():
+            return mapped_results
 
-        return results
+        # Step 3: Create new records in the db and add them to the
+        # db_write KeyCollection results.
+        new_records = []
+        for write_pair in db_write_keys.as_tuples():
+            organization_id, string = write_pair
+            new_records.append(
+                StringIndexerTable(organization_id=int(organization_id), string=string)
+            )
+
+        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
+            # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
+            # records might have be created between when we queried in `bulk_record` and the
+            # attempt to create the rows down below.
+            StringIndexerTable.objects.bulk_create(new_records, ignore_conflicts=True)
+
+        for db_obj in self._get_db_records(db_write_keys):
+            db_write_keys.add_key_result((db_obj.organization_id, db_obj.string), db_obj.id)
+
+        db_write_key_results = db_write_keys.get_mapped_results()
+
+        if len(db_write_key_results) > 1:
+            results_to_cache = db_write_keys.get_mapped_key_strings_to_ints()
+            indexer_cache.set_many(results_to_cache)
+
+            mapped_results.update(db_write_key_results)
+
+        return mapped_results
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
