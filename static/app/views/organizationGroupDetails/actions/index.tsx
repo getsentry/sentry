@@ -33,6 +33,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {uniqueId} from 'sentry/utils/guid';
@@ -116,7 +117,8 @@ class Actions extends React.Component<Props, State> {
       group_id: parseInt(group.id, 10),
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
-      alert_date: typeof alert_date === 'string' ? alert_date : undefined,
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });

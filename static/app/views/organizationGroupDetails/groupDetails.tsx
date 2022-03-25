@@ -17,6 +17,7 @@ import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -77,15 +78,15 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const globalSelectionChanged =
+    const globalSelectionReadyChanged =
       prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady;
 
     if (
-      globalSelectionChanged ||
+      globalSelectionReadyChanged ||
       prevProps.location.pathname !== this.props.location.pathname
     ) {
-      // Skip tracking for every path navigation
-      this.fetchData(globalSelectionChanged);
+      // Skip tracking for other navigation events like switching events
+      this.fetchData(globalSelectionReadyChanged);
     }
 
     if (
@@ -125,7 +126,8 @@ class GroupDetails extends React.Component<Props, State> {
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
       // Alert properties track if the user came from email/slack alerts
-      alert_date: typeof alert_date === 'string' ? alert_date : undefined,
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
