@@ -414,7 +414,9 @@ def digest(request):
         "referrer": "digest_email",
         "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
         "rules_details": {rule.id: rule for rule in rule_details},
-        "link_params_for_rule": get_email_link_extra_params("digest_email", rule_details, 1337),
+        "link_params_for_rule": get_email_link_extra_params(
+            "digest_email", None, rule_details, 1337
+        ),
     }
     add_unsubscribe_link(context)
 

@@ -101,7 +101,7 @@ class DigestNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "alert_status_page_enabled": alert_status_page_enabled,
             "link_params_for_rule": get_email_link_extra_params(
-                "digest_email", list(rules_details.values())
+                "digest_email", None, list(rules_details.values())
             ),
         }
 
