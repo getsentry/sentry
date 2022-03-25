@@ -315,7 +315,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
     )
-    def test_get_projects_no_slug_defaults_to_ids(
+    def test_get_projects_no_slug_fallsback_to_ids(
         self, mock_get_project_ids_unchecked, mock__get_projects_by_id
     ):
         project_slugs = [""]
@@ -344,7 +344,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def test_get_projects_by_slugs_grabs_project_ids(
         self, mock_get_project_ids_unchecked, mock__get_projects_by_id
     ):
-        project_slugs = ["foo"]
+        project_slugs = [self.project_1.slug]
         request = self.build_request(projectSlug=project_slugs)
 
         self.endpoint.get_projects(
