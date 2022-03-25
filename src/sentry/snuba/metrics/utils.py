@@ -54,7 +54,7 @@ MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distribution"]
+MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -70,6 +70,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
         "raw_histogram": "histogramIf(250)",
+        "histogram": "histogramIf(250)",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -127,7 +128,8 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
-    "rawHistogram",
+    "raw_histogram",
+    "histogram",
 ) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
@@ -142,7 +144,7 @@ DEFAULT_AGGREGATES = {
     "p99": None,
     "sum": 0,
     "percentage": None,
-    "rawHistogram": None,
+    "raw_histogram": None,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 

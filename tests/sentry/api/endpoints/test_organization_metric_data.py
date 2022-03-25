@@ -911,7 +911,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="rawHistogram(sentry.transactions.measurements.lcp)",
+            field="raw_histogram(sentry.transactions.measurements.lcp)",
             statsPeriod="1h",
             interval="1h",
         )
@@ -928,8 +928,30 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "series": {"rawHistogram(sentry.transactions.measurements.lcp)": [hist]},
-                "totals": {"rawHistogram(sentry.transactions.measurements.lcp)": hist},
+                "series": {"raw_histogram(sentry.transactions.measurements.lcp)": [hist]},
+                "totals": {"raw_histogram(sentry.transactions.measurements.lcp)": hist},
+            }
+        ]
+
+        # Note: This is not really the endpoint you should use to query
+        # histograms, as any real-world use of histograms probably requires
+        # some tweaking with respect to zoom-range and bucket count.
+        # Nevertheless we expose the functions with default values.
+        response = self.get_success_response(
+            self.organization.slug,
+            field="histogram(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+        # TODO: implement rebucketed histogram
+        hist = {"histogram_metric_test": []}
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "series": {"histogram(sentry.transactions.measurements.lcp)": [hist]},
+                "totals": {"histogram(sentry.transactions.measurements.lcp)": hist},
             }
         ]
 

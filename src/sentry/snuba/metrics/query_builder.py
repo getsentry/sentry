@@ -75,13 +75,13 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
             f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', or a supported "
             f"aggregate derived metric like `session.crash_free_rate"
         )
-    else:
-        if operation not in OPERATIONS:
-            raise InvalidField(
-                f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
-            )
 
-        return operation, metric_name
+    if operation not in OPERATIONS:
+        raise InvalidField(
+            f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
+        )
+
+    return operation, metric_name
 
 
 def resolve_tags(input_: Any) -> Any:
