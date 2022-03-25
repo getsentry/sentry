@@ -76,6 +76,7 @@ const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) 
   return <Link {...linkProps} to={to || ''} />;
 })`
   display: flex;
+  align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.textColor};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
