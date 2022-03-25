@@ -1,14 +1,11 @@
 import * as React from 'react';
-import countBy from 'lodash/countBy';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
   RowCell,
   RowCellContainer,
 } from 'sentry/components/performance/waterfall/row';
-import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
@@ -20,46 +17,34 @@ import {
   SpanGroupRowTitleContent,
 } from 'sentry/components/performance/waterfall/rowTitle';
 import {
-  ConnectorBar,
   TOGGLE_BORDER_BOX,
-  TreeConnector,
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {
-  getDurationDisplay,
-  getHumanDuration,
-  toPercent,
-} from 'sentry/components/performance/waterfall/utils';
-import {t} from 'sentry/locale';
+import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
+import {EnhancedSpan, ProcessedSpanType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
-  getSpanGroupBounds,
-  getSpanGroupTimestamps,
-  getSpanOperation,
-  isOrphanSpan,
-  isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  unwrapTreeDepth,
 } from './utils';
 
 const MARGIN_LEFT = 0;
 
 type Props = {
-  continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  renderGroupSpansTitle: () => React.ReactNode;
+  renderSpanRectangles: () => React.ReactNode;
+  renderSpanTreeConnector: () => React.ReactNode;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -67,15 +52,15 @@ type Props = {
   treeDepth: number;
 };
 
-class SpanGroupBar extends React.Component<Props> {
-  renderGroupedSpansToggler() {
-    const {spanGrouping, treeDepth, toggleSpanGroup} = this.props;
+export default function SpanGroupBar(props: Props) {
+  function renderGroupedSpansToggler() {
+    const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup} = props;
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
-        {this.renderSpanTreeConnector()}
+        {renderSpanTreeConnector()}
         <TreeToggle
           disabled={false}
           isExpanded={false}
@@ -92,34 +77,7 @@ class SpanGroupBar extends React.Component<Props> {
     );
   }
 
-  generateGroupSpansTitle(spanGroup: EnhancedSpan[]): React.ReactNode {
-    if (spanGroup.length === 0) {
-      return '';
-    }
-
-    const operationCounts = countBy(spanGroup, enhancedSpan =>
-      getSpanOperation(enhancedSpan.span)
-    );
-
-    const hasOthers = Object.keys(operationCounts).length > 1;
-
-    const [mostFrequentOperationName] = Object.entries(operationCounts).reduce(
-      (acc, [operationNameKey, count]) => {
-        if (count > acc[1]) {
-          return [operationNameKey, count];
-        }
-        return acc;
-      }
-    );
-
-    return (
-      <strong>{`${t('Autogrouped ')}\u2014 ${mostFrequentOperationName}${
-        hasOthers ? t(' and more') : ''
-      }`}</strong>
-    );
-  }
-
-  renderDivider(
+  function renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
     const {addDividerLineRef} = dividerHandlerChildrenProps;
@@ -149,52 +107,10 @@ class SpanGroupBar extends React.Component<Props> {
     );
   }
 
-  renderSpanTreeConnector() {
-    const {treeDepth: spanTreeDepth, continuingTreeDepths, span} = this.props;
-
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
-      const depth: number = unwrapTreeDepth(treeDepth);
-
-      if (depth === 0) {
-        // do not render a connector bar at depth 0,
-        // if we did render a connector bar, this bar would be placed at depth -1
-        // which does not exist.
-        return null;
-      }
-      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 2) * -1;
-
-      return (
-        <ConnectorBar
-          style={{left}}
-          key={`span-group-${depth}`}
-          orphanBranch={isOrphanTreeDepth(treeDepth)}
-        />
-      );
-    });
-
-    connectorBars.push(
-      <ConnectorBar
-        style={{
-          right: '15px',
-          height: `${ROW_HEIGHT / 2}px`,
-          bottom: `-${ROW_HEIGHT / 2 + 1}px`,
-          top: 'auto',
-        }}
-        key="collapsed-span-group-row-bottom"
-        orphanBranch={false}
-      />
-    );
-
-    return (
-      <TreeConnector isLast hasToggler orphanBranch={isOrphanSpan(span)}>
-        {connectorBars}
-      </TreeConnector>
-    );
-  }
-
-  renderMeasurements() {
-    const {event, generateBounds} = this.props;
-
+  function renderMeasurements(
+    event: Readonly<EventTransaction>,
+    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+  ) {
     const measurements = getMeasurements(event);
 
     return (
@@ -222,131 +138,94 @@ class SpanGroupBar extends React.Component<Props> {
     );
   }
 
-  render() {
-    return (
-      <ScrollbarManager.Consumer>
-        {scrollbarManagerChildrenProps => (
-          <DividerHandlerManager.Consumer>
-            {(
-              dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-            ) => {
-              const {
-                span,
-                generateBounds,
-                treeDepth,
-                spanGrouping,
-                toggleSpanGroup,
-                spanNumber,
-              } = this.props;
+  return (
+    <ScrollbarManager.Consumer>
+      {scrollbarManagerChildrenProps => (
+        <DividerHandlerManager.Consumer>
+          {(
+            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+          ) => {
+            const {generateBounds, span, treeDepth, spanNumber, event} = props;
 
-              const {isSpanVisibleInView: isSpanVisible} = generateBounds({
-                startTimestamp: span.start_timestamp,
-                endTimestamp: span.timestamp,
-              });
+            const {isSpanVisibleInView: isSpanVisible} = generateBounds({
+              startTimestamp: span.start_timestamp,
+              endTimestamp: span.timestamp,
+            });
 
-              const {dividerPosition, addGhostDividerLineRef} =
-                dividerHandlerChildrenProps;
-              const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-              const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+            const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
+            const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
+            const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
-              const bounds = getSpanGroupBounds(spanGrouping, generateBounds);
-              const durationDisplay = getDurationDisplay(bounds);
-              const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
-              const duration = Math.abs(endTimestamp - startTimestamp);
-              const durationString = getHumanDuration(duration);
-
-              return (
-                <Row
-                  visible={isSpanVisible}
-                  showBorder={false}
-                  data-test-id={`span-row-${spanNumber}`}
-                >
-                  <RowCellContainer>
-                    <RowCell
-                      data-type="span-row-cell"
-                      style={{
-                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                        paddingTop: 0,
-                      }}
-                      onClick={() => {
-                        toggleSpanGroup();
-                      }}
-                    >
-                      <RowTitleContainer ref={generateContentSpanBarRef()}>
-                        {this.renderGroupedSpansToggler()}
-                        <RowTitle
-                          style={{
-                            left: `${left}px`,
-                            width: '100%',
-                          }}
-                        >
-                          <SpanGroupRowTitleContent>
-                            {this.generateGroupSpansTitle(spanGrouping)}
-                          </SpanGroupRowTitleContent>
-                        </RowTitle>
-                      </RowTitleContainer>
-                    </RowCell>
-                    <DividerContainer>
-                      {this.renderDivider(dividerHandlerChildrenProps)}
-                    </DividerContainer>
-                    <RowCell
-                      data-type="span-row-cell"
-                      showStriping={spanNumber % 2 !== 0}
-                      style={{
-                        width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                      }}
-                      onClick={() => {
-                        toggleSpanGroup();
-                      }}
-                    >
-                      <RowRectangle
-                        spanBarHatch={false}
+            return (
+              <Row
+                visible={isSpanVisible}
+                showBorder={false}
+                data-test-id={`span-row-${spanNumber}`}
+              >
+                <RowCellContainer>
+                  <RowCell
+                    data-type="span-row-cell"
+                    style={{
+                      width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                      paddingTop: 0,
+                    }}
+                    onClick={() => props.toggleSpanGroup()}
+                  >
+                    <RowTitleContainer ref={generateContentSpanBarRef()}>
+                      {renderGroupedSpansToggler()}
+                      <RowTitle
                         style={{
-                          backgroundColor: theme.blue300,
-                          left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                          width: toPercent(bounds.width || 0),
+                          left: `${left}px`,
+                          width: '100%',
                         }}
                       >
-                        <DurationPill
-                          durationDisplay={durationDisplay}
-                          showDetail={false}
-                          spanBarHatch={false}
-                        >
-                          {durationString}
-                        </DurationPill>
-                      </RowRectangle>
-                      {this.renderMeasurements()}
-                      <SpanBarCursorGuide />
-                    </RowCell>
-                    <DividerLineGhostContainer
+                        <SpanGroupRowTitleContent>
+                          {props.renderGroupSpansTitle()}
+                        </SpanGroupRowTitleContent>
+                      </RowTitle>
+                    </RowTitleContainer>
+                  </RowCell>
+                  <DividerContainer>
+                    {renderDivider(dividerHandlerChildrenProps)}
+                  </DividerContainer>
+                  <RowCell
+                    data-type="span-row-cell"
+                    showStriping={spanNumber % 2 !== 0}
+                    style={{
+                      width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                    }}
+                    onClick={() => props.toggleSpanGroup()}
+                  >
+                    {props.renderSpanRectangles()}
+                    {renderMeasurements(event, generateBounds)}
+                    <SpanBarCursorGuide />
+                  </RowCell>
+                  <DividerLineGhostContainer
+                    style={{
+                      width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+                      display: 'none',
+                    }}
+                  >
+                    <DividerLine
+                      ref={addGhostDividerLineRef()}
                       style={{
-                        width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                        display: 'none',
+                        right: 0,
                       }}
-                    >
-                      <DividerLine
-                        ref={addGhostDividerLineRef()}
-                        style={{
-                          right: 0,
-                        }}
-                        className="hovering"
-                        onClick={event => {
-                          // the ghost divider line should not be interactive.
-                          // we prevent the propagation of the clicks from this component to prevent
-                          // the span detail from being opened.
-                          event.stopPropagation();
-                        }}
-                      />
-                    </DividerLineGhostContainer>
-                  </RowCellContainer>
-                </Row>
-              );
-            }}
-          </DividerHandlerManager.Consumer>
-        )}
-      </ScrollbarManager.Consumer>
-    );
-  }
+                      className="hovering"
+                      onClick={e => {
+                        // the ghost divider line should not be interactive.
+                        // we prevent the propagation of the clicks from this component to prevent
+                        // the span detail from being opened.
+                        e.stopPropagation();
+                      }}
+                    />
+                  </DividerLineGhostContainer>
+                </RowCellContainer>
+              </Row>
+            );
+          }}
+        </DividerHandlerManager.Consumer>
+      )}
+    </ScrollbarManager.Consumer>
+  );
 }
-
-export default SpanGroupBar;
