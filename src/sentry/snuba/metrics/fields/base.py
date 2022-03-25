@@ -402,20 +402,31 @@ class CompositeEntityDerivedMetric(DerivedMetric):
     def get_entity(self, projects: Sequence[Project]) -> Dict[MetricEntity, Sequence[str]]:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
-        return self.__recursively_generate_singular_entity_constituents(projects, self)
+        return self.__recursively_generate_singular_entity_constituents(
+            projects=projects, derived_metric_obj=self
+        )
 
     def generate_available_operations(self):
         return []
 
     @classmethod
-    def __recursively_generate_singular_entity_constituents(cls, projects, derived_metric_obj):
+    def __recursively_generate_singular_entity_constituents(
+        cls,
+        projects: Optional[Sequence[Project]],
+        derived_metric_obj: DerivedMetric,
+        is_naive: bool = False,
+    ) -> Dict[MetricEntity, Sequence[str]]:
         entities_and_metric_names = {}
         for metric_name in derived_metric_obj.metrics:
             if metric_name not in DERIVED_METRICS:
                 continue
             constituent_metric_obj = DERIVED_METRICS[metric_name]
             if isinstance(constituent_metric_obj, SingularEntityDerivedMetric):
-                entity = constituent_metric_obj.get_entity(projects=projects)
+                if is_naive:
+                    entity = None
+                else:
+                    entity = constituent_metric_obj.get_entity(projects=projects)
+
                 entities_and_metric_names.setdefault(entity, []).append(
                     constituent_metric_obj.metric_name
                 )
@@ -424,7 +435,7 @@ class CompositeEntityDerivedMetric(DerivedMetric):
             entities_and_metric_names = combine_dictionary_of_list_values(
                 entities_and_metric_names,
                 cls.__recursively_generate_singular_entity_constituents(
-                    projects, constituent_metric_obj
+                    projects, constituent_metric_obj, is_naive
                 ),
             )
 
@@ -484,6 +495,11 @@ class CompositeEntityDerivedMetric(DerivedMetric):
                 if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
+
+    def naively_generate_singular_entity_constituents(self):
+        return self.__recursively_generate_singular_entity_constituents(
+            projects=None, derived_metric_obj=self, is_naive=True
+        )
 
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [
