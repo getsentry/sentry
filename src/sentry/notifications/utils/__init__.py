@@ -132,7 +132,7 @@ def summarize_issues(
 
 def get_email_link_extra_params(
     referrer: str = "alert_email",
-    environment: str = None,
+    environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
 ) -> dict[int, str]:
@@ -145,10 +145,10 @@ def get_email_link_extra_params(
             urlencode(
                 {
                     "referrer": referrer,
+                    **dict([] if environment is None else [("environment", environment)]),
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
-                    **dict([] if environment is None else [("environment", environment)]),
                 }
             )
         )
@@ -162,13 +162,16 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
 ) -> str:
-    alert_rule_id: int = rule_details[0].id if rule_details and rule_details[0].id else None
-    return group.get_absolute_url() + (
-        ""
-        if not alert_rule_id
-        else get_email_link_extra_params("alert_email", environment, rule_details, alert_timestamp)[
-            alert_rule_id
-        ]
+    alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
+    return str(
+        group.get_absolute_url()
+        + (
+            ""
+            if not alert_rule_id
+            else get_email_link_extra_params(
+                "alert_email", environment, rule_details, alert_timestamp
+            )[alert_rule_id]
+        )
     )
 
 
