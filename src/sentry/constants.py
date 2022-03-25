@@ -156,6 +156,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
 
 RESERVED_PROJECT_SLUGS = frozenset(
     (
+        "$all",
         "api-keys",
         "audit-log",
         "auth",
