@@ -145,7 +145,6 @@ class GroupHeader extends React.Component<Props, State> {
     const disableActions = !!disabledTabs.length;
 
     return (
-      // ADD LAYOUT HERE
       <Layout.Header>
         <div className={className}>
           <div className="row">
