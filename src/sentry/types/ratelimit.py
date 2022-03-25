@@ -34,7 +34,7 @@ class RateLimitType(Enum):
     FIXED_WINDOW = "fixed_window"
 
 
-@dataclass
+@dataclass(frozen=True)
 class RateLimitMeta:
     """
     Rate Limit response metadata
@@ -56,6 +56,7 @@ class RateLimitMeta:
     reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None
+    rate_limit_category: RateLimitCategory
 
     @property
     def concurrent_remaining(self) -> int | None:

@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from sentry.ratelimits import (
     above_rate_limit_check,
     finish_request,
-    get_category_str,
     get_rate_limit_key,
     get_rate_limit_value,
 )
@@ -36,7 +35,6 @@ class RatelimitMiddleware:
         rate_limit_metadata = None
         rate_limit_key = None
         rate_limit_uid = None
-        category_str = None
 
         # First, check if the endpoint call will violate.
         try:
@@ -45,7 +43,8 @@ class RatelimitMiddleware:
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return
-            category_str = get_category_str(rate_limit_key)
+
+            category_str = rate_limit_key.split(":", 1)[0]
             rate_limit = get_rate_limit_value(
                 http_method=request.method,
                 endpoint=view_func.view_class,
@@ -54,7 +53,9 @@ class RatelimitMiddleware:
             if rate_limit is None:
                 return
 
-            rate_limit_metadata = above_rate_limit_check(rate_limit_key, rate_limit, rate_limit_uid)
+            rate_limit_metadata = above_rate_limit_check(
+                rate_limit_key, rate_limit, rate_limit_uid, category_str
+            )
             # TODO: also limit by concurrent window once we have the data
             rate_limit_cond = (
                 rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
@@ -80,10 +81,11 @@ class RatelimitMiddleware:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
         # Hit the endpoint
+        request.rate_limit_metadata = rate_limit_metadata
         response = self.get_response(request)
 
         # Process the response
-        self.add_headers(response, rate_limit_metadata)
+        self.add_headers(response, request.rate_limit_metadata)
         finish_request(rate_limit_key, rate_limit_uid)
         return response
 
