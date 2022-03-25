@@ -56,8 +56,10 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         required=False,
     )
     end = serializers.DateTimeField(
-        help_text="This defines the end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
-        "Use along with `start` instead of `statsPeriod`.",
+        help_text=(
+            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+            "Use along with `start` instead of `statsPeriod`."
+        ),
         required=False,
     )
 
@@ -68,6 +70,8 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
             "Note that grouping by project can cause missing rows if the number of projects / interval is large. "
             "If you have a large number of projects, we recommend filtering and querying by them individually."
+            "Also note that grouping by projects does not currently support timeseries interval responses and will instead be a sum of the project"
+            "over the entire period specified."
         ),
     )
 
