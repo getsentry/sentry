@@ -125,5 +125,5 @@ export default GroupReleaseChart;
 
 const TotalEventCount = styled(Count)`
   display: block;
-  margin-bottom: -${space(1)};
+  margin-bottom: 0;
 `;

@@ -12,7 +12,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -564,7 +563,7 @@ class GroupDetails extends React.Component<Props, State> {
             showIssueStreamLink
             showProjectSettingsLink
           >
-            <PageContent>{this.renderPageContent()}</PageContent>
+            {this.renderPageContent()}
           </PageFiltersContainer>
         </SentryDocumentTitle>
       </React.Fragment>

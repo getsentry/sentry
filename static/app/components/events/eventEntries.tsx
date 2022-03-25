@@ -399,7 +399,7 @@ const EventEntries = memo(
             />
           ) : (
             (!!(event.tags ?? []).length || hasContext) && (
-              <StyledEventDataSection title={t('Tags')} type="tags">
+              <EventDataSection title={t('Tags')} type="tags">
                 {hasContext && <EventContextSummary event={event} />}
                 <EventTags
                   event={event}
@@ -407,7 +407,7 @@ const EventEntries = memo(
                   projectId={projectSlug}
                   location={location}
                 />
-              </StyledEventDataSection>
+              </EventDataSection>
             )
           ))}
         {renderEntries(event)}
@@ -491,10 +491,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   border: 0;
   ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
-`;
-
-const StyledEventDataSection = styled(EventDataSection)`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`

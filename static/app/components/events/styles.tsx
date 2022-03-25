@@ -8,9 +8,12 @@ export const DataSection = styled('div')`
   flex-direction: column;
   padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
+  margin: 0 -${space(2)};
+  padding: ${space(3)} ${space(2)} ${space(3)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(3)} ${space(4)} 0 40px;
+    margin: 0 -30px 0 -40px;
+    padding: ${space(3)} ${space(4)} ${space(3)} 40px;
   }
 `;
 
