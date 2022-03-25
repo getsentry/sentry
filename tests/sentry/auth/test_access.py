@@ -372,9 +372,10 @@ class FromSentryAppTest(TestCase):
         result = access.from_request(request, self.org)
         assert result.has_global_access
         assert result.has_team_access(self.team)
-        assert result.teams == frozenset()
+        assert result.teams == frozenset({self.team})
         assert result.scopes == frozenset()
         assert result.has_project_access(self.project)
+        assert result.has_project_membership(self.project)
         assert not result.has_project_access(self.out_of_scope_project)
         assert not result.permissions
 
