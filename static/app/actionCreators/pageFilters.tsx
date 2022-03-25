@@ -419,7 +419,12 @@ async function updateDesyncedUrlState(router?: Router) {
   // This function *should* be called only after persistPageFilters has been
   // called as well This function *should* be called only after
   // persistPageFilters has been called as well
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => {
+    if ((global as any)._registerAutoResolve) {
+      (global as any)._registerAutoResolve(resolve);
+    }
+    setTimeout(resolve, 0);
+  });
 
   const {organization} = OrganizationStore.getState();
 

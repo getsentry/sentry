@@ -36,7 +36,114 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  *
  * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
  */
+<<<<<<< Updated upstream
 configure({testIdAttribute: 'data-test-id'});
+=======
+const currentRTLConfig = getConfig();
+configure({
+  testIdAttribute: 'data-test-id',
+  eventWrapper: (...args) => {
+    // This function will wrap any events that are created such as click.
+    const start = performance.now();
+    const result = currentRTLConfig.eventWrapper(...args);
+    const end = performance.now();
+    if (end - start > 16 && global.transaction && global.transaction.startChild) {
+      // > 16ms, 60fps frame.
+      global.transaction.startChild({
+        op: 'event',
+        desc: 'eventWrapper',
+        startTimestamp: start / 1000,
+        endTimestamp: end / 1000,
+      });
+    }
+
+    return result;
+  },
+});
+
+// Putting all this specific code in it's own function.
+function testIsolationChecks() {
+  const _resolveFns: any[] = [];
+
+  (global as any)._registerAutoResolve = resolveFn => _resolveFns.push(resolveFn);
+  const _inflightTestPromises: any[] = [];
+  const OriginalPromise: any = global.Promise;
+
+  let promiseCounter = 1;
+
+  function resolveRejectWrapper(fn, __promiseId) {
+    return (...args) => {
+      if (__promiseId) {
+        const promise = _inflightTestPromises.find(p => p.__promiseId === __promiseId);
+        const index = _inflightTestPromises.indexOf(promise);
+        if (index > -1) {
+          _inflightTestPromises.splice(index, 1);
+        }
+      }
+      return fn(...args);
+    };
+  }
+
+  function _fnWrapper(fn, __promiseId) {
+    return (resolve, reject) => {
+      const _wrappedResolve = resolveRejectWrapper(resolve, __promiseId);
+      const _wrappedReject = resolveRejectWrapper(reject, __promiseId);
+      return fn(_wrappedResolve, _wrappedReject);
+      // return fn(resolve, reject);
+    };
+  }
+
+  (global.Promise as any) = class Promise extends OriginalPromise {
+    constructor(fn) {
+      const __promiseId = promiseCounter;
+      const wrapped = _fnWrapper(fn, __promiseId);
+      super(wrapped);
+
+      _inflightTestPromises.push(this);
+      this.__promiseId = __promiseId;
+      promiseCounter++;
+
+      this.__promiseCreationStack = new Error().stack;
+    }
+  };
+
+  beforeEach(() => {
+    _resolveFns.splice(0, _resolveFns.length); // Free resolve fns
+    _inflightTestPromises.splice(0, _inflightTestPromises.length); // Free promise refs
+  });
+
+  afterEach(() => {
+    global._lastTest = expect.getState().currentTestName;
+
+    _resolveFns.forEach(resolve =>
+      resolve('If you are seeing this then you are outside the bounds of a test')
+    );
+
+    const remainingInflight = _inflightTestPromises.length;
+    if (remainingInflight) {
+      console.log(
+        _inflightTestPromises.map(p => p.__promiseCreationStack).join('\n\n\n')
+      );
+      throw new Error(
+        `(${remainingInflight}) Promises detected outside the bounds of the test: ${
+          expect.getState().currentTestName
+        }`
+      );
+    }
+  });
+}
+
+testIsolationChecks();
+
+process.on('unhandledRejection', reason => {
+  if (global._lastTest) {
+    // eslint-disable-next-line no-console
+    console.error('Last run test: ', global._lastTest);
+  }
+  // eslint-disable-next-line no-console
+  console.error(reason);
+});
+>>>>>>> Stashed changes
 
 /**
  * Enzyme configuration

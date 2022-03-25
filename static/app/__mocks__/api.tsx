@@ -163,6 +163,9 @@ class Client implements ApiNamespace.Client {
     }: {includeAllArgs?: boolean} & Readonly<ApiNamespace.RequestOptions> = {}
   ): any {
     return new Promise((resolve, reject) => {
+      if ((global as any)._registerAutoResolve) {
+        (global as any)._registerAutoResolve(resolve);
+      }
       this.request(path, {
         ...options,
         success: (data, ...args) => {
