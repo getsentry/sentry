@@ -3,7 +3,7 @@ import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
-  onUpdate: (data?: any) => void;
+  onUpdate: (data: {inbox: boolean}) => void;
   disabled?: boolean;
 };
 

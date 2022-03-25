@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -26,11 +27,13 @@ import {
   Group,
   Organization,
   Project,
+  ResolutionStatus,
   SavedQueryVersions,
   UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {uniqueId} from 'sentry/utils/guid';
@@ -49,6 +52,7 @@ type Props = {
   organization: Organization;
   project: Project;
   event?: Event;
+  query?: Query;
 };
 
 type State = {
@@ -95,6 +99,31 @@ class Actions extends React.Component<Props, State> {
     return discoverView.getResultsViewUrlTarget(organization.slug);
   }
 
+  trackIssueAction(
+    action:
+      | 'shared'
+      | 'deleted'
+      | 'bookmarked'
+      | 'subscribed'
+      | 'mark_reviewed'
+      | 'discarded'
+      | ResolutionStatus
+  ) {
+    const {group, project, organization, query = {}} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = query;
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
+      action_type: action,
+      // Alert properties track if the user came from email/slack alerts
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
+  }
+
   onDelete = () => {
     const {group, project, organization, api} = this.props;
 
@@ -115,6 +144,8 @@ class Actions extends React.Component<Props, State> {
         },
       }
     );
+
+    this.trackIssueAction('deleted');
   };
 
   onUpdate = (
@@ -140,6 +171,13 @@ class Actions extends React.Component<Props, State> {
         complete: clearIndicators,
       }
     );
+
+    if ((data as UpdateResolutionStatus).status) {
+      this.trackIssueAction((data as UpdateResolutionStatus).status);
+    }
+    if ((data as {inbox: boolean}).inbox !== undefined) {
+      this.trackIssueAction('mark_reviewed');
+    }
   };
 
   onReprocessEvent = () => {
@@ -172,6 +210,8 @@ class Actions extends React.Component<Props, State> {
         },
       }
     );
+
+    this.trackIssueAction('shared');
   }
 
   onToggleShare = () => {
@@ -186,10 +226,12 @@ class Actions extends React.Component<Props, State> {
 
   onToggleBookmark = () => {
     this.onUpdate({isBookmarked: !this.props.group.isBookmarked});
+    this.trackIssueAction('bookmarked');
   };
 
   onToggleSubscribe = () => {
     this.onUpdate({isSubscribed: !this.props.group.isSubscribed});
+    this.trackIssueAction('subscribed');
   };
 
   onDiscard = () => {
@@ -211,6 +253,7 @@ class Actions extends React.Component<Props, State> {
       },
       complete: clearIndicators,
     });
+    this.trackIssueAction('discarded');
   };
 
   handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
