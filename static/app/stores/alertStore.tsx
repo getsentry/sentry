@@ -111,7 +111,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
 };
 
 const AlertStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & Internals & AlertStoreInterface
+  Reflux.createStore(storeConfig) as Reflux.Store & AlertStoreInterface
 );
 
 export default AlertStore;
