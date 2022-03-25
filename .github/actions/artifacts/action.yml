@@ -14,11 +14,10 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - shell: bash
-      run: unset NODE_OPTIONS
-
     - name: Upload to codecov
       uses: codecov/codecov-action@v2
+      env:
+          NODE_OPTIONS: ""
       with:
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
