@@ -32,6 +32,7 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanRectangle from './spanRectangle';
+import {SpanRectangleOverlay} from './spanRectangleOverlay';
 import {MeasurementMarker} from './styles';
 import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
 import {
@@ -282,10 +283,9 @@ export default function SpanSiblingGroupBar(props: Props) {
                         bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
                       />
                     ))}
-                    <SpanRectangle
+                    <SpanRectangleOverlay
                       spanGrouping={spanGrouping}
                       bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
-                      isOverlayRectangle
                     />
 
                     {renderMeasurements()}
