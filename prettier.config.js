@@ -1,7 +1,7 @@
 /* eslint-env node */
 module.exports = {
   bracketSpacing: false,
-  jsxBracketSameLine: false,
+  bracketSameLine: false,
   printWidth: 90,
   semi: true,
   singleQuote: true,

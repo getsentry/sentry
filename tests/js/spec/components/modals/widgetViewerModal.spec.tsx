@@ -174,7 +174,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-count&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -243,7 +243,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=&sort=-count&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -266,6 +266,15 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders total results in footer', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('33,323,612')).toBeInTheDocument();
+    });
+
+    it('renders highlighted query text and multiple queries in select dropdown', async function () {
+      const {container} = await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+      userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
+      expect(container).toSnapshot();
     });
   });
 
