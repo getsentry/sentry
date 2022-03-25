@@ -76,18 +76,35 @@ def get_available_derived_metrics(
     )
 
     found_derived_metrics = set()
+    composite_entity_derived_metrics = set()
     for derived_metric_name, derived_metric_obj in requested_derived_metrics.items():
         try:
             derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
         except NotSupportedOverCompositeEntityException:
-            # ToDo(ahmed): Handle instances of CompositeEntityDerivedMetrics in upcoming PR
+            # If we encounter a derived metric composed of constituents spanning multiple
+            # entities then we store it in this set
+            composite_entity_derived_metrics.add(derived_metric_obj.metric_name)
             continue
-
         for ids_per_entity in supported_metric_ids_in_entities.values():
             if derived_metric_obj_ids.intersection(ids_per_entity) == derived_metric_obj_ids:
                 found_derived_metrics.add(derived_metric_name)
                 # If we find a match in ids in one entity, then skip checks across entities
                 break
+
+    for composite_derived_metric_name in composite_entity_derived_metrics:
+        # We naively loop over singular entity derived metric constituents of a composite entity
+        # derived metric and check if they have already been found and if that is the case,
+        # then we add that instance of composite metric to the found derived metric.
+        composite_derived_metric_obj = DERIVED_METRICS[composite_derived_metric_name]
+
+        single_entity_constituents = set(
+            list(
+                composite_derived_metric_obj.naively_generate_singular_entity_constituents().values()
+            ).pop()
+        )
+
+        if single_entity_constituents.issubset(found_derived_metrics):
+            found_derived_metrics.add(composite_derived_metric_obj.metric_name)
     return found_derived_metrics
 
 
@@ -120,9 +137,6 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # their constituent metrics. A derived metric should be added to the response list if its
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
-    # ToDo(ahmed): When CompositeEntityDerivedMetrics are introduced we need to do these checks
-    #  not on the instance of the CompositeEntityDerivedMetric but rather on its
-    #  SingularEntityDerivedMetric constituents
     found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
     for derived_metric_name in found_derived_metrics:
         derived_metric_obj = DERIVED_METRICS[derived_metric_name]
