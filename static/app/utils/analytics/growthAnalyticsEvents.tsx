@@ -68,7 +68,6 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -105,8 +104,6 @@ type GrowthAnalyticsKey = keyof GrowthEventParameters;
 export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.show_mobile_prompt_banner': 'Growth: Show Mobile Prompt Banner',
   'growth.dismissed_mobile_prompt_banner': 'Growth: Dismissed Mobile Prompt Banner',
-  'growth.opened_mobile_project_suggest_modal':
-    'Growth: Open Mobile Project Suggest Modal',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
