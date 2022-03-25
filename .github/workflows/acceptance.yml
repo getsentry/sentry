@@ -16,9 +16,12 @@ on:
 jobs:
   frontend:
     name: frontend tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
@@ -88,7 +91,7 @@ jobs:
 
   webpack:
     name: create frontend bundle
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     outputs:
       dist-path: ${{ steps.config.outputs.dist-path }}
@@ -145,9 +148,12 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -208,9 +214,12 @@ jobs:
 
   chartcuterie:
     name: chartcuterie integration
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 30
     strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
       matrix:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
@@ -265,3 +274,22 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+  visual-diff:
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, frontend, chartcuterie]
+    name: triggers visual snapshot
+    # Do not execute on forks or on master
+    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

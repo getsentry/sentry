@@ -1,11 +1,9 @@
-from typing import Union
-
-from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases import OrganizationMemberEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
@@ -44,7 +42,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
     }
 
 
-class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
+class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -91,21 +89,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             team in request.access.teams and request.access.has_team_scope(team, "team:write")
         )
 
-    def _get_member(
-        self, request: Request, organization: Organization, member_id: Union[int, str]
-    ) -> OrganizationMember:
-        if member_id == "me":
-            queryset = OrganizationMember.objects.filter(
-                organization=organization, user__id=request.user.id, user__is_active=True
-            )
-        else:
-            queryset = OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                id=member_id,
-            )
-        return queryset.select_related("user").get()
-
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
     ) -> None:
@@ -124,7 +107,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: Union[int, str],
+        member: OrganizationMember,
         team_slug: str,
     ) -> Response:
         """
@@ -136,11 +119,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         If the user is already a member of the team, this will simply return
         a 204.
         """
-        try:
-            member = self._get_member(request, organization, member_id)
-        except OrganizationMember.DoesNotExist:
-            raise ResourceDoesNotExist
-
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
@@ -176,17 +154,12 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: Union[int, str],
+        member: OrganizationMember,
         team_slug: str,
     ) -> Response:
         """
         Leave or remove a member from a team
         """
-        try:
-            member = self._get_member(request, organization, member_id)
-        except OrganizationMember.DoesNotExist:
-            raise ResourceDoesNotExist
-
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:

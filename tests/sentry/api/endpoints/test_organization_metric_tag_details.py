@@ -11,7 +11,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def test_unknown_tag(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_success_response(self.project.organization.slug, "bar")
         assert response.data == []
 
@@ -20,7 +20,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         assert response.status_code == 400
 
     def test_non_existing_filter(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_response(self.project.organization.slug, "bar", metric="bad")
         assert response.status_code == 200
         assert response.data == []
@@ -55,7 +55,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
 
         # We need to ensure that if the tag is present in the indexer but has no values in the
         # dataset, the intersection of it and other tags should not yield any results
-        indexer.record("random_tag")
+        indexer.record(self.organization.id, "random_tag")
         response = self.get_success_response(
             self.organization.slug,
             "tag1",
@@ -63,8 +63,6 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == []
 
-    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_tag_values_for_derived_metrics(self):
         self.store_session(
             self.build_session(
@@ -78,16 +76,36 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         response = self.get_response(
             self.organization.slug,
             "release",
-            metric=["session.crash_free_rate", "session.init"],
+            metric=["session.crash_free_rate", "session.all"],
         )
         assert response.data == [{"key": "release", "value": "foobar"}]
 
+    def test_tag_not_available_in_the_indexer(self):
         response = self.get_response(
             self.organization.slug,
             "release",
-            metric=["crash_free_fake", "session.init"],
+            metric=["random_foo_metric"],
         )
         assert response.status_code == 400
+        assert response.json()["detail"] == "Tag release is not available in the indexer"
+
+    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    def test_incorrectly_setup_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "release",
+            metric=["crash_free_fake"],
+        )
         assert response.json()["detail"] == (
             "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
             "Please revise the definition of these singular entity derived metrics"

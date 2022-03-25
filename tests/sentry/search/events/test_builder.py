@@ -580,7 +580,9 @@ class QueryBuilderTest(TestCase):
             query.get_snql_query()
 
 
-def _metric_percentile_definition(quantile, field="transaction.duration") -> Function:
+def _metric_percentile_definition(quantile, field="transaction.duration", alias=None) -> Function:
+    if alias is None:
+        alias = f"p{quantile}_{field.replace('.', '_')}"
     return Function(
         "arrayElement",
         [
@@ -596,7 +598,7 @@ def _metric_percentile_definition(quantile, field="transaction.duration") -> Fun
             ),
             1,
         ],
-        f"p{quantile}_{field.replace('.', '_')}",
+        alias,
     )
 
 
@@ -847,6 +849,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.params,
                 "transaction:[something_else, something_else2]",
                 selected_columns=["transaction", "project", "p95(transaction.duration)"],
+            )
+
+    def test_incorrect_parameter_for_metrics(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                f"project:{self.project.slug}",
+                selected_columns=["transaction", "count_unique(test)"],
             )
 
     def test_project_filter(self):
@@ -1213,6 +1223,96 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
             query.run_query("test_query")
 
+    def test_invalid_column_arg(self):
+        for function in [
+            "count_unique(transaction.duration)",
+            "count_miserable(measurements.fcp)",
+            "p75(user)",
+            "count_web_vitals(user, poor)",
+        ]:
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    "",
+                    selected_columns=[function],
+                )
+
+    def test_orderby_field_alias(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+            ],
+            orderby=["p95"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "p95"
+        )
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95() as test",
+            ],
+            orderby=["test"],
+        )
+        assert len(query.orderby) == 1
+        assert query.orderby[0].exp == _metric_percentile_definition(
+            "95", "transaction.duration", "test"
+        )
+
+    def test_error_if_aggregates_disallowed(self):
+        def run_query(query, use_aggregate_conditions):
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    selected_columns=[
+                        "transaction",
+                        "p95()",
+                        "count_unique(user)",
+                    ],
+                    query=query,
+                    allow_metric_aggregates=False,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+
+        queries = [
+            "p95():>5s",
+            "count_unique(user):>0",
+            "transaction:foo_transaction AND (!transaction:bar_transaction OR p95():>5s)",
+        ]
+        for query in queries:
+            for use_aggregate_conditions in [True, False]:
+                run_query(query, use_aggregate_conditions)
+
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        )
+
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=False,
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
@@ -1368,6 +1468,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=900,
             query="p50(transaction.duration):>100",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+            allow_metric_aggregates=True,
         )
         # Aggregate conditions should be dropped
         assert query.having == []
@@ -1541,4 +1642,32 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "time", "type": "DateTime('Universal')"},
                 {"name": "p50_transaction_duration", "type": "Float64"},
             ],
+        )
+
+    def test_error_if_aggregates_disallowed(self):
+        def run_query(query):
+            with self.assertRaises(IncompatibleMetricsQuery):
+                TimeseriesMetricQueryBuilder(
+                    self.params,
+                    interval=900,
+                    query=query,
+                    selected_columns=["p50(transaction.duration)"],
+                    allow_metric_aggregates=False,
+                )
+
+        queries = [
+            "p95():>5s",
+            "count_unique(user):>0",
+            "transaction:foo_transaction AND (!transaction:bar_transaction OR p95():>5s)",
+        ]
+        for query in queries:
+            run_query(query)
+
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+        TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=900,
+            selected_columns=["p50(transaction.duration)"],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
         )

@@ -91,6 +91,7 @@ type Props = {
    */
   noFieldsMessage?: string;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
@@ -556,6 +557,7 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
       noFieldsMessage,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
@@ -567,7 +569,7 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
@@ -656,7 +658,7 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-interface BufferedInputProps extends React.HTMLProps<HTMLInputElement> {
+interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
 }
@@ -708,7 +710,7 @@ class BufferedInput extends React.Component<BufferedInputProps, InputState> {
   };
 
   render() {
-    const {onUpdate: _, as: _as, ...props} = this.props;
+    const {onUpdate: _, ...props} = this.props;
     return (
       <StyledInput
         {...props}

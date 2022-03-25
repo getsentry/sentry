@@ -627,7 +627,7 @@ class QueryBuilder:
                     resolved_orderby = bare_orderby
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
-            except NotImplementedError:
+            except (NotImplementedError, IncompatibleMetricsQuery):
                 resolved_orderby = None
 
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
@@ -1473,11 +1473,12 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, allow_metric_aggregates: Optional[bool] = False, **kwargs: Any):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
         self.metric_ids: List[int] = []
+        self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1500,7 +1501,7 @@ class MetricsQueryBuilder(QueryBuilder):
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1547,6 +1548,24 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
+
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
+        if not self.allow_metric_aggregates:
+            # Regardless of use_aggregate_conditions, check if any having_conditions exist
+            having_conditions = super().resolve_having(parsed_terms, True)
+            if len(having_conditions) > 0:
+                raise IncompatibleMetricsQuery(
+                    "Aggregate conditions were disabled, but included in filter"
+                )
+
+            # Don't resolve having conditions again if we don't have to
+            if use_aggregate_conditions:
+                return having_conditions
+            else:
+                return []
+        return super().resolve_having(parsed_terms, use_aggregate_conditions)
 
     def resolve_limit(self, limit: Optional[int]) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
@@ -1792,12 +1811,14 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         interval: int,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
     ):
         super().__init__(
             params=params,
             query=query,
             selected_columns=selected_columns,
+            allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
         )

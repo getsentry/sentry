@@ -17,7 +17,6 @@ export enum DisplayType {
   TABLE = 'table',
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
   TOP_N = 'top_n',
 }
 
@@ -46,6 +45,8 @@ export type Widget = {
   title: string;
   id?: string;
   layout?: WidgetLayout | null;
+  // Used to define 'topEvents' when fetching time-series data for a widget
+  limit?: number;
   tempId?: string;
   widgetType?: WidgetType;
 };

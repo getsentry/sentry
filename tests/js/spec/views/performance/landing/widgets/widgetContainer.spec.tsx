@@ -343,15 +343,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
-    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
-      'Sampled'
-    );
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Failure RateSampled'
-    );
+    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
   });
 
   it('Widget with MEP enabled and metric meta set to undefined', async function () {
@@ -387,6 +383,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -417,7 +414,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
       />
     );
 
-    expect(await screen.findByTestId('no-metrics-data-tag')).toBeInTheDocument();
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(eventStatsMock).toHaveBeenNthCalledWith(
       1,
@@ -425,8 +421,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
+    );
+    expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
+      'Sampled'
     );
   });
 
@@ -536,6 +536,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -884,6 +885,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
