@@ -40,7 +40,7 @@ type Props = WithRouterProps & {
   spanSlug: SpanSlug;
 };
 
-export default function ExclusiveTimeTimeSeries(props: Props) {
+export default function ExclusiveTimeHistogram(props: Props) {
   const {location, router, organization, eventView, spanSlug} = props;
 
   const theme = useTheme();
