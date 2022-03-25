@@ -483,9 +483,10 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    const columnsAndAggregates = isColumn
-      ? getColumnsAndAggregatesAsStrings(newFields)
-      : undefined;
+    const columnsAndAggregates =
+      isColumn || displayType === DisplayType.TOP_N
+        ? getColumnsAndAggregatesAsStrings(newFields)
+        : undefined;
 
     const newState = cloneDeep(state);
 
@@ -499,8 +500,16 @@ function WidgetBuilder({
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
       } else {
-        newQuery.fields = [...newQuery.columns, ...fieldStrings];
-        newQuery.aggregates = fieldStrings;
+        if (displayType === DisplayType.TOP_N) {
+          newQuery.fields = [
+            ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
+            ...fieldStrings,
+          ];
+          newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+        } else {
+          newQuery.fields = [...newQuery.columns, ...fieldStrings];
+          newQuery.aggregates = fieldStrings;
+        }
       }
 
       if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {

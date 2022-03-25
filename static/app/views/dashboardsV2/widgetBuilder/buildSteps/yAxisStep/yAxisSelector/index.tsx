@@ -77,9 +77,9 @@ export function YAxisSelector({
   }
 
   function handleTopNChangeField(value: QueryFieldValue) {
-    const newAggregates = [...aggregates];
-    newAggregates[aggregates.length - 1] = value;
-    onChange(newAggregates);
+    // Only send a single value because Top N can only change
+    // one value and there may be multiple for non-top N queries
+    onChange([value]);
   }
 
   // Any function/field choice for Big Number widgets is legal since the

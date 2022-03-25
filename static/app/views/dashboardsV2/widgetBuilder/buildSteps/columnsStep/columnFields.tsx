@@ -31,6 +31,26 @@ export function ColumnFields({
   errors,
   onChange,
 }: Props) {
+  if (displayType === DisplayType.TOP_N) {
+    return (
+      <Field
+        inline={false}
+        error={errors?.find(error => error?.fields)?.fields}
+        flexibleControlStateSize
+        stacked
+      >
+        <ColumnCollectionEdit
+          columns={fields.slice(0, fields.length - 1)}
+          onChange={newColumns => {
+            onChange([...newColumns, fields[fields.length - 1]]);
+          }}
+          fieldOptions={fieldOptions}
+          organization={organization}
+          source={widgetType}
+        />
+      </Field>
+    );
+  }
   return (
     <Field
       inline={false}
