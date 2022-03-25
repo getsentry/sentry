@@ -1,5 +1,7 @@
 import Reflux from 'reflux';
 
+import {makeSafeRefluxStore} from '../utils/makeSafeRefluxStore';
+
 const DebugMetaActions = Reflux.createActions(['updateFilter']);
 
 type State = {
@@ -42,7 +44,9 @@ const storeConfig: Reflux.StoreDefinition & DebugMetaStoreInterface & Internals 
   },
 };
 
-const DebugMetaStore = Reflux.createStore(storeConfig);
+const DebugMetaStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & DebugMetaStoreInterface & Internals
+);
 
 export {DebugMetaActions, DebugMetaStore};
 export default DebugMetaStore;

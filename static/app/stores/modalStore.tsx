@@ -16,26 +16,13 @@ type ModalStoreInterface = {
   onCloseModal(): void;
   onOpenModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
-  teardown(): void;
-  unsubscribeListeners: (() => void)[];
 };
 
 const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {
-  unsubscribeListeners: [],
   init() {
     this.reset();
-    this.safeListenTo(ModalActions.closeModal, this.onCloseModal);
-    this.safeListenTo(ModalActions.openModal, this.onOpenModal);
-  },
-
-  safeListenTo(action, callback) {
-    this.unsubscribeListeners.push(this.listenTo(action), callback);
-  },
-
-  teardown() {
-    for (const unsubscribeListener of this.unsubscribeListeners) {
-      unsubscribeListener();
-    }
+    this.listenTo(ModalActions.closeModal, this.onCloseModal);
+    this.listenTo(ModalActions.openModal, this.onOpenModal);
   },
 
   get() {

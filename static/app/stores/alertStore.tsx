@@ -3,6 +3,7 @@ import Reflux from 'reflux';
 import AlertActions from 'sentry/actions/alertActions';
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {Theme} from 'sentry/utils/theme';
 
 import {CommonStoreInterface} from './types';
@@ -109,6 +110,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   },
 };
 
-const AlertStore = Reflux.createStore(storeConfig) as Reflux.Store & AlertStoreInterface;
+const AlertStore = makeSafeRefluxStore(
+  Reflux.createStore(storeConfig) as Reflux.Store & Internals & AlertStoreInterface
+);
 
 export default AlertStore;
