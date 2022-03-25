@@ -197,10 +197,10 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.team_3 = self.create_team(organization=self.org)
         self.create_team_membership(user=self.member, team=self.team_2)
         self.project_1 = self.create_project(
-            organization=self.org, teams=[self.team_1, self.team_3]
+            organization=self.org, teams=[self.team_1, self.team_3], slug="foo"
         )
         self.project_2 = self.create_project(
-            organization=self.org, teams=[self.team_2, self.team_3]
+            organization=self.org, teams=[self.team_2, self.team_3], slug="bar"
         )
 
     def run_test(
@@ -311,66 +311,79 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.create_team_membership(user=self.user, team=self.team_1)
         self.run_test([self.project_1, self.project_2], project_ids=[-1])
 
-
-class GetProjectSlugsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
-        self.team_1 = self.create_team(organization=self.org)
-        self.project_1 = self.create_project(organization=self.org, teams=[self.team_1], slug="foo")
-        self.project_2 = self.create_project(organization=self.org, teams=[self.team_1], slug="bar")
-
-    def run_test(
-        self,
-        expected_projects,
-        user=None,
-        project_slugs=None,
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_no_slug_defaults_to_ids(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
     ):
-        request_args = {}
-        if project_slugs:
-            request_args["projectSlug"] = project_slugs
-
-        result = self.endpoint.get_projects_by_slugs(
-            self.build_request(user=user, **request_args),
-            self.org,
-        )
-        assert {p.id for p in expected_projects} == {p.id for p in result}
-
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint.get_projects")
-    def test_get_projects_by_slugs_calls_get_projects(self, mock_get_projects):
         project_slugs = [""]
         request = self.build_request(projectSlug=project_slugs)
+        mock_project_ids = set()
+        mock_get_project_ids_unchecked.return_value = mock_project_ids
 
-        self.endpoint.get_projects_by_slugs(
+        self.endpoint.get_projects(
             request,
             self.org,
         )
 
-        mock_get_projects.assert_called_with(request, self.org, project_ids=set())
+        mock_get_project_ids_unchecked.assert_called_with(request)
+        mock__get_projects_by_id.assert_called_with(
+            mock_project_ids,
+            request,
+            self.org,
+            False,
+            False,
+        )
 
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint.get_projects")
-    def test_get_projects_by_slugs_grabs_project_ids(self, mock_get_projects):
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_by_slugs_grabs_project_ids(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+    ):
         project_slugs = ["foo"]
         request = self.build_request(projectSlug=project_slugs)
 
-        self.endpoint.get_projects_by_slugs(
+        self.endpoint.get_projects(
             request,
             self.org,
         )
 
-        mock_get_projects.assert_called_with(
-            request, self.org, project_ids=set({self.project_1.id})
+        assert not mock_get_project_ids_unchecked.called
+        mock__get_projects_by_id.assert_called_with(
+            set({self.project_1.id}),
+            request,
+            self.org,
+            False,
+            False,
         )
 
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint.get_projects")
-    def test_get_projects_by_slugs_all(self, mock_get_projects):
+    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+    )
+    def test_get_projects_by_slugs_all(
+        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+    ):
         project_slugs = ALL_ACCESS_PROJECTS_SLUG
         request = self.build_request(projectSlug=project_slugs)
 
-        self.endpoint.get_projects_by_slugs(
+        self.endpoint.get_projects(
             request,
             self.org,
         )
 
-        mock_get_projects.assert_called_with(request, self.org, project_ids=ALL_ACCESS_PROJECTS)
+        assert not mock_get_project_ids_unchecked.called
+        mock__get_projects_by_id.assert_called_with(
+            ALL_ACCESS_PROJECTS,
+            request,
+            self.org,
+            False,
+            False,
+        )
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):

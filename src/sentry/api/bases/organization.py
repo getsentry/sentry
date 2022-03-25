@@ -1,3 +1,5 @@
+from typing import Optional, Set
+
 import sentry_sdk
 from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -165,7 +167,8 @@ class OrganizationEndpoint(Endpoint):
         organization,
         force_global_perms=False,
         include_all_accessible=False,
-        project_ids=None,
+        project_ids: Optional[Set[int]] = None,
+        project_slugs: Optional[Set[str]] = None,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -190,26 +193,23 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied.
         """
         if project_ids is None:
-            project_ids = self.get_requested_project_ids_unchecked(request)
+            slugs = project_slugs or set(list(filter(None, request.GET.getlist("projectSlug"))))
+            if ALL_ACCESS_PROJECTS_SLUG in slugs:
+                project_ids = ALL_ACCESS_PROJECTS
+            elif slugs:
+                projects = Project.objects.filter(
+                    organization=organization, slug__in=slugs
+                ).values_list("id", flat=True)
+                project_ids = set(projects)
+            else:
+                project_ids = self.get_requested_project_ids_unchecked(request)
+
         return self._get_projects_by_id(
-            project_ids, request, organization, force_global_perms, include_all_accessible
-        )
-
-    def get_projects_by_slugs(self, request, organization, **kwargs):
-        slugs = request.GET.getlist("projectSlug")
-        if ALL_ACCESS_PROJECTS_SLUG in slugs:
-            p_ids = ALL_ACCESS_PROJECTS
-        else:
-            projects = Project.objects.filter(
-                organization=organization, slug__in=slugs
-            ).values_list("id", flat=True)
-            p_ids = set(projects)
-
-        return self.get_projects(
+            project_ids,
             request,
             organization,
-            project_ids=p_ids,
-            **kwargs,
+            force_global_perms,
+            include_all_accessible,
         )
 
     def _get_projects_by_id(
