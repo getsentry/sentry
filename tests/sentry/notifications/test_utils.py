@@ -1,4 +1,7 @@
-from sentry.models import NotificationSetting
+from typing import Dict, Sequence
+from urllib.parse import parse_qs, urlparse
+
+from sentry.models import NotificationSetting, Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_scope_type,
@@ -13,6 +16,12 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
+)
+from sentry.notifications.utils import (
+    NotificationRuleDetails,
+    get_email_link_extra_params,
+    get_group_settings_link,
+    get_rules,
 )
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
@@ -153,4 +162,49 @@ class NotificationHelpersTest(TestCase):
             ExternalProviders.EMAIL: {
                 NotificationScopeType.USER: NotificationSettingOptionValues.NEVER
             }
+        }
+
+    def test_get_group_settings_link(self):
+        rule: Rule = self.create_project_rule(self.project)
+        rule_details: Sequence[NotificationRuleDetails] = get_rules(
+            [rule], self.organization, self.project
+        )
+        link = get_group_settings_link(self.group, self.environment.name, rule_details, 1337)
+
+        parsed = urlparse(link)
+        query_dict = dict(map(lambda x: (x[0], x[1][0]), parse_qs(parsed.query).items()))
+        assert (
+            parsed.scheme + "://" + parsed.hostname + parsed.path == self.group.get_absolute_url()
+        )
+        assert query_dict == {
+            "referrer": "alert_email",
+            "environment": self.environment.name,
+            "alert_type": "email",
+            "alert_timestamp": str(1337),
+            "alert_rule_id": str(rule_details[0].id),
+        }
+
+    def test_get_email_link_extra_params(self):
+        rule: Rule = self.create_project_rule(self.project)
+        project2 = self.create_project()
+        rule2 = self.create_project_rule(project2)
+
+        rule_details: Sequence[NotificationRuleDetails] = get_rules(
+            [rule, rule2], self.organization, self.project
+        )
+        extra_params: Dict[int, str] = {
+            k: dict(map(lambda x: (x[0], x[1][0]), parse_qs(v.strip("?")).items()))
+            for k, v in get_email_link_extra_params(
+                "digest_email", None, rule_details, 1337
+            ).items()
+        }
+
+        assert extra_params == {
+            rule_detail.id: {
+                "referrer": "digest_email",
+                "alert_type": "email",
+                "alert_timestamp": str(1337),
+                "alert_rule_id": str(rule_detail.id),
+            }
+            for rule_detail in rule_details
         }

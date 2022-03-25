@@ -1109,7 +1109,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
 
-        schema = ListSet(schema=ComparatorType.Exact, index_by=identity)
+        schema = ComparatorType.Ignore
 
         should_compare = (
             lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
@@ -1290,11 +1290,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[str]] = None,
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        schema = ListSet(schema=ComparatorType.Exact, index_by=identity)
-
-        set_tag("gprbs.limit", str(limit))
-        set_tag("gprbs.offset", str(offset))
-        set_tag("gprbs.scope", str(scope))
+        schema = ComparatorType.Ignore
 
         if stats_period is None:
             stats_period = "24h"
