@@ -31,7 +31,13 @@ export function useLegacyStore<T extends LegacyStoreShape>(
   // Not all stores emit the new state, call get on change
   const callback = () => window._legacyStoreHookUpdate(() => setState(store.getState()));
 
-  useEffect(() => store.listen(callback, undefined) as () => void, []);
+  useEffect(() => {
+    const listener = store.listen(callback, undefined);
+
+    return () => {
+      listener();
+    };
+  }, []);
 
   return state;
 }

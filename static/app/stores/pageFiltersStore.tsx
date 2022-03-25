@@ -37,6 +37,7 @@ type Internals = {
 };
 
 type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+  init(): void;
   onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
@@ -82,10 +83,12 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 
   getState() {
-    const isReady = this._hasInitialState;
-    const {selection, pinnedFilters, desyncedFilters} = this;
-
-    return {selection, pinnedFilters, desyncedFilters, isReady};
+    return {
+      selection: this.selection,
+      pinnedFilters: this.pinnedFilters,
+      desyncedFilters: this.desyncedFilters,
+      isReady: this._hasInitialState,
+    };
   },
 
   onReset() {
