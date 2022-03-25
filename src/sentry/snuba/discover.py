@@ -1366,20 +1366,19 @@ def spans_histogram_query(
     """
     multiplier = int(10 ** precision)
     if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
 
-    # TODO add min max calculation after
-    # min_value, max_value = find_histogram_min_max(
-    #     fields, min_value, max_value, user_query, params, data_filter, use_snql
-    # )
+    min_value, max_value = find_span_histogram_min_max(
+        span, min_value, max_value, user_query, params, data_filter
+    )
 
     key_column = None
     field_names = []
     histogram_rows = None
 
-    # TODO calculate histogram_params
-    # histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    histogram_params = HistogramParams(num_buckets=100, bucket_size=1, start_offset=0, multiplier=1)
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_span_histogram_column(span, histogram_params)
 
     builder = HistogramQueryBuilder(
@@ -1405,7 +1404,7 @@ def spans_histogram_query(
     if not normalize_results:
         return results
 
-    return normalize_span_histogram_resutls(span, histogram_params, results)
+    return normalize_span_histogram_results(span, histogram_params, results)
 
 
 def histogram_query(
@@ -1644,6 +1643,79 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
 
+def find_span_histogram_min_max(span, min_value, max_value, user_query, params, data_filter=None):
+    """
+    Find the min/max value of the specified span. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [Span] span: A span for which you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    selected_columns = []
+    min_column = ""
+    max_column = ""
+    if min_value is None:
+        min_column = f'fn_span_exclusive_time("{span.op}", {span.group}, min)'
+        selected_columns.append(min_column)
+    if max_value is None:
+        max_column = f'fn_span_exclusive_time("{span.op}", {span.group}, max)'
+        selected_columns.append(max_column)
+
+    referrer = "api.organization-spans-histogram-min-max"
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=selected_columns,
+        query=user_query,
+        limit=1,
+        functions_acl=["fn_span_exclusive_time"],
+    )
+
+    results = builder.run_query(referrer)
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        calculated_min_value = row[get_function_alias(min_column)]
+        min_value = calculated_min_value if calculated_min_value else None
+        if max_value is not None and min_value is not None:
+            # max_value was provided by the user, and min_value was queried.
+            # If min_value > max_value, then we adjust min_value with respect to
+            # max_value. The rationale is that if the user provided max_value,
+            # then any and all data above max_value should be ignored since it is
+            # and upper bound.
+            min_value = min([max_value, min_value])
+
+    if max_value is None:
+        calculated_max_value = row[get_function_alias(max_column)]
+        max_value = calculated_max_value if calculated_max_value else None
+
+    if max_value is not None and min_value is not None:
+        # min_value may be either queried or provided by the user. max_value was queried.
+        # If min_value > max_value, then max_value should be adjusted with respect to
+        # min_value, since min_value is a lower bound, and any and all data below
+        # min_value should be ignored.
+        max_value = max([max_value, min_value])
+
+    return min_value, max_value
+
+
 def find_histogram_min_max(
     fields, min_value, max_value, user_query, params, data_filter=None, use_snql=False
 ):
@@ -1747,7 +1819,7 @@ def find_histogram_min_max(
     return min_value, max_value
 
 
-def normalize_span_histogram_resutls(span, histogram_params, results):
+def normalize_span_histogram_results(span, histogram_params, results):
     """
     Normalizes the span histogram results by renaming the columns to key and bin
     and make sure to zerofill any missing values.
