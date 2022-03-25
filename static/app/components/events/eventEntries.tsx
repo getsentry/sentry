@@ -399,7 +399,7 @@ const EventEntries = memo(
             />
           ) : (
             (!!(event.tags ?? []).length || hasContext) && (
-              <EventDataSection title={t('Tags')} type="tags">
+              <StyledEventDataSection title={t('Tags')} type="tags">
                 {hasContext && <EventContextSummary event={event} />}
                 <EventTags
                   event={event}
@@ -407,7 +407,7 @@ const EventEntries = memo(
                   projectId={projectSlug}
                   location={location}
                 />
-              </EventDataSection>
+              </StyledEventDataSection>
             )
           ))}
         {renderEntries(event)}
@@ -452,6 +452,15 @@ const EventEntries = memo(
     );
   }
 );
+
+const StyledEventDataSection = styled(EventDataSection)`
+  /* Hiding the top border because of the event section appears at this breakpoint */
+  @media (max-width: 767px) {
+    &:first-of-type {
+      border-top: none;
+    }
+  }
+`;
 
 const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
