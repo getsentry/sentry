@@ -40,6 +40,8 @@ class RatelimitMiddleware:
         try:
             rate_limit_uid = uuid.uuid4().hex
             view_func = resolve(request.path).func
+            # in deprecated django middleware the view function is passed in to process_view
+            # but we can still access it this way through the request
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return self.get_response(request)
