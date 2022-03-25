@@ -155,7 +155,7 @@ export function trimSlug(slug: string, maxLength: number = 20) {
   // If the remaining words array satisfies the maxLength requirement,
   // return the trimmed result.
   if (getLength(words) <= maxLength) {
-    return `${words.slice(0, -1).join('-')}…${words[words.length - 1]}`;
+    return `${words.slice(0, -1).join('-')}\u2026${words[words.length - 1]}`;
   }
 
   // If the remaining 2 words are still too long, trim those words starting
@@ -167,7 +167,7 @@ export function trimSlug(slug: string, maxLength: number = 20) {
   const rightWordLength = maxLength - leftWord.length;
   const rightWord = words[1].slice(-rightWordLength);
 
-  return `${leftWord}…${rightWord}`;
+  return `${leftWord}\u2026${rightWord}`;
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
