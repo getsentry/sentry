@@ -6,12 +6,15 @@ export interface SafeRefluxStore extends Reflux.Store {
 export function makeSafeRefluxStore<T extends Reflux.Store>(
   store: T
 ): SafeRefluxStore & T {
-  const storeCopy: SafeRefluxStore & T = Object.assign(
-    Object.create(Object.getPrototypeOf(store)),
-    store
-  );
+  const safeStore = store as SafeRefluxStore & T;
 
-  storeCopy.unsubscribeListeners = [];
+  // Warning: We are going to be overriding instance methods here!
+  // The reason we cannot create a new store and extend it is that
+  // reflux throws whenever createStore() is called with a storeDefinition
+  // that implements listenTo and we cannot create a clone is because
+  // Reflux.createStore implicitly connects the store already and we cannot
+  // disconnect that store and connect our own...
+  safeStore.unsubscribeListeners = [];
 
   function listenTo(
     this: SafeRefluxStore,
@@ -39,8 +42,8 @@ export function makeSafeRefluxStore<T extends Reflux.Store>(
     }
   }
 
-  storeCopy.listenTo = listenTo.bind(storeCopy);
-  storeCopy.teardown = teardown.bind(storeCopy);
+  safeStore.listenTo = listenTo.bind(store);
+  safeStore.teardown = teardown.bind(store);
 
-  return storeCopy;
+  return safeStore;
 }

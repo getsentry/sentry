@@ -1,5 +1,4 @@
 import {getCommitters} from 'sentry/actionCreators/committers';
-import CommitterActions from 'sentry/actions/committerActions';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 
 describe('CommitterActionCreator', function () {
@@ -29,11 +28,6 @@ describe('CommitterActionCreator', function () {
     });
 
     CommitterStore.init();
-
-    jest.restoreAllMocks();
-    jest.spyOn(CommitterActions, 'load');
-    jest.spyOn(CommitterActions, 'loadSuccess');
-
     /**
      * XXX(leedongwei): We would want to ensure that Store methods are not
      * called to be 100% sure that the short-circuit is happening correctly.
@@ -45,40 +39,27 @@ describe('CommitterActionCreator', function () {
     // jest.spyOn(CommitterStore, 'loadSuccess');
   });
 
-  /**
-   * XXX(leedongwei): I wanted to separate the ticks and run tests to assert the
-   * state change at every tick but it is incredibly flakey.
-   */
+  afterEach(() => {
+    CommitterStore.teardown();
+  });
+
   it('fetches a Committer and emits actions', async () => {
     getCommitters(api, {
       orgSlug: organization.slug,
       projectSlug: project.slug,
       eventId: event.id,
-    }); // Fire Action.load
-    expect(CommitterActions.load).toHaveBeenCalledWith(
-      organization.slug,
-      project.slug,
-      event.id
-    );
-    expect(CommitterActions.loadSuccess).not.toHaveBeenCalled();
-
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
+    });
 
     expect(mockResponse).toHaveBeenCalledWith(endpoint, expect.anything());
-    expect(CommitterActions.loadSuccess).toHaveBeenCalledWith(
-      organization.slug,
-      project.slug,
-      event.id,
-      mockData.committers
-    );
 
-    expect(CommitterStore.state).toEqual({
-      [storeKey]: {
-        committers: mockData.committers,
-        committersLoading: false,
-        committersError: undefined,
-      },
+    await waitFor(() => {
+      expect(CommitterStore.state).toEqual({
+        [storeKey]: {
+          committers: mockData.committers,
+          committersLoading: false,
+          committersError: undefined,
+        },
+      });
     });
   });
 
@@ -89,10 +70,8 @@ describe('CommitterActionCreator', function () {
       orgSlug: organization.slug,
       projectSlug: project.slug,
       eventId: event.id,
-    }); // Fire Action.load
+    });
 
-    expect(CommitterActions.load).toHaveBeenCalled();
-    // expect(CommitterStore.load).not.toHaveBeenCalled();
     expect(CommitterStore.state[storeKey].committersLoading).toEqual(true); // Short-circuit
   });
 });
