@@ -16,6 +16,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
+import {StepperContainer, StepperIndicator} from '../components/stepper';
+
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -85,6 +87,11 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={t('Welcome')} />
       <Header>
         <LogoSvg />
+        <StyledStepperContainer>
+          {ONBOARDING_STEPS.map(step => (
+            <StepperIndicator active={step.id === stepId} key={step.id} />
+          ))}
+        </StyledStepperContainer>
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
@@ -142,8 +149,8 @@ const Header = styled('header')`
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -193,6 +200,12 @@ const AdaptivePageCorners = styled(PageCorners)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     --corner-scale: 0.5;
   }
+`;
+
+const StyledStepperContainer = styled(StepperContainer)`
+  margin-left: auto;
+  margin-right: auto;
+  align-items: center;
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
