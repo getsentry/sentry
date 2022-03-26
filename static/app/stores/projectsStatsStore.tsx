@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type ProjectsStatsStoreInterface = {
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
@@ -18,14 +18,22 @@ type ProjectsStatsStoreInterface = {
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
+const storeConfig: Reflux.StoreDefinition &
+  ProjectsStatsStoreInterface &
+  SafeStoreDefinition = {
   itemsBySlug: {},
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.update, this.onUpdate);
-    this.listenTo(ProjectActions.updateError, this.onUpdateError);
+
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess)
+    );
+    this.unsubscribeListeners.push(this.listenTo(ProjectActions.update, this.onUpdate));
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateError, this.onUpdateError)
+    );
   },
 
   getInitialState() {
@@ -102,8 +110,8 @@ const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
   },
 };
 
-const ProjectsStatsStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & ProjectsStatsStoreInterface
-);
+const ProjectsStatsStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & ProjectsStatsStoreInterface;
 
 export default ProjectsStatsStore;

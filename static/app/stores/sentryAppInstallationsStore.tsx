@@ -32,8 +32,8 @@ const storeConfig: Reflux.StoreDefinition & SentryAppInstallationStoreInterface 
   },
 };
 
-const SentryAppInstallationStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & SentryAppInstallationStoreInterface
-);
+const SentryAppInstallationStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & SentryAppInstallationStoreInterface;
 
 export default SentryAppInstallationStore;

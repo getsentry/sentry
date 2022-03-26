@@ -5,7 +5,7 @@ import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -48,21 +48,36 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterface = {
+const storeConfig: Reflux.StoreDefinition &
+  Internals &
+  PageFiltersStoreInterface &
+  SafeStoreDefinition = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
   hasInitialState: false,
+  unsubscribeListeners: [],
 
   init() {
     this.reset(this.selection);
-    this.listenTo(PageFiltersActions.reset, this.onReset);
-    this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState);
-    this.listenTo(PageFiltersActions.updateProjects, this.updateProjects);
-    this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime);
-    this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments);
-    this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters);
-    this.listenTo(PageFiltersActions.pin, this.pin);
+
+    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.reset, this.onReset));
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateProjects, this.updateProjects)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters)
+    );
+    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.pin, this.pin));
   },
 
   reset(selection) {
@@ -149,8 +164,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & PageFiltersStoreInterfac
   },
 };
 
-const PageFiltersStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & PageFiltersStoreInterface
-);
+const PageFiltersStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & PageFiltersStoreInterface;
 
 export default PageFiltersStore;

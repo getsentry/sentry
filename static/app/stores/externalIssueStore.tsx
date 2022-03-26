@@ -39,8 +39,8 @@ const storeConfig: Reflux.StoreDefinition & ExternalIssueStoreInterface = {
   },
 };
 
-const ExternalIssueStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & ExternalIssueStoreInterface
-);
+const ExternalIssueStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & ExternalIssueStoreInterface;
 
 export default ExternalIssueStore;

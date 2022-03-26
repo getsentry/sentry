@@ -82,8 +82,8 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   },
 };
 
-const RepositoryStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & RepositoryStoreInterface
-);
+const RepositoryStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & RepositoryStoreInterface;
 
 export default RepositoryStore;

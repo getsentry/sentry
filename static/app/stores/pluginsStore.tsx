@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type PluginStoreInterface = {
   plugins: Map<string, Plugin> | null;
@@ -22,10 +22,11 @@ const defaultState = {
   pageLinks: null,
 };
 
-const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & PluginStoreInterface & SafeStoreDefinition = {
   plugins: null,
   state: {...defaultState},
   updating: new Map(),
+  unsubscribeListeners: [],
 
   reset() {
     // reset our state
@@ -50,12 +51,22 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
 
   init() {
     this.reset();
-    this.listenTo(PluginActions.fetchAll, this.onFetchAll);
-    this.listenTo(PluginActions.fetchAllSuccess, this.onFetchAllSuccess);
-    this.listenTo(PluginActions.fetchAllError, this.onFetchAllError);
-    this.listenTo(PluginActions.update, this.onUpdate);
-    this.listenTo(PluginActions.updateSuccess, this.onUpdateSuccess);
-    this.listenTo(PluginActions.updateError, this.onUpdateError);
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAll, this.onFetchAll)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAllSuccess, this.onFetchAllSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAllError, this.onFetchAllError)
+    );
+    this.unsubscribeListeners.push(this.listenTo(PluginActions.update, this.onUpdate));
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.updateSuccess, this.onUpdateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.updateError, this.onUpdateError)
+    );
   },
 
   triggerState() {
@@ -122,8 +133,7 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   },
 };
 
-const PluginStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & PluginStoreInterface
-);
+const PluginStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
+  PluginStoreInterface;
 
 export default PluginStore;

@@ -69,6 +69,7 @@ describe('IntegrationCodeMappings', function () {
   let wrapper;
 
   beforeEach(() => {
+    ModalStore.init();
     Client.clearMockResponses();
 
     mockResponse([

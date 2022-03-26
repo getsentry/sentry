@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type SdkUpdatesStoreInterface = {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
@@ -17,11 +17,17 @@ type Internals = {
   orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & SdkUpdatesStoreInterface = {
+const storeConfig: Reflux.StoreDefinition &
+  Internals &
+  SdkUpdatesStoreInterface &
+  SafeStoreDefinition = {
   orgSdkUpdates: new Map(),
+  unsubscribeListeners: [],
 
   init() {
-    this.listenTo(SdkUpdatesActions.load, this.onLoadSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(SdkUpdatesActions.load, this.onLoadSuccess)
+    );
   },
 
   onLoadSuccess(orgSlug, data) {
@@ -38,8 +44,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & SdkUpdatesStoreInterface
   },
 };
 
-const SdkUpdatesStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & SdkUpdatesStoreInterface
-);
+const SdkUpdatesStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & SdkUpdatesStoreInterface;
 
 export default SdkUpdatesStore;

@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -62,12 +62,15 @@ type TagStoreInterface = CommonStoreInterface<TagCollection> & {
   state: TagCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & TagStoreInterface & SafeStoreDefinition = {
   state: {},
+  unsubscribeListeners: [],
 
   init() {
     this.state = {};
-    this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess)
+    );
   },
 
   getBuiltInTags() {
@@ -182,8 +185,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 };
 
-const TagStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & TagStoreInterface
-);
+const TagStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
+  TagStoreInterface;
 
 export default TagStore;

@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import {Indicator} from 'sentry/actionCreators/indicator';
 import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -59,16 +59,22 @@ type Internals = {
   lastId: number;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface = {
+const storeConfig: Reflux.StoreDefinition &
+  Internals &
+  IndicatorStoreInterface &
+  SafeStoreDefinition = {
   items: [],
   lastId: 0,
+  unsubscribeListeners: [],
+
   init() {
     this.items = [];
     this.lastId = 0;
-    this.listenTo(IndicatorActions.append, this.append);
-    this.listenTo(IndicatorActions.replace, this.add);
-    this.listenTo(IndicatorActions.remove, this.remove);
-    this.listenTo(IndicatorActions.clear, this.clear);
+
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.append, this.append));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.replace, this.add));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.remove, this.remove));
+    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.clear, this.clear));
   },
 
   addSuccess(message) {
@@ -140,8 +146,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface 
   },
 };
 
-const IndicatorStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & IndicatorStoreInterface
-);
+const IndicatorStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & IndicatorStoreInterface;
 
 export default IndicatorStore;

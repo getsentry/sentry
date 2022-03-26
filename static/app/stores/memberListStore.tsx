@@ -69,8 +69,8 @@ const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
   },
 };
 
-const MemberListStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & MemberListStoreInterface
-);
+const MemberListStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & MemberListStoreInterface;
 
 export default MemberListStore;

@@ -617,8 +617,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-const GroupingStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & GroupingStoreInterface
-);
+const GroupingStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & GroupingStoreInterface;
 
 export default GroupingStore;

@@ -78,8 +78,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   },
 };
 
-const ConfigStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & ConfigStoreInterface
-);
+const ConfigStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
+  ConfigStoreInterface;
 
 export default ConfigStore;

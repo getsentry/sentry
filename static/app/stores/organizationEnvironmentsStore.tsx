@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type EnhancedEnvironment = Environment & {
   displayName: string;
@@ -24,7 +24,11 @@ type OrganizationEnvironmentsStoreInterface = {
   state: State;
 };
 
-const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterface = {
+const storeConfig: Reflux.StoreDefinition &
+  OrganizationEnvironmentsStoreInterface &
+  SafeStoreDefinition = {
+  unsubscribeListeners: [],
+
   state: {
     environments: null,
     error: null,
@@ -33,14 +37,20 @@ const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterfa
   init() {
     this.state = {environments: null, error: null};
 
-    this.listenTo(EnvironmentActions.fetchEnvironments, this.onFetchEnvironments);
-    this.listenTo(
-      EnvironmentActions.fetchEnvironmentsSuccess,
-      this.onFetchEnvironmentsSuccess
+    this.unsubscribeListeners.push(
+      this.listenTo(EnvironmentActions.fetchEnvironments, this.onFetchEnvironments)
     );
-    this.listenTo(
-      EnvironmentActions.fetchEnvironmentsError,
-      this.onFetchEnvironmentsError
+    this.unsubscribeListeners.push(
+      this.listenTo(
+        EnvironmentActions.fetchEnvironmentsSuccess,
+        this.onFetchEnvironmentsSuccess
+      )
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(
+        EnvironmentActions.fetchEnvironmentsError,
+        this.onFetchEnvironmentsError
+      )
     );
   },
 
@@ -77,8 +87,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterfa
   },
 };
 
-const OrganizationEnvironmentsStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & OrganizationEnvironmentsStoreInterface
-);
+const OrganizationEnvironmentsStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & OrganizationEnvironmentsStoreInterface;
 
 export default OrganizationEnvironmentsStore;

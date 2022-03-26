@@ -86,8 +86,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
   },
 };
 
-const OrganizationsStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as Reflux.Store & OrganizationsStoreInterface
-);
+const OrganizationsStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & OrganizationsStoreInterface;
 
 export default OrganizationsStore;

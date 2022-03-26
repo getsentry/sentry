@@ -51,8 +51,8 @@ const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as HookStoreInterface & Reflux.Store
-);
+const HookStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as HookStoreInterface & Reflux.Store;
 
 export default HookStore;
