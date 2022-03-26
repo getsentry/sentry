@@ -1,4 +1,4 @@
-export interface SafeRefluxStore extends Reflux.Store {
+interface SafeRefluxStore extends Reflux.Store {
   teardown(): void;
   unsubscribeListeners: Reflux.Subscription[];
 }

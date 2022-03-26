@@ -2,7 +2,7 @@ import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type HookStoreInterface = {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
@@ -52,7 +52,7 @@ const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
  */
 
 const HookStore = makeSafeRefluxStore(
-  Reflux.createStore(storeConfig) as HookStoreInterface & SafeRefluxStore
+  Reflux.createStore(storeConfig) as HookStoreInterface & Reflux.Store
 );
 
 export default HookStore;
