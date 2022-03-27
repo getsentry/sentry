@@ -21,6 +21,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import ExclusiveTimeHistogram from './exclusiveTimeHistogram';
 import ExclusiveTimeTimeSeries from './exclusiveTimeTimeSeries';
+import {MAX, MIN} from './utils';
 
 type Props = WithRouterProps & {
   eventView: EventView;
@@ -51,7 +52,7 @@ function Chart(props: Props) {
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...removeHistogramQueryStrings(location, ['min', 'max']),
+        ...removeHistogramQueryStrings(location, [MIN, MAX]),
         display: value,
       },
     });
