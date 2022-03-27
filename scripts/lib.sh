@@ -52,8 +52,8 @@ query-apple-m1() {
 }
 
 query-valid-python-version() {
+    python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
-        python_version=$(python3 -V 2>&1 | awk '{print $2}')
         if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
             cat <<EOF
 ${red}${bold}
@@ -63,29 +63,27 @@ You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf 
 ${reset}
 EOF
             return 1
-        fi
-
-        cat <<EOF
+        else
+            cat <<EOF
 ${yellow}${bold}
 You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
 ${reset}
 EOF
-        return 0
-    fi
-
-    python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
-    patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-
-    if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
-        cat <<EOF
-${red}${bold}
-ERROR: You're running a virtualenv with Python ${python_version}.
-We only support >= 3.8.10, < 3.9.
-Either run "rm -rf ${venv_name} && direnv allow" to
-OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
+            return 0
+        fi
+    else
+        minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
+        patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
+        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            cat <<EOF
+    ${red}${bold}
+    ERROR: You're running a virtualenv with Python ${python_version}.
+    We only support >= 3.8.10, < 3.9.
+    Either run "rm -rf ${venv_name} && direnv allow" to
+    OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
-        return 1
+            return 1
+        fi
     fi
 }
 

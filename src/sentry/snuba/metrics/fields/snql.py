@@ -81,6 +81,18 @@ def abnormal_sessions(org_id: int, metric_ids, alias=None):
     )
 
 
+def abnormal_users(metric_ids, alias=None):
+    return _set_uniq_aggregation_on_session_status_factory(
+        session_status="abnormal", metric_ids=metric_ids, alias=alias
+    )
+
+
+def errored_all_users(metric_ids, alias=None):
+    return _set_uniq_aggregation_on_session_status_factory(
+        session_status="errored", metric_ids=metric_ids, alias=alias
+    )
+
+
 def sessions_errored_set(org_id: int, metric_ids, alias=None):
     return Function(
         "uniqIf",
@@ -100,3 +112,11 @@ def sessions_errored_set(org_id: int, metric_ids, alias=None):
 
 def percentage(org_id: int, arg1_snql, arg2_snql, alias=None):
     return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
+
+
+def subtraction(arg1_snql, arg2_snql, alias=None):
+    return Function("minus", [arg1_snql, arg2_snql], alias)
+
+
+def addition(arg1_snql, arg2_snql, alias=None):
+    return Function("plus", [arg1_snql, arg2_snql], alias)

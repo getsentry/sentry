@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -16,13 +17,17 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
+import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
+import {IconInfo, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -45,6 +50,7 @@ import {
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -70,6 +76,7 @@ const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
+const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 // WidgetCardChartContainer rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from
@@ -190,20 +197,13 @@ function WidgetViewerModal(props: Props) {
     DisplayType.BAR,
   ].includes(widget.displayType);
 
-  if (shouldReplaceTableColumns) {
-    if (fields.length === 1) {
-      tableWidget.queries[0].orderby =
-        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
-    }
-    fields.unshift('title');
-    columns.unshift('title');
-  }
-
+  let equationFieldsCount = 0;
+  // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
-    // Updates fields by adding any individual terms from equation fields as a column
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
       if (Array.isArray(fields) && !fields.includes(term)) {
+        equationFieldsCount++;
         fields.unshift(term);
       }
       if (isAggregateField(term) && !aggregates.includes(term)) {
@@ -215,6 +215,15 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  if (shouldReplaceTableColumns) {
+    if (fields.length === 1) {
+      tableWidget.queries[0].orderby =
+        tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+    }
+    fields.unshift('title');
+    columns.unshift('title');
+  }
+
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
@@ -222,20 +231,42 @@ function WidgetViewerModal(props: Props) {
     tableWidget.displayType
   );
 
-  // Update field widths
-  widths.forEach((width, index) => {
-    if (eventView.fields[index]) {
-      eventView.fields[index].width = parseInt(width, 10);
-    }
-  });
-
-  const columnOrder = eventView.getColumns();
+  let columnOrder = decodeColumnOrder(
+    tableWidget.queries[0].fields?.map(field => ({
+      field,
+    })) ?? []
+  );
   const columnSortBy = eventView.getSorts();
-
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => ({
-    label: truncate(name || conditions, 120),
-    value: index,
+  // Filter out equation terms from columnOrder so we don't clutter the table
+  if (shouldReplaceTableColumns && equationFieldsCount) {
+    columnOrder = columnOrder.filter(
+      (_, index) => index === 0 || index > equationFieldsCount
+    );
+  }
+  columnOrder = columnOrder.map((column, index) => ({
+    ...column,
+    width: parseInt(widths[index], 10) || -1,
   }));
+
+  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+    // Creates the highlighted query elements to be used in the Query Select
+    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const getHighlightedQuery = (
+      highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
+    ) => {
+      return parsedQuery !== null ? (
+        <HighlightContainer {...highlightedContainerProps}>
+          <HighlightQuery parsedQuery={parsedQuery} />
+        </HighlightContainer>
+      ) : undefined;
+    };
+
+    return {
+      label: truncate(name || conditions, 120),
+      value: index,
+      getHighlightedQuery,
+    };
+  });
 
   const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
@@ -323,12 +354,14 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <React.Fragment>
-            <Alert type="info" icon={<IconInfo />}>
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
-              )}
-            </Alert>
+          <StyledAlert type="info" icon={<IconInfo />}>
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+            )}
+          </StyledAlert>
+        )}
+        {(widget.queries.length > 1 || widget.queries[0].conditions) && (
+          <StyledSelectControlRowContainer>
             <StyledSelectControl
               value={selectedQueryIndex}
               options={queryOptions}
@@ -352,8 +385,65 @@ function WidgetViewerModal(props: Props) {
                   }
                 );
               }}
+              components={{
+                // Replaces the displayed selected value
+                SingleValue: containerProps => {
+                  return (
+                    <components.SingleValue
+                      {...containerProps}
+                      // Overwrites some of the default styling that interferes with highlighted query text
+                      getStyles={() => ({
+                        wordBreak: 'break-word',
+                        flex: 1,
+                        display: 'flex',
+                      })}
+                    >
+                      <StyledIconSearch />
+                      {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                        display: 'block',
+                      }) ??
+                        (queryOptions[selectedQueryIndex].label || (
+                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                        ))}
+                    </components.SingleValue>
+                  );
+                },
+                // Replaces the dropdown options
+                Option: containerProps => {
+                  const highlightedQuery = containerProps.data.getHighlightedQuery({
+                    display: 'flex',
+                  });
+                  return (
+                    <Option
+                      {...(highlightedQuery
+                        ? {
+                            ...containerProps,
+                            label: highlightedQuery,
+                          }
+                        : containerProps.label
+                        ? containerProps
+                        : {
+                            ...containerProps,
+                            label: (
+                              <EmptyQueryContainer>
+                                {EMPTY_QUERY_NAME}
+                              </EmptyQueryContainer>
+                            ),
+                          })}
+                    />
+                  );
+                },
+                // Hide the dropdown indicator if there is only one option
+                ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
+              }}
+              isSearchable={false}
+              isDisabled={widget.queries.length < 2}
             />
-          </React.Fragment>
+            <StyledQuestionTooltip
+              title={t('Widget queries can be edited by clicking "Edit Widget".')}
+              size="sm"
+            />
+          </StyledSelectControlRowContainer>
         )}
         <TableContainer>
           {widget.widgetType === WidgetType.ISSUE ? (
@@ -373,6 +463,7 @@ function WidgetViewerModal(props: Props) {
                 if (totalResults === undefined) {
                   setTotalResults(totalCount);
                 }
+                const links = parseLinkHeader(pageLinks ?? null);
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -396,37 +487,39 @@ function WidgetViewerModal(props: Props) {
                       }}
                       location={location}
                     />
-                    <StyledPagination
-                      pageLinks={pageLinks}
-                      onCursor={(nextCursor, _path, _query, delta) => {
-                        let nextPage = isNaN(page) ? delta : page + delta;
-                        let newCursor = nextCursor;
-                        // unset cursor and page when we navigate back to the first page
-                        // also reset cursor if somehow the previous button is enabled on
-                        // first page and user attempts to go backwards
-                        if (nextPage <= 0) {
-                          newCursor = undefined;
-                          nextPage = 0;
-                        }
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                            [WidgetViewerQueryField.PAGE]: nextPage,
-                          },
-                        });
-
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
+                    {(links?.previous?.results || links?.next?.results) && (
+                      <StyledPagination
+                        pageLinks={pageLinks}
+                        onCursor={(nextCursor, _path, _query, delta) => {
+                          let nextPage = isNaN(page) ? delta : page + delta;
+                          let newCursor = nextCursor;
+                          // unset cursor and page when we navigate back to the first page
+                          // also reset cursor if somehow the previous button is enabled on
+                          // first page and user attempts to go backwards
+                          if (nextPage <= 0) {
+                            newCursor = undefined;
+                            nextPage = 0;
                           }
-                        );
-                      }}
-                    />
+                          router.replace({
+                            pathname: location.pathname,
+                            query: {
+                              ...location.query,
+                              [WidgetViewerQueryField.CURSOR]: newCursor,
+                              [WidgetViewerQueryField.PAGE]: nextPage,
+                            },
+                          });
+
+                          trackAdvancedAnalyticsEvent(
+                            'dashboards_views.widget_viewer.paginate',
+                            {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            }
+                          );
+                        }}
+                      />
+                    )}
                   </React.Fragment>
                 );
               }}
@@ -449,6 +542,7 @@ function WidgetViewerModal(props: Props) {
                 const isFirstPage = pageLinks
                   ? parseLinkHeader(pageLinks).previous.results === false
                   : false;
+                const links = parseLinkHeader(pageLinks ?? null);
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -474,27 +568,29 @@ function WidgetViewerModal(props: Props) {
                       }}
                       location={location}
                     />
-                    <StyledPagination
-                      pageLinks={pageLinks}
-                      onCursor={newCursor => {
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                          },
-                        });
+                    {(links?.previous?.results || links?.next?.results) && (
+                      <StyledPagination
+                        pageLinks={pageLinks}
+                        onCursor={newCursor => {
+                          router.replace({
+                            pathname: location.pathname,
+                            query: {
+                              ...location.query,
+                              [WidgetViewerQueryField.CURSOR]: newCursor,
+                            },
+                          });
 
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
-                          }
-                        );
-                      }}
-                    />
+                          trackAdvancedAnalyticsEvent(
+                            'dashboards_views.widget_viewer.paginate',
+                            {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            }
+                          );
+                        }}
+                      />
+                    )}
                   </React.Fragment>
                 );
               }}
@@ -523,7 +619,7 @@ function WidgetViewerModal(props: Props) {
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...primaryWidget, queries: tableWidget.queries},
+        {...primaryWidget, queries: [primaryWidget.queries[selectedQueryIndex]]},
         modalSelection,
         organization
       );
@@ -623,14 +719,19 @@ const Container = styled('div')<{height?: number | null}>`
     padding: ${space(1.5)} 0px;
   }
 `;
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)} 0 0 0;
+`;
 
 const StyledSelectControl = styled(SelectControl)`
-  padding-top: 10px ${space(1.5)};
-  max-height: 40px;
   display: flex;
   & > div {
     width: 100%;
   }
+  & input {
+    height: 0;
+  }
+  flex: 1;
 `;
 
 // Table Container allows Table display to work around parent padding and fill full modal width
@@ -645,6 +746,10 @@ const TableContainer = styled('div')`
   & td:first-child {
     padding: ${space(1)} ${space(2)};
   }
+
+  & table {
+    overflow-y: hidden;
+  }
 `;
 
 const WidgetTitle = styled('h4')`
@@ -655,6 +760,15 @@ const WidgetTitle = styled('h4')`
 
 const StyledPagination = styled(Pagination)`
   padding-top: ${space(2)};
+`;
+
+const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
+  flex: 1;
+  display: ${p => p.display};
+  gap: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${space(1.5)};
+  line-height: 2;
 `;
 
 const TotalResultsContainer = styled('span')`
@@ -672,6 +786,24 @@ const ButtonBarContainer = styled('span')`
 
 const StyledButtonBar = styled(ButtonBar)`
   width: fit-content;
+`;
+
+const EmptyQueryContainer = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  margin: auto ${space(1.5)} auto 0;
+`;
+
+const StyledSelectControlRowContainer = styled('span')`
+  display: flex;
+  margin-top: ${space(2)};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  padding-left: ${space(1)};
+  margin: auto;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));

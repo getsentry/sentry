@@ -3,13 +3,17 @@ from snuba_sdk import Column, Function
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     abnormal_sessions,
+    abnormal_users,
+    addition,
     all_sessions,
     all_users,
     crashed_sessions,
     crashed_users,
+    errored_all_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
+    subtraction,
 )
 from sentry.testutils import TestCase
 
@@ -51,6 +55,8 @@ class DerivedMetricSnQLTestCase(TestCase):
         for status, func in [
             ("init", all_users),
             ("crashed", crashed_users),
+            ("abnormal", abnormal_users),
+            ("errored", errored_all_users),
         ]:
             org_id = 666
             assert func(org_id, self.metric_ids, alias=status) == Function(
@@ -100,4 +106,30 @@ class DerivedMetricSnQLTestCase(TestCase):
 
         assert percentage(org_id, crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
+        )
+
+    def test_addition_in_snql(self):
+        alias = "session.crashed_and_abnormal_user"
+        arg1_snql = crashed_users(self.metric_ids, alias="session.crashed_user")
+        arg2_snql = abnormal_users(self.metric_ids, alias="session.abnormal_user")
+        assert (
+            addition(
+                arg1_snql,
+                arg2_snql,
+                alias=alias,
+            )
+            == Function("plus", [arg1_snql, arg2_snql], alias=alias)
+        )
+
+    def test_subtraction_in_snql(self):
+        arg1_snql = all_users(self.metric_ids, alias="session.all_user")
+        arg2_snql = errored_all_users(self.metric_ids, alias="session.errored_user_all")
+
+        assert (
+            subtraction(
+                arg1_snql,
+                arg2_snql,
+                alias="session.healthy_user",
+            )
+            == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
         )
