@@ -135,13 +135,13 @@ export function Chart(props: ChartProps) {
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, _seriesName) => tooltipFormatter(value, 'integer'),
+      valueFormatter: (value, _seriesName) => tooltipFormatter(value, _seriesName),
     },
     yAxis: {
       type: 'value' as const,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: (value: number) => axisLabelFormatter(value, 'integer'),
+        formatter: (value: number) => axisLabelFormatter(value, 'number'),
       },
     },
     xAxis: {
