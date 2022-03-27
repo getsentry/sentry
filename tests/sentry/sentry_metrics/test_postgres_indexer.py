@@ -1,7 +1,7 @@
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import PGStringIndexerV2
+from sentry.sentry_metrics.indexer.postgres_v2 import KeyCollection, PGStringIndexerV2
 from sentry.testutils.cases import TestCase
 
 
@@ -49,21 +49,29 @@ class PostgresIndexerV2Test(TestCase):
         org_id = self.organization.id
         org_strings = {org_id: self.strings}
 
+        # create a record with diff org_id but same string that we test against
+        StringIndexer.objects.create(organization_id=999, string="hey")
+
         assert list(
             indexer_cache.get_many([f"{org_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
         results = PGStringIndexerV2().bulk_record(org_strings=org_strings)
         obj_ids = list(
-            StringIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
-                "id", flat=True
-            )
+            StringIndexer.objects.filter(
+                organization_id=self.organization.id, string__in=["hello", "hey", "hi"]
+            ).values_list("id", flat=True)
         )
-        assert list(results[org_id].values()) == obj_ids
-        assert (
-            list(indexer_cache.get_many([f"{org_id}:{string}" for string in self.strings]).values())
-            == obj_ids
-        )
+        for value in results[org_id].values():
+            assert value in obj_ids
+
+        # we should have no results for org_id 999
+        assert not results.get(999)
+
+        for cache_value in indexer_cache.get_many(
+            [f"{org_id}:{string}" for string in self.strings]
+        ).values():
+            assert cache_value in obj_ids
 
         # test resolve and reverse_resolve
         obj = StringIndexer.objects.get(string="hello")
@@ -77,3 +85,58 @@ class PostgresIndexerV2Test(TestCase):
         # test invalid values
         assert PGStringIndexerV2().resolve(org_id, "beep") is None
         assert PGStringIndexerV2().reverse_resolve(1234) is None
+
+
+class KeyCollectionTest(TestCase):
+    def test_no_data(self) -> None:
+        collection = KeyCollection({})
+        assert collection.mapping == {}
+
+        assert collection.as_tuples() == []
+        assert collection.as_strings() == []
+        assert collection.get_mapped_key_strings_to_ints() == {}
+        assert collection.get_mapped_results() == {}
+
+    def test_basic(self) -> None:
+        org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}}
+
+        collection = KeyCollection(org_strings)
+        collection_tuples = [(1, "a"), (1, "b"), (1, "c"), (2, "e"), (2, "f")]
+        collection_strings = ["1:a", "1:b", "1:c", "2:e", "2:f"]
+
+        assert collection.mapping == org_strings
+        assert list(collection.as_tuples()).sort() == collection_tuples.sort()
+        assert list(collection.as_strings()).sort() == collection_strings.sort()
+
+        assert collection.get_mapped_key_strings_to_ints() == {}
+        assert collection.get_mapped_results() == {}
+        assert collection.get_unmapped_keys().mapping == org_strings
+
+        collection.add_key_result((1, "a"), 10)
+
+        assert list(collection.as_tuples()).sort() == collection_tuples.sort()
+        assert list(collection.as_strings()).sort() == collection_strings.sort()
+
+        assert collection.get_mapped_key_strings_to_ints() == {"1:a": 10}
+        assert collection.get_mapped_results() == {1: {"a": 10}}
+
+        assert collection.get_unmapped_keys().mapping == {1: {"b", "c"}, 2: {"e", "f"}}
+
+        collection.add_key_result((1, "b"), 11)
+        collection.add_key_result((1, "c"), 12)
+        collection.add_key_result((2, "e"), 13)
+        collection.add_key_result((2, "f"), 14)
+
+        assert collection.get_mapped_key_strings_to_ints() == {
+            "1:a": 10,
+            "1:b": 11,
+            "1:c": 12,
+            "2:e": 13,
+            "2:f": 14,
+        }
+        assert collection.get_mapped_results() == {
+            1: {"a": 10, "b": 11, "c": 12},
+            2: {"e": 13, "f": 14},
+        }
+
+        assert collection.get_unmapped_keys().mapping == {}

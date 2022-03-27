@@ -170,7 +170,6 @@ class PGStringIndexerV2(Service):
             tags={"cache_hit": "false", "caller": "get_many_ids"},
             amount=cache_misses,
         )
-
         mapped_results.update(cache_keys.get_mapped_results())
 
         db_read_keys = cache_keys.get_unmapped_keys()
@@ -185,7 +184,7 @@ class PGStringIndexerV2(Service):
 
         db_read_key_results = db_read_keys.get_mapped_results()
 
-        if len(db_read_key_results) > 1:
+        if len(db_read_key_results.keys()) > 0:
             results_to_cache = db_read_keys.get_mapped_key_strings_to_ints()
             indexer_cache.set_many(results_to_cache)
             mapped_results.update(db_read_key_results)
@@ -215,10 +214,9 @@ class PGStringIndexerV2(Service):
 
         db_write_key_results = db_write_keys.get_mapped_results()
 
-        if len(db_write_key_results) > 1:
+        if len(db_write_key_results) > 0:
             results_to_cache = db_write_keys.get_mapped_key_strings_to_ints()
             indexer_cache.set_many(results_to_cache)
-
             mapped_results.update(db_write_key_results)
 
         return mapped_results
