@@ -37,7 +37,7 @@ class QueuedPublisherService:
                     q.task_done()
 
         t = Thread(target=worker)
-        t.setDaemon(True)
+        t.daemon = True
         t.start()
 
         self._started = True

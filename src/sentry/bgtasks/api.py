@@ -55,7 +55,7 @@ class BgTask:
             return
         logger.info("bgtask.spawn", extra=dict(task_name=self.name))
         t = threading.Thread(target=self.run)
-        t.setDaemon(True)
+        t.daemon = True
         t.start()
 
     def stop(self):
