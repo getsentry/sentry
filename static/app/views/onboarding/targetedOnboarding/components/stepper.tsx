@@ -37,11 +37,11 @@ type Props = Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & {
 
 export default function Stepper({steps, currentStepId, onClick, ...props}: Props) {
   const stepperContainerRef = useRef<HTMLDivElement>(null);
+  const currentIndex = steps.findIndex(step => step.id === currentStepId);
   const stepperX = useMotionValue(0);
 
   // Set initial value of stepperX
   useEffect(() => {
-    const currentIndex = steps.findIndex(step => step.id === currentStepId);
     const parentRect = stepperContainerRef.current?.getBoundingClientRect();
     const rect =
       stepperContainerRef.current?.children[currentIndex].getBoundingClientRect();
@@ -66,8 +66,8 @@ export default function Stepper({steps, currentStepId, onClick, ...props}: Props
         {steps.map((step, i) => (
           <StepperIndicator
             key={step.id}
-            onClick={() => true && onClickStartAnimation(step, i)}
-            clickable
+            onClick={() => i < currentIndex && onClickStartAnimation(step, i)}
+            clickable={i < currentIndex}
           />
         ))}
       </StepperContainer>
