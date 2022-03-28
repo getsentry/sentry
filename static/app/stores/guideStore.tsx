@@ -11,6 +11,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
+  SafeRefluxStore,
   SafeStoreDefinition,
 } from 'sentry/utils/makeSafeRefluxStore';
 
@@ -278,7 +279,8 @@ const storeConfig: Reflux.StoreDefinition & GuideStoreInterface & SafeStoreDefin
   },
 };
 
-const GuideStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
-  GuideStoreInterface;
+const GuideStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as SafeRefluxStore & GuideStoreInterface;
 
 export default GuideStore;

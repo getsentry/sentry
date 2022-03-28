@@ -3,7 +3,11 @@ import Reflux from 'reflux';
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -185,7 +189,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface & SafeStoreDefinit
   },
 };
 
-const TagStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
+const TagStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
   TagStoreInterface;
 
 export default TagStore;

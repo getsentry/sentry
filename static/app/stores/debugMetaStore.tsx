@@ -1,6 +1,10 @@
 import Reflux from 'reflux';
 
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 const DebugMetaActions = Reflux.createActions(['updateFilter']);
 
@@ -53,7 +57,7 @@ const storeConfig: Reflux.StoreDefinition &
 
 const DebugMetaStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & DebugMetaStoreInterface;
+) as SafeRefluxStore & DebugMetaStoreInterface;
 
 export {DebugMetaActions, DebugMetaStore};
 export default DebugMetaStore;

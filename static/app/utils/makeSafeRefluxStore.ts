@@ -5,13 +5,13 @@ export interface SafeStoreDefinition extends Reflux.StoreDefinition {
    */
   teardown?(): void;
 }
-export interface SafeRefluxStore extends SafeStoreDefinition {
+export interface SafeRefluxStore extends Reflux.Store {
   teardown(): void;
   unsubscribeListeners: Reflux.Subscription[];
 }
 
-// XXX: Teardown will stop any listener subscriptions
-// that may have been started as a consequence of listenTo calls.
+// XXX: Teardown will call stop on any listener subscriptions
+// that have been started as a consequence of listenTo calls.
 export function cleanupActiveRefluxSubscriptions(
   subscriptions: Array<Reflux.Subscription>
 ) {

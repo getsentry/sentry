@@ -13,7 +13,7 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
@@ -512,7 +512,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-const GroupStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as Reflux.Store &
-  GroupStoreInterface;
+const GroupStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as SafeRefluxStore & GroupStoreInterface;
 
 export default GroupStore;

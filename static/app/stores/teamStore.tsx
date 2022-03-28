@@ -3,7 +3,11 @@ import Reflux from 'reflux';
 import TeamActions from 'sentry/actions/teamActions';
 import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -178,8 +182,8 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface & SafeStoreDe
     },
   };
 
-const TeamStore = makeSafeRefluxStore(
-  Reflux.createStore(teamStoreConfig) as Reflux.Store & TeamStoreInterface
-);
+const TeamStore = Reflux.createStore(
+  makeSafeRefluxStore(teamStoreConfig)
+) as unknown as SafeRefluxStore & TeamStoreInterface;
 
 export default TeamStore;
