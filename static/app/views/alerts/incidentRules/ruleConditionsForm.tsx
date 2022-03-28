@@ -265,19 +265,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         label: getDisplayName(env),
       })) ?? [];
 
-    const anyEnvironmentLabel = (
-      <React.Fragment>
-        {t('All')}
-        <div className="all-environment-note">
-          {tct(
-            `This will count events across every environment. For example,
-             having 50 [code1:production] events and 50 [code2:development]
-             events would trigger an alert with a critical threshold of 100.`,
-            {code1: <code />, code2: <code />}
-          )}
-        </div>
-      </React.Fragment>
-    );
+    const anyEnvironmentLabel = <React.Fragment>{t('All')}</React.Fragment>;
     environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
 
     const dataSourceOptions = [
@@ -340,22 +328,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             placeholder={t('All')}
             style={{
               ...formElemBaseStyle,
-              minWidth: 180,
+              minWidth: 230,
               flex: 1,
             }}
             styles={{
               singleValue: (base: any) => ({
                 ...base,
-                '.all-environment-note': {display: 'none'},
               }),
-              option: (base: any, state: any) => ({
+              option: (base: any) => ({
                 ...base,
-                '.all-environment-note': {
-                  ...(!state.isSelected && !state.isFocused
-                    ? {color: theme.gray400}
-                    : {}),
-                  fontSize: theme.fontSizeSmall,
-                },
               }),
             }}
             options={environmentOptions}
@@ -363,7 +344,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
             inline={false}
             flexibleControlStateSize
-            inFieldLabel={t('Env: ')}
+            inFieldLabel={t('Environment: ')}
           />
           {allowChangeEventTypes && (
             <FormField
