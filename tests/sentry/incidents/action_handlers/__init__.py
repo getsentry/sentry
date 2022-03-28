@@ -4,7 +4,7 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import Incident, IncidentStatus, IncidentStatusMethod
 
 
-class FireTest:
+class FireTest(abc.ABC):
     @abc.abstractmethod
     def run_test(self, incident: Incident, method: str):
         pass
