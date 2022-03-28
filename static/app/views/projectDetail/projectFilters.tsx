@@ -69,7 +69,7 @@ const FiltersWrapper = styled('div')`
 
 const SearchBarWrapper = styled('div')`
   flex: 1;
-  min-width: 430px;
+  flex-basis: 430px;
 `;
 
 export default ProjectFilters;
