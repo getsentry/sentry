@@ -7,7 +7,7 @@ export const PageContent = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(2)} ${space(4)} ${space(3)};
+  padding: ${space(3)} ${space(4)};
   margin-bottom: -20px; /* <footer> has margin-top: 20px; */
 
   /* No footer at smallest breakpoint */
