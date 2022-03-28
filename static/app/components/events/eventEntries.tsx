@@ -456,6 +456,7 @@ const EventEntries = memo(
 );
 
 const Wrapper = styled('div')`
+  /* Makes this component stretch the full width of its container */
   margin-left: -40px;
   margin-right: -30px;
 `;
