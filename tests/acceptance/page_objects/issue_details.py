@@ -52,8 +52,10 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[aria-label="Unignore"]')
 
     def bookmark_issue(self):
-        self.browser.click('[aria-label="Bookmark"]')
-        self.browser.wait_until('[aria-label="Remove bookmark"]')
+        self.browser.click('button[aria-label="More Actions"]')
+        self.browser.wait_until('[data-test-id="bookmark"]')
+        button = self.browser.element('[data-test-id="bookmark"]')
+        button.click()
 
     def assign_to(self, user):
         assignee = self.browser.find_element_by_css_selector(".assigned-to")
