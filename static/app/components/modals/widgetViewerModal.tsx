@@ -463,6 +463,7 @@ function WidgetViewerModal(props: Props) {
                 if (totalResults === undefined) {
                   setTotalResults(totalCount);
                 }
+                const links = parseLinkHeader(pageLinks ?? null);
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -486,37 +487,39 @@ function WidgetViewerModal(props: Props) {
                       }}
                       location={location}
                     />
-                    <StyledPagination
-                      pageLinks={pageLinks}
-                      onCursor={(nextCursor, _path, _query, delta) => {
-                        let nextPage = isNaN(page) ? delta : page + delta;
-                        let newCursor = nextCursor;
-                        // unset cursor and page when we navigate back to the first page
-                        // also reset cursor if somehow the previous button is enabled on
-                        // first page and user attempts to go backwards
-                        if (nextPage <= 0) {
-                          newCursor = undefined;
-                          nextPage = 0;
-                        }
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                            [WidgetViewerQueryField.PAGE]: nextPage,
-                          },
-                        });
-
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
+                    {(links?.previous?.results || links?.next?.results) && (
+                      <StyledPagination
+                        pageLinks={pageLinks}
+                        onCursor={(nextCursor, _path, _query, delta) => {
+                          let nextPage = isNaN(page) ? delta : page + delta;
+                          let newCursor = nextCursor;
+                          // unset cursor and page when we navigate back to the first page
+                          // also reset cursor if somehow the previous button is enabled on
+                          // first page and user attempts to go backwards
+                          if (nextPage <= 0) {
+                            newCursor = undefined;
+                            nextPage = 0;
                           }
-                        );
-                      }}
-                    />
+                          router.replace({
+                            pathname: location.pathname,
+                            query: {
+                              ...location.query,
+                              [WidgetViewerQueryField.CURSOR]: newCursor,
+                              [WidgetViewerQueryField.PAGE]: nextPage,
+                            },
+                          });
+
+                          trackAdvancedAnalyticsEvent(
+                            'dashboards_views.widget_viewer.paginate',
+                            {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            }
+                          );
+                        }}
+                      />
+                    )}
                   </React.Fragment>
                 );
               }}
@@ -539,6 +542,7 @@ function WidgetViewerModal(props: Props) {
                 const isFirstPage = pageLinks
                   ? parseLinkHeader(pageLinks).previous.results === false
                   : false;
+                const links = parseLinkHeader(pageLinks ?? null);
                 return (
                   <React.Fragment>
                     <GridEditable
@@ -564,27 +568,29 @@ function WidgetViewerModal(props: Props) {
                       }}
                       location={location}
                     />
-                    <StyledPagination
-                      pageLinks={pageLinks}
-                      onCursor={newCursor => {
-                        router.replace({
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            [WidgetViewerQueryField.CURSOR]: newCursor,
-                          },
-                        });
+                    {(links?.previous?.results || links?.next?.results) && (
+                      <StyledPagination
+                        pageLinks={pageLinks}
+                        onCursor={newCursor => {
+                          router.replace({
+                            pathname: location.pathname,
+                            query: {
+                              ...location.query,
+                              [WidgetViewerQueryField.CURSOR]: newCursor,
+                            },
+                          });
 
-                        trackAdvancedAnalyticsEvent(
-                          'dashboards_views.widget_viewer.paginate',
-                          {
-                            organization,
-                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                            display_type: widget.displayType,
-                          }
-                        );
-                      }}
-                    />
+                          trackAdvancedAnalyticsEvent(
+                            'dashboards_views.widget_viewer.paginate',
+                            {
+                              organization,
+                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              display_type: widget.displayType,
+                            }
+                          );
+                        }}
+                      />
+                    )}
                   </React.Fragment>
                 );
               }}

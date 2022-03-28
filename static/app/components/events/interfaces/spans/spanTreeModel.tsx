@@ -415,6 +415,75 @@ class SpanTreeModel {
 
           // This may not be the case, and needs to be looked into later
 
+          const key = getSiblingGroupKey(group[0].span);
+          if (this.expandedSiblingGroups.has(key)) {
+            // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
+            // In this case, we must add only the specified span into the accumulator's descendants
+            group.forEach((spanModel, index) => {
+              if (this.isSpanFilteredOut(props, spanModel)) {
+                acc.descendants.push({
+                  type: 'filtered_out',
+                  span: spanModel.span,
+                });
+              } else {
+                const enhancedSibling: EnhancedSpan = {
+                  type: 'span',
+                  span: spanModel.span,
+                  numOfSpanChildren: 0,
+                  treeDepth: treeDepth + 1,
+                  isLastSibling:
+                    index === group.length - 1 &&
+                    groupIndex === groupedDescendants.length - 1,
+                  isFirstSiblingOfGroup: index === 0,
+                  continuingTreeDepths: descendantContinuingTreeDepths,
+                  fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
+                  showEmbeddedChildren: spanModel.showEmbeddedChildren,
+                  toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+                    addTraceBounds,
+                    removeTraceBounds,
+                  }),
+                  toggleNestedSpanGroup: undefined,
+                  toggleSiblingSpanGroup:
+                    index === 0 ? this.toggleSiblingSpanGroup : undefined,
+                };
+
+                acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
+                acc.descendants.push(enhancedSibling);
+              }
+            });
+
+            return acc;
+          }
+
+          // Since we are not recursively traversing elements in this group, need to check
+          // if the spans are filtered or out of bounds here
+
+          if (this.isSpanFilteredOut(props, group[0])) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'filtered_out',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          const bounds = generateBounds({
+            startTimestamp: group[0].span.start_timestamp,
+            endTimestamp: group[group.length - 1].span.timestamp,
+          });
+
+          if (!bounds.isSpanVisibleInView) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'out_of_view',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          // Since the group is not expanded, return a singular grouped span bar
           const wrappedSiblings: EnhancedSpan[] = group.map((spanModel, index) => {
             const enhancedSibling: EnhancedSpan = {
               type: 'span',
@@ -440,18 +509,8 @@ class SpanTreeModel {
             return enhancedSibling;
           });
 
-          if (this.isSpanFilteredOut(props, group[0])) {
-            group.forEach(spanModel =>
-              acc.descendants.push({
-                type: 'filtered_out',
-                span: spanModel.span,
-              })
-            );
-            return acc;
-          }
-
           const groupedSiblingsSpan: EnhancedProcessedSpanType = {
-            type: 'span_group_sibling',
+            type: 'span_group_siblings',
             span: this.span,
             treeDepth: treeDepth + 1,
             continuingTreeDepths,
@@ -462,13 +521,6 @@ class SpanTreeModel {
 
           acc.previousSiblingEndTimestamp =
             wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
-
-          // Check if the group is currently expanded or not
-          const key = `${group[0].span.op}.${group[0].span.description}`;
-          if (this.expandedSiblingGroups.has(key)) {
-            acc.descendants.push(...wrappedSiblings);
-            return acc;
-          }
 
           acc.descendants.push(groupedSiblingsSpan);
           return acc;
