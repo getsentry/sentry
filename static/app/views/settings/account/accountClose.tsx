@@ -119,7 +119,7 @@ class AccountClose extends AsyncView<Props, State> {
       });
 
       // Redirect after 10 seconds
-      setTimeout(leaveRedirect, 10000);
+      window.setTimeout(leaveRedirect, 10000);
     } catch {
       addErrorMessage('Error closing account');
     }

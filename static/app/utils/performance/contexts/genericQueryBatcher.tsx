@@ -192,7 +192,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
       timeoutId.current = undefined;
     }
     // Put batch function in the next macro task to aggregate all requests in this frame.
-    const tID = setTimeout(() => {
+    const tID = window.setTimeout(() => {
       handleBatching(organization, queries.current);
       timeoutId.current = undefined;
     }, 0);

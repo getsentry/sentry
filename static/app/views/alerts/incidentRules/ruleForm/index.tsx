@@ -172,7 +172,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
@@ -204,7 +204,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const {status, alertRule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.setTimeout(() => {
           this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;

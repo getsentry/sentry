@@ -191,7 +191,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
   handleInputBlur =
     <E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) =>
     (e: React.FocusEvent<E>) => {
-      this.blurTimer = setTimeout(() => {
+      this.blurTimer = window.setTimeout(() => {
         this.closeMenu();
         onBlur?.(e);
       }, 200);
@@ -210,7 +210,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     // happened on a hovercard or some other element rendered outside of the
     // autocomplete, but controlled by the existence of the autocomplete, we
     // need to ensure any click handlers are run.
-    await new Promise(resolve => setTimeout(resolve));
+    await new Promise(resolve => window.setTimeout(resolve));
 
     this.closeMenu();
   };
@@ -276,7 +276,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
 
   handleMenuMouseDown = () => {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    setTimeout(() => {
+    window.setTimeout(() => {
       if (this.blurTimer) {
         clearTimeout(this.blurTimer);
       }

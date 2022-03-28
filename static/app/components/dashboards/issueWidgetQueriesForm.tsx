@@ -30,7 +30,7 @@ type Props = {
 };
 
 type State = {
-  blurTimeout?: ReturnType<typeof setTimeout>;
+  blurTimeout?: ReturnType<typeof window.setTimeout>;
 };
 
 /**
@@ -85,7 +85,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
                 // handler from firing if it is within 200ms, ie from clicking an
                 // autocomplete value.
                 this.setState({
-                  blurTimeout: setTimeout(() => {
+                  blurTimeout: window.setTimeout(() => {
                     this.setState({blurTimeout: undefined});
                   }, 200),
                 });
