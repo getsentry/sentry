@@ -942,6 +942,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field="histogram(sentry.transactions.measurements.lcp)",
             statsPeriod="1h",
             interval="1h",
+            includeSeries="0",
         )
 
         # TODO: implement rebucketed histogram
@@ -950,7 +951,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "series": {"histogram(sentry.transactions.measurements.lcp)": [hist]},
                 "totals": {"histogram(sentry.transactions.measurements.lcp)": hist},
             }
         ]

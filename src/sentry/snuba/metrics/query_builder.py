@@ -168,6 +168,10 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
+        self.histogram_buckets = query_params.get("histogramBuckets", 100)
+        self.histogram_from = query_params.get("histogramFrom", None)
+        self.histogram_to = query_params.get("histogramTo", None)
+        self.include_series = query_params.get("includeSeries", "0") == "1"
 
         # Validates that time series limit will not exceed the snuba limit of 10,000
         self._validate_series_limit(query_params)
@@ -474,6 +478,7 @@ class SnubaResultConverter:
         self._organization_id = organization_id
         self._intervals = intervals
         self._results = results
+        self._query_definition = query_definition
 
         # This is a set of all the `(op, metric_name)` combinations passed in the query_definition
         self._query_definition_fields_set = set(query_definition.fields.values())
@@ -581,25 +586,41 @@ class SnubaResultConverter:
 
         # Applying post query operations for totals and series
         for group in groups:
-            totals, series = group["totals"], group["series"]
+            totals = group["totals"]
+            if self._query_definition.include_series:
+                series = group["series"]
+            else:
+                series = None
+
             for op, metric_name in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_name=metric_name)
                 # Totals
-                totals[metric_name] = metric_obj.run_post_query_function(totals)
-                # Series
-                for idx in range(0, len(self._intervals)):
-                    series.setdefault(
-                        metric_name,
-                        [metric_obj.generate_default_null_values()] * len(self._intervals),
-                    )
-                    series[metric_name][idx] = metric_obj.run_post_query_function(series, idx)
+                totals[metric_name] = metric_obj.run_post_query_function(
+                    totals, query_definition=self._query_definition
+                )
+                if series is not None:
+                    # Series
+                    for idx in range(0, len(self._intervals)):
+                        series.setdefault(
+                            metric_name,
+                            [metric_obj.generate_default_null_values()] * len(self._intervals),
+                        )
+                        series[metric_name][idx] = metric_obj.run_post_query_function(
+                            series, query_definition=self._query_definition, idx=idx
+                        )
 
         # Remove the extra fields added due to the constituent metrics that were added
         # from the generated dependency tree. These metrics that are to be removed were added to
         # be able to generate fields that require further processing post query, but are not
         # required nor expected in the response
         for group in groups:
-            totals, series = group["totals"], group["series"]
+            totals = group["totals"]
+            if self._query_definition.include_series:
+                series = group["series"]
+            else:
+                series = None
+
+            # XXX(markus): This deepcopy should not be necessary
             for key in copy.deepcopy(list(totals.keys())):
                 matches = FIELD_REGEX.match(key)
                 if matches:
@@ -609,6 +630,8 @@ class SnubaResultConverter:
                     operation = None
                     metric_name = key
                 if (operation, metric_name) not in self._query_definition_fields_set:
-                    del totals[key], series[key]
+                    del totals[key]
+                    if series is not None:
+                        series[key]
 
         return groups

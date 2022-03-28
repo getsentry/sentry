@@ -38,6 +38,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
+from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -171,7 +172,7 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run_post_query_function(self, data, idx=None):
+    def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         """
         Method that runs functions on the values returned from the query
         """
@@ -264,7 +265,7 @@ class RawAggregatedMetric(MetricFieldBase):
     def generate_default_null_values(self):
         return DEFAULT_AGGREGATES[self.op]
 
-    def run_post_query_function(self, data, idx=None):
+    def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
         return data[key][idx] if idx is not None else data[key]
 
@@ -284,7 +285,7 @@ class HistogramMetricField(RawAggregatedMetric):
     def generate_available_operations(self):
         return [self.op]
 
-    def run_post_query_function(self, data, idx=None):
+    def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
         if idx is None:
             data[key] = {"histogram_metric_test": data[key]}
@@ -437,7 +438,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
     def generate_available_operations(self):
         return []
 
-    def run_post_query_function(self, data, idx=None):
+    def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         compute_func_args = [data[self.metric_name] if idx is None else data[self.metric_name][idx]]
         result = self.post_query_func(*compute_func_args)
         if isinstance(result, tuple) and len(result) == 1:
@@ -525,7 +526,7 @@ class CompositeEntityDerivedMetric(DerivedMetric):
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
 
-    def run_post_query_function(self, data, idx=None):
+    def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         compute_func_args = [
             data[constituent_metric_name] if idx is None else data[constituent_metric_name][idx]
             for constituent_metric_name in self.metrics
