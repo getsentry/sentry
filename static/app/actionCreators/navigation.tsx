@@ -1,8 +1,7 @@
-import {useCallback} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -19,12 +18,6 @@ export function navigateTo(
   const needProjectId = !comingFromProjectId || Array.isArray(comingFromProjectId);
 
   const projectById = ProjectsStore.getById(comingFromProjectId);
-
-  const onFinish = useCallback((modalProps: ModalRenderProps, path: string) => {
-    return Promise.resolve(modalProps.closeModal()).then(() => {
-      router.push(path);
-    });
-  }, []);
 
   if (needOrg || (needProject && (needProjectId || !projectById)) || configUrl) {
     openModal(
