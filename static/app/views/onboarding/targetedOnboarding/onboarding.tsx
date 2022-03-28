@@ -62,7 +62,8 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  if (!stepObj) {
+  const stepIndex = ONBOARDING_STEPS.findIndex(({ id }) => stepId === id);
+  if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
 
@@ -126,11 +127,11 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        {stepId !== 'welcome' && (
+        {stepIndex !== 0 && (
           <StyledStepper
-            steps={ONBOARDING_STEPS.slice(1)}
-            currentStepId={stepId}
-            onClick={goToStep}
+            numSteps={ONBOARDING_STEPS.length - 1}
+            currentStepIndex={stepIndex - 1}
+            onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
           />
         )}
         <Hook name="onboarding:targeted-onboarding-header" />

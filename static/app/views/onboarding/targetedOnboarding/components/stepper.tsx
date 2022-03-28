@@ -2,8 +2,6 @@ import {HTMLAttributes, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {animate, motion, useMotionValue} from 'framer-motion';
 
-import {StepDescriptor} from '../types';
-
 const StepperWrapper = styled('div')`
   border-radius: 4px;
   position: relative;
@@ -30,44 +28,42 @@ const StepperTransitionIndicator = styled(motion.span)`
 `;
 
 type Props = Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & {
-  currentStepId: string;
-  onClick: (step: StepDescriptor) => void;
-  steps: StepDescriptor[];
+  currentStepIndex: number;
+  onClick: (stepIndex: number) => void;
+  numSteps: number;
 };
 
-export default function Stepper({steps, currentStepId, onClick, ...props}: Props) {
+export default function Stepper({ currentStepIndex, numSteps, onClick, ...props }: Props) {
   const stepperContainerRef = useRef<HTMLDivElement>(null);
-  const currentIndex = steps.findIndex(step => step.id === currentStepId);
-  const stepperX = useMotionValue(0);
+  const stepperX = useMotionValue<null | number>(null);
 
   // Set initial value of stepperX
   useEffect(() => {
     const parentRect = stepperContainerRef.current?.getBoundingClientRect();
     const rect =
-      stepperContainerRef.current?.children[currentIndex].getBoundingClientRect();
-    rect && parentRect && stepperX.set(rect.x - parentRect.x);
-  }, []);
-  const onClickStartAnimation = (step: StepDescriptor, i: number) => {
-    const parentRect = stepperContainerRef.current?.getBoundingClientRect();
-    const rect = stepperContainerRef.current?.children[i].getBoundingClientRect();
-    rect &&
-      parentRect &&
+      stepperContainerRef.current?.children[currentStepIndex].getBoundingClientRect();
+    if (!rect || !parentRect) {
+      return;
+    }
+    if (stepperX.get() === null) {
+      stepperX.set(rect.x - parentRect.x);
+    } else {
       animate(stepperX, rect.x - parentRect.x, {
         type: 'tween',
         duration: 1,
       });
-    onClick(step);
-  };
+    }
+  }, [currentStepIndex]);
 
   return (
     <StepperWrapper {...props}>
       <StepperTransitionIndicator key="animation" style={{x: stepperX}} />
       <StepperContainer ref={stepperContainerRef}>
-        {steps.map((step, i) => (
+        {Array.from(Array(numSteps).keys()).map((_, i) => (
           <StepperIndicator
-            key={step.id}
-            onClick={() => i < currentIndex && onClickStartAnimation(step, i)}
-            clickable={i < currentIndex}
+            key={i}
+            onClick={() => i < currentStepIndex && onClick(i)}
+            clickable={i < currentStepIndex}
           />
         ))}
       </StepperContainer>
