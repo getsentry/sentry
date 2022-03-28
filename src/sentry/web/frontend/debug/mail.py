@@ -40,11 +40,7 @@ from sentry.models import (
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import (
-    get_email_link_extra_params,
-    get_group_settings_link,
-    get_rules,
-)
+from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -361,12 +357,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for _ in range(random.randint(1, 30)):
+    for i in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for _ in range(random.randint(1, 10)):
+        for i in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -404,7 +400,6 @@ def digest(request):
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
-    rule_details = get_rules(rules.values(), org, project)
     context = {
         "project": project,
         "counts": counts,
@@ -413,10 +408,7 @@ def digest(request):
         "end": end,
         "referrer": "digest_email",
         "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
-        "rules_details": {rule.id: rule for rule in rule_details},
-        "link_params_for_rule": get_email_link_extra_params(
-            "digest_email", None, rule_details, 1337
-        ),
+        "rules_details": {rule.id: rule for rule in get_rules(rules.values(), org, project)},
     }
     add_unsubscribe_link(context)
 
