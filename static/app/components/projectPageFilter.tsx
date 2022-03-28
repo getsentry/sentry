@@ -17,7 +17,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
-import {trimSlug} from 'sentry/utils';
+import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
