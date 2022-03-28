@@ -202,9 +202,7 @@ class IssueListActions extends React.Component<Props, State> {
           environment: selection.environments,
           ...selection.datetime,
         },
-        {
-          complete: () => {},
-        }
+        {}
       );
     });
   };

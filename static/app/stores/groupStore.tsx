@@ -358,20 +358,21 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 
   onDeleteSuccess(_changeId, itemIds, _response) {
-    const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
     itemIds = this._itemIdsOrAll(itemIds);
+
+    if (itemIds.length > 1) {
+      showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).join('');
+      showAlert(t(`Deleted ${shortId}`), 'success');
+    }
+
     const itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
-
-    if (itemIds.length > 1) {
-      showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
-    } else {
-      showAlert(t(`Deleted ${shortId}`), 'success');
-    }
     this.trigger(new Set(itemIds));
   },
 
