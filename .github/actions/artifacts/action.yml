@@ -17,7 +17,9 @@ runs:
     - name: Upload to codecov
       uses: codecov/codecov-action@v2
       env:
-          NODE_OPTIONS: ""
+        # This is because of a bug in codecov's uploader
+        # See: https://github.com/codecov/uploader/issues/475
+        NODE_OPTIONS: ""
       with:
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
