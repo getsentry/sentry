@@ -265,8 +265,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         label: getDisplayName(env),
       })) ?? [];
 
-    const anyEnvironmentLabel = <React.Fragment>{t('All')}</React.Fragment>;
-    environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
+    environmentOptions.unshift({
+      value: null,
+      label: <React.Fragment>{t('All')} </React.Fragment>,
+    });
 
     const dataSourceOptions = [
       {
