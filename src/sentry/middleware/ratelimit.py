@@ -35,13 +35,14 @@ class RatelimitMiddleware:
         rate_limit_metadata = None
         rate_limit_key = None
         rate_limit_uid = None
+        response = None
 
         # First, check if the endpoint call will violate.
         try:
             rate_limit_uid = uuid.uuid4().hex
-            view_func = resolve(request.path).func
             # in deprecated django middleware the view function is passed in to process_view
             # but we can still access it this way through the request
+            view_func = resolve(request.path).func
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
                 return self.get_response(request)
@@ -76,15 +77,14 @@ class RatelimitMiddleware:
                         },
                         status=429,
                     )
-                    self.add_headers(response, rate_limit_metadata)
-                    return response
 
         except Exception:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
         # Hit the endpoint
         request.rate_limit_metadata = rate_limit_metadata
-        response = self.get_response(request)
+        if not response:
+            response = self.get_response(request)
 
         # Process the response
         self.add_headers(response, request.rate_limit_metadata)
@@ -93,7 +93,6 @@ class RatelimitMiddleware:
 
     def add_headers(self, response, rate_limit_metadata):
         if not rate_limit_metadata or type(response) not in (Response, HttpResponse):
-            logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
             return response
 
         response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
