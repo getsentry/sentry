@@ -35,31 +35,34 @@ class RatelimitMiddleware:
     def __call__(self, request: Request) -> Response:
         response, rate_limit_data = self.process_request(request)
         # Hit the endpoint
-        request.rate_limit_metadata = rate_limit_data.get("rate_limit_metadata")
+        request.rate_limit_metadata = rate_limit_data.rate_limit_metadata
         if not response:
             response = self.get_response(request)
 
         # Process the response
         self.add_headers(response, request.rate_limit_metadata)
-        if rate_limit_data.get("rate_limit_key") and rate_limit_data.get("rate_limit_uid"):
-            finish_request(rate_limit_data["rate_limit_key"], rate_limit_data["rate_limit_uid"])
+        if rate_limit_data.rate_limit_key and rate_limit_data.rate_limit_uid:
+            finish_request(rate_limit_data.rate_limit_key, rate_limit_data.rate_limit_uid)
         return response
 
     def process_request(self, request: Request) -> Tuple[HttpResponse | None, RateLimitData]:
-        rate_limit_data: RateLimitData = {}
+        rate_limit_data: RateLimitData = None
+        rate_limit_uid = None
+        rate_limit_key = None
+        rate_limit_metadata = None
         response = None
 
         # First, check if the endpoint call will violate.
         try:
-            rate_limit_data["rate_limit_uid"] = uuid.uuid4().hex
+            rate_limit_uid = uuid.uuid4().hex
             # in deprecated django middleware the view function is passed in to process_view
             # but we can still access it this way through the request
             view_func = resolve(request.path).func
-            rate_limit_data["rate_limit_key"] = get_rate_limit_key(view_func, request)
-            if rate_limit_data["rate_limit_key"] is None:
+            rate_limit_key = get_rate_limit_key(view_func, request)
+            if rate_limit_key is None:
                 return response, rate_limit_data
 
-            category_str = rate_limit_data["rate_limit_key"].split(":", 1)[0]
+            category_str = rate_limit_key.split(":", 1)[0]
             rate_limit = get_rate_limit_value(
                 http_method=request.method,
                 endpoint=view_func.view_class,
@@ -68,18 +71,17 @@ class RatelimitMiddleware:
             if rate_limit is None:
                 return response, rate_limit_data
 
-            rate_limit_data["rate_limit_metadata"] = above_rate_limit_check(
-                rate_limit_data["rate_limit_key"],
+            rate_limit_metadata = above_rate_limit_check(
+                rate_limit_key,
                 rate_limit,
-                rate_limit_data["rate_limit_uid"],
+                rate_limit_uid,
                 category_str,
             )
             # TODO: also limit by concurrent window once we have the data
             rate_limit_cond = (
-                rate_limit_data["rate_limit_metadata"].rate_limit_type != RateLimitType.NOT_LIMITED
+                rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
                 if ENFORCE_CONCURRENT_RATE_LIMITS
-                else rate_limit_data["rate_limit_metadata"].rate_limit_type
-                == RateLimitType.FIXED_WINDOW
+                else rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
             )
             if rate_limit_cond:
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
@@ -87,8 +89,8 @@ class RatelimitMiddleware:
                     response = HttpResponse(
                         {
                             "detail": DEFAULT_ERROR_MESSAGE.format(
-                                limit=rate_limit_data["rate_limit_metadata"].limit,
-                                window=rate_limit_data["rate_limit_metadata"].window,
+                                limit=rate_limit_metadata.limit,
+                                window=rate_limit_metadata.window,
                             )
                         },
                         status=429,
@@ -97,6 +99,11 @@ class RatelimitMiddleware:
         except Exception:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
+        rate_limit_data = RateLimitData(
+            rate_limit_uid=rate_limit_uid,
+            rate_limit_key=rate_limit_key,
+            rate_limit_metadata=rate_limit_metadata,
+        )
         return response, rate_limit_data
 
     def add_headers(
