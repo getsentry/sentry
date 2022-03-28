@@ -38,8 +38,10 @@ function EnvironmentPageFilter({router, resetParamsOnChange = [], alignDropdown}
   const customDropdownButton = ({isOpen, getActorProps, summary}) => {
     return (
       <PageFilterDropdownButton
-        isOpen={isOpen}
         {...getActorProps()}
+        detached
+        hideBottomBorder={false}
+        isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
       >
         <DropdownTitle>

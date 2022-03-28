@@ -53,10 +53,12 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
 
     return (
       <PageFilterDropdownButton
+        {...getActorProps()}
+        detached
+        hideBottomBorder={false}
         isOpen={isOpen}
         icon={<IconCalendar />}
         highlighted={desyncedFilters.has('datetime')}
-        {...getActorProps()}
       >
         <DropdownTitle>
           <TitleContainer>{label}</TitleContainer>
