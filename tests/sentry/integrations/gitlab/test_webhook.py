@@ -272,7 +272,6 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
-    # TODO(Leander): Rewrite these tests on the new naming scheme
     def test_update_repo_name(self):
         repo_out_of_date_name = self.create_repo(
             name="Old Sentry",  # name out of date
