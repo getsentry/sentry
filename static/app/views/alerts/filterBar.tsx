@@ -50,7 +50,7 @@ const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr;
   gap: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(2)};
 `;
 
 const FilterButtons = styled(ButtonBar)`
