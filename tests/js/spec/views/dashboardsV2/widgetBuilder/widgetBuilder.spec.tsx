@@ -1288,9 +1288,9 @@ describe('WidgetBuilder', function () {
 
     // Add both a field and a f(x)
     userEvent.click(screen.getByText('Add a Column'));
-    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-    userEvent.click(screen.getByText('Add a Column'));
     await selectEvent.select(screen.getByText('(Required)'), /project/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     // Change the y-axis
     await selectEvent.select(screen.getByText('count()'), 'eps()');
