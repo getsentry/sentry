@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = (
     "metric_object_factory",
     "run_metrics_query",
@@ -38,7 +40,6 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -55,6 +56,9 @@ from sentry.snuba.metrics.utils import (
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
+
+if TYPE_CHECKING:
+    from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 def run_metrics_query(
