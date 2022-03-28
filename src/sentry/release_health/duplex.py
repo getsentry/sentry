@@ -791,18 +791,14 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         sessions_fn = getattr(self.sessions, fn_name)
         metrics_fn = getattr(self.metrics, fn_name)
 
-        sessions_result = None  # get rid of unbound warnings -- this line shouldn't be necessary
-
         now = datetime.now(pytz.utc)
         tags = {"method": fn_name, "rollup": str(rollup)}
         incr(
             "releasehealth.metrics.should_return",
             tags={"should_return": str(should_return_metrics), **tags},
         )
-        if should_check_metrics or not should_return_metrics:
-            with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
-                sessions_result = sessions_fn(*args)
 
+        sessions_result = None  # get rid of unbound warnings -- this line shouldn't be necessary
         metrics_result = None
 
         if should_return_metrics:
@@ -811,6 +807,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     metrics_result = metrics_fn(*args)
             except Exception:
                 capture_exception()
+
+        if should_check_metrics or metrics_result is None:
+            with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
+                sessions_result = sessions_fn(*args)
 
         if should_check_metrics:
             try:
@@ -830,9 +830,17 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 capture_exception()
 
         if metrics_result is not None:
+            incr(
+                "releasehealth.metrics.should_return",
+                tags={"did_return": "True", **tags},
+            )
             return metrics_result
-
-        return sessions_result
+        else:
+            incr(
+                "releasehealth.metrics.should_return",
+                tags={"did_return": "False", **tags},
+            )
+            return sessions_result
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
