@@ -120,6 +120,9 @@ register(
 # The ratio of requests for which the new stackwalking method should be compared against the old one
 register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
 
+# The ratio of requests that should be stackwalked with rust-minidump (instead of the default breakpad)
+register("symbolicator.rust_minidump_stackwalking_rate", default=0.0)
+
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
 # it break everywhere.
