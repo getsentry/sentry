@@ -227,18 +227,16 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def _change_team_member_role(
         team_membership: OrganizationMemberTeam, team_role: TeamRole
     ) -> None:
-        """Modify a member's team-level role.
-
-        If the member has an organization role that gives an equal or higher entry
-        role, write null to this object's role field. We do this because a persistent
-        team role, if it is overshadowed by the entry role, would be effectively
-        invisible in the UI, and would be surprising if it were left behind after the
-        user's org-level role is lowered.
-        """
+        """Modify a member's team-level role."""
         entry_role = roles.get_entry_role(team_membership.organizationmember.role)
         if team_role.priority > entry_role.priority:
             team_membership.update(role=team_role.id)
         else:
+            # The new team role is redundant to the role that this member would
+            # receive as an entry role anyway. This makes it effectively invisible in
+            # the UI, and it would be surprising if it were suddenly left over after
+            # the user's org-level role is demoted. So, write a null value to the
+            # database and let the member's entry role take over.
             team_membership.update(role=None)
 
     def delete(
