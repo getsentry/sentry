@@ -483,10 +483,9 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
 
-    const columnsAndAggregates =
-      isColumn || displayType === DisplayType.TOP_N
-        ? getColumnsAndAggregatesAsStrings(newFields)
-        : undefined;
+    const columnsAndAggregates = isColumn
+      ? getColumnsAndAggregatesAsStrings(newFields)
+      : undefined;
 
     const newState = cloneDeep(state);
 
@@ -499,22 +498,23 @@ function WidgetBuilder({
       if (isColumn) {
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+      } else if (state.displayType === DisplayType.TOP_N) {
+        // Top N queries use n-1 fields for columns and the nth field for y-axis
+        newQuery.fields = [
+          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
+          ...fieldStrings,
+        ];
+        newQuery.aggregates = [
+          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
+          ...fieldStrings,
+        ];
       } else {
-        // TODO: Fix this nested conditional logic
-        if (displayType === DisplayType.TOP_N) {
-          newQuery.fields = [
-            ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
-            ...fieldStrings,
-          ];
-          newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
-        } else {
-          newQuery.fields = [...newQuery.columns, ...fieldStrings];
-          newQuery.aggregates = fieldStrings;
-        }
+        newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        newQuery.aggregates = fieldStrings;
       }
 
+      // Prevent overwriting columns when setting y-axis for time series
       if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        // Prevent overwriting columns when setting y-axis for time series
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
