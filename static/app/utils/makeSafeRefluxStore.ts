@@ -1,4 +1,7 @@
 export interface SafeStoreDefinition extends Reflux.StoreDefinition {
+  /**
+   * Teardown a store and all it's listeners
+   */
   teardown?(): void;
   unsubscribeListeners?: Reflux.Subscription[];
 }
