@@ -196,6 +196,8 @@ class ProjectDetail extends AsyncView<Props, State> {
       return this.renderNoAccess(project);
     }
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <PageFiltersContainer
         disableMultipleProjectSelection
@@ -207,6 +209,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             : undefined
         }
         showAbsolute={!hasOnlyBasicChart}
+        hideGlobalHeader={hasPageFilters}
       >
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
@@ -270,6 +273,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
+                    hasPageFilters={hasPageFilters}
                     query={query}
                     onSearch={this.handleSearch}
                     tagValueLoader={this.tagValueLoader}
@@ -348,7 +352,6 @@ const StyledPageContent = styled(PageContent)`
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
