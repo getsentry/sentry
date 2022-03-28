@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import _SearchBar from 'sentry/components/events/searchBar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -34,7 +34,7 @@ export default function SpanDetailsSearchBar({
   };
 
   return (
-    <SearchBar
+    <StyledSearchBar
       placeholder={t('Filter Transactions')}
       organization={organization}
       projectIds={eventView.project}
@@ -45,6 +45,6 @@ export default function SpanDetailsSearchBar({
   );
 }
 
-const SearchBar = styled(_SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
