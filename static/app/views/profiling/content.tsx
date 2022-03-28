@@ -34,7 +34,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
   const profileFilters = useProfileFilters();
-  const query = decodeScalar(location.query.query);
+  const query = decodeScalar(location.query.query, '').trim();
   const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
 
   const handleSearch = (searchQuery: string) => {
@@ -43,12 +43,10 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
       query: {
         ...location.query,
         cursor: undefined,
-        query: searchQuery.trim() || undefined,
+        query: searchQuery || undefined,
       },
     });
   };
-
-  const searchQuery = decodeScalar(location.query.query, '').trim();
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -68,7 +66,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                     hasRecentSearches
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
-                    query={searchQuery}
+                    query={query}
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
