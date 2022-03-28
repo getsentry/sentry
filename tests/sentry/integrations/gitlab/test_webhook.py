@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
 from sentry.utils import json
 
@@ -275,10 +273,9 @@ class WebhookTest(GitLabTestCase):
         self.assert_group_link(group, pull)
 
     # TODO(Leander): Rewrite these tests on the new naming scheme
-    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_name(self):
         repo_out_of_date_name = self.create_repo(
-            name="Uncool Group / Sentry",  # name out of date
+            name="Old Sentry",  # name out of date
             url="http://example.com/cool-group/sentry",
         )
         repo_out_of_date_name.update(
@@ -297,9 +294,8 @@ class WebhookTest(GitLabTestCase):
 
         # name has been updated
         repo_out_of_date_name.refresh_from_db()
-        assert repo_out_of_date_name.name == "Cool Group / Sentry"
+        assert repo_out_of_date_name.name == "Sentry"
 
-    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_path(self):
         repo_out_of_date_path = self.create_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
@@ -324,7 +320,6 @@ class WebhookTest(GitLabTestCase):
         repo_out_of_date_path.refresh_from_db()
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
 
-    @pytest.mark.xfail(reason="renaming breaks tri-level repos")
     def test_update_repo_url(self):
         repo_out_of_date_url = self.create_repo(
             name="Cool Group / Sentry",
