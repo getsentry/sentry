@@ -10444,10 +10444,10 @@ jest-runtime@^27.5.1:
     slash "^3.0.0"
     strip-bom "^4.0.0"
 
-jest-sentry-environment@1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/jest-sentry-environment/-/jest-sentry-environment-1.4.0.tgz#3d553583b7e14df2b2eea25191a284aacda23a8e"
-  integrity sha512-NXh+ikXP0vs4RRREHdKANc1fcCYGIl78hgfBvpsW/mJCzDWr8J3CgI3IalzGp0eOOM+kQ6cvQX0yjFOiwJJ7Rg==
+jest-sentry-environment@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/jest-sentry-environment/-/jest-sentry-environment-1.5.0.tgz#b5838ad3225ed4991226ac4f953740031ac2b45e"
+  integrity sha512-jbpZWDEcdJyqYAZIy0fCn6vcLfhthmnD1Q+id19aRcTakruO2hNkXn083UDENH1qJ+pGCtAYKzMIk+6eagidSw==
 
 jest-serializer@^26.6.2:
   version "26.6.2"
@@ -12715,7 +12715,7 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier@2.6.0:
+prettier@^2.6.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.6.0.tgz#12f8f504c4d8ddb76475f441337542fa799207d4"
   integrity sha512-m2FgJibYrBGGgQXNzfd0PuDGShJgRavjUoRCw1mZERIWVSXF0iLzLm+aOqTAbLnC3n6JzUhAA8uZnFVghHJ86A==
@@ -14493,13 +14493,6 @@ specificity@^0.4.1:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/specificity/-/specificity-0.4.1.tgz#aab5e645012db08ba182e151165738d00887b019"
   integrity sha512-1klA3Gi5PD1Wv9Q0wUoOQN1IWAuPu0D1U03ThXTr0cJ20+/iq2tHSDnK7Kk/0LXJ1ztUB2/1Os0wKmfyNgUQfg==
-
-speed-measure-webpack-plugin@^1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/speed-measure-webpack-plugin/-/speed-measure-webpack-plugin-1.5.0.tgz#caf2c5bee24ab66c1c7c30e8daa7910497f7681a"
-  integrity sha512-Re0wX5CtM6gW7bZA64ONOfEPEhwbiSF/vz6e2GvadjuaPrQcHTQdRGsD8+BE7iUOysXH8tIenkPCQBEcspXsNg==
-  dependencies:
-    chalk "^4.1.0"
 
 split-on-first@^1.0.0:
   version "1.1.0"
