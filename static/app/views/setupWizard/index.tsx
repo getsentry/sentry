@@ -14,6 +14,15 @@ function SetupWizard({hash = false}: Props) {
   const api = useApi();
   const closeTimeoutRef = useRef<number | null>(null);
   const [finished, setFinished] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  });
 
   useEffect(() => {
     return () => {
