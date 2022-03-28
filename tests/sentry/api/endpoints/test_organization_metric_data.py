@@ -946,7 +946,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
         # TODO: implement rebucketed histogram
-        hist = {"histogram_metric_test": []}
+        hist = {"histogram_metric_test": hist}
 
         assert response.data["groups"] == [
             {
