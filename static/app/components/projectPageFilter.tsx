@@ -119,11 +119,11 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     );
     return (
       <PageFilterDropdownButton
-        {...getActorProps()}
         detached
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('projects')}
+        {...getActorProps()}
       >
         <DropdownTitle>
           {icon}
