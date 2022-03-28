@@ -520,6 +520,9 @@ describe('WidgetBuilder', function () {
 
     // Click the add an equation button
     userEvent.click(screen.getByLabelText('Add an Equation'));
+
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
+
     userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() + 100');
 
     userEvent.click(screen.getByLabelText('Add Widget'));
