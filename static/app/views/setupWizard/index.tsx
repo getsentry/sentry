@@ -15,6 +15,7 @@ function SetupWizard({hash = false}: Props) {
   const closeTimeoutRef = useRef<number | null>(null);
   const [finished, setFinished] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
     return () => {
