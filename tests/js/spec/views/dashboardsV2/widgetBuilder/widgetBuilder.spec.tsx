@@ -18,6 +18,7 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
+import selectEvent from 'react-select-event';
 
 // Mock World Map because setState inside componentDidMount is
 // throwing UnhandledPromiseRejection
@@ -1279,21 +1280,24 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       orgFeatures: [...defaultOrgFeatures, 'performance-view'],
       query: {
-        source: DashboardWidgetSource.DISCOVERV2,
         displayType: DisplayType.TOP_N,
       },
     });
 
     await screen.findByText('Add a Column');
-    userEvent.click(screen.getByText('Add a Column'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique{enter}');
-    userEvent.click(screen.getByText('Add a Column'));
-    userEvent.type(screen.getByText('(Required)'), 'project{enter}');
 
-    userEvent.click(screen.getByText('count()'));
-    userEvent.click(screen.getByText('eps()'));
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
     await waitFor(() => {
-      expect(eventsStatsMock).toHaveBeenLastCalledWith(
+      expect(eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
