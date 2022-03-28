@@ -402,20 +402,31 @@ class CompositeEntityDerivedMetric(DerivedMetric):
     def get_entity(self, projects: Sequence[Project]) -> Dict[MetricEntity, Sequence[str]]:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
-        return self.__recursively_generate_singular_entity_constituents(projects, self)
+        return self.__recursively_generate_singular_entity_constituents(
+            projects=projects, derived_metric_obj=self
+        )
 
     def generate_available_operations(self):
         return []
 
     @classmethod
-    def __recursively_generate_singular_entity_constituents(cls, projects, derived_metric_obj):
+    def __recursively_generate_singular_entity_constituents(
+        cls,
+        projects: Optional[Sequence[Project]],
+        derived_metric_obj: DerivedMetric,
+        is_naive: bool = False,
+    ) -> Dict[MetricEntity, Sequence[str]]:
         entities_and_metric_names = {}
         for metric_name in derived_metric_obj.metrics:
             if metric_name not in DERIVED_METRICS:
                 continue
             constituent_metric_obj = DERIVED_METRICS[metric_name]
             if isinstance(constituent_metric_obj, SingularEntityDerivedMetric):
-                entity = constituent_metric_obj.get_entity(projects=projects)
+                if is_naive:
+                    entity = None
+                else:
+                    entity = constituent_metric_obj.get_entity(projects=projects)
+
                 entities_and_metric_names.setdefault(entity, []).append(
                     constituent_metric_obj.metric_name
                 )
@@ -424,7 +435,7 @@ class CompositeEntityDerivedMetric(DerivedMetric):
             entities_and_metric_names = combine_dictionary_of_list_values(
                 entities_and_metric_names,
                 cls.__recursively_generate_singular_entity_constituents(
-                    projects, constituent_metric_obj
+                    projects, constituent_metric_obj, is_naive
                 ),
             )
 
@@ -484,6 +495,16 @@ class CompositeEntityDerivedMetric(DerivedMetric):
                 if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
+
+    def naively_generate_singular_entity_constituents(self):
+        single_entity_constituents = set(
+            list(
+                self.__recursively_generate_singular_entity_constituents(
+                    projects=None, derived_metric_obj=self, is_naive=True
+                ).values()
+            ).pop()
+        )
+        return single_entity_constituents
 
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [
@@ -645,8 +666,13 @@ DERIVED_METRICS = {
 
 def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    if metric_name in DERIVED_METRICS:
-        instance = DERIVED_METRICS[metric_name]
+    # This function is only used in the query builder, only after func `parse_field` validates
+    # that no private derived metrics are required. The query builder requires access to all
+    # derived metrics to be able to compute derived metrics that are not private but might have
+    # private constituents
+    derived_metrics = get_derived_metrics(exclude_private=False)
+    if metric_name in derived_metrics:
+        instance = derived_metrics[metric_name]
     else:
         instance = RawAggregatedMetric(op=op, metric_name=metric_name)
     return instance
@@ -671,3 +697,11 @@ def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
         elif isinstance(derived_metric, SingularEntityDerivedMetric):
             dependency_list.append((None, derived_metric.metric_name))
     return dependency_list
+
+
+def get_derived_metrics(exclude_private=True):
+    return (
+        {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
+        if exclude_private
+        else DERIVED_METRICS
+    )

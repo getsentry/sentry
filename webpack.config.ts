@@ -15,7 +15,13 @@ import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
+import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
+
+// Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
+(async () => {
+  await extractIOSDeviceNames();
+})();
 
 /**
  * Merges the devServer config into the webpack config
@@ -214,7 +220,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-let appConfig: Configuration = {
+const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -611,12 +617,6 @@ if (env.WEBPACK_CACHE_PATH) {
       // By default webpack and loaders are build dependencies
     },
   };
-}
-
-if (env.MEASURE) {
-  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-  const smp = new SpeedMeasurePlugin();
-  appConfig = smp.wrap(appConfig);
 }
 
 export default appConfig;
