@@ -90,6 +90,12 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
+  componentWillUnmount() {
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
+    }
+  }
+
   blurTimeout: number | null = null;
 
   // Handle scalar field values changing.
@@ -128,6 +134,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);
@@ -150,6 +159,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);

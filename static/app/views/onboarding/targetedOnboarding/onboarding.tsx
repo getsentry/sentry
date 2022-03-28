@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -60,7 +60,18 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
+  const cornerVariantTimeoutRed = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cornerVariantTimeoutRed.current) {
+        window.clearTimeout(cornerVariantTimeoutRed.current);
+      }
+    };
+  }, []);
+
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
+
   if (!stepObj) {
     return <div>Can't find</div>;
   }
@@ -68,14 +79,18 @@ function Onboarding(props: Props) {
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay the corner animation
-    window.setTimeout(
+    if (cornerVariantTimeoutRed.current) {
+      window.clearTimeout(cornerVariantTimeoutRed.current);
+    }
+
+    cornerVariantTimeoutRed.current = window.setTimeout(
       () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
   };
 
-  React.useEffect(updateCornerVariant, []);
-  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+  useEffect(updateCornerVariant, []);
+  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
 
   const addPlatform = (platform: PlatformKey) => {
     setPlatforms([...platforms, platform]);
@@ -84,6 +99,7 @@ function Onboarding(props: Props) {
   const removePlatform = (platform: PlatformKey) => {
     setPlatforms(platforms.filter(p => p !== platform));
   };
+  useEffect(updateCornerVariant, []);
 
   const goNextStep = (step: StepDescriptor) => {
     const stepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);

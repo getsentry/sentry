@@ -61,6 +61,7 @@ type Internals = {
 const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface = {
   items: [],
   lastId: 0,
+
   init() {
     this.items = [];
     this.lastId = 0;

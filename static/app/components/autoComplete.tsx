@@ -133,8 +133,14 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     this.items.clear();
   }
 
+  componentWillUnmount() {
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
+    }
+  }
+
   items = new Map();
-  blurTimer: any;
+  blurTimeout: number | null = null;
   itemCount?: number;
 
   isControlled = () => typeof this.props.isOpen !== 'undefined';
@@ -191,7 +197,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
   handleInputBlur =
     <E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) =>
     (e: React.FocusEvent<E>) => {
-      this.blurTimer = window.setTimeout(() => {
+      this.blurTimeout = window.setTimeout(() => {
         this.closeMenu();
         onBlur?.(e);
       }, 200);
@@ -202,8 +208,8 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
-    if (this.blurTimer) {
-      clearTimeout(this.blurTimer);
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
     }
 
     // Wait until the current macrotask completes, in the case that the click
@@ -257,8 +263,8 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
         return;
       }
 
-      if (this.blurTimer) {
-        clearTimeout(this.blurTimer);
+      if (this.blurTimeout) {
+        clearTimeout(this.blurTimeout);
       }
 
       this.setState({highlightedIndex: index});
@@ -274,14 +280,14 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       this.setState({highlightedIndex: index});
     };
 
-  handleMenuMouseDown = () => {
+  handleMenuMouseDown() {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    window.setTimeout(() => {
-      if (this.blurTimer) {
-        clearTimeout(this.blurTimer);
+    this.blurTimeout = window.setTimeout(() => {
+      if (this.blurTimeout) {
+        clearTimeout(this.blurTimeout);
       }
     });
-  };
+  }
 
   /**
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
