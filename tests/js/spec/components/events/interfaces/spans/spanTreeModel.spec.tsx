@@ -583,10 +583,10 @@ describe('SpanTreeModel', () => {
     });
 
     expect(spans.length).toEqual(2);
-    expect(spans[1].type).toEqual('span_group_sibling');
+    expect(spans[1].type).toEqual('span_group_siblings');
 
     // If statement here is required to avoid TS linting issues
-    if (spans[1].type === 'span_group_sibling') {
+    if (spans[1].type === 'span_group_siblings') {
       expect(spans[1].spanSiblingGrouping!.length).toEqual(5);
     }
   });
@@ -758,8 +758,8 @@ describe('SpanTreeModel', () => {
     });
 
     expect(spans.length).toEqual(4);
-    expect(spans[1].type).toEqual('span_group_sibling');
+    expect(spans[1].type).toEqual('span_group_siblings');
     expect(spans[2].type).toEqual('span');
-    expect(spans[3].type).toEqual('span_group_sibling');
+    expect(spans[3].type).toEqual('span_group_siblings');
   });
 });

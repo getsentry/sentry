@@ -277,7 +277,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
                     hasStatusFilters
-                    hasEnvironmentFilter
                   />
                 </Fragment>
               )}

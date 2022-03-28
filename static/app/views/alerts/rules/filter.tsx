@@ -144,6 +144,7 @@ function Filter({onFilterChange, header, dropdownSections}: Props) {
           blendCorner
           alignMenu="left"
           width="240px"
+          detached
         >
           <List>
             {header}
