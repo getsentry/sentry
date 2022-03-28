@@ -933,20 +933,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-        # Note: This is not really the endpoint you should use to query
-        # histograms, as any real-world use of histograms probably requires
-        # some tweaking with respect to zoom-range and bucket count.
-        # Nevertheless we expose the functions with default values.
         response = self.get_success_response(
             self.organization.slug,
             field="histogram(sentry.transactions.measurements.lcp)",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
+            histogramBuckets="2",
         )
 
-        # TODO: implement rebucketed histogram
-        hist = {"histogram_metric_test": hist}
+        hist = {
+            "histogram_metric_test": [
+                (1.0, 3.5, 3.0),
+                (3.5, 6.0, 3.0),
+            ]
+        }
 
         assert response.data["groups"] == [
             {

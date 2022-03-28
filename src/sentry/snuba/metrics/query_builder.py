@@ -168,7 +168,7 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
-        self.histogram_buckets = query_params.get("histogramBuckets", 100)
+        self.histogram_buckets = int(query_params.get("histogramBuckets", 100))
         if self.histogram_buckets > 250:
             raise InvalidField(
                 "We don't have more than 250 buckets stored for any given metric bucket."
