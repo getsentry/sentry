@@ -2,7 +2,7 @@
 import '@sentry/tracing';
 
 // eslint-disable-next-line import/no-nodejs-modules
-import * as fs from 'fs';
+import fs from 'fs';
 
 import * as Sentry from '@sentry/node';
 
