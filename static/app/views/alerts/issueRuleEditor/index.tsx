@@ -42,6 +42,7 @@ import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -405,7 +406,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       CHANGE_ALERT_CONDITION_IDS.includes(configuration.id);
 
     return configuration?.formFields
-      ? Object.fromEntries(
+      ? objectFromEntries(
           Object.entries(configuration.formFields)
             // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
             .map(([key, formField]: [string, any]) => [

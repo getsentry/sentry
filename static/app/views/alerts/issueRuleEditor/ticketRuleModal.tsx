@@ -8,6 +8,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import AsyncView from 'sentry/views/asyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
@@ -37,7 +38,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
     return {
       ...super.getDefaultState(),
-      fetchedFieldOptionsCache: Object.fromEntries(
+      fetchedFieldOptionsCache: objectFromEntries(
         issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
       ),
       issueConfigFieldsCache,

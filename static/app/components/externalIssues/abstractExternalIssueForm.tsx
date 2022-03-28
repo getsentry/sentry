@@ -15,6 +15,7 @@ import {
   IssueConfigField,
   SelectValue,
 } from 'sentry/types';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
@@ -103,7 +104,7 @@ export default class AbstractExternalIssueForm<
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
     const config = (integrationDetails || {})[this.getConfigName()];
-    return Object.fromEntries(
+    return objectFromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
         .map((field: IssueConfigField) => [field.name, field.default || null])

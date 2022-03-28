@@ -2,6 +2,7 @@ import isString from 'lodash/isString';
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(query: string): string {
@@ -24,7 +25,7 @@ export function addQueryParamsToExistingUrl(
   // Order the query params alphabetically.
   // Otherwise ``queryString`` orders them randomly and it's impossible to test.
   const params = JSON.parse(JSON.stringify(queryParams));
-  const query = {...Object.fromEntries(searchEntries), ...params};
+  const query = {...objectFromEntries(searchEntries), ...params};
 
   return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
 }

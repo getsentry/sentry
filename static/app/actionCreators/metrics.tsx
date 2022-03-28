@@ -16,6 +16,7 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 export type DoMetricsRequestOptions = {
   field: string[];
@@ -59,7 +60,7 @@ export const doMetricsRequest = (
     allowEmptyPeriod: true,
   });
 
-  const urlQuery = Object.fromEntries(
+  const urlQuery = objectFromEntries(
     Object.entries({
       field: field.filter(f => !!f),
       cursor,

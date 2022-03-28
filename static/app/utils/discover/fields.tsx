@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
 
@@ -608,7 +609,7 @@ export type FieldTag = {
 };
 
 export const FIELD_TAGS = Object.freeze(
-  Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
+  objectFromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
 );
 
 export const SEMVER_TAGS = {

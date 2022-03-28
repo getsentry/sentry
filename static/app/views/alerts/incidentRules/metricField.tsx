@@ -11,11 +11,11 @@ import {Organization} from 'sentry/types';
 import {
   Aggregation,
   AGGREGATIONS,
-  ColumnType,
   explodeFieldString,
   FIELDS,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {
   AlertType,
   hideParameterSelectorSet,
@@ -61,7 +61,7 @@ const getFieldOptionConfig = ({
   } else {
     config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
   }
-  const aggregations = Object.fromEntries<Aggregation>(
+  const aggregations = objectFromEntries(
     config.aggregations.map(key => {
       // TODO(scttcper): Temporary hack for default value while we handle the translation of user
       if (key === 'count_unique') {
@@ -76,7 +76,7 @@ const getFieldOptionConfig = ({
     })
   );
 
-  const fields = Object.fromEntries<ColumnType>(
+  const fields = objectFromEntries(
     config.fields.map(key => {
       // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
       // tags[sentry:user].

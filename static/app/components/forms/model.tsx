@@ -6,6 +6,7 @@ import {APIRequestMethod, Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
@@ -118,7 +119,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !isEqual(this.initialData, Object.fromEntries(this.fields.toJSON()));
+    return !isEqual(this.initialData, objectFromEntries(this.fields.toJSON()));
   }
 
   @computed
@@ -145,7 +146,7 @@ class FormModel {
    */
   setInitialData(initialData?: Record<string, FieldValue>) {
     this.fields.replace(initialData || {});
-    this.initialData = Object.fromEntries(this.fields.toJSON()) || {};
+    this.initialData = objectFromEntries(this.fields.toJSON()) || {};
 
     this.snapshots = [new Map(this.fields.entries())];
   }
@@ -243,7 +244,7 @@ class FormModel {
    * Data represented in UI
    */
   getData() {
-    return Object.fromEntries(this.fields.toJSON());
+    return objectFromEntries(this.fields.toJSON());
   }
 
   /**

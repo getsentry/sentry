@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
@@ -110,7 +111,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
       );
     }
 
-    const integrationsById = Object.fromEntries(
+    const integrationsById = objectFromEntries(
       notificationIntegrations.map(integration => [integration.id, integration])
     );
 

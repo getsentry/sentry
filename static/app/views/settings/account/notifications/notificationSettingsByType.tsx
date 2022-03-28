@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   ALL_PROVIDER_NAMES,
@@ -288,14 +289,14 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   getUnlinkedOrgs = (): OrganizationSummary[] => {
     const {organizations} = this.props;
     const {identities, organizationIntegrations} = this.state;
-    const integrationExternalIDsByOrganizationID = Object.fromEntries(
+    const integrationExternalIDsByOrganizationID = objectFromEntries(
       organizationIntegrations.map(organizationIntegration => [
         organizationIntegration.organizationId,
         organizationIntegration.externalId,
       ])
     );
 
-    const identitiesByExternalId = Object.fromEntries(
+    const identitiesByExternalId = objectFromEntries(
       identities.map(identity => [identity?.identityProvider?.externalId, identity])
     );
 

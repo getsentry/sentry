@@ -23,6 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 type MappedValue = string | number;
@@ -75,11 +76,11 @@ export class RenderField extends Component<RenderProps, State> {
     const {selectedSentryProjectId, selectedMappedValue} = this.state;
 
     // create maps by the project id for constant time lookups
-    const sentryProjectsById = Object.fromEntries(
+    const sentryProjectsById = objectFromEntries(
       sentryProjects.map(project => [project.id, project])
     );
 
-    const mappedItemsByValue = Object.fromEntries(
+    const mappedItemsByValue = objectFromEntries(
       mappedDropdownItems.map(item => [item.value, item])
     );
 

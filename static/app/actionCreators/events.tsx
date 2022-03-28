@@ -11,6 +11,7 @@ import {
 } from 'sentry/types';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
 import {getPeriod} from 'sentry/utils/getPeriod';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
@@ -85,7 +86,7 @@ export const doEventsRequest = (
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
-  const urlQuery = Object.fromEntries(
+  const urlQuery = objectFromEntries(
     Object.entries({
       interval,
       comparisonDelta,

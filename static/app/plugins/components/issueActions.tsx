@@ -7,6 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {Group, Organization, Plugin, Project} from 'sentry/types';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 type Field = {
   depends?: string[];
@@ -159,7 +160,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     const url = `/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
     // find the fields that this field is dependent on
-    const dependentFormValues = Object.fromEntries(
+    const dependentFormValues = objectFromEntries(
       field.depends.map(fieldKey => [fieldKey, formData[fieldKey]])
     );
     const query = {

@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
   DisplayType,
@@ -226,7 +227,7 @@ export function normalizeQueries({
 export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined {
   // "any" was needed here because it doesn't pass in getsentry
   const urlSeachParams = new URLSearchParams(query) as any;
-  const parsedQuery = Object.fromEntries(urlSeachParams.entries());
+  const parsedQuery = objectFromEntries(urlSeachParams.entries());
 
   if (!Object.keys(parsedQuery).length) {
     return undefined;

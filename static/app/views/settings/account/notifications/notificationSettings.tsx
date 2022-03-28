@@ -11,6 +11,7 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
@@ -105,7 +106,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   getInitialData(): {[key: string]: string} {
     const {notificationSettings, legacyData} = this.state;
 
-    const notificationsInitialData = Object.fromEntries(
+    const notificationsInitialData = objectFromEntries(
       this.notificationSettingsType.map(notificationType => [
         notificationType,
         decideDefault(notificationType, notificationSettings),

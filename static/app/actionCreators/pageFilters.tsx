@@ -34,6 +34,7 @@ import {
 } from 'sentry/types';
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 /**
  * NOTE: this is the internal project.id, NOT the slug
@@ -540,7 +541,7 @@ function getNewQueryParams(
 
   const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
 
-  return Object.fromEntries(paramEntries) as PageFilterQuery;
+  return objectFromEntries(paramEntries);
 }
 
 export function revertToPinnedFilters(orgSlug: string, router: InjectedRouter) {

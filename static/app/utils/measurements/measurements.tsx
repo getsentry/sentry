@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
@@ -19,7 +20,7 @@ type VitalType = WebVital | MobileVital;
 function measurementsFromDetails(
   details: Partial<Record<VitalType, Vital>>
 ): MeasurementCollection {
-  return Object.fromEntries(
+  return objectFromEntries(
     Object.entries(details).map(([key, value]) => {
       const newValue: Measurement = {
         name: value.name,

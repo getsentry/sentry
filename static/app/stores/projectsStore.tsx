@@ -3,6 +3,7 @@ import Reflux from 'reflux';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Project, Team} from 'sentry/types';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 import {CommonStoreInterface} from './types';
 
@@ -64,9 +65,9 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
   },
 
   loadInitialData(items: Project[]) {
-    const mapping = items.map(project => [project.id, project] as const);
+    const mapping = items.map(project => [project.id, project]);
 
-    this.itemsById = Object.fromEntries(mapping);
+    this.itemsById = objectFromEntries(mapping);
     this.loading = false;
 
     this.trigger(new Set(Object.keys(this.itemsById)));

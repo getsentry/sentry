@@ -6,6 +6,7 @@ import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IntervalPeriod, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 import {PageFiltersState} from './types';
 
@@ -272,7 +273,7 @@ export function normalizeDateTimeParams(
   // Filter null values
   const paramEntries = Object.entries(object).filter(([_, value]) => defined(value));
 
-  return Object.fromEntries(paramEntries);
+  return objectFromEntries(paramEntries);
 }
 
 /**
@@ -320,7 +321,7 @@ export function getStateFromQuery(
  * Extract the datetime component from the page filter state object
  */
 export function getDatetimeFromState(state: PageFiltersState) {
-  return Object.fromEntries(
+  return objectFromEntries(
     Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
   ) as PageFilters['datetime'];
 }

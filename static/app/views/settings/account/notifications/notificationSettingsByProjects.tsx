@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
@@ -67,7 +68,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
   getGroupedProjects = (): {[key: string]: Project[]} => {
     const {projects: stateProjects} = this.state;
 
-    return Object.fromEntries(
+    return objectFromEntries(
       Object.values(groupByOrganization(sortProjects(stateProjects))).map(
         ({organization, projects}) => [`${organization.name} Projects`, projects]
       )

@@ -22,6 +22,7 @@ import {
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import withApi from 'sentry/utils/withApi';
 import withTags from 'sentry/utils/withTags';
 
@@ -105,7 +106,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     const {fields, organization, tags, omitTags} = this.props;
 
     const functionTags = fields
-      ? Object.fromEntries(
+      ? objectFromEntries(
           fields
             .filter(
               item =>

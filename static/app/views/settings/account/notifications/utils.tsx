@@ -3,6 +3,7 @@ import set from 'lodash/set';
 import {FieldObject} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, Project} from 'sentry/types';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,
@@ -105,7 +106,7 @@ export const backfillMissingProvidersWithFallback = (
   }
 
   // Second pass: Fill in values for every provider.
-  return Object.fromEntries(
+  return objectFromEntries(
     Object.keys(ALL_PROVIDERS).map(provider => [
       provider,
       providerList.includes(provider) ? existingValue : 'never',
@@ -144,7 +145,7 @@ export const getUserDefaultValues = (
 ): NotificationSettingsByProviderObject => {
   return (
     Object.values(notificationSettings[notificationType]?.user || {}).pop() ||
-    Object.fromEntries(
+    objectFromEntries(
       Object.entries(ALL_PROVIDERS).map(([provider, value]) => [
         provider,
         value === 'default' ? getFallBackValue(notificationType) : value,
@@ -257,7 +258,7 @@ export const getParentData = (
 ): NotificationSettingsByProviderObject => {
   const provider = getCurrentProviders(notificationType, notificationSettings)[0];
 
-  return Object.fromEntries(
+  return objectFromEntries(
     parents.map(parent => [
       parent.id,
       getParentValues(notificationType, notificationSettings, parent.id)[provider],
@@ -293,18 +294,18 @@ export const getStateToPutForProvider = (
     return {
       [notificationType]: {
         user: {
-          me: Object.fromEntries(providerList.map(provider => [provider, fallbackValue])),
+          me: objectFromEntries(providerList.map(provider => [provider, fallbackValue])),
         },
       },
     };
   }
 
   return {
-    [notificationType]: Object.fromEntries(
+    [notificationType]: objectFromEntries(
       Object.entries(notificationSettings[notificationType]).map(
         ([scopeType, scopeTypeData]) => [
           scopeType,
-          Object.fromEntries(
+          objectFromEntries(
             Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
               scopeId,
               backfillMissingProvidersWithFallback(
@@ -342,17 +343,17 @@ export const getStateToPutForDefault = (
   const updatedNotificationSettings = {
     [notificationType]: {
       user: {
-        me: Object.fromEntries(providerList.map(provider => [provider, newValue])),
+        me: objectFromEntries(providerList.map(provider => [provider, newValue])),
       },
     },
   };
 
   if (newValue === 'never') {
     updatedNotificationSettings[notificationType][getParentKey(notificationType)] =
-      Object.fromEntries(
+      objectFromEntries(
         parentIds.map(parentId => [
           parentId,
-          Object.fromEntries(providerList.map(provider => [provider, 'default'])),
+          objectFromEntries(providerList.map(provider => [provider, 'default'])),
         ])
       );
   }
@@ -375,9 +376,7 @@ export const getStateToPutForParent = (
   return {
     [notificationType]: {
       [getParentKey(notificationType)]: {
-        [parentId]: Object.fromEntries(
-          providerList.map(provider => [provider, newValue])
-        ),
+        [parentId]: objectFromEntries(providerList.map(provider => [provider, newValue])),
       },
     },
   };

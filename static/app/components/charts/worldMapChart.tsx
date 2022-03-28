@@ -5,6 +5,7 @@ import * as echarts from 'echarts/core';
 import max from 'lodash/max';
 
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 import {Theme} from 'sentry/utils/theme';
 
 import VisualMap from './components/visualMap';
@@ -66,7 +67,7 @@ class WorldMapChart extends React.Component<Props, State> {
     this.setState({
       countryToCodeMap: countryToCodeMap.default,
       map: worldMap.default,
-      codeToCountryMap: Object.fromEntries(
+      codeToCountryMap: objectFromEntries(
         Object.entries(countryToCodeMap.default).map(([country, code]) => [code, country])
       ),
     });

@@ -11,6 +11,7 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
+import {objectFromEntries} from 'sentry/utils/objectFromEntries';
 
 interface DefaultProps {
   /**
@@ -144,7 +145,7 @@ export default class ChoiceMapper extends React.Component<ChoiceMapperFieldProps
     const removeRow = (itemKey: string) => {
       // eslint-disable-next-line no-unused-vars
       saveChanges(
-        Object.fromEntries(Object.entries(value).filter(([key, _]) => key !== itemKey))
+        objectFromEntries(Object.entries(value).filter(([key, _]) => key !== itemKey))
       );
     };
 
