@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
 import theme from 'sentry/utils/theme';
 
-import SpanGroupBar from './spanGroupBar';
+import {SpanGroupBar} from './spanGroupBar';
 import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
 import {
   getSpanGroupBounds,
@@ -41,7 +41,7 @@ type Props = {
   treeDepth: number;
 };
 
-function SpanDescendantGroupBar(props: Props) {
+export function SpanDescendantGroupBar(props: Props) {
   const {
     continuingTreeDepths,
     event,
@@ -164,5 +164,3 @@ function SpanDescendantGroupBar(props: Props) {
     />
   );
 }
-
-export default SpanDescendantGroupBar;

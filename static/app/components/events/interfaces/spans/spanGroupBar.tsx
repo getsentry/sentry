@@ -52,92 +52,92 @@ type Props = {
   treeDepth: number;
 };
 
-export default function SpanGroupBar(props: Props) {
-  function renderGroupedSpansToggler() {
-    const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup} = props;
+function renderGroupedSpansToggler(props: Props) {
+  const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup} = props;
 
-    const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+  const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
-    return (
-      <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
-        {renderSpanTreeConnector()}
-        <TreeToggle
-          disabled={false}
-          isExpanded={false}
-          errored={false}
-          isSpanGroupToggler
-          onClick={event => {
-            event.stopPropagation();
-            toggleSpanGroup();
-          }}
-        >
-          <Count value={spanGrouping.length} />
-        </TreeToggle>
-      </TreeToggleContainer>
-    );
-  }
-
-  function renderDivider(
-    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
-    const {addDividerLineRef} = dividerHandlerChildrenProps;
-
-    return (
-      <DividerLine
-        ref={addDividerLineRef()}
-        style={{
-          position: 'absolute',
-        }}
-        onMouseEnter={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseLeave={() => {
-          dividerHandlerChildrenProps.setHover(false);
-        }}
-        onMouseOver={() => {
-          dividerHandlerChildrenProps.setHover(true);
-        }}
-        onMouseDown={dividerHandlerChildrenProps.onDragStart}
+  return (
+    <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
+      {renderSpanTreeConnector()}
+      <TreeToggle
+        disabled={false}
+        isExpanded={false}
+        errored={false}
+        isSpanGroupToggler
         onClick={event => {
-          // we prevent the propagation of the clicks from this component to prevent
-          // the span detail from being opened.
           event.stopPropagation();
+          toggleSpanGroup();
         }}
-      />
-    );
-  }
+      >
+        <Count value={spanGrouping.length} />
+      </TreeToggle>
+    </TreeToggleContainer>
+  );
+}
 
-  function renderMeasurements(
-    event: Readonly<EventTransaction>,
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-  ) {
-    const measurements = getMeasurements(event);
+function renderDivider(
+  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+) {
+  const {addDividerLineRef} = dividerHandlerChildrenProps;
 
-    return (
-      <React.Fragment>
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
-          const bounds = getMeasurementBounds(timestamp, generateBounds);
+  return (
+    <DividerLine
+      ref={addDividerLineRef()}
+      style={{
+        position: 'absolute',
+      }}
+      onMouseEnter={() => {
+        dividerHandlerChildrenProps.setHover(true);
+      }}
+      onMouseLeave={() => {
+        dividerHandlerChildrenProps.setHover(false);
+      }}
+      onMouseOver={() => {
+        dividerHandlerChildrenProps.setHover(true);
+      }}
+      onMouseDown={dividerHandlerChildrenProps.onDragStart}
+      onClick={event => {
+        // we prevent the propagation of the clicks from this component to prevent
+        // the span detail from being opened.
+        event.stopPropagation();
+      }}
+    />
+  );
+}
 
-          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+function renderMeasurements(
+  event: Readonly<EventTransaction>,
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+) {
+  const measurements = getMeasurements(event);
 
-          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
-            return null;
-          }
+  return (
+    <React.Fragment>
+      {Array.from(measurements).map(([timestamp, verticalMark]) => {
+        const bounds = getMeasurementBounds(timestamp, generateBounds);
 
-          return (
-            <MeasurementMarker
-              key={String(timestamp)}
-              style={{
-                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-              }}
-              failedThreshold={verticalMark.failedThreshold}
-            />
-          );
-        })}
-      </React.Fragment>
-    );
-  }
+        const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
+        if (!shouldDisplay || !bounds.isSpanVisibleInView) {
+          return null;
+        }
+
+        return (
+          <MeasurementMarker
+            key={String(timestamp)}
+            style={{
+              left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+            }}
+            failedThreshold={verticalMark.failedThreshold}
+          />
+        );
+      })}
+    </React.Fragment>
+  );
+}
+
+export function SpanGroupBar(props: Props) {
   return (
     <ScrollbarManager.Consumer>
       {scrollbarManagerChildrenProps => (
@@ -172,7 +172,7 @@ export default function SpanGroupBar(props: Props) {
                     onClick={() => props.toggleSpanGroup()}
                   >
                     <RowTitleContainer ref={generateContentSpanBarRef()}>
-                      {renderGroupedSpansToggler()}
+                      {renderGroupedSpansToggler(props)}
                       <RowTitle
                         style={{
                           left: `${left}px`,

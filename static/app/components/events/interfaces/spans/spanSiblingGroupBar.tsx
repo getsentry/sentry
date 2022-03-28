@@ -8,7 +8,7 @@ import {
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
 
-import SpanGroupBar from './spanGroupBar';
+import {SpanGroupBar} from './spanGroupBar';
 import SpanRectangle from './spanRectangle';
 import {SpanRectangleOverlay} from './spanRectangleOverlay';
 import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
