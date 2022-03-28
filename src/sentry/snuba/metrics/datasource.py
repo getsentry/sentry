@@ -8,10 +8,10 @@ efficient, we only look at the past 24 hours.
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from copy import copy
 from operator import itemgetter
-from typing import Any, Dict, Mapping, Optional, Sequence, Set
+from typing import Any, Dict, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -20,7 +20,8 @@ from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.fields import DERIVED_METRICS, run_metrics_query
+from sentry.snuba.metrics.fields import run_metrics_query
+from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
@@ -37,6 +38,7 @@ from sentry.snuba.metrics.utils import (
     MetricMeta,
     MetricMetaWithTagKeys,
     MetricType,
+    NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
 )
@@ -57,33 +59,51 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
 
 def get_available_derived_metrics(
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    derived_metric_names: Optional[Set[str]] = None,
 ) -> Set[str]:
     """
-    Function that takes as input a dictionary of the available ids in each entity,
-    and an optional derived metric names set, and in turn goes through each derived metric (or
-    each derived metric from the input set of provided), and returns back a set of the derived
-    metrics that have data in the dataset.
+    Function that takes as input a dictionary of the available ids in each entity, and in turn
+    goes through each derived metric, and returns back the set of the derived metrics that have
+    data in the dataset in respect to the project filter. For instances of
+    SingularEntityDerivedMetrics, it is enough to make sure that the constituent metric ids span
+    a single entity and are present in the passed in dictionary. On the other hand, the available
+    instances of CompositeEntityDerivedMetrics are computed from the found constituent instances
+    of SingularEntityDerivedMetric
     """
-    requested_derived_metrics = (
-        {
-            derived_metric_name: DERIVED_METRICS[derived_metric_name]
-            for derived_metric_name in derived_metric_names
-        }
-        if derived_metric_names
-        else DERIVED_METRICS
-    )
-
     found_derived_metrics = set()
-    for derived_metric_name, derived_metric_obj in requested_derived_metrics.items():
-        derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
+    composite_entity_derived_metrics = set()
+
+    # Initially, we need all derived metrics to be able to support derived metrics that are not
+    # private but might have private constituent metrics
+    all_derived_metrics = get_derived_metrics(exclude_private=False)
+
+    for derived_metric_name, derived_metric_obj in all_derived_metrics.items():
+        try:
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
+        except NotSupportedOverCompositeEntityException:
+            # If we encounter a derived metric composed of constituents spanning multiple
+            # entities then we store it in this set
+            composite_entity_derived_metrics.add(derived_metric_obj.metric_name)
+            continue
 
         for ids_per_entity in supported_metric_ids_in_entities.values():
             if derived_metric_obj_ids.intersection(ids_per_entity) == derived_metric_obj_ids:
                 found_derived_metrics.add(derived_metric_name)
                 # If we find a match in ids in one entity, then skip checks across entities
                 break
-    return found_derived_metrics
+
+    for composite_derived_metric_name in composite_entity_derived_metrics:
+        # We naively loop over singular entity derived metric constituents of a composite entity
+        # derived metric and check if they have already been found and if that is the case,
+        # then we add that instance of composite metric to the found derived metric.
+        composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_name]
+        single_entity_constituents = (
+            composite_derived_metric_obj.naively_generate_singular_entity_constituents()
+        )
+        if single_entity_constituents.issubset(found_derived_metrics):
+            found_derived_metrics.add(composite_derived_metric_obj.metric_name)
+
+    public_derived_metrics = set(get_derived_metrics(exclude_private=True).keys())
+    return found_derived_metrics.intersection(public_derived_metrics)
 
 
 def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
@@ -115,12 +135,11 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # their constituent metrics. A derived metric should be added to the response list if its
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
-    # ToDo(ahmed): When CompositeEntityDerivedMetrics are introduced we need to do these checks
-    #  not on the instance of the CompositeEntityDerivedMetric but rather on its
-    #  SingularEntityDerivedMetric constituents
     found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
+
     for derived_metric_name in found_derived_metrics:
-        derived_metric_obj = DERIVED_METRICS[derived_metric_name]
+        derived_metric_obj = public_derived_metrics[derived_metric_name]
         metrics_meta.append(
             MetricMeta(
                 name=derived_metric_obj.metric_name,
@@ -139,12 +158,24 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
     """
     if not metric_names:
         return set()
+
     metric_ids = set()
-    for name in metric_names:
-        if name not in DERIVED_METRICS:
+    metric_names_deque = deque(metric_names)
+    all_derived_metrics = get_derived_metrics(exclude_private=False)
+
+    while metric_names_deque:
+        name = metric_names_deque.popleft()
+        if name not in all_derived_metrics:
             metric_ids.add(indexer.resolve(name))
         else:
-            metric_ids |= DERIVED_METRICS[name].generate_metric_ids()
+            derived_metric_obj = all_derived_metrics[name]
+            try:
+                metric_ids |= derived_metric_obj.generate_metric_ids()
+            except NotSupportedOverCompositeEntityException:
+                single_entity_constituents = (
+                    derived_metric_obj.naively_generate_singular_entity_constituents()
+                )
+                metric_names_deque.extend(single_entity_constituents)
     if None in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
@@ -162,13 +193,12 @@ def _validate_requested_derived_metrics_in_input_metrics(
     SingleEntityDerivedMetric was incorrectly setup with constituent metrics that span multiple
     entities
     """
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
     requested_derived_metrics = {
-        metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
+        metric_name for metric_name in metric_names if metric_name in public_derived_metrics
     }
-    found_derived_metrics = get_available_derived_metrics(
-        supported_metric_ids_in_entities, requested_derived_metrics
-    )
-    if requested_derived_metrics != found_derived_metrics:
+    found_derived_metrics = get_available_derived_metrics(supported_metric_ids_in_entities)
+    if not requested_derived_metrics.issubset(found_derived_metrics):
         raise DerivedMetricParseException(
             f"The following metrics {requested_derived_metrics - found_derived_metrics} "
             f"cannot be computed from single entities. Please revise the definition of these "
@@ -176,67 +206,136 @@ def _validate_requested_derived_metrics_in_input_metrics(
         )
 
 
-def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
-    assert projects
+def _fetch_tags_or_values_per_ids(
+    projects: Sequence[Project],
+    metric_names: Optional[Sequence[str]],
+    referrer: str,
+    column: str,
+) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+    """
+    Function that takes as input projects, metric_names, and a column, and based on the column
+    selection, either returns tags or tag values for the combination of projects and metric_names
+    selected or in the case of no metric_names passed, returns basically all the tags or the tag
+    values available for those projects. In addition, when exactly one metric name is passed in
+    metric_names, then the type (i.e. mapping to the entity) is also returned
+    """
+    if metric_names is not None:
+        private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
+            get_derived_metrics(exclude_private=True).keys()
+        )
+        if set(metric_names).intersection(private_derived_metrics) != set():
+            raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids([metric_name])
+        metric_ids = _get_metrics_filter_ids(metric_names)
     except MetricDoesNotExistInIndexer:
-        raise InvalidParams(f"metric name {metric_name} does not exist in the indexer")
+        raise InvalidParams(
+            f"Some or all of the metric names in {metric_names} do not exist in the indexer"
+        )
     else:
         where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
-    tag_ids_per_metric_id = defaultdict(list)
+    tag_or_value_ids_per_metric_id = defaultdict(list)
+    # This dictionary is required as a mapping from an entity to the ids available in it to
+    # validate that constituent metrics of a SingleEntityDerivedMetric actually span a single
+    # entity by validating that the ids of the constituent metrics all lie in the same entity
     supported_metric_ids_in_entities = {}
 
     for metric_type in ("counter", "set", "distribution"):
+
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        data = run_metrics_query(
+        rows = run_metrics_query(
             entity_key=entity_key,
-            select=[Column("metric_id"), Column("tags.key")],
+            select=[Column("metric_id"), Column(column)],
             where=where,
-            groupby=[Column("metric_id"), Column("tags.key")],
-            referrer="snuba.metrics.meta.get_single_metric",
+            groupby=[Column("metric_id"), Column(column)],
+            referrer=referrer,
             projects=projects,
             org_id=projects[0].organization_id,
         )
 
-        for row in data:
-            tag_ids_per_metric_id[row["metric_id"]].extend(row["tags.key"])
+        for row in rows:
+            metric_id = row["metric_id"]
+            if column.startswith("tags["):
+                value_id = row[column]
+                if value_id > 0:
+                    tag_or_value_ids_per_metric_id[metric_id].append(value_id)
+            else:
+                tag_or_value_ids_per_metric_id[metric_id].extend(row[column])
             supported_metric_ids_in_entities.setdefault(metric_type, []).append(row["metric_id"])
 
-    # If we get not results back from snuba, then just return an empty set
-    if not tag_ids_per_metric_id:
-        raise InvalidParams(f"metric name {metric_name} does not exist in the dataset")
+    # If we get not results back from snuba, then raise an InvalidParams with an appropriate
+    # error message
+    if not tag_or_value_ids_per_metric_id:
+        if metric_names:
+            error_str = f"The following metrics {metric_names} do not exist in the dataset"
+        else:
+            error_str = "Dataset contains no metric data for your project selection"
+        raise InvalidParams(error_str)
 
-    if metric_ids != set(tag_ids_per_metric_id.keys()):
-        # This can occur for metric names that don't have an equivalent in the dataset.
-        raise InvalidParams
+    tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
+    if metric_names:
+        # If there are metric_ids that map to the metric_names provided as an arg that were not
+        # found in the dataset, then we raise an instance of InvalidParams exception
+        if metric_ids != set(tag_or_value_ids_per_metric_id.keys()):
+            # This can occur for metric names that don't have an equivalent in the dataset.
+            raise InvalidParams(
+                f"Not all the requested metrics or the constituent metrics in {metric_names} have "
+                f"data in the dataset"
+            )
 
-    _validate_requested_derived_metrics_in_input_metrics(
+        # At this point, we are sure that every metric_name/metric_id that was requested is
+        # present in the dataset, and now we need to check that for all derived metrics requested
+        # (if any are requested) are setup correctly i.e. constituent of
+        # SingularEntityDerivedMetric actually span a single entity
+        _validate_requested_derived_metrics_in_input_metrics(
+            metric_names=metric_names,
+            supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+        )
+
+        # Only return tags/tag values that occur in all metrics
+        tag_or_value_ids = set.intersection(*map(set, tag_or_value_id_lists))
+    else:
+        tag_or_value_ids = {tag_id for ids in tag_or_value_id_lists for tag_id in ids}
+
+    if column.startswith("tags["):
+        tag_id = column.split("tags[")[1].split("]")[0]
+        tags_or_values = [
+            {"key": reverse_resolve(int(tag_id)), "value": reverse_resolve(value_id)}
+            for value_id in tag_or_value_ids
+        ]
+        tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))
+    else:
+        tags_or_values = [{"key": reverse_resolve(tag_id)} for tag_id in tag_or_value_ids]
+        tags_or_values.sort(key=itemgetter("key"))
+
+    if metric_names and len(metric_names) == 1:
+        metric_type = list(supported_metric_ids_in_entities.keys())[0]
+        return tags_or_values, metric_type
+    return tags_or_values, None
+
+
+def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> MetricMetaWithTagKeys:
+    assert projects
+
+    tags, metric_type = _fetch_tags_or_values_per_ids(
+        projects=projects,
         metric_names=[metric_name],
-        supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+        column="tags.key",
+        referrer="snuba.metrics.meta.get_single_metric",
     )
-
-    tag_id_lists = tag_ids_per_metric_id.values()
-    # Only return tags that occur in all metrics
-    tag_ids = set.intersection(*map(set, tag_id_lists))
-
-    metric_type = list(supported_metric_ids_in_entities.keys())[0]
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
     response_dict = {
         "name": metric_name,
         "type": metric_type,
         "operations": AVAILABLE_OPERATIONS[entity_key.value],
         "unit": None,
-        "tags": sorted(
-            ({"key": reverse_resolve(tag_id)} for tag_id in tag_ids),
-            key=itemgetter("key"),
-        ),
+        "tags": tags,
     }
 
-    if metric_name in DERIVED_METRICS:
-        derived_metric = DERIVED_METRICS[metric_name]
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
+    if metric_name in public_derived_metrics:
+        derived_metric = public_derived_metrics[metric_name]
         response_dict.update(
             {
                 "operations": derived_metric.generate_available_operations(),
@@ -252,63 +351,14 @@ def get_tags(projects: Sequence[Project], metric_names: Optional[Sequence[str]])
     assert projects
 
     try:
-        metric_ids = _get_metrics_filter_ids(metric_names)
-    except MetricDoesNotExistInIndexer:
-        return []
-    else:
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
-
-    tag_ids_per_metric_id = defaultdict(list)
-    # This dictionary is required as a mapping from an entity to the ids available in it to
-    # validate that constituent metrics of a SingleEntityDerivedMetric actually span a single
-    # entity by validating that the ids of the constituent metrics all lie in the same entity
-    supported_metric_ids_in_entities = {}
-
-    for metric_type in ("counter", "set", "distribution"):
-        supported_metric_ids_in_entities.setdefault(metric_type, [])
-
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = run_metrics_query(
-            entity_key=entity_key,
-            select=[Column("metric_id"), Column("tags.key")],
-            where=where,
-            groupby=[Column("metric_id"), Column("tags.key")],
-            referrer="snuba.metrics.meta.get_tags",
+        tags, _ = _fetch_tags_or_values_per_ids(
             projects=projects,
-            org_id=projects[0].organization_id,
-        )
-
-        for row in rows:
-            tag_ids_per_metric_id[row["metric_id"]].extend(row["tags.key"])
-            supported_metric_ids_in_entities[metric_type].append(row["metric_id"])
-
-    # If we get not results back from snuba, then just return an empty set
-    if not tag_ids_per_metric_id:
-        return []
-
-    tag_id_lists = tag_ids_per_metric_id.values()
-    if metric_names:
-        # If there are metric_ids that were not found in the dataset, then just return an []
-        if metric_ids != set(tag_ids_per_metric_id.keys()):
-            # This can occur for metric names that don't have an equivalent in the dataset.
-            return []
-
-        # At this point, we are sure that every metric_name/metric_id that was requested is
-        # present in the dataset, and now we need to check that all derived metrics requested are
-        # setup correctly
-        _validate_requested_derived_metrics_in_input_metrics(
             metric_names=metric_names,
-            supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+            column="tags.key",
+            referrer="snuba.metrics.meta.get_tags",
         )
-
-        # Only return tags that occur in all metrics
-        tag_ids = set.intersection(*map(set, tag_id_lists))
-    else:
-        tag_ids = {tag_id for ids in tag_id_lists for tag_id in ids}
-
-    tags = [{"key": reverse_resolve(tag_id)} for tag_id in tag_ids]
-    tags.sort(key=itemgetter("key"))
-
+    except InvalidParams:
+        return []
     return tags
 
 
@@ -323,58 +373,14 @@ def get_tag_values(
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
     try:
-        metric_ids = _get_metrics_filter_ids(metric_names)
-    except MetricDoesNotExistInIndexer:
-        return []
-    else:
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
-
-    tag_values = defaultdict(list)
-    # This dictionary is required as a mapping from an entity to the ids available in it to
-    # validate that constituent metrics of a SingleEntityDerivedMetric actually span a single
-    # entity by validating that the ids of the constituent metrics all lie in the same entity
-    supported_metric_ids_in_entities = {}
-
-    column_name = f"tags[{tag_id}]"
-    for metric_type in ("counter", "set", "distribution"):
-        supported_metric_ids_in_entities.setdefault(metric_type, [])
-
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
-        rows = run_metrics_query(
-            entity_key=entity_key,
-            select=[Column("metric_id"), Column(column_name)],
-            where=where,
-            groupby=[Column("metric_id"), Column(column_name)],
-            referrer="snuba.metrics.meta.get_tag_values",
+        tags, _ = _fetch_tags_or_values_per_ids(
             projects=projects,
-            org_id=projects[0].organization_id,
-        )
-        for row in rows:
-            value_id = row[column_name]
-            supported_metric_ids_in_entities[metric_type].append(row["metric_id"])
-            if value_id > 0:
-                metric_id = row["metric_id"]
-                tag_values[metric_id].append(value_id)
-
-    value_id_lists = tag_values.values()
-    if metric_names is not None:
-        if metric_ids != set(tag_values.keys()):
-            return []
-        # At this point, we are sure that every metric_name/metric_id that was requested is
-        # present in the dataset, and now we need to check that all derived metrics requested are
-        # setup correctly
-        _validate_requested_derived_metrics_in_input_metrics(
+            column=f"tags[{tag_id}]",
             metric_names=metric_names,
-            supported_metric_ids_in_entities=supported_metric_ids_in_entities,
+            referrer="snuba.metrics.meta.get_tag_values",
         )
-        # Only return tags that occur in all metrics
-        value_ids = set.intersection(*[set(ids) for ids in value_id_lists])
-    else:
-        value_ids = {value_id for ids in value_id_lists for value_id in ids}
-
-    tags = [{"key": tag_name, "value": reverse_resolve(value_id)} for value_id in value_ids]
-    tags.sort(key=lambda tag: (tag["key"], tag["value"]))
-
+    except InvalidParams:
+        return []
     return tags
 
 
@@ -382,6 +388,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     """Get time series for the given query"""
     intervals = list(get_intervals(query))
     results = {}
+    fields_in_entities = {}
 
     if not query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
@@ -409,7 +416,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
         orderby_field = [key for key, value in query.fields.items() if value == query.orderby[0]][0]
         query.fields = {orderby_field: parse_field(orderby_field)}
 
-        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
         if len(snuba_queries) > 1:
             # Currently accepting an order by field that spans multiple entities is not
             # supported, but it might change in the future. Even then, it might be better
@@ -443,7 +450,8 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             query.orderby = None
             query.fields = original_query_fields
 
-            snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+            query_builder = SnubaQueryBuilder(projects, query)
+            snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
             # Translate the groupby fields of the query into their tag keys because these fields
             # will be used to filter down and order the results of the 2nd query.
@@ -545,7 +553,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     for group_tuple in ordered_tag_conditions[groupby_tags]:
                         results[entity][key]["data"] += snuba_query_data_dict.get(group_tuple, [])
     else:
-        snuba_queries = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, fields_in_entities = SnubaQueryBuilder(projects, query).get_snuba_queries()
         for entity, queries in snuba_queries.items():
             results.setdefault(entity, {})
             for key, snuba_query in queries.items():
@@ -556,7 +564,9 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                 )
 
     assert projects
-    converter = SnubaResultConverter(projects[0].organization_id, query, intervals, results)
+    converter = SnubaResultConverter(
+        projects[0].organization_id, query, fields_in_entities, intervals, results
+    )
 
     return {
         "start": query.start,

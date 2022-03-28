@@ -22,7 +22,6 @@ GUIDES = {
     "issue_stream": {"id": 3, "required_targets": ["issue_stream"]},
     "alerts_write_member": {"id": 10, "required_targets": ["alerts_write_member"]},
     "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
-    "stack_trace_preview": {"id": 15, "required_targets": ["issue_stream_title"]},
     "trace_view": {
         "id": 16,
         "required_targets": ["trace_view_guide_row", "trace_view_guide_row_details"],

@@ -311,6 +311,9 @@ class QueryDefinition:
         self.conditions = conditions
         self.filter_keys = filter_keys
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({repr(self.__dict__)})"
+
 
 MAX_POINTS = 1000  # max. points in time
 ONE_DAY = timedelta(days=1).total_seconds()

@@ -131,7 +131,7 @@ const FilterToken = ({
       disabled={!showTooltip}
       title={filter.invalid?.reason}
       popperStyle={{maxWidth: '350px'}}
-      forceShow
+      forceVisible
       skipWrapper
     >
       <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>

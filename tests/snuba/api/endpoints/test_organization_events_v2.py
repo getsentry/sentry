@@ -5111,6 +5111,36 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["project"] == "string"
         assert meta["p50_transaction_duration"] == "duration"
 
+    def test_having_condition_with_preventing_aggregates(self):
+        self.store_metric(
+            1,
+            tags={"environment": "staging", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"environment": "staging", "transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "project", "p50(transaction.duration)"],
+                "query": "event.type:transaction p50(transaction.duration):<50",
+                "metricsEnhanced": "1",
+                "preventMetricAggregates": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+        meta = response.data["meta"]
+
+        assert not meta["isMetricsData"]
+        assert meta["transaction"] == "string"
+        assert meta["project"] == "string"
+        assert meta["p50_transaction_duration"] == "duration"
+
     def test_having_condition_not_selected(self):
         self.store_metric(
             1,

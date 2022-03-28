@@ -172,7 +172,7 @@ describe('importDroppedProfile', () => {
 
   it('throws if contents are not valid JSON', async () => {
     const file = new File(['{"json": true'], 'test.tsx');
-    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(SyntaxError);
+    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
   });
 
   it('imports schema file', async () => {
