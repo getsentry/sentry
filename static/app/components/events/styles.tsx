@@ -6,7 +6,6 @@ import {Theme} from 'sentry/utils/theme';
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: 0 -${space(2)};
   padding: ${space(3)} ${space(2)} ${space(3)} ${space(2)};
