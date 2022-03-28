@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -115,30 +116,34 @@ class GroupMergedView extends Component<Props, State> {
 
     return (
       <Fragment>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process unmerges.'
-          )}
-        </Alert>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <Alert type="warning">
+              {t(
+                'This is an experimental feature. Data may not be immediately available while we process unmerges.'
+              )}
+            </Alert>
 
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <LoadingError
-            message={t('Unable to load merged events, please try again later')}
-            onRetry={this.fetchData}
-          />
-        )}
+            {isLoading && <LoadingIndicator />}
+            {isError && (
+              <LoadingError
+                message={t('Unable to load merged events, please try again later')}
+                onRetry={this.fetchData}
+              />
+            )}
 
-        {isLoadedSuccessfully && (
-          <MergedList
-            project={project}
-            fingerprints={mergedItems}
-            pageLinks={mergedLinks}
-            groupId={groupId}
-            onUnmerge={this.handleUnmerge}
-            onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
-          />
-        )}
+            {isLoadedSuccessfully && (
+              <MergedList
+                project={project}
+                fingerprints={mergedItems}
+                pageLinks={mergedLinks}
+                groupId={groupId}
+                onUnmerge={this.handleUnmerge}
+                onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
+              />
+            )}
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
