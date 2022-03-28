@@ -297,8 +297,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  /* Layout Footer alignment fix */
-  margin-bottom: -20px;
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`

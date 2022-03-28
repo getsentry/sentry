@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Group, Release, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';

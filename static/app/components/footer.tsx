@@ -107,7 +107,6 @@ const Footer = styled(BaseFooter)`
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(4)};
-  margin-top: 20px;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;

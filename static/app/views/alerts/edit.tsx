@@ -116,8 +116,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
 }
 
 const EditConditionsBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-
   *:not(img) {
     max-width: 1000px;
   }

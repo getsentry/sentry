@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
