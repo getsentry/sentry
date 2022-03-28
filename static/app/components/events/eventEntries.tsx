@@ -487,7 +487,7 @@ const ErrorContainer = styled('div')`
 const BorderlessEventEntries = styled(EventEntries)`
   & ${/* sc-selector */ DataSection} {
     margin-left: 0 !important;
-    margin-right: ${space(1)};
+    margin-right: 0 !important;
     padding: ${space(3)} 0 0 0;
   }
   & ${/* sc-selector */ DataSection}:first-child {
