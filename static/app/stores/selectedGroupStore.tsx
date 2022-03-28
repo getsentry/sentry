@@ -1,7 +1,11 @@
 import Reflux from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 type SelectedGroupStoreInterface = {
   add(ids: string[]): void;
@@ -127,6 +131,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const SelectedGroupStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SelectedGroupStoreInterface;
+) as unknown as SafeRefluxStore & SelectedGroupStoreInterface;
 
 export default SelectedGroupStore;

@@ -2,7 +2,7 @@ import Reflux from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type OrganizationsStoreInterface = {
   add(item: Organization): void;
@@ -88,6 +88,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
 
 const OrganizationsStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & OrganizationsStoreInterface;
+) as unknown as SafeRefluxStore & OrganizationsStoreInterface;
 
 export default OrganizationsStore;

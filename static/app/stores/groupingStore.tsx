@@ -11,7 +11,7 @@ import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -619,6 +619,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
 const GroupingStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & GroupingStoreInterface;
+) as unknown as SafeRefluxStore & GroupingStoreInterface;
 
 export default GroupingStore;
