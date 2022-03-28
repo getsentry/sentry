@@ -214,7 +214,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-let appConfig: Configuration = {
+const appConfig: Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -611,12 +611,6 @@ if (env.WEBPACK_CACHE_PATH) {
       // By default webpack and loaders are build dependencies
     },
   };
-}
-
-if (env.MEASURE) {
-  const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-  const smp = new SpeedMeasurePlugin();
-  appConfig = smp.wrap(appConfig);
 }
 
 export default appConfig;
