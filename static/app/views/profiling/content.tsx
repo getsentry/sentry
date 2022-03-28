@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -9,7 +10,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,16 +38,19 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const query = decodeScalar(location.query.query, '');
   const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
 
-  const handleSearch = (searchQuery: string) => {
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: searchQuery || undefined,
-      },
-    });
-  };
+  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+    (searchQuery: string) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: searchQuery || undefined,
+        },
+      });
+    },
+    [location]
+  );
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
