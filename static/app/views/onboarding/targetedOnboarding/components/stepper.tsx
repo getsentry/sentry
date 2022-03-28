@@ -6,7 +6,7 @@ export const StepperContainer = styled('div')`
   gap: 8px;
 `;
 
-export const StepperIndicator = styled('span')<{active?: boolean}>`
+export const StepperIndicator = styled('span')<{active?: boolean; clickable?: boolean}>`
   height: 8px;
   width: 80px;
   background-color: ${p => (p.active ? p.theme.progressBar : p.theme.progressBackground)};
@@ -18,4 +18,5 @@ export const StepperIndicator = styled('span')<{active?: boolean}>`
     border-top-right-radius: 4px;
     border-bottom-right-radius: 4px;
   }
+  cursor: ${p => (p.clickable ? 'pointer' : 'default')};
 `;

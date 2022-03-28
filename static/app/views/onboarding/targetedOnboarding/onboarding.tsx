@@ -16,8 +16,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
-import {StepperContainer, StepperIndicator} from '../components/stepper';
-
+import {StepperContainer, StepperIndicator} from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -56,6 +55,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
 function Onboarding(props: Props) {
   const stepId = props.params.step;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
+  const stepIndex = stepObj ? ONBOARDING_STEPS.indexOf(stepObj) : 0;
   if (!stepObj) {
     return <div>Can't find</div>;
   }
@@ -68,9 +68,13 @@ function Onboarding(props: Props) {
 
   React.useEffect(updateCornerVariant, []);
 
+  const goToStep = (step: StepDescriptor) => {
+    browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
+  };
+
   const goNextStep = (step: StepDescriptor) => {
-    const stepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
-    const nextStep = ONBOARDING_STEPS[stepIndex + 1];
+    const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
+    const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
 
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
@@ -87,11 +91,18 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={t('Welcome')} />
       <Header>
         <LogoSvg />
-        <StyledStepperContainer>
-          {ONBOARDING_STEPS.map(step => (
-            <StepperIndicator active={step.id === stepId} key={step.id} />
-          ))}
-        </StyledStepperContainer>
+        {stepId !== 'welcome' && (
+          <StyledStepperContainer>
+            {ONBOARDING_STEPS.slice(1).map((step, i) => (
+              <StepperIndicator
+                active={step.id === stepId}
+                key={step.id}
+                onClick={() => i + 1 < stepIndex && goToStep(step)}
+                clickable={i + 1 < stepIndex}
+              />
+            ))}
+          </StyledStepperContainer>
+        )}
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
