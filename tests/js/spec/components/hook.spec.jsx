@@ -5,7 +5,8 @@ import HookStore from 'sentry/stores/hookStore';
 
 const HookWrapper = props => (
   <div data-test-id="hook-wrapper">
-    {props.children} {JSON.stringify(props?.organization ?? {}, null, 2)}
+    {props.children}
+    <span>{JSON.stringify(props?.organization ?? {}, null, 2)}</span>
   </div>
 );
 
@@ -104,7 +105,7 @@ describe('Hook', function () {
     ));
 
     for (let i = 0; i < idx; i++) {
-      expect(screen.getByText(new RegExp(`hook: ${idx}`))).toBeInTheDocument();
+      expect(screen.getByText(`hook: ${idx}`)).toBeInTheDocument();
     }
 
     // Has 2 Wrappers from store, and each is wrapped by another Wrapper
