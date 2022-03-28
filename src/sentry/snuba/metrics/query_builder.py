@@ -169,6 +169,10 @@ class QueryDefinition:
         self.start = start
         self.end = end
         self.histogram_buckets = query_params.get("histogramBuckets", 100)
+        if self.histogram_buckets > 250:
+            raise InvalidField(
+                "We don't have more than 250 buckets stored for any given metric bucket."
+            )
         self.histogram_from = query_params.get("histogramFrom", None)
         self.histogram_to = query_params.get("histogramTo", None)
         self.include_series = query_params.get("includeSeries", "1") == "1"

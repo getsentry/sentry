@@ -15,7 +15,19 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 from snuba_sdk.orderby import Direction, OrderBy
@@ -59,6 +71,9 @@ from sentry.utils.snuba import raw_snql_query
 
 if TYPE_CHECKING:
     from sentry.snuba.metrics.query_builder import QueryDefinition
+
+
+ClickhouseHistogram = List[Tuple[float, float, float]]
 
 
 def run_metrics_query(
@@ -289,12 +304,58 @@ class HistogramMetricField(RawAggregatedMetric):
     def generate_available_operations(self):
         return [self.op]
 
+    def __resize_histogram(
+        self, data: ClickhouseHistogram, query_definition: QueryDefinition
+    ) -> ClickhouseHistogram:
+        if not data:
+            return data
+
+        # Get lower and upper bound of data. If the user defined custom ranges,
+        # honor them.
+        data.sort()
+        min_val = data[0][0]
+        max_val = data[-1][1]
+        if query_definition.histogram_from is not None:
+            min_val = max(min_val, query_definition.histogram_from)
+        if query_definition.histogram_to is not None:
+            max_val = min(max_val, query_definition.histogram_to)
+        bucket_count = query_definition.histogram_buckets
+
+        buckets = [
+            (
+                min_val + (max_val - min_val) * (x / bucket_count),
+                min_val + (max_val - min_val) * ((x + 1) / bucket_count),
+            )
+            for x in range(bucket_count)
+        ]
+
+        rv = {bucket: 0 for bucket in buckets}
+
+        # XXX: quadratic function
+        assert len(data) < 300
+        assert len(rv) < 300
+        for lower, upper, height in data:
+            for lower2, upper2 in rv:
+                overlap = min((upper, upper2)) - max((lower, lower2))
+                if overlap <= 0:
+                    continue
+
+                overlap_perc = overlap / (upper - lower)
+                rv_height = overlap_perc * height
+                rv[lower2, upper2] += rv_height
+
+        return [(lower, upper, height) for (lower, upper), height in rv.items()]
+
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
         if idx is None:
-            data[key] = {"histogram_metric_test": data[key]}
+            data[key] = {
+                "histogram_metric_test": self.__resize_histogram(data[key], query_definition)
+            }
         else:
-            data[key][idx] = {"histogram_metric_test": data[key][idx]}
+            data[key][idx] = {
+                "histogram_metric_test": self.__resize_histogram(data[key][idx], query_definition)
+            }
         return data
 
 
