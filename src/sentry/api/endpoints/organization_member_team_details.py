@@ -224,7 +224,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=200)
 
     @staticmethod
-    def _change_team_member_role(member: OrganizationMemberTeam, role: TeamRole) -> None:
+    def _change_team_member_role(
+        team_membership: OrganizationMemberTeam, team_role: TeamRole
+    ) -> None:
         """Modify a member's team-level role.
 
         If the member has an organization role that gives an equal or higher entry
@@ -233,11 +235,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         invisible in the UI, and would be surprising if it were left behind after the
         user's org-level role is lowered.
         """
-        entry_role = roles.get_entry_role(member.organizationmember.role)
-        if role.priority > entry_role.priority:
-            member.update(role=role.id)
+        entry_role = roles.get_entry_role(team_membership.organizationmember.role)
+        if team_role.priority > entry_role.priority:
+            team_membership.update(role=team_role.id)
         else:
-            member.update(role=None)
+            team_membership.update(role=None)
 
     def delete(
         self,
