@@ -879,8 +879,6 @@ function WidgetBuilder({
                         handleYAxisOrColumnFieldChange(newFields, true);
                       }}
                       explodedFields={explodedFields}
-                      explodedColumns={explodedColumns}
-                      explodedAggregates={explodedAggregates}
                       tags={tags}
                       organization={organization}
                     />
