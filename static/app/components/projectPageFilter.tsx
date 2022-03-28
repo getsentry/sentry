@@ -106,16 +106,21 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
   const customProjectDropdown = ({getActorProps, selectedProjects, isOpen}) => {
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
+
+    const projectsToShow =
+      selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <= 18
+        ? selectedProjects.slice(0, 2)
+        : selectedProjects.slice(0, 1);
+
     const title = hasSelected
-      ? trimSlug(selectedProjects[0]?.slug, 20)
+      ? projectsToShow.map(proj => trimSlug(proj.slug, 20)).join(', ')
       : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
       ? t('All Projects')
       : t('My Projects');
 
     const icon = hasSelected ? (
       <PlatformList
-        platforms={selectedProjects.map(p => p.platform ?? 'other')}
-        max={1}
+        platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
       />
     ) : (
       <IconProject />
@@ -129,8 +134,8 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
         <DropdownTitle>
           {icon}
           <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > 1 && (
-            <StyledBadge text={`+${selectedProjects.length - 1}`} />
+          {selectedProjects.length > projectsToShow.length && (
+            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
           )}
         </DropdownTitle>
       </PageFilterDropdownButton>
