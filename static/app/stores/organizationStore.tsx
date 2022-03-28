@@ -3,11 +3,7 @@ import Reflux from 'reflux';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 import RequestError from 'sentry/utils/requestError/requestError';
 
 import {CommonStoreInterface} from './types';
@@ -102,6 +98,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const OrganizationStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & OrganizationStoreInterface;
+) as Reflux.Store & OrganizationStoreInterface;
 
 export default OrganizationStore;

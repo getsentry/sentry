@@ -3,11 +3,7 @@ import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
@@ -69,6 +65,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const SettingsBreadcrumbStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & SettingsBreadcrumbStoreInterface;
+) as Reflux.Store & SettingsBreadcrumbStoreInterface;
 
 export default SettingsBreadcrumbStore;

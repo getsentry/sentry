@@ -2,11 +2,7 @@ import Reflux from 'reflux';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
 import {FieldObject} from 'sentry/components/forms/type';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 /**
  * Processed form field metadata.
@@ -70,6 +66,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const FormSearchStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & StoreInterface;
+) as Reflux.Store & StoreInterface;
 
 export default FormSearchStore;

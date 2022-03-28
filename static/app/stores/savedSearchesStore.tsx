@@ -3,11 +3,7 @@ import Reflux from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;
@@ -253,6 +249,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const SavedSearchesStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & SavedSearchesStoreInterface;
+) as Reflux.Store & SavedSearchesStoreInterface;
 
 export default SavedSearchesStore;

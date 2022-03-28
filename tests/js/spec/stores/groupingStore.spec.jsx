@@ -15,7 +15,6 @@ describe('Grouping Store', function () {
 
   beforeEach(function () {
     GroupingStore.init();
-    GroupingStore.teardown();
     trigger = jest.spyOn(GroupingStore, 'trigger');
     Client.clearMockResponses();
     Client.addMockResponse({

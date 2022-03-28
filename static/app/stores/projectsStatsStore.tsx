@@ -2,11 +2,7 @@ import Reflux from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type ProjectsStatsStoreInterface = {
   getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
@@ -116,6 +112,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const ProjectsStatsStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & ProjectsStatsStoreInterface;
+) as Reflux.Store & ProjectsStatsStoreInterface;
 
 export default ProjectsStatsStore;

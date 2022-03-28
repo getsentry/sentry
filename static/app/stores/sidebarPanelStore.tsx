@@ -2,11 +2,7 @@ import Reflux from 'reflux';
 
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -67,6 +63,6 @@ const storeConfig: Reflux.StoreDefinition &
  */
 const SidebarPanelStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & SidebarPanelStoreInterface;
+) as Reflux.Store & SidebarPanelStoreInterface;
 
 export default SidebarPanelStore;

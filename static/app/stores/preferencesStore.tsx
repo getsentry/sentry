@@ -1,11 +1,7 @@
 import Reflux from 'reflux';
 
 import PreferencesActions from 'sentry/actions/preferencesActions';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -78,6 +74,6 @@ const storeConfig: Reflux.StoreDefinition &
  */
 const PreferenceStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & PreferenceStoreInterface;
+) as Reflux.Store & PreferenceStoreInterface;
 
 export default PreferenceStore;

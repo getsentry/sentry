@@ -3,11 +3,7 @@ import Reflux from 'reflux';
 import {Indicator} from 'sentry/actionCreators/indicator';
 import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -152,6 +148,6 @@ const storeConfig: Reflux.StoreDefinition &
 
 const IndicatorStore = Reflux.createStore(
   makeSafeRefluxStore(storeConfig)
-) as unknown as SafeRefluxStore & IndicatorStoreInterface;
+) as Reflux.Store & IndicatorStoreInterface;
 
 export default IndicatorStore;
