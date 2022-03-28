@@ -105,7 +105,8 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
       case 'issue basic':
       case 'issue link':
       case 'issue sync':
-        return 'project management';
+      case 'project management':
+        return 'issue tracking';
       case 'commits':
         return 'source code management';
       case 'chat unfurl':
