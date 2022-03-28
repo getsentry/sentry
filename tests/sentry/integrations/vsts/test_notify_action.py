@@ -1,6 +1,7 @@
 from time import time
 
 import responses
+from freezegun import freeze_time
 
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
@@ -13,6 +14,7 @@ from .test_issues import VstsIssueBase
 from .testutils import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 
 
+@freeze_time()
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
