@@ -46,7 +46,7 @@ class RatelimitMiddleware:
         return response
 
     def process_request(self, request: Request) -> Tuple[HttpResponse | None, RateLimitData]:
-        rate_limit_data: RateLimitData = {}
+        rate_limit_data: RateLimitData = object()
         response = None
 
         # First, check if the endpoint call will violate.
