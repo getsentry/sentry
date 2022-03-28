@@ -7,6 +7,10 @@ import space from 'sentry/styles/space';
 
 interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
   /**
+   * Whether the menu associated with this button is visually detached.
+   */
+  detached?: boolean;
+  /**
    * Forward a ref to the button's root
    */
   forwardedRef?: React.Ref<typeof Button>;
@@ -39,6 +43,7 @@ const DropdownButton = ({
   isOpen = false,
   showChevron = false,
   hideBottomBorder = true,
+  detached = false,
   disabled = false,
   priority = 'form',
   ...props
@@ -52,6 +57,7 @@ const DropdownButton = ({
       priority={priority}
       isOpen={isOpen}
       hideBottomBorder={hideBottomBorder}
+      detached={detached}
       ref={forwardedRef}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
@@ -71,11 +77,15 @@ const StyledChevron = styled(IconChevron)`
 
 const StyledButton = styled(Button)<
   Required<
-    Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'hideBottomBorder' | 'priority'>
+    Pick<
+      DropdownButtonProps,
+      'isOpen' | 'disabled' | 'hideBottomBorder' | 'detached' | 'priority'
+    >
   >
 >`
-  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  border-bottom-right-radius: ${p =>
+    p.isOpen && !p.detached ? 0 : p.theme.borderRadius};
+  border-bottom-left-radius: ${p => (p.isOpen && !p.detached ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
 

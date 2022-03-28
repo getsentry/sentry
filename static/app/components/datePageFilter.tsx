@@ -53,6 +53,8 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
 
     return (
       <PageFilterDropdownButton
+        detached
+        hideBottomBorder={false}
         isOpen={isOpen}
         icon={<IconCalendar />}
         highlighted={desyncedFilters.has('datetime')}
