@@ -253,20 +253,22 @@ class GroupEventDetails extends Component<Props, State> {
                     project={project}
                   />
                 )}
-                {group.status === 'ignored' && (
-                  <MutedBox statusDetails={group.statusDetails} />
-                )}
-                {group.status === 'resolved' && (
-                  <ResolutionBox
-                    statusDetails={group.statusDetails}
-                    activities={activities}
-                    projectId={project.id}
-                  />
-                )}
-                {this.renderReprocessedBox(
-                  groupReprocessingStatus,
-                  mostRecentActivity as GroupActivityReprocess
-                )}
+                <Wrapper>
+                  {group.status === 'ignored' && (
+                    <MutedBox statusDetails={group.statusDetails} />
+                  )}
+                  {group.status === 'resolved' && (
+                    <ResolutionBox
+                      statusDetails={group.statusDetails}
+                      activities={activities}
+                      projectId={project.id}
+                    />
+                  )}
+                  {this.renderReprocessedBox(
+                    groupReprocessingStatus,
+                    mostRecentActivity as GroupActivityReprocess
+                  )}
+                </Wrapper>
                 {this.renderContent(eventWithMeta)}
               </StyledLayoutMain>
               <StyledLayoutSide>
@@ -290,6 +292,13 @@ const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+`;
+
+const Wrapper = styled('div')`
+  /* Break alerts out of DataSection component */
+  margin-left: -40px;
+  margin-right: -30px;
+  margin-bottom: -1px;
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
