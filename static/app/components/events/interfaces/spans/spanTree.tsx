@@ -258,7 +258,9 @@ class SpanTree extends React.Component<PropType> {
           toggleSpanGroup = payload.toggleNestedSpanGroup;
         }
 
-        let toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined = undefined;
+        let toggleSiblingSpanGroup:
+          | ((span: SpanType, occurrence: number) => void)
+          | undefined = undefined;
         if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }

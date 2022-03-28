@@ -638,7 +638,11 @@ export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
 
-export function getSiblingGroupKey(span: SpanType): string {
+export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
+  if (occurrence !== undefined) {
+    return `${span?.op}.${span?.description}.${occurrence}`;
+  }
+
   return `${span?.op}.${span?.description}`;
 }
 
