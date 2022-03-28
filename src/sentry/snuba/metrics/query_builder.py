@@ -9,7 +9,6 @@ __all__ = (
     "resolve_tags",
 )
 
-import copy
 import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -625,8 +624,7 @@ class SnubaResultConverter:
             else:
                 series = None
 
-            # XXX(markus): This deepcopy should not be necessary
-            for key in copy.deepcopy(list(totals.keys())):
+            for key in list(totals.keys()):
                 matches = FIELD_REGEX.match(key)
                 if matches:
                     operation = matches[1]
