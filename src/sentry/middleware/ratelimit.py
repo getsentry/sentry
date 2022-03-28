@@ -16,7 +16,7 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
-from sentry.types.ratelimit import RateLimitCategory, RateLimitData, RateLimitMeta, RateLimitType
+from sentry.types.ratelimit import RateLimitCategory, RateLimitData, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -35,13 +35,16 @@ class RatelimitMiddleware:
     def __call__(self, request: Request) -> Response:
         response, rate_limit_data = self.process_request(request)
         # Hit the endpoint
-        request.rate_limit_metadata = rate_limit_data.rate_limit_metadata
+        if hasattr(rate_limit_data, "rate_limit_metadata"):
+            request.rate_limit_metadata = rate_limit_data.rate_limit_metadata
         if not response:
             response = self.get_response(request)
 
         # Process the response
-        self.add_headers(response, request.rate_limit_metadata)
-        if rate_limit_data.rate_limit_key and rate_limit_data.rate_limit_uid:
+        self.add_headers(response, request)
+        if hasattr(rate_limit_data, "rate_limit_key") and hasattr(
+            rate_limit_data, "rate_limit_uid"
+        ):
             finish_request(rate_limit_data.rate_limit_key, rate_limit_data.rate_limit_uid)
         return response
 
@@ -106,17 +109,20 @@ class RatelimitMiddleware:
         )
         return response, rate_limit_data
 
-    def add_headers(
-        self, response: Response, rate_limit_metadata: RateLimitMeta | None
-    ) -> Response:
-        if not rate_limit_metadata or type(response) not in (Response, HttpResponse):
+    def add_headers(self, response: Response, request: Request | None) -> Response:
+        if not hasattr(request, "rate_limit_metadata") or type(response) not in (
+            Response,
+            HttpResponse,
+        ):
             return response
-
-        response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
-        response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
-        response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-        response[
-            "X-Sentry-Rate-Limit-ConcurrentRemaining"
-        ] = rate_limit_metadata.concurrent_remaining
-        response["X-Sentry-Rate-Limit-ConcurrentLimit"] = rate_limit_metadata.concurrent_limit
+        if request.rate_limit_metadata:
+            response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
+            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
+            response[
+                "X-Sentry-Rate-Limit-ConcurrentRemaining"
+            ] = request.rate_limit_metadata.concurrent_remaining
+            response[
+                "X-Sentry-Rate-Limit-ConcurrentLimit"
+            ] = request.rate_limit_metadata.concurrent_limit
         return response
