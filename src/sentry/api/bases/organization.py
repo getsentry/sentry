@@ -1,3 +1,5 @@
+from typing import Optional, Set
+
 import sentry_sdk
 from django.core.cache import cache
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -13,7 +15,7 @@ from sentry.api.utils import (
     is_member_disabled_from_limit,
 )
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import (
     ApiKey,
     Authenticator,
@@ -165,7 +167,8 @@ class OrganizationEndpoint(Endpoint):
         organization,
         force_global_perms=False,
         include_all_accessible=False,
-        project_ids=None,
+        project_ids: Optional[Set[int]] = None,
+        project_slugs: Optional[Set[str]] = None,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -190,9 +193,23 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied.
         """
         if project_ids is None:
-            project_ids = self.get_requested_project_ids_unchecked(request)
+            slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
+            if ALL_ACCESS_PROJECTS_SLUG in slugs:
+                project_ids = ALL_ACCESS_PROJECTS
+            elif slugs:
+                projects = Project.objects.filter(
+                    organization=organization, slug__in=slugs
+                ).values_list("id", flat=True)
+                project_ids = set(projects)
+            else:
+                project_ids = self.get_requested_project_ids_unchecked(request)
+
         return self._get_projects_by_id(
-            project_ids, request, organization, force_global_perms, include_all_accessible
+            project_ids,
+            request,
+            organization,
+            force_global_perms,
+            include_all_accessible,
         )
 
     def _get_projects_by_id(
