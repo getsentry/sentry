@@ -127,13 +127,15 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        {stepIndex !== 0 && (
-          <StyledStepper
-            numSteps={ONBOARDING_STEPS.length - 1}
-            currentStepIndex={stepIndex - 1}
-            onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
-          />
-        )}
+        <AnimatePresence initial={false}>
+          {stepIndex !== 0 && (
+            <StyledStepper
+              numSteps={ONBOARDING_STEPS.length - 1}
+              currentStepIndex={stepIndex - 1}
+              onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
+            />
+          )}
+        </AnimatePresence>
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
