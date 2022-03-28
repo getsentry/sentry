@@ -20,7 +20,8 @@ from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.fields import DERIVED_METRICS, run_metrics_query
+from sentry.snuba.metrics.fields import run_metrics_query
+from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
@@ -71,7 +72,11 @@ def get_available_derived_metrics(
     found_derived_metrics = set()
     composite_entity_derived_metrics = set()
 
-    for derived_metric_name, derived_metric_obj in DERIVED_METRICS.items():
+    # Initially, we need all derived metrics to be able to support derived metrics that are not
+    # private but might have private constituent metrics
+    all_derived_metrics = get_derived_metrics(exclude_private=False)
+
+    for derived_metric_name, derived_metric_obj in all_derived_metrics.items():
         try:
             derived_metric_obj_ids = derived_metric_obj.generate_metric_ids()
         except NotSupportedOverCompositeEntityException:
@@ -90,13 +95,15 @@ def get_available_derived_metrics(
         # We naively loop over singular entity derived metric constituents of a composite entity
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
-        composite_derived_metric_obj = DERIVED_METRICS[composite_derived_metric_name]
+        composite_derived_metric_obj = all_derived_metrics[composite_derived_metric_name]
         single_entity_constituents = (
             composite_derived_metric_obj.naively_generate_singular_entity_constituents()
         )
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_name)
-    return found_derived_metrics
+
+    public_derived_metrics = set(get_derived_metrics(exclude_private=True).keys())
+    return found_derived_metrics.intersection(public_derived_metrics)
 
 
 def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
@@ -129,8 +136,10 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
     found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
+
     for derived_metric_name in found_derived_metrics:
-        derived_metric_obj = DERIVED_METRICS[derived_metric_name]
+        derived_metric_obj = public_derived_metrics[derived_metric_name]
         metrics_meta.append(
             MetricMeta(
                 name=derived_metric_obj.metric_name,
@@ -152,12 +161,14 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
 
     metric_ids = set()
     metric_names_deque = deque(metric_names)
+    all_derived_metrics = get_derived_metrics(exclude_private=False)
+
     while metric_names_deque:
         name = metric_names_deque.popleft()
-        if name not in DERIVED_METRICS:
+        if name not in all_derived_metrics:
             metric_ids.add(indexer.resolve(name))
         else:
-            derived_metric_obj = DERIVED_METRICS[name]
+            derived_metric_obj = all_derived_metrics[name]
             try:
                 metric_ids |= derived_metric_obj.generate_metric_ids()
             except NotSupportedOverCompositeEntityException:
@@ -182,8 +193,9 @@ def _validate_requested_derived_metrics_in_input_metrics(
     SingleEntityDerivedMetric was incorrectly setup with constituent metrics that span multiple
     entities
     """
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
     requested_derived_metrics = {
-        metric_name for metric_name in metric_names if metric_name in DERIVED_METRICS
+        metric_name for metric_name in metric_names if metric_name in public_derived_metrics
     }
     found_derived_metrics = get_available_derived_metrics(supported_metric_ids_in_entities)
     if not requested_derived_metrics.issubset(found_derived_metrics):
@@ -207,6 +219,13 @@ def _fetch_tags_or_values_per_ids(
     values available for those projects. In addition, when exactly one metric name is passed in
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
+    if metric_names is not None:
+        private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
+            get_derived_metrics(exclude_private=True).keys()
+        )
+        if set(metric_names).intersection(private_derived_metrics) != set():
+            raise InvalidParams(f"Metric names {metric_names} do not exist")
+
     try:
         metric_ids = _get_metrics_filter_ids(metric_names)
     except MetricDoesNotExistInIndexer:
@@ -314,10 +333,9 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         "tags": tags,
     }
 
-    # ToDo(ahmed): Clean up so the function does not know about whether the metric name is a
-    #  derived metric or not (through abstraction layer)
-    if metric_name in DERIVED_METRICS:
-        derived_metric = DERIVED_METRICS[metric_name]
+    public_derived_metrics = get_derived_metrics(exclude_private=True)
+    if metric_name in public_derived_metrics:
+        derived_metric = public_derived_metrics[metric_name]
         response_dict.update(
             {
                 "operations": derived_metric.generate_available_operations(),
