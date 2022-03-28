@@ -5,12 +5,15 @@ import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion'
 
 import Button, {ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
+import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -41,8 +44,9 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   },
   {
     id: 'select-platform',
-    title: t('Select a platform'),
+    title: t('Select platforms'),
     Component: PlatformSelection,
+    hasFooter: true,
   },
   {
     id: 'setup-docs',
@@ -53,7 +57,10 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
 ];
 
 function Onboarding(props: Props) {
-  const stepId = props.params.step;
+  const {
+    organization,
+    params: {step: stepId},
+  } = props;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = stepObj ? ONBOARDING_STEPS.indexOf(stepObj) : 0;
   if (!stepObj) {
@@ -63,10 +70,22 @@ function Onboarding(props: Props) {
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay thhe corner animation
-    setTimeout(() => cornerVariantControl.start('top-right'), 1000);
+    setTimeout(
+      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      1000
+    );
   };
 
   React.useEffect(updateCornerVariant, []);
+  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+
+  const addPlatform = (platform: PlatformKey) => {
+    setPlatforms([...platforms, platform]);
+  };
+
+  const removePlatform = (platform: PlatformKey) => {
+    setPlatforms(platforms.filter(p => p !== platform));
+  };
 
   const goToStep = (step: StepDescriptor) => {
     browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
@@ -86,9 +105,26 @@ function Onboarding(props: Props) {
     browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
   };
 
+  const genSkipOnboardingLink = () => {
+    const source = `targeted-onboarding-${stepId}`;
+    return (
+      <SkipOnboardingLink
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+            organization,
+            source,
+          })
+        }
+        to={`/organizations/${organization.slug}/issues/`}
+      >
+        {t('Skip Onboarding')}
+      </SkipOnboardingLink>
+    );
+  };
+
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
-      <SentryDocumentTitle title={t('Welcome')} />
+      <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
         {stepId !== 'welcome' && (
@@ -119,10 +155,15 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
+                stepIndex={activeStepIndex}
                 onComplete={() => goNextStep(stepObj)}
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
+                platforms={platforms}
+                addPlatform={addPlatform}
+                removePlatform={removePlatform}
+                genSkipOnboardingLink={genSkipOnboardingLink}
               />
             )}
           </OnboardingStep>
@@ -256,6 +297,10 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
   button {
     font-size: ${p => p.theme.fontSizeSmall};
   }
+`;
+
+const SkipOnboardingLink = styled(Link)`
+  margin: auto ${space(4)};
 `;
 
 export default withOrganization(withProjects(Onboarding));

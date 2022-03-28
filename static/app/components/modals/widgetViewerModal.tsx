@@ -15,7 +15,6 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Option from 'sentry/components/forms/selectOption';
 import GridEditable, {
@@ -631,7 +630,6 @@ function WidgetViewerModal(props: Props) {
         <Tooltip title={widget.title} showOnlyOnOverflow>
           <WidgetTitle>{widget.title}</WidgetTitle>
         </Tooltip>
-        <FeatureBadge type="beta" />
       </StyledHeader>
       <Body>{renderWidgetViewer()}</Body>
       <StyledFooter>
