@@ -21,7 +21,7 @@ HttpMethodName = str
 RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
 # This default value is going to shrink over time
-_SENTRY_RATELIMITER_DEFAULT = 470
+_SENTRY_RATELIMITER_DEFAULT = 420  # ayyy
 
 # The concurrent rate limiter stores a sorted set of requests, don't make this number
 # too large (e.g > 300)
