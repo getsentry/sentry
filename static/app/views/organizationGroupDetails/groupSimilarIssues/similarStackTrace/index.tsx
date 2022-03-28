@@ -182,49 +182,47 @@ class SimilarStackTrace extends React.Component<Props, State> {
       isLoadedSuccessfully;
 
     return (
-      <React.Fragment>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Alert type="warning">
-              {t(
-                'This is an experimental feature. Data may not be immediately available while we process merges.'
-              )}
-            </Alert>
-            <HeaderWrapper>
-              <Title>{t('Issues with a similar stack trace')}</Title>
-              {hasV2 && (
-                <ButtonBar merged active={v2 ? 'new' : 'old'}>
-                  <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
-                    {t('Old Algorithm')}
-                  </Button>
-                  <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
-                    {t('New Algorithm')}
-                  </Button>
-                </ButtonBar>
-              )}
-            </HeaderWrapper>
-            {isLoading && <LoadingIndicator />}
-            {isError && (
-              <LoadingError
-                message={t('Unable to load similar issues, please try again later')}
-                onRetry={this.fetchData}
-              />
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
             )}
-            {hasSimilarItems && (
-              <List
-                items={similarItems}
-                filteredItems={filteredSimilarItems}
-                onMerge={this.handleMerge}
-                orgId={orgId}
-                project={project}
-                groupId={groupId}
-                pageLinks={similarLinks}
-                v2={v2}
-              />
+          </Alert>
+          <HeaderWrapper>
+            <Title>{t('Issues with a similar stack trace')}</Title>
+            {hasV2 && (
+              <ButtonBar merged active={v2 ? 'new' : 'old'}>
+                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('Old Algorithm')}
+                </Button>
+                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('New Algorithm')}
+                </Button>
+              </ButtonBar>
             )}
-          </Layout.Main>
-        </Layout.Body>
-      </React.Fragment>
+          </HeaderWrapper>
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <LoadingError
+              message={t('Unable to load similar issues, please try again later')}
+              onRetry={this.fetchData}
+            />
+          )}
+          {hasSimilarItems && (
+            <List
+              items={similarItems}
+              filteredItems={filteredSimilarItems}
+              onMerge={this.handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={similarLinks}
+              v2={v2}
+            />
+          )}
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }
