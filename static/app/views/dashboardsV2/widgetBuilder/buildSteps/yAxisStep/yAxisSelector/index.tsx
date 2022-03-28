@@ -77,8 +77,7 @@ export function YAxisSelector({
   }
 
   function handleTopNChangeField(value: QueryFieldValue) {
-    // Only send a single value because Top N can only change
-    // one value and there may be multiple for non-top N queries
+    // Top N widgets can only ever change a single y-axis
     onChange([value]);
   }
 

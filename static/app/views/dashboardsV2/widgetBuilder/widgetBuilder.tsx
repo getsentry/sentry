@@ -500,6 +500,7 @@ function WidgetBuilder({
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
       } else {
+        // TODO: Fix this nested conditional logic
         if (displayType === DisplayType.TOP_N) {
           newQuery.fields = [
             ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
@@ -542,8 +543,6 @@ function WidgetBuilder({
     });
 
     set(newState, 'queries', newQueries);
-
-    // Running this is due to a user modification
     set(newState, 'userHasModified', true);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
