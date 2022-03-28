@@ -30,7 +30,7 @@ type Props = {
 };
 
 type State = {
-  blurTimeout?: number;
+  blurTimeout?: number | null;
 };
 
 /**
@@ -67,7 +67,6 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     const explodedFields = (query.fields ?? [...query.columns, ...query.aggregates]).map(
       field => explodeField({field})
     );
-    const {blurTimeout} = this.state;
 
     return (
       <QueryWrapper>
@@ -102,7 +101,7 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
                 return this.handleFieldChange('conditions')(field);
               }}
               onBlur={field => {
-                if (!blurTimeout) {
+                if (!this.state.blurTimeout) {
                   this.handleFieldChange('conditions')(field);
                 }
               }}

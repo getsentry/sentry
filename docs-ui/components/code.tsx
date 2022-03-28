@@ -52,7 +52,6 @@ const Code = ({children, className, label}: Props) => {
     const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
     copy(copiableContent);
-
     setCopied(true);
 
     copyTimeoutRef.current = window.setTimeout(() => {

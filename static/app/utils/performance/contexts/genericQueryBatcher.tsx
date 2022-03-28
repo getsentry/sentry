@@ -201,7 +201,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
   // Cleanup timeout after component unmounts.
   useEffect(
     () => () => {
-      timeoutRef.current && window.clearTimeout(timeoutRef.current);
+      timeoutId.current !== null && clearTimeout(timeoutId.current);
     },
     []
   );
