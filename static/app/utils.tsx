@@ -137,7 +137,7 @@ export function trimSlug(slug: string, maxLength: number = 20) {
    * Array of words inside the slug.
    * E.g. "my-project-name" becomes ["my", "project", "name"]
    */
-  let words: string[] = slug.split('-');
+  const words: string[] = slug.split('-');
   /**
    * Returns the length (total number of letters plus hyphens in between
    * words) of the current words array.
