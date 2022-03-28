@@ -497,9 +497,14 @@ class CompositeEntityDerivedMetric(DerivedMetric):
         return reversed(results)
 
     def naively_generate_singular_entity_constituents(self):
-        return self.__recursively_generate_singular_entity_constituents(
-            projects=None, derived_metric_obj=self, is_naive=True
+        single_entity_constituents = set(
+            list(
+                self.__recursively_generate_singular_entity_constituents(
+                    projects=None, derived_metric_obj=self, is_naive=True
+                ).values()
+            ).pop()
         )
+        return single_entity_constituents
 
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [

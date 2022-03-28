@@ -60,7 +60,7 @@ def get_available_derived_metrics(
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
 ) -> Set[str]:
     """
-    Function that takes as input a dictionary of the available ids in each entity, , and in turn
+    Function that takes as input a dictionary of the available ids in each entity, and in turn
     goes through each derived metric, and returns back the set of the derived metrics that have
     data in the dataset in respect to the project filter. For instances of
     SingularEntityDerivedMetrics, it is enough to make sure that the constituent metric ids span
@@ -91,10 +91,8 @@ def get_available_derived_metrics(
         # derived metric and check if they have already been found and if that is the case,
         # then we add that instance of composite metric to the found derived metric.
         composite_derived_metric_obj = DERIVED_METRICS[composite_derived_metric_name]
-        single_entity_constituents = set(
-            list(
-                composite_derived_metric_obj.naively_generate_singular_entity_constituents().values()
-            ).pop()
+        single_entity_constituents = (
+            composite_derived_metric_obj.naively_generate_singular_entity_constituents()
         )
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_name)
@@ -163,10 +161,8 @@ def _get_metrics_filter_ids(metric_names: Sequence[str]) -> Set[int]:
             try:
                 metric_ids |= derived_metric_obj.generate_metric_ids()
             except NotSupportedOverCompositeEntityException:
-                single_entity_constituents = set(
-                    list(
-                        derived_metric_obj.naively_generate_singular_entity_constituents().values()
-                    ).pop()
+                single_entity_constituents = (
+                    derived_metric_obj.naively_generate_singular_entity_constituents()
                 )
                 metric_names_deque.extend(single_entity_constituents)
     if None in metric_ids:
