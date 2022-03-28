@@ -44,12 +44,13 @@ import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
 import {
   getMeasurementBounds,
   getMeasurements,
+  getSpanGroupBounds,
+  getSpanGroupTimestamps,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
 
@@ -67,78 +68,6 @@ type Props = {
 };
 
 class SpanGroupBar extends React.Component<Props> {
-  getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
-    return spanGroup.reduce(
-      (acc, spanGroupItem) => {
-        const {start_timestamp, timestamp} = spanGroupItem.span;
-
-        let newStartTimestamp = acc.startTimestamp;
-        let newEndTimestamp = acc.endTimestamp;
-
-        if (start_timestamp < newStartTimestamp) {
-          newStartTimestamp = start_timestamp;
-        }
-
-        if (newEndTimestamp > timestamp) {
-          newEndTimestamp = timestamp;
-        }
-
-        return {
-          startTimestamp: newStartTimestamp,
-          endTimestamp: newEndTimestamp,
-        };
-      },
-      {
-        startTimestamp: spanGroup[0].span.start_timestamp,
-        endTimestamp: spanGroup[0].span.timestamp,
-      }
-    );
-  }
-
-  getSpanGroupBounds(spanGroup: EnhancedSpan[]): SpanViewBoundsType {
-    const {generateBounds} = this.props;
-
-    const {startTimestamp, endTimestamp} = this.getSpanGroupTimestamps(spanGroup);
-
-    const bounds = generateBounds({
-      startTimestamp,
-      endTimestamp,
-    });
-
-    switch (bounds.type) {
-      case 'TRACE_TIMESTAMPS_EQUAL':
-      case 'INVALID_VIEW_WINDOW': {
-        return {
-          warning: void 0,
-          left: void 0,
-          width: void 0,
-          isSpanVisibleInView: bounds.isSpanVisibleInView,
-        };
-      }
-      case 'TIMESTAMPS_EQUAL': {
-        return {
-          warning: void 0,
-          left: bounds.start,
-          width: 0.00001,
-          isSpanVisibleInView: bounds.isSpanVisibleInView,
-        };
-      }
-      case 'TIMESTAMPS_REVERSED':
-      case 'TIMESTAMPS_STABLE': {
-        return {
-          warning: void 0,
-          left: bounds.start,
-          width: bounds.end - bounds.start,
-          isSpanVisibleInView: bounds.isSpanVisibleInView,
-        };
-      }
-      default: {
-        const _exhaustiveCheck: never = bounds;
-        return _exhaustiveCheck;
-      }
-    }
-  }
-
   renderGroupedSpansToggler() {
     const {spanGrouping, treeDepth, toggleSpanGroup} = this.props;
 
@@ -154,7 +83,6 @@ class SpanGroupBar extends React.Component<Props> {
           isSpanGroupToggler
           onClick={event => {
             event.stopPropagation();
-
             toggleSpanGroup();
           }}
         >
@@ -321,15 +249,18 @@ class SpanGroupBar extends React.Component<Props> {
               const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
               const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
-              const bounds = this.getSpanGroupBounds(spanGrouping);
+              const bounds = getSpanGroupBounds(spanGrouping, generateBounds);
               const durationDisplay = getDurationDisplay(bounds);
-              const {startTimestamp, endTimestamp} =
-                this.getSpanGroupTimestamps(spanGrouping);
+              const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
               const duration = Math.abs(endTimestamp - startTimestamp);
               const durationString = getHumanDuration(duration);
 
               return (
-                <Row visible={isSpanVisible} showBorder={false} data-test-id="span-row">
+                <Row
+                  visible={isSpanVisible}
+                  showBorder={false}
+                  data-test-id={`span-row-${spanNumber}`}
+                >
                   <RowCellContainer>
                     <RowCell
                       data-type="span-row-cell"

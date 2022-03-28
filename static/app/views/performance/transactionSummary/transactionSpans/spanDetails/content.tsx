@@ -144,6 +144,7 @@ function SpanDetailsContent(props: ContentProps) {
   // There should always be exactly 1 result
   const suspectSpan = suspectSpansResults.suspectSpans?.[0];
   const examples = spanExamplesResults.examples?.[0]?.examples;
+  const transactionCountContainingSpan = suspectSpan?.frequency;
 
   return (
     <Fragment>
@@ -152,7 +153,12 @@ function SpanDetailsContent(props: ContentProps) {
         totalCount={totalCount}
         suspectSpan={suspectSpan}
       />
-      <SpanChart organization={organization} eventView={eventView} spanSlug={spanSlug} />
+      <SpanChart
+        totalCount={transactionCountContainingSpan}
+        organization={organization}
+        eventView={eventView}
+        spanSlug={spanSlug}
+      />
       <SpanTable
         location={location}
         organization={organization}

@@ -2,25 +2,22 @@ import isEqual from 'lodash/isEqual';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
+import {Organization, TagCollection} from 'sentry/types';
+import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
-  aggregateOutputType,
-  getColumnsAndAggregates,
-  isAggregateFieldOrEquation,
-  isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export enum DisplayType {
-  AREA = 'area',
-  BAR = 'bar',
-  LINE = 'line',
-  TABLE = 'table',
-  WORLD_MAP = 'world_map',
-  BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
-  TOP_N = 'top_n',
-}
+// Used in the widget builder to limit the number of lines plotted in the chart
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
 
 export enum DataSet {
   EVENTS = 'events',
@@ -95,9 +92,10 @@ export function normalizeQueries({
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
-    DisplayType.STACKED_AREA,
     DisplayType.BAR,
   ].includes(displayType);
+
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
 
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
@@ -111,78 +109,100 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
+  if (widgetBuilderNewDesign) {
+    queries = queries.map(query => {
+      const {fields = [], columns} = query;
+
+      if (isTabularChart) {
+        // If the groupBy field has values, port everything over to the columnEditCollect field.
+        query.fields = [...new Set([...fields, ...columns])];
+      } else {
+        // If columnEditCollect has field values , port everything over to the groupBy field.
+        query.fields = fields.filter(field => !columns.includes(field));
+      }
+
+      if (!!query.orderby) {
+        return query;
+      }
+
+      const orderBy =
+        queries[0].orderby ||
+        (widgetType === WidgetType.DISCOVER
           ? generateOrderOptions({
               widgetType,
               widgetBuilderNewDesign,
-              ...getColumnsAndAggregates(queries[0].fields),
+              columns: queries[0].columns,
+              aggregates: queries[0].aggregates,
             })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
-    }
+          : IssueSortOptions.DATE);
 
+      // Issues data set doesn't support order by descending
+      query.orderby =
+        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+
+      return query;
+    });
+  }
+
+  if (isTabularChart) {
     return queries;
   }
 
   // Filter out non-aggregate fields
   queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateFieldOrEquation);
+    let aggregates = query.aggregates;
 
     if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
       // Filter out fields that will not generate numeric output types
-      fields = fields.filter(field => isLegalYAxisType(aggregateOutputType(field)));
+      aggregates = aggregates.filter(aggregate =>
+        isLegalYAxisType(aggregateOutputType(aggregate))
+      );
     }
 
-    if (isTimeseriesChart && fields.length && fields.length > 3) {
+    if (isTimeseriesChart && aggregates.length && aggregates.length > 3) {
       // Timeseries charts supports at most 3 fields.
-      fields = fields.slice(0, 3);
+      aggregates = aggregates.slice(0, 3);
     }
 
     return {
       ...query,
-      fields: fields.length ? fields : ['count()'],
-      columns: [],
-      aggregates: fields.length ? fields : ['count()'],
+      fields: aggregates.length ? aggregates : ['count()'],
+      columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
+      aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
 
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
-    const referenceFields = [...queries[0].fields];
+    const referenceAggregates = [...queries[0].aggregates];
 
     queryLoop: for (const query of queries) {
-      if (referenceFields.length >= 3) {
+      if (referenceAggregates.length >= 3) {
         break;
       }
 
-      if (isEqual(referenceFields, query.fields)) {
+      if (isEqual(referenceAggregates, query.aggregates)) {
         continue;
       }
 
-      for (const field of query.fields) {
-        if (referenceFields.length >= 3) {
+      for (const aggregate of query.aggregates) {
+        if (referenceAggregates.length >= 3) {
           break queryLoop;
         }
 
-        if (!referenceFields.includes(field)) {
-          referenceFields.push(field);
+        if (!referenceAggregates.includes(aggregate)) {
+          referenceAggregates.push(aggregate);
         }
       }
     }
 
-    const {columns, aggregates} = getColumnsAndAggregates(referenceFields);
-
     queries = queries.map(query => {
       return {
         ...query,
-        columns,
-        aggregates,
-        fields: referenceFields,
+        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
+        aggregates: referenceAggregates,
+        fields: referenceAggregates,
       };
     });
   }
@@ -192,8 +212,10 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        fields: query.fields.slice(0, 1),
-        aggregates: query.aggregates?.slice(0, 1),
+        fields: query.aggregates.slice(0, 1),
+        aggregates: query.aggregates.slice(0, 1),
+        orderby: '',
+        columns: [],
       };
     });
   }
@@ -210,8 +232,9 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
     return undefined;
   }
 
-  const fields = parsedQuery.fields ? getFields(parsedQuery.fields) : [];
-  const {columns, aggregates} = getColumnsAndAggregates(fields);
+  const columns = parsedQuery.columns ? getFields(parsedQuery.columns) : [];
+  const aggregates = parsedQuery.aggregates ? getFields(parsedQuery.aggregates) : [];
+  const fields = [...columns, ...aggregates];
 
   return {
     ...parsedQuery,
@@ -224,4 +247,21 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
 export function getFields(fieldsString: string): string[] {
   // Use a negative lookahead to avoid splitting on commas inside equation fields
   return fieldsString.split(/,(?![^(]*\))/g);
+}
+
+export function getAmendedFieldOptions({
+  measurements,
+  organization,
+  tags,
+}: {
+  measurements: MeasurementCollection;
+  organization: Organization;
+  tags: TagCollection;
+}) {
+  return generateFieldOptions({
+    organization,
+    tagKeys: Object.values(tags).map(({key}) => key),
+    measurementKeys: Object.values(measurements).map(({key}) => key),
+    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+  });
 }

@@ -953,6 +953,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
   }
+
   if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
@@ -973,9 +974,11 @@ export function explodeField(field: Field): Column {
  */
 export function getAggregateAlias(field: string): string {
   const result = parseFunction(field);
+
   if (!result) {
     return field;
   }
+
   let alias = result.name;
 
   if (result.arguments.length > 0) {
@@ -1007,6 +1010,30 @@ export function getColumnsAndAggregates(fields: string[]): {
   const aggregates = getAggregateFields(fields);
   const columns = fields.filter(field => !!!aggregates.includes(field));
   return {columns, aggregates};
+}
+
+export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregateFields: string[] = [];
+  const nonAggregateFields: string[] = [];
+
+  for (const field of fields) {
+    const fieldString = generateFieldAsString(field);
+    if (field.kind === 'function') {
+      aggregateFields.push(fieldString);
+    } else if (field.kind === 'equation') {
+      if (isAggregateEquation(fieldString)) {
+        aggregateFields.push(fieldString);
+      } else {
+        nonAggregateFields.push(fieldString);
+      }
+    } else {
+      nonAggregateFields.push(fieldString);
+    }
+  }
+  return {aggregates: aggregateFields, columns: nonAggregateFields};
 }
 
 /**

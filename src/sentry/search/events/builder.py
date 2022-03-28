@@ -43,6 +43,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
+    TREND_FUNCTION_TYPE_MAP,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
@@ -531,6 +532,35 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        if function in TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, resolve_only=True)
+
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type: Optional[str] = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
+
     def resolve_snql_function(
         self,
         snql_function: SnQLFunction,
@@ -597,7 +627,7 @@ class QueryBuilder:
                     resolved_orderby = bare_orderby
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
-            except NotImplementedError:
+            except (NotImplementedError, IncompatibleMetricsQuery):
                 resolved_orderby = None
 
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
@@ -799,7 +829,7 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params, builder=self)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1029,10 +1059,6 @@ class QueryBuilder:
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-        # TODO: This is no longer true, can order by fields that aren't selected, keeping
-        # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -1391,7 +1417,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
 
 class HistogramQueryBuilder(QueryBuilder):
-    base_function_acl = ["array_join", "histogram"]
+    base_function_acl = ["array_join", "histogram", "spans_histogram"]
 
     def __init__(
         self,
@@ -1447,11 +1473,12 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, allow_metric_aggregates: Optional[bool] = False, **kwargs: Any):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
-        self.metric_ids: List[int] = []
+        self.metric_ids: Set[int] = set()
+        self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1468,13 +1495,13 @@ class MetricsQueryBuilder(QueryBuilder):
         try:
             return super().column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
 
     def aliased_column(self, name: str) -> SelectType:
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery("Column was not found in metrics indexer")
+            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1521,6 +1548,24 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
+
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
+        if not self.allow_metric_aggregates:
+            # Regardless of use_aggregate_conditions, check if any having_conditions exist
+            having_conditions = super().resolve_having(parsed_terms, True)
+            if len(having_conditions) > 0:
+                raise IncompatibleMetricsQuery(
+                    "Aggregate conditions were disabled, but included in filter"
+                )
+
+            # Don't resolve having conditions again if we don't have to
+            if use_aggregate_conditions:
+                return having_conditions
+            else:
+                return []
+        return super().resolve_having(parsed_terms, use_aggregate_conditions)
 
     def resolve_limit(self, limit: Optional[int]) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
@@ -1766,12 +1811,14 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         interval: int,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
     ):
         super().__init__(
             params=params,
             query=query,
             selected_columns=selected_columns,
+            allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
         )

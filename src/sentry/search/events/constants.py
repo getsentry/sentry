@@ -25,6 +25,7 @@ RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
 SEMVER_BUILD_ALIAS = "release.build"
+TITLE_ALIAS = "title"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
@@ -69,6 +70,9 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 # eg. 123 doesn't match, but test_123 will match
 ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 
+MISERY_ALPHA = 5.8875
+MISERY_BETA = 111.8625
+
 ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
     fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
@@ -108,6 +112,12 @@ CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
     "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+TREND_FUNCTION_TYPE_MAP = {
+    "trend_percentage()": "percentage",
+    "count_percentage()": "percentage",
+    "trend_difference()": "duration",
+    "confidence()": "number",
 }
 
 # Create the known set of fields from the issue properties
@@ -166,3 +176,18 @@ METRICS_MAP = {
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51
 METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+METRIC_TOLERATED_TAG_KEY = "is_tolerated"
+METRIC_SATISFIED_TAG_KEY = "is_satisfied"
+METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
+METRIC_TRUE_TAG_VALUE = "true"
+METRIC_FALSE_TAG_VALUE = "false"
+METRIC_DURATION_COLUMNS = [
+    "measurements.fp",
+    "measurements.fcp",
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "measurements.ttfb",
+    "measurements.ttfb.requesttime",
+    "transaction.duration",
+]

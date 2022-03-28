@@ -15,7 +15,7 @@ from sentry.snuba.metrics import (
     get_tag_values,
     get_tags,
 )
-from sentry.snuba.metrics.utils import DerivedMetricParseException
+from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -42,8 +42,10 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             metric = get_single_metric_info(projects, metric_name)
-        except InvalidParams:
-            raise ResourceDoesNotExist(detail=f"metric '{metric_name}'")
+        except InvalidParams as e:
+            raise ResourceDoesNotExist(e)
+        except DerivedMetricParseException as exc:
+            raise ParseError(detail=str(exc))
 
         return Response(metric, status=200)
 
@@ -120,7 +122,11 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                     request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
                 data = get_series(projects, query)
-            except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
+            except (
+                InvalidField,
+                InvalidParams,
+                DerivedMetricException,
+            ) as exc:
                 raise (ParseError(detail=str(exc)))
             return data
 

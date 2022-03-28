@@ -13,6 +13,7 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
@@ -36,6 +37,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -63,6 +65,7 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
+  expandNumbers,
 }: Props) {
   function issueTableResultComponent({
     loading,
@@ -82,11 +85,16 @@ export function WidgetCardChartContainer({
       return <LoadingPlaceholder height="200px" />;
     }
 
+    const query = widget.queries[0];
+    const queryFields = defined(query.fields)
+      ? query.fields
+      : [...query.columns, ...query.aggregates];
+
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
-        fields={widget.queries[0].fields}
+        fields={queryFields}
         loading={loading}
         metadata={ISSUE_FIELDS}
         data={transformedResults}
@@ -191,6 +199,7 @@ export function WidgetCardChartContainer({
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={legendOptions}
+                expandNumbers={expandNumbers}
               />
             </React.Fragment>
           );
