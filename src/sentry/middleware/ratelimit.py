@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Callable, Tuple
 
 from django.http.response import HttpResponse
 from django.urls import resolve
@@ -15,7 +16,7 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
-from sentry.types.ratelimit import RateLimitCategory, RateLimitType
+from sentry.types.ratelimit import RateLimitCategory, RateLimitData, RateLimitMeta, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -28,7 +29,7 @@ class RatelimitMiddleware:
     See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
     """
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[Request], Response]):
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
@@ -44,8 +45,8 @@ class RatelimitMiddleware:
             finish_request(rate_limit_data["rate_limit_key"], rate_limit_data["rate_limit_uid"])
         return response
 
-    def process_request(self, request: Request):
-        rate_limit_data = {}
+    def process_request(self, request: Request) -> Tuple[HttpResponse | None, RateLimitData]:
+        rate_limit_data: RateLimitData = {}
         response = None
 
         # First, check if the endpoint call will violate.
@@ -98,7 +99,9 @@ class RatelimitMiddleware:
 
         return response, rate_limit_data
 
-    def add_headers(self, response, rate_limit_metadata):
+    def add_headers(
+        self, response: Response, rate_limit_metadata: RateLimitMeta | None
+    ) -> Response:
         if not rate_limit_metadata or type(response) not in (Response, HttpResponse):
             return response
 

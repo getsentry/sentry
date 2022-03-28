@@ -34,6 +34,13 @@ class RateLimitType(Enum):
     FIXED_WINDOW = "fixed_window"
 
 
+@dataclass
+class RateLimitData:
+    rate_limit_uid: str | None
+    rate_limit_key: str | None
+    rate_limit_metadata: RateLimitMeta | None
+
+
 @dataclass(frozen=True)
 class RateLimitMeta:
     """
