@@ -15,6 +15,8 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
+import GenericFooter from './genericFooter';
+
 interface FirstEventFooterProps {
   handleFirstIssueReceived: () => void;
   hasFirstEvent: boolean;
@@ -91,7 +93,7 @@ export default function FirstEventFooter({
   };
 
   return (
-    <Wrapper>
+    <GenericFooter>
       <SkipOnboardingLink
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
@@ -127,22 +129,9 @@ export default function FirstEventFooter({
           </Fragment>
         )}
       </EventWaiter>
-    </Wrapper>
+    </GenericFooter>
   );
 }
-
-const Wrapper = styled('div')`
-  width: 100%;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  height: 72px;
-  z-index: 100;
-  display: flex;
-  background-color: ${p => p.theme.background};
-  justify-content: space-between;
-  box-shadow: 0px -4px 24px rgba(43, 34, 51, 0.08);
-`;
 
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
