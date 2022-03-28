@@ -70,9 +70,11 @@ jobs:
       # - yarn lockfile has changed (i.e. we bump our eslint config)
       - name: eslint
         if: steps.eslint.outputs.all-files == 'true'
-        run: |
+        env:
           # Run relax config on main branch (and stricter config for changed files)
-          yarn lint -c .eslintrc.relax.js
+          SENTRY_ESLINT_RELAXED: 1
+        run: |
+          yarn lint
           yarn lint:css
 
       # Otherwise... only lint modified files
