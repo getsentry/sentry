@@ -796,23 +796,3 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             },
         },
     ]
-
-
-def test_histogram_snuba_query(monkeypatch):
-    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
-    query_params = MultiValueDict(
-        {
-            "query": [
-                "release:staging"
-            ],  # weird release but we need a string exising in mock indexer
-            "field": [
-                "histogram(sentry.sessions.session)",
-            ],
-        }
-    )
-
-    query_definition = QueryDefinition(query_params)
-    snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition
-    ).get_snuba_queries()
-    1 / 0

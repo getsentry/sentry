@@ -942,12 +942,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             histogramBuckets="2",
         )
 
-        hist = {
-            "histogram_metric_test": [
-                (1.0, 3.5, 3.0),
-                (3.5, 6.0, 3.0),
-            ]
-        }
+        hist = [
+            (1.0, 3.5, 3.0),
+            (3.5, 6.0, 3.0),
+        ]
 
         assert response.data["groups"] == [
             {

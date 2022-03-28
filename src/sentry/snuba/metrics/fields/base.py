@@ -349,13 +349,9 @@ class HistogramMetricField(RawAggregatedMetric):
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
         if idx is None:
-            data[key] = {
-                "histogram_metric_test": self.__resize_histogram(data[key], query_definition)
-            }
+            data[key] = self.__resize_histogram(data[key], query_definition)
         else:
-            data[key][idx] = {
-                "histogram_metric_test": self.__resize_histogram(data[key][idx], query_definition)
-            }
+            data[key][idx] = self.__resize_histogram(data[key][idx], query_definition)
         return data
 
 
