@@ -1477,7 +1477,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
-        self.metric_ids: List[int] = []
+        self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics
