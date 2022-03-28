@@ -245,7 +245,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
-  align-items: center;
+  align-self: center;
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
