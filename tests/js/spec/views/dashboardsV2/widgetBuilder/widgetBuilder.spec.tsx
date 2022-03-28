@@ -1,4 +1,5 @@
 import React from 'react';
+import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -18,7 +19,6 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-import selectEvent from 'react-select-event';
 
 // Mock World Map because setState inside componentDidMount is
 // throwing UnhandledPromiseRejection
