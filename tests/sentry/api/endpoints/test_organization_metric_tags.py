@@ -129,8 +129,9 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             assert response.data == []
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_incorrectly_setup_derived_metric(self):
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
