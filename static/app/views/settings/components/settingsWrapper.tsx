@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'sentry/styles/space';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 
 type Props = {
