@@ -39,6 +39,12 @@ type Props = WithRouterProps & {
   lockedMessageSubject?: string;
 
   /**
+   * Max character length for the dropdown title. Default is 20. This number
+   * is used to determine how many projects to show, and how much to truncate.
+   */
+  maxTitleLength?: number;
+
+  /**
    * A project will be forced from parent component (selection is disabled, and if user
    * does not have multi-project support enabled, it will not try to auto select a project).
    *
@@ -63,7 +69,12 @@ type Props = WithRouterProps & {
   specificProjectSlugs?: string[];
 };
 
-export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}: Props) {
+export function ProjectPageFilter({
+  router,
+  specificProjectSlugs,
+  maxTitleLength = 20,
+  ...otherProps
+}: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
     null
   );
@@ -108,12 +119,13 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     const hasSelected = !!selectedProjects.length;
 
     const projectsToShow =
-      selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <= 18
+      selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <=
+      maxTitleLength - 2
         ? selectedProjects.slice(0, 2)
         : selectedProjects.slice(0, 1);
 
     const title = hasSelected
-      ? projectsToShow.map(proj => trimSlug(proj.slug, 20)).join(', ')
+      ? projectsToShow.map(proj => trimSlug(proj.slug, maxTitleLength)).join(', ')
       : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
       ? t('All Projects')
       : t('My Projects');
