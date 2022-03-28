@@ -9,6 +9,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
+  SU_ACCESS_FORM = 'SuperuserAccessForm',
 }
 
 export type OnSentryInitConfiguration =
