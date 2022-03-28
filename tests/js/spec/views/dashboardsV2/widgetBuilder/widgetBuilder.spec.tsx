@@ -1237,6 +1237,38 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+    userEvent.click(screen.getByText('Add a Column'));
+    userEvent.type(screen.getByText('(Required)'), 'count_unique{enter}');
+    userEvent.click(screen.getByText('Add a Column'));
+    userEvent.type(screen.getByText('(Required)'), 'project{enter}');
+
+    userEvent.click(screen.getByText('count()'));
+    userEvent.click(screen.getByText('eps()'));
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
