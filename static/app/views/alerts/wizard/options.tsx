@@ -229,7 +229,7 @@ export type WizardRuleTemplate = {
 
 export const AlertWizardRuleTemplates: Record<
   Exclude<AlertType, 'issues'>,
-  WizardRuleTemplate
+  Readonly<WizardRuleTemplate>
 > = {
   num_errors: {
     aggregate: 'count()',

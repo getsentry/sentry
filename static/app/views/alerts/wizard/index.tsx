@@ -75,7 +75,7 @@ class AlertWizard extends Component<Props, State> {
       params: {projectId},
     } = this.props;
     const {alertOption} = this.state;
-    let metricRuleTemplate: WizardRuleTemplate | undefined =
+    let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -90,7 +90,7 @@ class AlertWizard extends Component<Props, State> {
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
       query: {
-        ...(metricRuleTemplate && metricRuleTemplate),
+        ...(metricRuleTemplate ? metricRuleTemplate : {}),
         createFromWizard: true,
         referrer: location?.query?.referrer,
       },
