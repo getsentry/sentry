@@ -4,12 +4,6 @@ type MobilePromptBannerParams = {
   matchedUserAgentString: string;
 };
 
-type ShowParams = MobilePromptBannerParams & {
-  matchedUserAgentString: string;
-  mobileEventBrowserName: string;
-  mobileEventClientOsName: string;
-};
-
 type PlatformParam = {
   platform: PlatformKey;
 };
@@ -56,7 +50,6 @@ export type GrowthEventParameters = {
   'growth.demo_click_request_demo': {};
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
-  'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
   'growth.issue_open_in_discover_btn_clicked': {};
   'growth.onboarding_clicked_instrument_app': {source?: string};
   'growth.onboarding_clicked_skip': {source?: string};
@@ -68,7 +61,6 @@ export type GrowthEventParameters = {
   'growth.onboarding_take_to_error': {};
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
@@ -79,7 +71,6 @@ export type GrowthEventParameters = {
     project_id: string;
   };
   'growth.select_platform': PlatformPickerParam;
-  'growth.show_mobile_prompt_banner': ShowParams;
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
@@ -103,10 +94,6 @@ export type GrowthEventParameters = {
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
 export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
-  'growth.show_mobile_prompt_banner': 'Growth: Show Mobile Prompt Banner',
-  'growth.dismissed_mobile_prompt_banner': 'Growth: Dismissed Mobile Prompt Banner',
-  'growth.opened_mobile_project_suggest_modal':
-    'Growth: Open Mobile Project Suggest Modal',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
