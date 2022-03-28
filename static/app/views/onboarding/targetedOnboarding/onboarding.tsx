@@ -19,7 +19,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
-import {StepperContainer, StepperIndicator} from './components/stepper';
+import Stepper from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -61,8 +61,7 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
-  const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  const stepIndex = stepObj ? ONBOARDING_STEPS.indexOf(stepObj) : 0;
+  const stepObj = ONBOARDING_STEPS.find(({ id }) => stepId === id);
   if (!stepObj) {
     return <div>Can't find</div>;
   }
@@ -127,18 +126,7 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        {stepId !== 'welcome' && (
-          <StyledStepperContainer>
-            {ONBOARDING_STEPS.slice(1).map((step, i) => (
-              <StepperIndicator
-                active={step.id === stepId}
-                key={step.id}
-                onClick={() => i + 1 < stepIndex && goToStep(step)}
-                clickable={i + 1 < stepIndex}
-              />
-            ))}
-          </StyledStepperContainer>
-        )}
+        {stepId !== 'welcome' && <StyledStepper steps={ONBOARDING_STEPS.slice(1)} currentStepId={stepId} onClick={goToStep} />}
         <Hook name="onboarding:targeted-onboarding-header" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
@@ -254,7 +242,7 @@ const AdaptivePageCorners = styled(PageCorners)`
   }
 `;
 
-const StyledStepperContainer = styled(StepperContainer)`
+const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
   align-items: center;
