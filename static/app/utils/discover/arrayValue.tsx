@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+
 import {nullableValue} from './fieldRenderers';
 
 type Props = {
@@ -31,7 +32,9 @@ class ArrayValue extends Component<Props, State> {
         {expanded &&
           value
             .slice(0, value.length - 1)
-            .map((item, i) => <ArrayItem key={`${i}:${item}`}>{nullableValue(item)}</ArrayItem>)}
+            .map((item, i) => (
+              <ArrayItem key={`${i}:${item}`}>{nullableValue(item)}</ArrayItem>
+            ))}
         <ArrayItem>{nullableValue(value.slice(-1)[0])}</ArrayItem>
         {value.length > 1 ? (
           <ButtonContainer>
