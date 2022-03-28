@@ -387,7 +387,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaisesMessage(
             InvalidSearchQuery,
-            expected_message="avg(stack.colno): column argument invalid: stack.colno is not a numeric column",
+            expected_message="avg: column argument invalid: stack.colno is not a numeric column",
         ):
             parse_search_query("avg(stack.colno):>500s")
 
@@ -396,6 +396,11 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
         ):
             parse_search_query("min(measurements.size):3s")
+
+        with self.assertRaisesMessage(
+            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+        ):
+            parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
     def test_is_query_unsupported(self):
         with self.assertRaisesRegex(
