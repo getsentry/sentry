@@ -666,8 +666,13 @@ DERIVED_METRICS = {
 
 def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    if metric_name in DERIVED_METRICS:
-        instance = DERIVED_METRICS[metric_name]
+    # This function is only used in the query builder, only after func `parse_field` validates
+    # that no private derived metrics are required. The query builder requires access to all
+    # derived metrics to be able to compute derived metrics that are not private but might have
+    # private constituents
+    derived_metrics = get_derived_metrics(exclude_private=False)
+    if metric_name in derived_metrics:
+        instance = derived_metrics[metric_name]
     else:
         instance = RawAggregatedMetric(op=op, metric_name=metric_name)
     return instance
@@ -692,3 +697,11 @@ def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
         elif isinstance(derived_metric, SingularEntityDerivedMetric):
             dependency_list.append((None, derived_metric.metric_name))
     return dependency_list
+
+
+def get_derived_metrics(exclude_private=True):
+    return (
+        {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
+        if exclude_private
+        else DERIVED_METRICS
+    )

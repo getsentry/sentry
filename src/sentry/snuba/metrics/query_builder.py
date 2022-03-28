@@ -29,8 +29,11 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import DERIVED_METRICS, DerivedMetric, metric_object_factory
-from sentry.snuba.metrics.fields.base import generate_bottom_up_dependency_tree_for_metrics
+from sentry.snuba.metrics.fields import DerivedMetric, metric_object_factory
+from sentry.snuba.metrics.fields.base import (
+    generate_bottom_up_dependency_tree_for_metrics,
+    get_derived_metrics,
+)
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -54,21 +57,22 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> Tuple[Optional[str], str]:
+    derived_metrics = get_derived_metrics(exclude_private=True)
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
         operation = matches[1]
         metric_name = matches[2]
-        if metric_name in DERIVED_METRICS and isinstance(
-            DERIVED_METRICS[metric_name], DerivedMetric
+        if metric_name in derived_metrics and isinstance(
+            derived_metrics[metric_name], DerivedMetric
         ):
             raise DerivedMetricParseException(
                 f"Failed to parse {field}. No operations can be applied on this field as it is "
                 f"already a derived metric with an aggregation applied to it."
             )
     except (IndexError, TypeError):
-        if field in DERIVED_METRICS and isinstance(DERIVED_METRICS[field], DerivedMetric):
+        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetric):
             # The isinstance check is there to foreshadow adding raw metric aliases
             return None, field
         raise InvalidField(
@@ -317,7 +321,7 @@ class SnubaQueryBuilder:
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        # ToDo ensure we cannot add any other cols than tags and groupBy as columns
+        # ToDo(ahmed): ensure we cannot add any other cols than tags and groupBy as columns
         return [
             Column(resolve_tag_key(field))
             if field not in ALLOWED_GROUPBY_COLUMNS
