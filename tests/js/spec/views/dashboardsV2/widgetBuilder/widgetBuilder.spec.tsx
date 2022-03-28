@@ -1,4 +1,5 @@
 import React from 'react';
+import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -438,9 +439,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(2);
 
-    userEvent.click(countFields[1]);
-    userEvent.type(countFields[1], 'last');
-    userEvent.click(screen.getByText('last_seen()'));
+    await selectEvent.select(countFields[1], ['last_seen()']);
 
     userEvent.click(screen.getByText('Select a dashboard'));
     userEvent.click(screen.getByText('Test Dashboard'));
@@ -482,9 +481,7 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     userEvent.click(screen.getByLabelText('Add Widget'));
 
@@ -523,9 +520,6 @@ describe('WidgetBuilder', function () {
 
     // Click the add an equation button
     userEvent.click(screen.getByLabelText('Add an Equation'));
-
-    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
-
     userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() + 100');
 
     userEvent.click(screen.getByLabelText('Add Widget'));
