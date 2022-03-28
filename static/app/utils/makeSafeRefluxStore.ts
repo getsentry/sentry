@@ -1,9 +1,9 @@
 export interface SafeStoreDefinition extends Reflux.StoreDefinition {
+  unsubscribeListeners: Reflux.Subscription[];
   /**
    * Teardown a store and all it's listeners
    */
   teardown?(): void;
-  unsubscribeListeners?: Reflux.Subscription[];
 }
 export interface SafeRefluxStore extends SafeStoreDefinition {
   teardown(): void;
@@ -36,9 +36,9 @@ export function cleanupActiveRefluxSubscriptions(
 // cleanup functions, our subscriptions are never cleaned up. This is fine
 // for production env where stores are only init once, but causes memory
 // leaks in tests when we call store.init inside a beforeEach hook.
-export function makeSafeRefluxStore<T extends SafeStoreDefinition>(
-  store: T
-): SafeRefluxStore {
+export function makeSafeRefluxStore<
+  T extends SafeStoreDefinition | Reflux.StoreDefinition
+>(store: T): SafeRefluxStore {
   // Allow for a store to pass it's own array of unsubscribeListeners, else initialize one
   const safeStore = store as unknown as SafeRefluxStore;
   safeStore.unsubscribeListeners = Array.isArray(safeStore.unsubscribeListeners)
