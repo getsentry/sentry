@@ -298,7 +298,15 @@ let appConfig: Configuration = {
     ],
   },
   plugins: [
+    // Inject bundle analyzer plugin - this will start a server
     ...(ANALYZE_BUNDLE ? [new BundleAnalyzerPlugin()] : []),
+
+    // Do not bundle moment's locale files as we will lazy load them using
+    // dynamic imports in the application code
+    new webpack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
