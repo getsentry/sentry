@@ -107,6 +107,7 @@ const Footer = styled(BaseFooter)`
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(4)};
+  margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;

@@ -211,15 +211,19 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   if (error) {
     return (
       <Fragment>
-        <ErrorMessage
-          onRetry={fetchGroupingLevels}
-          groupId={groupId}
-          error={error}
-          projSlug={projSlug}
-          orgSlug={organization.slug}
-          hasProjectWriteAccess={organization.access.includes('project:write')}
-        />
-        <LinkFooter />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ErrorMessage
+              onRetry={fetchGroupingLevels}
+              groupId={groupId}
+              error={error}
+              projSlug={projSlug}
+              orgSlug={organization.slug}
+              hasProjectWriteAccess={organization.access.includes('project:write')}
+            />
+            <LinkFooter />
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
