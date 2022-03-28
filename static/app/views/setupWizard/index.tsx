@@ -12,8 +12,8 @@ type Props = {
 
 function SetupWizard({hash = false}: Props) {
   const api = useApi();
-  const [finished, setFinished] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -33,8 +33,8 @@ function SetupWizard({hash = false}: Props) {
   }
 
   useEffect(() => {
-    const pollingTimeout = window.setInterval(checkFinished, 1000);
-    return () => window.clearTimeout(pollingTimeout);
+    const pollingInterval = window.setInterval(checkFinished, 1000);
+    return () => window.clearInterval(pollingInterval);
   }, []);
 
   return (
