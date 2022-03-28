@@ -86,6 +86,26 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             {"key": "session.status"},
         ]
 
+    def test_composite_derived_metrics(self):
+        for minute in range(4):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                    release="foobar@2.0",
+                    errors=2,
+                )
+            )
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["session.healthy"],
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+        ]
+
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_incorrectly_setup_derived_metric(self):
