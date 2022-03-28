@@ -1,5 +1,12 @@
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
+
+const process = require('process');
+
+const isRelxed = !!process.env.SENTRY_ESLINT_RELAXED;
+
 module.exports = {
-  extends: ['sentry-app/strict'],
+  extends: [isRelxed ? 'sentry-app' : 'sentry-app/strict'],
   globals: {
     require: false,
     expect: false,
