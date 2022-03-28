@@ -748,11 +748,17 @@ DERIVED_METRICS = {
     ]
 }
 
+DERIVED_OPS = {
+    "histogram": lambda metric_name: HistogramMetricField(op="histogram", metric_name=metric_name),
+}
+
 
 def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    if op == "histogram":
-        return HistogramMetricField(op=op, metric_name=metric_name)
+    if op in DERIVED_OPS and metric_name in DERIVED_METRICS:
+        raise InvalidParams("derived ops cannot be used on derived metrics")
+    elif op in DERIVED_OPS:
+        instance = DERIVED_OPS[op](metric_name)
     elif metric_name in DERIVED_METRICS:
         instance = DERIVED_METRICS[metric_name]
     else:
