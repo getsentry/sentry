@@ -62,7 +62,7 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  const stepIndex = ONBOARDING_STEPS.findIndex(({ id }) => stepId === id);
+  const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
   if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
