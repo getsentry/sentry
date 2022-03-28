@@ -641,6 +641,7 @@ def run_comparison(
     function_args: Tuple[Any],
     sessions_result: Any,
     sessions_time: datetime,
+    sentry_tags: Optional[Mapping[str, str]] = None,
     **kwargs,
 ) -> None:
     if rollup is None:
@@ -648,9 +649,12 @@ def run_comparison(
 
     tags = {"method": fn_name, "rollup": str(rollup)}
 
+    # Sentry tags
     set_tag("releasehealth.duplex.rollup", str(rollup))
     set_tag("releasehealth.duplex.method", fn_name)
     set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
+    for key, value in (sentry_tags or {}).items():
+        set_tag(key, value)
 
     set_context(
         "release-health-duplex-sessions",
@@ -766,6 +770,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         organization: Optional[Organization],
         schema: Optional[Schema],
         *args: Any,
+        sentry_tags: Optional[Mapping[str, str]] = None,
     ) -> ReleaseHealthResult:
         sessions_fn = getattr(self.sessions, fn_name)
 
@@ -793,6 +798,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     function_args=args,
                     sessions_result=ret_val,
                     sessions_time=now,
+                    sentry_tags=sentry_tags,
                 )
             except Exception:
                 capture_exception()
@@ -902,19 +908,19 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         # Tag sentry event with relative end time, so we can see if live queries
         # cause greater deltas:
         relative_hours = math.ceil((query.end - now).total_seconds() / 3600)
-        set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
+        sentry_tags = {"run_sessions_query.rel_end": f"{relative_hours}h"}
 
         project_ids = query.filter_keys.get("project_id")
         if project_ids and len(project_ids) == 1:
             project_id = project_ids[0]
-            set_tag("run_sessions_query.project_id", str(project_id))
+            sentry_tags["run_sessions_query.project_id"] = str(project_id)
             try:
                 project = Project.objects.get_from_cache(id=project_id)
                 assert org_id == project.organization_id
             except (Project.DoesNotExist, AssertionError):
                 pass
             else:
-                set_tag("run_sessions_query.platform", project.platform)
+                sentry_tags["run_sessions_query.platform"] = project.platform
 
         schema = {
             "start": ComparatorType.DateTime,
@@ -943,6 +949,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             org_id,
             query,
             span_op,
+            sentry_tags=sentry_tags,
         )
 
     def get_release_sessions_time_bounds(
