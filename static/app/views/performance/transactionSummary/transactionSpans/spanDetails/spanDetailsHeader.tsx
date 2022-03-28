@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SectionHeading as _SectionHeading} from 'sentry/components/charts/styles';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
@@ -32,14 +32,14 @@ export default function SpanDetailsHeader(props: HeaderProps) {
   return (
     <ContentHeader>
       <HeaderInfo data-test-id="header-operation-name">
-        <SectionHeading>{t('Span Operation')}</SectionHeading>
+        <StyledSectionHeading>{t('Span Operation')}</StyledSectionHeading>
         <SectionBody>
           <SpanLabelContainer>{description ?? emptyValue}</SpanLabelContainer>
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanSlug.op}</SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-percentiles">
-        <SectionHeading>{t('Self Time Percentiles')}</SectionHeading>
+        <StyledSectionHeading>{t('Self Time Percentiles')}</StyledSectionHeading>
         <PercentileHeaderBodyWrapper>
           <div data-test-id="section-p75">
             <SectionBody>
@@ -74,7 +74,7 @@ export default function SpanDetailsHeader(props: HeaderProps) {
         </PercentileHeaderBodyWrapper>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-frequency">
-        <SectionHeading>{t('Frequency')}</SectionHeading>
+        <StyledSectionHeading>{t('Frequency')}</StyledSectionHeading>
         <SectionBody>
           {defined(frequency) && defined(totalCount)
             ? formatPercentage(Math.min(frequency, totalCount) / totalCount)
@@ -87,7 +87,7 @@ export default function SpanDetailsHeader(props: HeaderProps) {
         </SectionSubtext>
       </HeaderInfo>
       <HeaderInfo data-test-id="header-total-exclusive-time">
-        <SectionHeading>{t('Total Self Time')}</SectionHeading>
+        <StyledSectionHeading>{t('Total Self Time')}</StyledSectionHeading>
         <SectionBody>
           {defined(sumExclusiveTime) ? (
             <PerformanceDuration abbreviation milliseconds={sumExclusiveTime} />
@@ -122,7 +122,7 @@ const HeaderInfo = styled('div')`
   height: 78px;
 `;
 
-const SectionHeading = styled(_SectionHeading)`
+const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
 `;
 
