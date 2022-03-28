@@ -1,7 +1,9 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import _SearchBar from 'sentry/components/events/searchBar';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -20,13 +22,25 @@ export default function SpanDetailsSearchBar({
 }: SpanDetailsSearchBarProps) {
   const query = decodeScalar(location.query.query, '');
 
+  const handleSearchQuery = (searchQuery: string): void => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+      },
+    });
+  };
+
   return (
     <SearchBar
-      placeholder="Filter Transactions"
+      placeholder={t('Filter Transactions')}
       organization={organization}
       projectIds={eventView.project}
       query={query}
       fields={eventView.fields}
+      onSearch={handleSearchQuery}
     />
   );
 }
