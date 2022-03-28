@@ -64,7 +64,7 @@ const Code = ({children, className, label}: Props) => {
   useEffect(() => {
     return () => {
       if (copyTimeoutRef.current !== null) {
-        window.clearTimeout();
+        window.clearTimeout(copyTimeoutRef.current);
       }
     };
   }, []);
