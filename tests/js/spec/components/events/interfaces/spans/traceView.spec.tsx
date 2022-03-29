@@ -145,6 +145,7 @@ describe('TraceView', () => {
   });
 
   it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
+    // eslint-disable-next-line no-console
     console.error = jest.fn();
 
     const data = initializeData({
@@ -434,7 +435,6 @@ describe('TraceView', () => {
     );
 
     const grouped = await screen.findByText('group me');
-    await screen.findAllByTestId('span-row-6');
     expect(grouped).toBeInTheDocument();
   });
 });
