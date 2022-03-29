@@ -147,9 +147,7 @@ class SuperuserTestCase(TestCase):
 
     @mock.patch("sentry.auth.superuser.logger")
     def test_su_access_logs(self, logger):
-        with self.settings(
-            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
-        ):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
             user = User(is_superuser=True, id=10, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
@@ -181,7 +179,23 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
 
         superuser = Superuser(request, org_id=None)
-        with self.settings(SENTRY_SELF_HOSTED=False):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
+            superuser.set_logged_in(request.user)
+            assert superuser.is_active is True
+            assert logger.info.call_count == 1
+            logger.info.assert_any_call(
+                "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
+            )
+
+    # modify test once https://github.com/getsentry/sentry/pull/32191 is merged
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_su_access_invalid_request_body(self, logger):
+        user = User(is_superuser=True, id=10, email="test@sentry.io")
+        request = self.make_request(user=user, method="PUT")
+        request._body = '{"invalid" "json"}'
+
+        superuser = Superuser(request, org_id=None)
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
             superuser.set_logged_in(request.user)
             assert superuser.is_active is True
             assert logger.info.call_count == 1
@@ -281,10 +295,8 @@ class SuperuserTestCase(TestCase):
         assert is_active_superuser(request)
 
     @mock.patch("sentry.auth.superuser.logger")
-    def test_superuser_session_self_hosted(self, logger):
-        with self.settings(
-            SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
-        ):
+    def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
             user = User(is_superuser=True, id=10, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
