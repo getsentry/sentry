@@ -1548,7 +1548,7 @@ class DiscoverFunction:
 
         return arguments
 
-    def get_result_type(self, field=None, arguments=None):
+    def get_result_type(self, field=None, arguments=None) -> Optional[str]:
         if field is None or arguments is None or self.result_type_fn is None:
             return self.default_result_type
 

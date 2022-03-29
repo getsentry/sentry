@@ -119,6 +119,8 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     );
     return (
       <PageFilterDropdownButton
+        detached
+        hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('projects')}
         {...getActorProps()}
