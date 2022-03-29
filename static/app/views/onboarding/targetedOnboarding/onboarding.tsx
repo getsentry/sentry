@@ -199,7 +199,8 @@ const Header = styled('header')`
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: max-content 1fr max-content;
+  justify-items: end;
 `;
 
 const LogoSvg = styled(LogoSentry)`
