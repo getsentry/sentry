@@ -76,13 +76,13 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   route: PlainRoute;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+  onSetNewWidget?: () => void;
 };
 
 type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
-  widgetToBeUpdated?: Widget;
 };
 
 class DashboardDetail extends Component<Props, State> {
@@ -94,16 +94,12 @@ class DashboardDetail extends Component<Props, State> {
 
   componentDidMount() {
     const {route, router} = this.props;
-    this.checkStateRoute();
     router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
     this.checkIfShouldMountWidgetViewerModal();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.location.pathname !== this.props.location.pathname) {
-      this.checkStateRoute();
-    }
+  componentDidUpdate() {
     this.checkIfShouldMountWidgetViewerModal();
   }
 
@@ -163,17 +159,6 @@ class DashboardDetail extends Component<Props, State> {
         });
         addErrorMessage(t('Widget not found'));
       }
-    }
-  }
-
-  checkStateRoute() {
-    const {organization, params} = this.props;
-    const {dashboardId} = params;
-
-    const dashboardDetailsRoute = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
-
-    if (location.pathname === dashboardDetailsRoute && !!this.state.widgetToBeUpdated) {
-      this.onSetWidgetToBeUpdated(undefined);
     }
   }
 
@@ -522,14 +507,9 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onSetWidgetToBeUpdated = (widget?: Widget) => {
-    this.setState({widgetToBeUpdated: widget});
-  };
-
   onUpdateWidget = (widgets: Widget[]) => {
     this.setState((state: State) => ({
       ...state,
-      widgetToBeUpdated: undefined,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
       modifiedDashboard: {
         ...(state.modifiedDashboard || this.props.dashboard),
@@ -540,13 +520,12 @@ class DashboardDetail extends Component<Props, State> {
 
   renderWidgetBuilder(dashboard: DashboardDetails) {
     const {children} = this.props;
-    const {modifiedDashboard, widgetToBeUpdated} = this.state;
+    const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
       ? cloneElement(children, {
           dashboard: modifiedDashboard ?? dashboard,
           onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
-          widget: widgetToBeUpdated,
         })
       : children;
   }
@@ -598,7 +577,6 @@ class DashboardDetail extends Component<Props, State> {
               isEditing={this.isEditing}
               widgetLimitReached={widgetLimitReached}
               onUpdate={this.onUpdateWidget}
-              onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
               handleUpdateWidgetList={this.handleUpdateWidgetList}
               handleAddCustomWidget={this.handleAddCustomWidget}
               isPreview={this.isPreview}
@@ -624,8 +602,16 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   renderDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location, newWidget} =
-      this.props;
+    const {
+      organization,
+      dashboard,
+      dashboards,
+      params,
+      router,
+      location,
+      newWidget,
+      onSetNewWidget,
+    } = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
@@ -690,10 +676,10 @@ class DashboardDetail extends Component<Props, State> {
                     onUpdate={this.onUpdateWidget}
                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                     handleAddCustomWidget={this.handleAddCustomWidget}
-                    onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                     router={router}
                     location={location}
                     newWidget={newWidget}
+                    onSetNewWidget={onSetNewWidget}
                     isPreview={this.isPreview}
                   />
                 </Layout.Main>

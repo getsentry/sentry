@@ -387,16 +387,18 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
             );
           }
 
-          const colors = timeseriesResults
-            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
-            : [];
-          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
-          if (
+          const shouldColorOther =
             widget.displayType === 'top_n' &&
             timeseriesResults &&
-            timeseriesResults.length > 5
-          ) {
-            colors[colors.length - 1] = theme.chartOther;
+            timeseriesResults.length > 5;
+          const colors = timeseriesResults
+            ? theme.charts.getColorPalette(
+                timeseriesResults.length - (shouldColorOther ? 3 : 2)
+              )
+            : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (shouldColorOther) {
+            colors[colors.length] = theme.chartOther;
           }
 
           // Create a list of series based on the order of the fields,
