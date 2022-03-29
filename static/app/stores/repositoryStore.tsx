@@ -2,6 +2,7 @@ import Reflux from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
 import {Repository} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type RepositoryStoreInterface = {
   get(): {
@@ -81,7 +82,8 @@ const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   },
 };
 
-const RepositoryStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  RepositoryStoreInterface;
+const RepositoryStore = Reflux.createStore(
+  makeSafeRefluxStore(storeConfig)
+) as Reflux.Store & RepositoryStoreInterface;
 
 export default RepositoryStore;

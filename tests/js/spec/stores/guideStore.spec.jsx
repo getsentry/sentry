@@ -31,6 +31,10 @@ describe('GuideStore', function () {
     GuideStore.onRegisterAnchor('issue_stream');
   });
 
+  afterEach(() => {
+    GuideStore.teardown();
+  });
+
   it('should move through the steps in the guide', function () {
     GuideStore.onFetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.

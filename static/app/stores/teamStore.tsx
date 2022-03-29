@@ -3,6 +3,11 @@ import Reflux from 'reflux';
 import TeamActions from 'sentry/actions/teamActions';
 import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -25,140 +30,160 @@ type TeamStoreInterface = CommonStoreInterface<State> & {
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
+
   state: State;
 };
 
-const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
-  initialized: false,
-  state: {
-    teams: [],
-    loadedUserTeams: false,
-    loading: true,
-    hasMore: null,
-    cursor: null,
-  },
-
-  init() {
-    this.reset();
-
-    this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
-    this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
-    this.listenTo(TeamActions.loadTeams, this.loadInitialData);
-    this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams);
-    this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
-    this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
-  },
-
-  reset() {
-    this.state = {
+const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface & SafeStoreDefinition =
+  {
+    initialized: false,
+    state: {
       teams: [],
       loadedUserTeams: false,
       loading: true,
       hasMore: null,
       cursor: null,
-    };
-  },
+    },
 
-  loadInitialData(items, hasMore, cursor) {
-    this.initialized = true;
-    this.state = {
-      teams: items.sort((a, b) => a.slug.localeCompare(b.slug)),
-      loadedUserTeams: defined(hasMore) ? !hasMore : this.state.loadedUserTeams,
-      loading: false,
-      hasMore: hasMore ?? this.state.hasMore,
-      cursor: cursor ?? this.state.cursor,
-    };
-    this.trigger(new Set(items.map(item => item.id)));
-  },
+    unsubscribeListeners: [],
 
-  loadUserTeams(userTeams: Team[]) {
-    const teamIdMap = this.state.teams.reduce((acc: Record<string, Team>, team: Team) => {
-      acc[team.id] = team;
-      return acc;
-    }, {});
+    init() {
+      this.reset();
 
-    // Replace or insert new user teams
-    userTeams.reduce((acc: Record<string, Team>, userTeam: Team) => {
-      acc[userTeam.id] = userTeam;
-      return acc;
-    }, teamIdMap);
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess)
+      );
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess)
+      );
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.loadTeams, this.loadInitialData)
+      );
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams)
+      );
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess)
+      );
+      this.unsubscribeListeners.push(
+        this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess)
+      );
+    },
 
-    const teams = Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
-    this.state = {
-      ...this.state,
-      loadedUserTeams: true,
-      teams,
-    };
+    reset() {
+      this.state = {
+        teams: [],
+        loadedUserTeams: false,
+        loading: true,
+        hasMore: null,
+        cursor: null,
+      };
+    },
 
-    this.trigger(new Set(Object.keys(teamIdMap)));
-  },
+    loadInitialData(items, hasMore, cursor) {
+      this.initialized = true;
+      this.state = {
+        teams: items.sort((a, b) => a.slug.localeCompare(b.slug)),
+        loadedUserTeams: defined(hasMore) ? !hasMore : this.state.loadedUserTeams,
+        loading: false,
+        hasMore: hasMore ?? this.state.hasMore,
+        cursor: cursor ?? this.state.cursor,
+      };
+      this.trigger(new Set(items.map(item => item.id)));
+    },
 
-  onUpdateSuccess(itemId, response) {
-    if (!response) {
-      return;
-    }
+    loadUserTeams(userTeams: Team[]) {
+      const teamIdMap = this.state.teams.reduce(
+        (acc: Record<string, Team>, team: Team) => {
+          acc[team.id] = team;
+          return acc;
+        },
+        {}
+      );
 
-    const item = this.getBySlug(itemId);
+      // Replace or insert new user teams
+      userTeams.reduce((acc: Record<string, Team>, userTeam: Team) => {
+        acc[userTeam.id] = userTeam;
+        return acc;
+      }, teamIdMap);
 
-    if (!item) {
+      const teams = Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
       this.state = {
         ...this.state,
-        teams: [...this.state.teams, response],
+        loadedUserTeams: true,
+        teams,
       };
 
+      this.trigger(new Set(Object.keys(teamIdMap)));
+    },
+
+    onUpdateSuccess(itemId, response) {
+      if (!response) {
+        return;
+      }
+
+      const item = this.getBySlug(itemId);
+
+      if (!item) {
+        this.state = {
+          ...this.state,
+          teams: [...this.state.teams, response],
+        };
+
+        this.trigger(new Set([itemId]));
+        return;
+      }
+
+      // Slug was changed
+      // Note: This is the proper way to handle slug changes but unfortunately not all of our
+      // components use stores correctly. To be safe reload browser :((
+      if (response.slug !== itemId) {
+        // Replace the team
+        const teams = [...this.state.teams.filter(({slug}) => slug !== itemId), response];
+
+        this.state = {...this.state, teams};
+        this.trigger(new Set([response.slug]));
+        return;
+      }
+
+      const newTeams = [...this.state.teams];
+      const index = newTeams.findIndex(team => team.slug === response.slug);
+      newTeams[index] = response;
+
+      this.state = {...this.state, teams: newTeams};
       this.trigger(new Set([itemId]));
-      return;
-    }
+    },
 
-    // Slug was changed
-    // Note: This is the proper way to handle slug changes but unfortunately not all of our
-    // components use stores correctly. To be safe reload browser :((
-    if (response.slug !== itemId) {
-      // Replace the team
-      const teams = [...this.state.teams.filter(({slug}) => slug !== itemId), response];
+    onRemoveSuccess(slug: string) {
+      const {teams} = this.state;
+      this.loadInitialData(teams.filter(team => team.slug !== slug));
+    },
 
-      this.state = {...this.state, teams};
-      this.trigger(new Set([response.slug]));
-      return;
-    }
+    onCreateSuccess(team: Team) {
+      this.loadInitialData([...this.state.teams, team]);
+    },
 
-    const newTeams = [...this.state.teams];
-    const index = newTeams.findIndex(team => team.slug === response.slug);
-    newTeams[index] = response;
+    getState() {
+      return this.state;
+    },
 
-    this.state = {...this.state, teams: newTeams};
-    this.trigger(new Set([itemId]));
-  },
+    getById(id: string) {
+      const {teams} = this.state;
+      return teams.find(item => item.id.toString() === id.toString()) || null;
+    },
 
-  onRemoveSuccess(slug: string) {
-    const {teams} = this.state;
-    this.loadInitialData(teams.filter(team => team.slug !== slug));
-  },
+    getBySlug(slug: string) {
+      const {teams} = this.state;
+      return teams.find(item => item.slug === slug) || null;
+    },
 
-  onCreateSuccess(team: Team) {
-    this.loadInitialData([...this.state.teams, team]);
-  },
+    getAll() {
+      return this.state.teams;
+    },
+  };
 
-  getState() {
-    return this.state;
-  },
-
-  getById(id: string) {
-    const {teams} = this.state;
-    return teams.find(item => item.id.toString() === id.toString()) || null;
-  },
-
-  getBySlug(slug: string) {
-    const {teams} = this.state;
-    return teams.find(item => item.slug === slug) || null;
-  },
-
-  getAll() {
-    return this.state.teams;
-  },
-};
-
-const TeamStore = Reflux.createStore(teamStoreConfig) as Reflux.Store &
-  TeamStoreInterface;
+const TeamStore = Reflux.createStore(
+  makeSafeRefluxStore(teamStoreConfig)
+) as unknown as SafeRefluxStore & TeamStoreInterface;
 
 export default TeamStore;

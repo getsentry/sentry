@@ -192,9 +192,11 @@ describe('Dashboards > Dashboard', () => {
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
-      // @ts-ignore
+    beforeEach(() => {
       MemberListStore.init();
+    });
+    afterEach(() => {
+      MemberListStore.teardown();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(
