@@ -37,7 +37,7 @@ def resolve_team_key_transaction_alias(
     count = len(team_key_transactions)
     if resolve_metric_index:
         team_key_transactions = [
-            (project, indexer.resolve(transaction))
+            (project, indexer.resolve(org_id, transaction))
             for project, transaction in team_key_transactions
         ]
 

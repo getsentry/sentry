@@ -24,7 +24,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.

@@ -4,8 +4,8 @@ INDEXER = MockIndexer()
 
 
 def test_resolve():
-    assert INDEXER.resolve("what") is None
-    assert INDEXER.resolve("sentry.sessions.user") == 11
+    assert INDEXER.resolve(1, "what") is None
+    assert INDEXER.resolve(1, "sentry.sessions.user") == 11
 
 
 def test_reverse_resolve():
