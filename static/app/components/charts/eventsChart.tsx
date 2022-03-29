@@ -171,18 +171,6 @@ class Chart extends React.Component<ChartProps, State> {
     );
   };
 
-  renderWorldMap() {
-    const {tableData, fromDiscover} = this.props;
-    const {data, title} = processTableResults(tableData);
-    const tableSeries = [
-      {
-        seriesName: title,
-        data,
-      },
-    ];
-    return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
-  }
-
   render() {
     const {
       theme,
@@ -204,6 +192,8 @@ class Chart extends React.Component<ChartProps, State> {
       height,
       timeframe,
       topEvents,
+      tableData,
+      fromDiscover,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -211,7 +201,14 @@ class Chart extends React.Component<ChartProps, State> {
     let Component = this.getChartComponent();
 
     if (Component === WorldMapChart) {
-      return this.renderWorldMap();
+      const {data, title} = processTableResults(tableData);
+      const tableSeries = [
+        {
+          seriesName: title,
+          data,
+        },
+      ];
+      return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
     }
 
     Component = Component as Exclude<

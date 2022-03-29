@@ -1,3 +1,4 @@
+import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {MapSeriesOption, TooltipComponentOption} from 'echarts';
 import * as echarts from 'echarts/core';
@@ -44,18 +45,17 @@ export function WorldMapChart({
   fromDiscoverQueryList,
   ...props
 }: WorldMapChartProps) {
-  const map = worldMap;
-  const codeToCountryMap = Object.fromEntries(
-    Object.entries(countryToCodeMap).map(([country, code]) => [code, country])
-  );
-
   const theme = useTheme();
 
-  echarts.registerMap?.('sentryWorld', worldMap as any);
+  const codeToCountryMap = useMemo(() => {
+    for (const country in worldMap) {
+      codeToCountryMap[countryToCodeMap[country]] = country;
+    }
+  }, []);
 
-  if (countryToCodeMap === null || map === null) {
-    return null;
-  }
+  useEffect(() => {
+    echarts.registerMap?.('sentryWorld', worldMap as any);
+  }, []);
 
   const processedSeries = series.map(({seriesName, data, ...options}) =>
     MapSeries({
@@ -119,7 +119,7 @@ export function WorldMapChart({
   return (
     <BaseChart
       options={{
-        backgroundColor: !fromDiscoverQueryList ? theme.background : undefined,
+        backgroundColor: fromDiscoverQueryList ? undefined : theme.background,
         visualMap: [
           VisualMap({
             show: !fromDiscoverQueryList,
