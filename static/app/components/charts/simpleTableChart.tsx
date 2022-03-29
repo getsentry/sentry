@@ -84,7 +84,8 @@ function SimpleTableChart({
         isLoading={loading}
         headers={columns.map((column, index) => {
           const align = fieldAlignment(column.name, column.type, meta);
-          const header = fieldHeaderMap?.[column.key] ?? column.name;
+          const header =
+            column.column.alias || (fieldHeaderMap?.[column.key] ?? column.name);
           return (
             <HeadCell key={index} align={align}>
               <Tooltip title={header}>

@@ -629,6 +629,8 @@ class QueryField extends React.Component<Props> {
     let gridColumnsQuantity: undefined | number = undefined;
 
     if (widgetBuilderNewDesign) {
+      // if the selected field is a function and has parameters, we would like to display each value in separate columns.
+      // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
       if (
         fieldValue.kind === 'function' &&
         AGGREGATIONS[fieldValue.function[0]].parameters.length > 0

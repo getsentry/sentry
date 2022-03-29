@@ -92,8 +92,6 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     }
     column.column = col;
 
-    column.name = col.alias || column.name;
-
     return column;
   });
 }

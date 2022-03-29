@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -184,6 +184,8 @@ function WidgetBuilder({
     widgetIndexNum < dashboard.widgets.length &&
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
+
+  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
@@ -538,11 +540,11 @@ function WidgetBuilder({
       }
 
       if (widgetBuilderNewDesign) {
+        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+
         if (queryIndex === 0) {
           newQuery.orderby = aggregateAliasFieldStrings[0];
         }
-
-        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
       }
 
       set(newState, `queries.${queryIndex}`, newQuery);
@@ -830,14 +832,21 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
+  // Tabular visualizations will always have only one query and that query cannot be deleted,
+  // so we will always have the first query available to get data from.
   const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
 
-  const explodedColumns = columns.map((field, index) =>
-    explodeField({field, alias: fieldAliases[index]})
-  );
-  const explodedAggregates = aggregates.map((field, index) =>
-    explodeField({field, alias: fieldAliases[index]})
-  );
+  const explodedColumns = useMemo(() => {
+    return columns.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, []);
+
+  const explodedAggregates = useMemo(() => {
+    return aggregates.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, []);
 
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))

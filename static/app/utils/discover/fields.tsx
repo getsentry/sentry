@@ -969,9 +969,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
 }
 
 export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field, field.alias);
-
-  return results;
+  return explodeFieldString(field.field, field.alias);
 }
 
 /**
