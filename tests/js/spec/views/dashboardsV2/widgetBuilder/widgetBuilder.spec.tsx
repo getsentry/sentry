@@ -172,6 +172,11 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/events-geo/',
       body: {data: [], meta: {}},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -1616,7 +1621,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('limit field', function () {
-    it('renders if groupBy value and  is present in the handleSave', async function () {
+    it('renders if groupBy value is present', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -1625,8 +1630,8 @@ describe('WidgetBuilder', function () {
         onSave: handleSave,
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await screen.findByText('Group your results');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
