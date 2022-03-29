@@ -933,6 +933,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
+        # Note: everything is a string here on purpose to ensure we parse ints properly
         response = self.get_success_response(
             self.organization.slug,
             field="histogram(sentry.transactions.measurements.lcp)",
@@ -940,12 +941,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             includeSeries="0",
             histogramBuckets="2",
+            histogramFrom="2",
         )
 
-        hist = [
-            (1.0, 3.5, 3.0),
-            (3.5, 6.0, 3.0),
-        ]
+        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
 
         assert response.data["groups"] == [
             {

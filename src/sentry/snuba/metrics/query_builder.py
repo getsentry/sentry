@@ -172,8 +172,10 @@ class QueryDefinition:
             raise InvalidField(
                 "We don't have more than 250 buckets stored for any given metric bucket."
             )
-        self.histogram_from = query_params.get("histogramFrom", None)
-        self.histogram_to = query_params.get("histogramTo", None)
+        histogram_from = query_params.get("histogramFrom", None)
+        histogram_to = query_params.get("histogramTo", None)
+        self.histogram_from = int(histogram_from) if histogram_from is not None else None
+        self.histogram_to = int(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
 
         # Validates that time series limit will not exceed the snuba limit of 10,000
