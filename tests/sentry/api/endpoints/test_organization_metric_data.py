@@ -909,30 +909,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             entity="metrics_distributions",
         )
 
-        response = self.get_success_response(
-            self.organization.slug,
-            field="raw_histogram(sentry.transactions.measurements.lcp)",
-            statsPeriod="1h",
-            interval="1h",
-        )
-
-        hist = [
-            [1.0, 1.5, 1.0],
-            [1.5, 2.5, 1.0],
-            [2.5, 3.5, 1.0],
-            [3.5, 4.5, 1.0],
-            [4.5, 5.5, 1.0],
-            [5.5, 6.0, 1.0],
-        ]
-
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "series": {"raw_histogram(sentry.transactions.measurements.lcp)": [hist]},
-                "totals": {"raw_histogram(sentry.transactions.measurements.lcp)": hist},
-            }
-        ]
-
         # Note: everything is a string here on purpose to ensure we parse ints properly
         response = self.get_success_response(
             self.organization.slug,

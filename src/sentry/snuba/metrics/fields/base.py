@@ -11,11 +11,24 @@ __all__ = (
     "generate_bottom_up_dependency_tree_for_metrics",
 )
 
+import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Type,
+    Union,
+)
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 from snuba_sdk.orderby import Direction, OrderBy
@@ -268,7 +281,7 @@ class RawAggregatedMetric(MetricFieldBase):
         return []
 
     def generate_default_null_values(self):
-        return DEFAULT_AGGREGATES[self.op]
+        return copy.copy(DEFAULT_AGGREGATES[self.op])
 
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
@@ -283,12 +296,6 @@ class HistogramMetricField(RawAggregatedMetric):
         self, projects: Sequence[Project], direction: Direction
     ) -> List[OrderBy]:
         raise DerivedMetricParseException("histograms cannot be ordered")
-
-    def generate_default_null_values(self):
-        return []
-
-    def generate_available_operations(self):
-        return [self.op]
 
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
@@ -701,8 +708,8 @@ DERIVED_METRICS = {
     ]
 }
 
-DERIVED_OPS = {
-    "histogram": lambda metric_name: HistogramMetricField(op="histogram", metric_name=metric_name),
+DERIVED_OPS: Mapping[str, Type[MetricFieldBase]] = {
+    "histogram": HistogramMetricField,
 }
 
 
@@ -710,13 +717,17 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBas
     """Returns an appropriate instance of MetricsFieldBase object"""
     if op in DERIVED_OPS and metric_name in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
-    elif op in DERIVED_OPS:
-        instance = DERIVED_OPS[op](metric_name)
-    elif metric_name in DERIVED_METRICS:
-        instance = DERIVED_METRICS[metric_name]
-    else:
-        instance = RawAggregatedMetric(op=op, metric_name=metric_name)
-    return instance
+
+    if metric_name in DERIVED_METRICS:
+        return DERIVED_METRICS[metric_name]
+
+    # at this point we know we have an op. Add assertion to appease mypy
+    assert op is not None
+
+    if op in DERIVED_OPS:
+        return DERIVED_OPS[op](op=op, metric_name=metric_name)
+
+    return RawAggregatedMetric(op=op, metric_name=metric_name)
 
 
 def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
