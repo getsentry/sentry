@@ -7,7 +7,6 @@ import moment from 'moment';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
@@ -15,24 +14,26 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 
 import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
-  TIME_OPTIONS,
   TIME_WINDOWS,
   TimePeriodType,
+  SELECTOR_RELATIVE_PERIODS,
 } from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import Sidebar from './sidebar';
+
 
 type Props = {
   api: Client;
@@ -106,6 +107,27 @@ export default class DetailsBody extends React.Component<Props> {
     });
   };
 
+  handleTimePeriodChangeNew = (datetime: ChangeData) => {
+    const {start, end, relative} = datetime;
+
+    if (start && end) {
+      return this.props.router.push({
+        ...this.props.location,
+        query: {
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+        },
+      })
+    }
+
+    return this.props.router.push({
+      ...this.props.location,
+      query: {
+        period: relative
+      },
+    })
+  };
+
   renderLoading() {
     return (
       <Layout.Body>
@@ -159,35 +181,16 @@ export default class DetailsBody extends React.Component<Props> {
           )}
         <Layout.Body>
           <Layout.Main>
-            <DateContainer>
-              <StyledDropdownControl
-                label={getDynamicText({
-                  fixed: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>Oct 14, 2:56 PM — Oct 14, 4:55 PM</DropdownLabel>
-                    </div>
-                  ),
-                  value: (
-                    <div>
-                      {t('Date Range')}:{' '}
-                      <DropdownLabel>{timePeriod.display}</DropdownLabel>
-                    </div>
-                  ),
-                })}
-              >
-                {TIME_OPTIONS.map(({label, value}) => (
-                  <DropdownItem
-                    key={value}
-                    eventKey={value}
-                    isActive={!timePeriod.custom && timePeriod.period === value}
-                    onSelect={this.handleTimePeriodChange}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </StyledDropdownControl>
-            </DateContainer>
+            <StyledPageTimeRangeSelector
+              organization={organization}
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              utc={null}
+              onUpdate={this.handleTimePeriodChangeNew}
+              relativeOptions={SELECTOR_RELATIVE_PERIODS}
+              hideUTCPicker
+            />
 
             <MetricChart
               api={api}
@@ -253,25 +256,6 @@ const DetailWrapper = styled('div')`
   }
 `;
 
-const DateContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const DropdownLabel = styled('span')`
-  font-weight: 400;
-`;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  width: 100%;
-  button {
-    width: 100%;
-    span {
-      justify-content: space-between;
-    }
-  }
-`;
-
 const StyledLayoutBody = styled(Layout.Body)`
   flex-grow: 0;
   padding-bottom: 0 !important;
@@ -293,4 +277,8 @@ const ActivityWrapper = styled('div')`
 
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  margin-bottom: ${space(2)};
 `;
