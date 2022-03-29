@@ -9,6 +9,10 @@ describe('withPageFilters HoC', function () {
     PageFiltersStore.init();
   });
 
+  afterEach(() => {
+    PageFiltersStore.teardown();
+  });
+
   it('handles projects', function () {
     const MyComponent = () => null;
     const Container = withPageFilters(MyComponent);
