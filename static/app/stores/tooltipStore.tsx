@@ -1,75 +1,52 @@
-type TooltipStoreInterface = {
-  addTooltip(tooltip: React.Component): void;
-  closeAllTooltips(): void;
-  getOpenableSingleTooltips(): React.Component[];
-  init(): TooltipStoreInterface;
-  openAllTooltips(): boolean;
-  removeTooltip(tooltip: React.Component): void;
-  tooltips: React.Component[];
+type Tooltip = {
+  id: string;
+  setOpen: (isOpen: boolean) => void;
 };
 
-const MAX_TOOLTIPS_TO_OPEN = 100;
+/**
+ * XXX: This is NOT a reflux store.
+ *
+ * This is purely used for acceptance tests where we want to open all tooltips
+ * in the DOM at once for capturing visual snapshots of tooltips being open.
+ */
+class TooltipStore {
+  tooltips = new Map<string, Tooltip>();
 
-const TooltipStore: TooltipStoreInterface = {
-  tooltips: [],
-
-  getOpenableSingleTooltips() {
-    return this.tooltips.filter(tooltip => {
-      // Filtering out disabled tooltips and lists of tooltips (which cause rendering issues for snapshots) using the internal 'key'
-      const _internals =
-        (tooltip as any)._reactInternalFiber || (tooltip as any)._reactInternals;
-      return (
-        !(tooltip.props as any).disabled &&
-        !_internals.key &&
-        !(tooltip.props as any).disableForVisualTest
-      );
-    });
-  },
+  constructor() {
+    window.__openAllTooltips = this.openAllTooltips;
+    window.__closeAllTooltips = this.closeAllTooltips;
+  }
 
   /**
    * Called via window.__openAllTooltips in selenium tests to check tooltip snapshots
    */
-  openAllTooltips() {
-    const tooltips = this.getOpenableSingleTooltips();
-    if (!tooltips.length || tooltips.length > MAX_TOOLTIPS_TO_OPEN) {
-      // Pages with too many tooltip components will take too long to render and it isn't likely helpful anyway.
-      return false;
+  openAllTooltips = () => {
+    for (const tooltip of this.tooltips.values()) {
+      tooltip.setOpen(true);
     }
-    tooltips.forEach(tooltip => {
-      tooltip.setState({
-        isOpen: true,
-        usesGlobalPortal: false,
-      });
-    });
+
     return true;
-  },
+  };
 
   /**
-   * Called via window.__closeAllTooltips in selenium tests to cleanup tooltips after taking a snapshot
+   * Called via window.__closeAllTooltips in selenium tests to cleanup tooltips
+   * after taking a snapshot
    */
-  closeAllTooltips() {
-    const tooltips = this.getOpenableSingleTooltips();
-    tooltips.forEach(tooltip => {
-      tooltip.setState({
-        isOpen: false,
-        usesGlobalPortal: true,
-      });
-    });
-  },
+  closeAllTooltips = () => {
+    for (const tooltip of this.tooltips.values()) {
+      tooltip.setOpen(false);
+    }
 
-  init(): TooltipStoreInterface {
-    window.__openAllTooltips = this.openAllTooltips.bind(this);
-    window.__closeAllTooltips = this.closeAllTooltips.bind(this);
-    return this;
-  },
+    return true;
+  };
 
-  addTooltip(tooltip: React.Component) {
-    this.tooltips.push(tooltip);
-  },
+  addTooltip(id: string, setOpen: Tooltip['setOpen']) {
+    this.tooltips.set(id, {id, setOpen});
+  }
 
-  removeTooltip(tooltip: React.Component) {
-    this.tooltips = this.tooltips.filter(t => t !== tooltip);
-  },
-};
+  removeTooltip(id: string) {
+    this.tooltips.delete(id);
+  }
+}
 
-export default TooltipStore.init();
+export const tooltipStore = new TooltipStore();

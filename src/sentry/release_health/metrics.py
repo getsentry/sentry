@@ -551,7 +551,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        start = now - timedelta(days=3)
+        start = now - timedelta(days=90)
 
         projects_list = list(projects_list)
 
@@ -607,7 +607,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_cols,
             where=where_clause,
             groupby=group_by_clause,
-            granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            granularity=Granularity(24 * 60 * 60),  # daily
         )
 
         result = raw_snql_query(

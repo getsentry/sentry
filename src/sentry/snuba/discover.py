@@ -209,6 +209,7 @@ def query(
     referrer=None,
     auto_fields=False,
     auto_aggregations=False,
+    allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
     extra_snql_condition=None,
@@ -236,6 +237,7 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     auto_aggregations (bool) Whether aggregates should be added automatically if they're used
                     in conditions, and there's at least one aggregate already.
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
@@ -483,6 +485,7 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
+    allow_metric_aggregates=False,
     use_snql: Optional[bool] = False,
 ):
     """
@@ -506,6 +509,7 @@ def timeseries_query(
     comparison_delta: A timedelta used to convert this into a comparison query. We make a second
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_snql (bool) Whether to directly build the query in snql, instead of using the older
                     json construction
     """
@@ -1325,6 +1329,84 @@ def get_facets(
     return results
 
 
+def spans_histogram_query(
+    span,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+    group_by=None,
+    order_by=None,
+    limit_by=None,
+    extra_snql_condition=None,
+    normalize_results=True,
+):
+    """
+    API for generating histograms for span exclusive time.
+
+    :param [str] span: A span for which you want to generate histograms for. A span should passed in the following format - "{span_op}:{span_group}"
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param [Condition] extra_snql_condition: Adds any additional conditions to the histogram query
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
+    """
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
+        max_value -= 0.1 / multiplier
+
+    min_value, max_value = find_span_histogram_min_max(
+        span, min_value, max_value, user_query, params, data_filter
+    )
+
+    key_column = None
+    field_names = []
+    histogram_rows = None
+
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    histogram_column = get_span_histogram_column(span, histogram_params)
+
+    builder = HistogramQueryBuilder(
+        num_buckets,
+        histogram_column,
+        histogram_rows,
+        histogram_params,
+        key_column,
+        field_names,
+        group_by,
+        # Arguments for QueryBuilder
+        Dataset.Discover,
+        params,
+        query=user_query,
+        selected_columns=[""],
+        orderby=order_by,
+        limitby=limit_by,
+    )
+    if extra_snql_condition is not None:
+        builder.add_conditions(extra_snql_condition)
+    results = builder.run_query(referrer)
+
+    if not normalize_results:
+        return results
+
+    return normalize_span_histogram_results(span, histogram_params, results)
+
+
 def histogram_query(
     fields,
     user_query,
@@ -1492,6 +1574,18 @@ def histogram_query(
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 
 
+def get_span_histogram_column(span, histogram_params):
+    """
+    Generate the histogram column string for spans.
+
+    :param [Span] span: The span for which you want to generate the histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    """
+    span_op = span.op
+    span_group = span.group
+    return f'spans_histogram("{span_op}", {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
+
+
 def get_histogram_column(fields, key_column, histogram_params, array_column):
     """
     Generate the histogram column string.
@@ -1547,6 +1641,79 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     num_buckets = (last_bin - start_offset) // bucket_size + 1
 
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
+
+
+def find_span_histogram_min_max(span, min_value, max_value, user_query, params, data_filter=None):
+    """
+    Find the min/max value of the specified span. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [Span] span: A span for which you want to generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    selected_columns = []
+    min_column = ""
+    max_column = ""
+    if min_value is None:
+        min_column = f'fn_span_exclusive_time("{span.op}", {span.group}, min)'
+        selected_columns.append(min_column)
+    if max_value is None:
+        max_column = f'fn_span_exclusive_time("{span.op}", {span.group}, max)'
+        selected_columns.append(max_column)
+
+    referrer = "api.organization-spans-histogram-min-max"
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=selected_columns,
+        query=user_query,
+        limit=1,
+        functions_acl=["fn_span_exclusive_time"],
+    )
+
+    results = builder.run_query(referrer)
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        calculated_min_value = row[get_function_alias(min_column)]
+        min_value = calculated_min_value if calculated_min_value else None
+        if max_value is not None and min_value is not None:
+            # max_value was provided by the user, and min_value was queried.
+            # If min_value > max_value, then we adjust min_value with respect to
+            # max_value. The rationale is that if the user provided max_value,
+            # then any and all data above max_value should be ignored since it is
+            # and upper bound.
+            min_value = min([max_value, min_value])
+
+    if max_value is None:
+        calculated_max_value = row[get_function_alias(max_column)]
+        max_value = calculated_max_value if calculated_max_value else None
+
+    if max_value is not None and min_value is not None:
+        # min_value may be either queried or provided by the user. max_value was queried.
+        # If min_value > max_value, then max_value should be adjusted with respect to
+        # min_value, since min_value is a lower bound, and any and all data below
+        # min_value should be ignored.
+        max_value = max([max_value, min_value])
+
+    return min_value, max_value
 
 
 def find_histogram_min_max(
@@ -1650,6 +1817,40 @@ def find_histogram_min_max(
             max_value = max([max_value, min_value])
 
     return min_value, max_value
+
+
+def normalize_span_histogram_results(span, histogram_params, results):
+    """
+    Normalizes the span histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param [Span] span: The span for which you want to generate the
+        histograms for.
+    :param HistogramParams histogram_params: The histogram parameters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
+    histogram_column = get_span_histogram_column(span, histogram_params)
+    bin_name = get_function_alias(histogram_column)
+
+    # zerofill and rename the columns while making sure to adjust for precision
+    bucket_map = {}
+    for row in results["data"]:
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        bucket_map[bucket] = row["count"]
+
+    new_data = []
+    for i in range(histogram_params.num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        row = {"bin": bucket, "count": bucket_map.get(bucket, 0)}
+        if histogram_params.multiplier > 1:
+            row["bin"] /= float(histogram_params.multiplier)
+        new_data.append(row)
+
+    return new_data
 
 
 def normalize_histogram_results(fields, key_column, histogram_params, results, array_column):

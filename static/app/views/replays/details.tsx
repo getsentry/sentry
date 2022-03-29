@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -10,6 +9,7 @@ import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
@@ -68,8 +68,9 @@ class ReplayDetails extends AsyncView<Props, State> {
     return `Replays - ${this.props.params.orgId}`;
   }
 
-  onUpdate = (data: Event) =>
-    this.setState(state => ({event: {...state.event, ...data}}));
+  renderLoading() {
+    return <PageContent>{super.renderLoading()}</PageContent>;
+  }
 
   generateTagUrl = () => {
     return ''; // todo
@@ -92,23 +93,21 @@ class ReplayDetails extends AsyncView<Props, State> {
     const projectSlug = event.projectSlug || event['project.name']; // seems janky
 
     return (
-      <Fragment>
-        <Fragment>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    to: `/organizations/${orgSlug}/replays/`,
-                    label: t('Replays'),
-                  },
-                  {label: t('Replay Details')}, // TODO: put replay ID or something here
-                ]}
-              />
-              <EventHeader event={event} />
-            </Layout.HeaderContent>
-          </Layout.Header>
-        </Fragment>
+      <NoPaddingContent>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: `/organizations/${orgSlug}/replays/`,
+                  label: t('Replays'),
+                },
+                {label: t('Replay Details')}, // TODO: put replay ID or something here
+              ]}
+            />
+            <EventHeader event={event} />
+          </Layout.HeaderContent>
+        </Layout.Header>
 
         <Layout.Body>
           <Layout.Main>
@@ -122,7 +121,7 @@ class ReplayDetails extends AsyncView<Props, State> {
             />
           </Layout.Side>
         </Layout.Body>
-      </Fragment>
+      </NoPaddingContent>
     );
   }
 }
@@ -138,6 +137,10 @@ const TitleWrapper = styled('div')`
 
 const MessageWrapper = styled('div')`
   margin-top: ${space(1)};
+`;
+
+const NoPaddingContent = styled(PageContent)`
+  padding: 0;
 `;
 
 export default ReplayDetails;

@@ -22,9 +22,12 @@ def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
             and column.alias
         ):
             tags.append(column.alias)
-    for row in results["data"]:
-        for tag in tags:
+
+    for tag in tags:
+        for row in results["data"]:
             row[tag] = indexer.reverse_resolve(row[tag])
+        if tag in results["meta"]:
+            results["meta"][tag] = "string"
 
     return results
 
@@ -41,6 +44,7 @@ def query(
     auto_fields=False,
     auto_aggregations=False,
     use_aggregate_conditions=False,
+    allow_metric_aggregates=True,
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
@@ -61,6 +65,7 @@ def query(
                 auto_fields=False,
                 auto_aggregations=auto_aggregations,
                 use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
                 functions_acl=functions_acl,
                 limit=limit,
                 offset=offset,
@@ -113,6 +118,7 @@ def timeseries_query(
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
+    allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
     use_snql: Optional[bool] = False,
@@ -134,6 +140,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 functions_acl=functions_acl,
+                allow_metric_aggregates=allow_metric_aggregates,
             )
             result = metrics_query.run_query(referrer + ".metrics-enhanced")
             result = discover.transform_results(result, metrics_query.function_alias_map, {}, None)

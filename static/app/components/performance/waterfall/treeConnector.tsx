@@ -4,7 +4,6 @@ import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getToggleTheme} from 'sentry/components/performance/waterfall/utils';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {OmitHtmlDivProps} from 'sentry/utils';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
@@ -19,10 +18,10 @@ export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   top: 0;
 `;
 
-type TogglerTypes = OmitHtmlDivProps<{
+type TogglerTypes = {
   hasToggler?: boolean;
   isLast?: boolean;
-}>;
+};
 
 export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? ROW_HEIGHT / 2 + 1 : ROW_HEIGHT)}px;
@@ -59,12 +58,12 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
   }
 `;
 
-type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
+type SpanTreeTogglerAndDivProps = {
   disabled: boolean;
   errored: boolean;
   isExpanded: boolean;
   isSpanGroupToggler?: boolean;
-}>;
+};
 
 export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
   height: 16px;

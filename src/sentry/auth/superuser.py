@@ -23,7 +23,6 @@ from rest_framework import serializers
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
-from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -84,11 +83,8 @@ class Superuser:
         self._populate(current_datetime=current_datetime)
 
     @staticmethod
-    def _need_validation():
-        try:
-            return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
-        except AttributeError:
-            return False
+    def _needs_validation():
+        return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
     def is_active(self):
@@ -295,7 +291,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if is_self_hosted() or not self._need_validation():
+        if not self._needs_validation():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -312,6 +308,8 @@ class Superuser:
         try:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
+        except json.JSONDecodeError:
+            su_access_json = {}
         except AttributeError:
             su_access_json = {}
 

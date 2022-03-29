@@ -48,7 +48,7 @@ class AuthIndexEndpoint(Endpoint):
         raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
 
     @staticmethod
-    def _need_redirect(from_superuser_modal, request):
+    def _needs_redirect(from_superuser_modal, request):
         return (
             from_superuser_modal
             and request.user.is_superuser
@@ -189,7 +189,7 @@ class AuthIndexEndpoint(Endpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if self._need_redirect(from_superuser_modal, request):
+        if self._needs_redirect(from_superuser_modal, request):
             # If a superuser hitting this endpoint is not active, they are most likely
             # trying to become active, and likely need to re-identify with SSO to do so.
             self._reauthenticate_with_sso(request, Superuser.org_id)

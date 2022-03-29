@@ -209,6 +209,7 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -1121,6 +1122,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
                     OrganizationEventsHistogramEndpoint.as_view(),
                     name="sentry-api-0-organization-events-histogram",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
+                    OrganizationEventsSpansHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
@@ -2133,7 +2139,7 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
                 ),

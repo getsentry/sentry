@@ -2,7 +2,7 @@ import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
+import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {
   Integration,
@@ -115,6 +115,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
@@ -195,6 +196,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**
@@ -520,6 +522,22 @@ type IntegrationsFeatureGatesHook = () => {
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
+
+/**
+ * Invite Button customization allows for a render-props component to replace
+ * or intercept props of the button element.
+ */
+type InviteButtonCustomizationHook = () => React.ComponentType<{
+  children: (opts: {
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
+    onTriggerModal: () => void;
+  }) => React.ReactElement;
+  onTriggerModal: () => void;
+  organization: Organization;
+}>;
 
 /**
  * Invite Modal customization allows for a render-prop component to add

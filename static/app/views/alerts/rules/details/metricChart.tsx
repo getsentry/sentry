@@ -58,6 +58,7 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -597,6 +598,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
+                onFinished={() => {
+                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                  this.updateDimensions();
+                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -735,11 +741,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           .join('');
                       },
                     }}
-                    onFinished={() => {
-                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                      this.updateDimensions();
-                    }}
                   />
                 )}
               </ChartZoom>
@@ -779,7 +780,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}

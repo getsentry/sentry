@@ -15,7 +15,7 @@ import _DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -58,13 +58,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={
-                isMEPEnabled
-                  ? {
-                      metricsEnhanced: '1',
-                    }
-                  : undefined
-              }
+              queryExtras={getMEPQueryParams(isMEPEnabled)}
             />
           )}
         </QueryBatchNode>

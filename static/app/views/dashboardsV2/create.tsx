@@ -54,6 +54,7 @@ function CreateDashboard(props: Props) {
         dashboard={dashboard}
         dashboards={[]}
         newWidget={newWidget}
+        onSetNewWidget={() => setNewWidget(undefined)}
       />
     </Feature>
   );

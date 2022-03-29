@@ -5,6 +5,7 @@ import {
   isSchema,
 } from '../guards/profile';
 
+import {importChromeTrace, isChromeTraceFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -34,6 +35,21 @@ function importSingleProfile(
   throw new Error('Unrecognized trace format');
 }
 
+const tryParseInputString: JSONParser = input => {
+  try {
+    return [JSON.parse(input), null];
+  } catch (e) {
+    return [null, e];
+  }
+};
+
+type JSONParser = (input: string) => [any, null] | [null, Error];
+
+export const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
+  (input: string) => tryParseInputString(input),
+  (input: string) => tryParseInputString(input + ']'),
+];
+
 function importJSSelfProfile(
   input: JSSelfProfiling.Trace,
   traceID: string
@@ -54,6 +70,10 @@ export function importProfile(
 ): ProfileGroup {
   if (isJSProfile(input)) {
     return importJSSelfProfile(input, traceID);
+  }
+
+  if (isChromeTraceFormat(input)) {
+    return importChromeTrace(input);
   }
 
   if (isSchema(input)) {
@@ -91,10 +111,23 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export async function importDroppedProfile(file: File): Promise<ProfileGroup> {
+export async function importDroppedProfile(
+  file: File,
+  parsers: JSONParser[] = TRACE_JSON_PARSERS
+): Promise<ProfileGroup> {
   try {
     return await readFileAsString(file)
-      .then(fileContents => JSON.parse(fileContents))
+      .then(fileContents => {
+        for (const parser of parsers) {
+          const [result] = parser(fileContents);
+
+          if (result) {
+            return result;
+          }
+        }
+
+        throw new Error('Failed to parse input JSON');
+      })
       .then(json => {
         if (typeof json !== 'object' || json === null) {
           throw new TypeError('Input JSON is not an object');
@@ -106,6 +139,10 @@ export async function importDroppedProfile(file: File): Promise<ProfileGroup> {
 
         if (isJSProfile(json)) {
           return importJSSelfProfile(json, file.name);
+        }
+
+        if (isChromeTraceFormat(json)) {
+          return importChromeTrace(json);
         }
 
         throw new Error('Unsupported JSON format');

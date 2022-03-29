@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -26,6 +25,7 @@ import {
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
+  WizardRuleTemplate,
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
@@ -75,14 +75,22 @@ class AlertWizard extends Component<Props, State> {
       params: {projectId},
     } = this.props;
     const {alertOption} = this.state;
-    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+      AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
+
+    if (
+      organization.features.includes('alert-crash-free-metrics') &&
+      metricRuleTemplate?.dataset === Dataset.SESSIONS
+    ) {
+      metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
+    }
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
       query: {
-        ...(metricRuleTemplate && metricRuleTemplate),
+        ...(metricRuleTemplate ? metricRuleTemplate : {}),
         createFromWizard: true,
         referrer: location?.query?.referrer,
       },
@@ -176,14 +184,9 @@ class AlertWizard extends Component<Props, State> {
               <WizardOptions>
                 <CategoryTitle>{t('Errors')}</CategoryTitle>
                 {getAlertWizardCategories(organization).map(
-                  ({categoryHeading, options, featureBadgeType}, i) => (
+                  ({categoryHeading, options}, i) => (
                     <OptionsWrapper key={categoryHeading}>
-                      {i > 0 && (
-                        <CategoryTitle>
-                          {categoryHeading}{' '}
-                          {featureBadgeType && <FeatureBadge type={featureBadgeType} />}
-                        </CategoryTitle>
-                      )}
+                      {i > 0 && <CategoryTitle>{categoryHeading} </CategoryTitle>}
                       <RadioPanelGroup
                         choices={options.map(alertType => {
                           return [alertType, AlertWizardAlertNames[alertType]];

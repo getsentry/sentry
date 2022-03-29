@@ -6,26 +6,33 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('EnvironmentPageFilter', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views', 'selection-filters-v2']},
-    project: undefined,
-    projects: [
-      {
-        id: 2,
-        slug: 'project-2',
-        environments: ['prod', 'staging'],
-      },
-    ],
-    router: {
-      location: {query: {}},
-      params: {orgId: 'org-slug'},
+const {organization, router, routerContext} = initializeOrg({
+  organization: {features: ['global-views', 'selection-filters-v2']},
+  project: undefined,
+  projects: [
+    {
+      id: 2,
+      slug: 'project-2',
+      environments: ['prod', 'staging'],
     },
-  });
-  OrganizationStore.onUpdate(organization, {replace: true});
-  ProjectsStore.loadInitialData(organization.projects);
+  ],
+  router: {
+    location: {
+      pathname: '/organizations/org-slug/issues/',
+      query: {},
+    },
+    params: {orgId: 'org-slug'},
+  },
+});
 
+describe('EnvironmentPageFilter', function () {
   beforeEach(() => {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData(organization.projects);
+
     act(() => {
       PageFiltersStore.reset();
       PageFiltersStore.onInitializeUrlState(
@@ -37,6 +44,11 @@ describe('EnvironmentPageFilter', function () {
         new Set()
       );
     });
+  });
+
+  afterEach(() => {
+    OrganizationStore.teardown();
+    ProjectsStore.teardown();
   });
 
   it('can pick environment', function () {
@@ -79,10 +91,10 @@ describe('EnvironmentPageFilter', function () {
     userEvent.click(screen.getByText('All Environments'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
-    userEvent.click(pinButton);
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

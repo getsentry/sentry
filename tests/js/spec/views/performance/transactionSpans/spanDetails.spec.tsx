@@ -1,3 +1,5 @@
+import {browserHistory} from 'react-router';
+
 import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
@@ -298,7 +300,22 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders chart', async function () {
+    it("doesn't render a search bar", function () {
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      const searchBarNode = screen.queryByPlaceholderText('Filter Transactions');
+      expect(searchBarNode).not.toBeInTheDocument();
+    });
+
+    it('renders timeseries chart', async function () {
       const data = initializeData({
         features: ['performance-view', 'performance-suspect-spans-view'],
         query: {project: '1', transaction: 'transaction'},
@@ -328,6 +345,146 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       expect(await screen.findByText('Span Duration')).toBeInTheDocument();
       expect(await screen.findByText('Count')).toBeInTheDocument();
       expect(await screen.findByText('Cumulative Duration')).toBeInTheDocument();
+    });
+
+    describe('With histogram view feature flag enabled', function () {
+      const FEATURES = [
+        'performance-view',
+        'performance-suspect-spans-view',
+        'performance-span-histogram-view',
+      ];
+
+      it('renders a search bar', async function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
+        expect(searchBarNode).toBeInTheDocument();
+      });
+
+      it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans-histogram/',
+          body: [
+            {bin: 0, count: 0},
+            {bin: 10, count: 2},
+            {bin: 20, count: 4},
+          ],
+        });
+
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(await screen.findByTestId('total-value')).toBeInTheDocument();
+
+        const chartTitleNodes = await screen.findAllByText('Self Time Breakdown');
+        expect(chartTitleNodes[0]).toBeInTheDocument();
+
+        const displayToggle = await screen.findByTestId('display-toggle');
+        expect(displayToggle).toBeInTheDocument();
+        expect(await within(displayToggle).findByRole('button')).toHaveTextContent(
+          'Self Time Breakdown'
+        );
+
+        const node = await screen.findByTestId('option-histogram');
+        within(node).getByRole('button', {hidden: true}).click();
+
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: {
+              display: 'histogram',
+              project: '1',
+              transaction: 'transaction',
+            },
+          })
+        );
+      });
+
+      it('renders a histogram when display is set to histogram', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans-histogram/',
+          body: [
+            {bin: 0, count: 0},
+            {bin: 10, count: 2},
+            {bin: 20, count: 4},
+          ],
+        });
+
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', display: 'histogram'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const displayToggle = await screen.findByTestId('display-toggle');
+        expect(await within(displayToggle).findByRole('button')).toHaveTextContent(
+          'Self Time Distribution'
+        );
+
+        const nodes = await screen.findAllByText('Self Time Distribution');
+        expect(nodes[0]).toBeInTheDocument();
+      });
+
+      it('gracefully handles error response', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans-histogram/',
+          statusCode: 400,
+        });
+
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', display: 'histogram'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        expect(await screen.findByTestId('histogram-error-panel')).toBeInTheDocument();
+      });
+
+      it('gracefully renders empty histogram when empty buckets are received', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-spans-histogram/',
+          body: [
+            {bin: 0, count: 0},
+            {bin: 10, count: 0},
+            {bin: 20, count: 0},
+          ],
+        });
+
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction', display: 'histogram'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const nodes = await screen.findAllByText('Self Time Distribution');
+        expect(nodes[0]).toBeInTheDocument();
+      });
     });
   });
 });

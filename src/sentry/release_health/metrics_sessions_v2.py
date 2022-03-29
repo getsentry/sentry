@@ -475,8 +475,19 @@ def _get_snuba_query_data(
             query_data = []
         else:
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
-            limit_state.update(snuba_query.groupby, query_data)
 
+        if not query_data:
+            # If the first totals query returned empty results,
+            # 1. there is no need to query time series,
+            # 2. we do not update the LimitState. This gives the next query
+            #    the chance to populate the groups.
+            #    For example: if the first totals query fetches count_uniq(users),
+            #    but a project does not track users at all, we should order by
+            #    the results of the second totals query instead.
+            break
+
+        assert snuba_query is not None
+        limit_state.update(snuba_query.groupby, query_data)
         yield (metric_key, query_data)
 
 
@@ -770,8 +781,9 @@ def run_sessions_query(
     if len(data_points) == 0:
         # We're only interested in `session.status` group-byes. The rest of the
         # conditions require work (e.g. getting all environments) that we can't
-        # get without querying the DB.
-        if "session.status" in query_clone.raw_groupby:
+        # get without querying the DB, including group-byes consisting of
+        # multiple parameters (even if `session.status` is one of them).
+        if query_clone.raw_groupby == ["session.status"]:
             for status in get_args(_SessionStatus):
                 gkey: GroupKey = (("session.status", status),)
                 groups[gkey]

@@ -12,7 +12,6 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {
@@ -57,7 +56,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
-  featureBadgeType?: React.ComponentProps<typeof FeatureBadge>['type'];
 };
 export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
@@ -69,7 +67,6 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
-          featureBadgeType: 'new' as const,
         },
       ]
     : []),
@@ -232,7 +229,7 @@ export type WizardRuleTemplate = {
 
 export const AlertWizardRuleTemplates: Record<
   Exclude<AlertType, 'issues'>,
-  WizardRuleTemplate
+  Readonly<WizardRuleTemplate>
 > = {
   num_errors: {
     aggregate: 'count()',
@@ -286,11 +283,13 @@ export const AlertWizardRuleTemplates: Record<
   },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
     dataset: Dataset.SESSIONS,
     eventTypes: EventTypes.USER,
   },
