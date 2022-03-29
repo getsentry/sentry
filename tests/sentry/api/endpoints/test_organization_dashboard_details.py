@@ -325,7 +325,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         for expected_widget, actual_widget in zip(data["widgets"], widgets):
             self.assert_serialized_widget(expected_widget, actual_widget)
             queries = actual_widget.dashboardwidgetquery_set.all()
-            print("Priscila", queries[0].conditions)
 
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)

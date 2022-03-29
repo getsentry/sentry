@@ -376,7 +376,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
         )
-        print("ALES", widget_data["queries"])
         new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
             new_queries.append(
