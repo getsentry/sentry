@@ -151,6 +151,7 @@ export function SpanDescendantGroupBar(props: Props) {
 
   return (
     <SpanGroupBar
+      data-test-id="span-descendant-group-bar"
       event={event}
       span={span}
       spanGrouping={spanGrouping}
