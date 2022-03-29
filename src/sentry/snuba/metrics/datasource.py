@@ -136,7 +136,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
     # their constituent metrics. A derived metric should be added to the response list if its
     # metric ids are a subset of the metric ids in one of the entities i.e. Its an instance of
     # SingularEntityDerivedMetric.
-    found_derived_metrics = get_available_derived_metrics(metric_ids_in_entities)
+    found_derived_metrics = get_available_derived_metrics(projects, metric_ids_in_entities)
     public_derived_metrics = get_derived_metrics(exclude_private=True)
 
     for derived_metric_name in found_derived_metrics:
