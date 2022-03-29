@@ -545,6 +545,34 @@ class ActualMinimap extends React.PureComponent<{
             />
           );
         }
+        case 'span_group_siblings': {
+          const {spanSiblingGrouping} = payload;
+
+          return (
+            <MinimapSiblingGroupBar>
+              {spanSiblingGrouping?.map(({span}, index) => {
+                const bounds = generateBounds({
+                  startTimestamp: span.start_timestamp,
+                  endTimestamp: span.timestamp,
+                });
+                const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+                return (
+                  <MinimapSpanBar
+                    style={{
+                      backgroundColor: theme.blue300,
+                      left: spanLeft,
+                      width: spanWidth,
+                      minWidth: 0,
+                      position: 'absolute',
+                    }}
+                    key={index}
+                  />
+                );
+              })}
+            </MinimapSiblingGroupBar>
+          );
+        }
         default: {
           return null;
         }
@@ -763,6 +791,15 @@ const MinimapSpanBar = styled('div')`
   min-width: 1px;
   border-radius: 1px;
   box-sizing: border-box;
+`;
+
+const MinimapSiblingGroupBar = styled('div')`
+  display: flex;
+  position: relative;
+  height: 2px;
+  min-height: 2px;
+  max-height: 2px;
+  top: -2px;
 `;
 
 const BackgroundSlider = styled('div')`

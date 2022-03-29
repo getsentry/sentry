@@ -16,11 +16,18 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.fields.base import CompositeEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import (
+    abnormal_sessions,
+    abnormal_users,
+    addition,
     all_sessions,
+    all_users,
     crashed_sessions,
+    crashed_users,
+    errored_all_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
+    subtraction,
 )
 from sentry.testutils import TestCase
 
@@ -28,6 +35,7 @@ from sentry.testutils import TestCase
 def get_entity_of_metric_mocked(_, metric_name):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
+        "sentry.sessions.user": EntityKey.MetricsSets,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
     }[metric_name]
 
@@ -71,10 +79,18 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         """
         expected_derived_metrics_entities = {
             "session.all": "metrics_counters",
+            "session.all_user": "metrics_sets",
             "session.crashed": "metrics_counters",
+            "session.crashed_user": "metrics_sets",
+            "session.abnormal": "metrics_counters",
+            "session.abnormal_user": "metrics_sets",
             "session.crash_free_rate": "metrics_counters",
+            "session.crash_free_user_rate": "metrics_sets",
             "session.errored_preaggregated": "metrics_counters",
             "session.errored_set": "metrics_sets",
+            "session.errored_user_all": "metrics_sets",
+            "session.crashed_and_abnormal_user": "metrics_sets",
+            "session.errored_user": "metrics_sets",
         }
         for key, value in expected_derived_metrics_entities.items():
             assert (MOCKED_DERIVED_METRICS[key].get_entity(projects=[self.project])) == value
@@ -95,20 +111,59 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         for status in ("init", "crashed"):
             indexer.record(org_id, status)
         session_ids = [indexer.record(org_id, "sentry.sessions.session")]
+        session_user_ids = [indexer.record(org_id, "sentry.sessions.user")]
 
         derived_name_snql = {
             "session.all": (all_sessions, session_ids),
             "session.crashed": (crashed_sessions, session_ids),
+            "session.abnormal": (abnormal_sessions, session_ids),
             "session.errored_preaggregated": (errored_preaggr_sessions, session_ids),
             "session.errored_set": (
                 sessions_errored_set,
                 [indexer.record(org_id, "sentry.sessions.session.error")],
             ),
+            "session.all_user": (all_users, session_user_ids),
+            "session.crashed_user": (crashed_users, session_user_ids),
+            "session.abnormal_user": (abnormal_users, session_user_ids),
+            "session.errored_user_all": (errored_all_users, session_user_ids),
         }
         for metric_name, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_name].generate_select_statements([self.project]) == [
                 func(metric_ids=metric_ids_list, alias=metric_name),
             ]
+
+        assert MOCKED_DERIVED_METRICS[
+            "session.crashed_and_abnormal_user"
+        ].generate_select_statements([self.project]) == [
+            addition(
+                crashed_users(session_user_ids, alias="session.crashed_user"),
+                abnormal_users(session_user_ids, alias="session.abnormal_user"),
+                alias="session.crashed_and_abnormal_user",
+            )
+        ]
+        assert MOCKED_DERIVED_METRICS["session.errored_user"].generate_select_statements(
+            [self.project]
+        ) == [
+            subtraction(
+                errored_all_users(session_user_ids, alias="session.errored_user_all"),
+                addition(
+                    crashed_users(session_user_ids, alias="session.crashed_user"),
+                    abnormal_users(session_user_ids, alias="session.abnormal_user"),
+                    alias="session.crashed_and_abnormal_user",
+                ),
+                alias="session.errored_user",
+            )
+        ]
+
+        assert MOCKED_DERIVED_METRICS["session.healthy_user"].generate_select_statements(
+            [self.project]
+        ) == [
+            subtraction(
+                all_users(session_user_ids, alias="session.all_user"),
+                errored_all_users(session_user_ids, alias="session.errored_user_all"),
+                alias="session.healthy_user",
+            )
+        ]
 
         assert MOCKED_DERIVED_METRICS["session.crash_free_rate"].generate_select_statements(
             [self.project]
@@ -117,6 +172,15 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 crashed_sessions(metric_ids=session_ids, alias="session.crashed"),
                 all_sessions(metric_ids=session_ids, alias="session.all"),
                 alias="session.crash_free_rate",
+            )
+        ]
+        assert MOCKED_DERIVED_METRICS["session.crash_free_user_rate"].generate_select_statements(
+            [self.project]
+        ) == [
+            percentage(
+                crashed_users(metric_ids=session_user_ids, alias="session.crashed_user"),
+                all_users(metric_ids=session_user_ids, alias="session.all_user"),
+                alias="session.crash_free_user_rate",
             )
         ]
 
@@ -132,15 +196,29 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         org_id = self.project.organization_id
         session_metric_id = indexer.record(org_id, "sentry.sessions.session")
         session_error_metric_id = indexer.record(org_id, "sentry.sessions.session.error")
+        session_user_id = indexer.record(org_id, "sentry.sessions.user")
 
         for derived_metric_name in [
             "session.all",
             "session.crashed",
+            "session.abnormal",
             "session.crash_free_rate",
             "session.errored_preaggregated",
         ]:
             assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {
                 session_metric_id
+            }
+        for derived_metric_name in [
+            "session.all_user",
+            "session.crashed_user",
+            "session.abnormal_user",
+            "session.crash_free_user_rate",
+            "session.crashed_and_abnormal_user",
+            "session.errored_user_all",
+            "session.errored_user",
+        ]:
+            assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_metric_ids() == {
+                session_user_id
             }
         assert MOCKED_DERIVED_METRICS["session.errored_set"].generate_metric_ids() == {
             session_error_metric_id
@@ -172,13 +250,24 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     def test_generate_default_value(self):
         for derived_metric_name in [
             "session.all",
+            "session.all_user",
             "session.crashed",
+            "session.crashed_user",
+            "session.abnormal",
+            "session.abnormal_user",
             "session.errored_set",
             "session.errored_preaggregated",
+            "session.errored_user",
+            "session.errored_user_all",
+            "session.crashed_and_abnormal_user",
         ]:
             assert MOCKED_DERIVED_METRICS[derived_metric_name].generate_default_null_values() == 0
 
-        for derived_metric_name in ["session.crash_free_rate", "crash_free_fake"]:
+        for derived_metric_name in [
+            "session.crash_free_rate",
+            "crash_free_fake",
+            "session.crash_free_user_rate",
+        ]:
             assert (
                 MOCKED_DERIVED_METRICS[derived_metric_name].generate_default_null_values() is None
             )
@@ -232,6 +321,12 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "metrics_counters": ["session.errored_preaggregated"],
             "metrics_sets": ["session.errored_set"],
         }
+        component_entities = DERIVED_METRICS["session.healthy"].get_entity(projects=[1])
+        assert sorted(component_entities["metrics_counters"]) == [
+            "session.all",
+            "session.errored_preaggregated",
+        ]
+        assert sorted(component_entities["metrics_sets"]) == ["session.errored_set"]
 
     def test_generate_metric_ids(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):

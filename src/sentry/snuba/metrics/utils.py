@@ -141,7 +141,24 @@ DEFAULT_AGGREGATES = {
     "sum": 0,
     "percentage": None,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
+UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+
+
+def combine_dictionary_of_list_values(main_dict, other_dict):
+    """
+    Function that combines dictionary of lists. For instance, let's say we have
+    Dict A -> {"a": [1,2], "b": [3]} and Dict B -> {"a": [6], "c": [4]}
+    Calling this function would result in {"a": [1, 2, 6], "b": [3], "c": [4]}
+    """
+    if not isinstance(main_dict, dict) or not isinstance(other_dict, dict):
+        raise TypeError()
+    for key, value in other_dict.items():
+        main_dict.setdefault(key, [])
+        if not isinstance(value, list) or not isinstance(main_dict[key], list):
+            raise TypeError()
+        main_dict[key] += value
+        main_dict[key] = list(set(main_dict[key]))
+    return main_dict
 
 
 class MetricDoesNotExistException(Exception):

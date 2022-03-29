@@ -93,7 +93,7 @@ export function decodeInteger(value: QueryValue, fallback?: number): number | un
   return fallback;
 }
 
-export default {
+const queryString = {
   decodeInteger,
   decodeList,
   decodeScalar,
@@ -101,3 +101,5 @@ export default {
   addQueryParamsToExistingUrl,
   appendTagCondition,
 };
+
+export default queryString;
