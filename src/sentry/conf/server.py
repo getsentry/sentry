@@ -588,6 +588,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
     "sentry.profiles.task",
+    "sentry.release_health.duplex",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -993,6 +994,8 @@ SENTRY_FEATURES = {
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
     "organizations:new-widget-builder-experience-design": False,
+    # Enable access to the Add to Dashboard modal for metrics work
+    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences

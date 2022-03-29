@@ -174,7 +174,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&sort=-count&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -243,7 +243,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=title&field=count%28%29&name=Test%20Widget&query=&sort=-count&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=&statsPeriod=14d&yAxis=count%28%29'
       );
     });
 
@@ -266,6 +266,15 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders total results in footer', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('33,323,612')).toBeInTheDocument();
+    });
+
+    it('renders highlighted query text and multiple queries in select dropdown', async function () {
+      const {container} = await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+      userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
+      expect(container).toSnapshot();
     });
   });
 
@@ -400,6 +409,32 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    });
+
+    it('does not render pagination buttons', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+        },
+        body: {
+          data: [
+            {
+              'error.type': ['No Pagination'],
+              count: 1,
+            },
+          ],
+          meta: {
+            'error.type': 'array',
+            count: 'integer',
+          },
+        },
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {

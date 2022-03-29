@@ -1,8 +1,11 @@
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 
 describe('OrganizationEnvironmentsStore', function () {
-  afterEach(function () {
+  beforeEach(() => {
     OrganizationEnvironmentsStore.init();
+  });
+  afterEach(() => {
+    OrganizationEnvironmentsStore.teardown();
   });
 
   it('get()', function () {
