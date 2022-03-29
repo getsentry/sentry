@@ -56,6 +56,15 @@ export function Header({
         <ButtonBar gap={1}>
           <Button
             external
+            title={t(
+              'How do you like the new widget builder? Submit feedback on GitHub.'
+            )}
+            href="https://github.com/getsentry/sentry/issues/new/choose"
+          >
+            {t('Give Feedback')}
+          </Button>
+          <Button
+            external
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
             {t('Read the docs')}
