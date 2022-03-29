@@ -103,12 +103,11 @@ describe('Dashboards > Create', function () {
 
       // Add a custom widget to the dashboard
       userEvent.click(await screen.findByText('Custom Widget'));
-      userEvent.type(await screen.findByTestId('widget-title-input'), widgetTitle);
-      screen.getByText('Save').click();
+      userEvent.paste(screen.getByTestId('widget-title-input'), widgetTitle);
+      userEvent.click(screen.getByText('Save'));
 
       // Committing dashboard should complete without throwing error
-      screen.getByText('Save and Finish').click();
-      await tick();
+      userEvent.click(screen.getByText('Save and Finish'));
     });
   });
 });
