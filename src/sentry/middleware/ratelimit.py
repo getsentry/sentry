@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Callable, Tuple
 
 from django.http.response import HttpResponse
-from django.utils.deprecation import MiddlewareMixin
+from django.urls import resolve
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +16,7 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import ENFORCE_CONCURRENT_RATE_LIMITS
-from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
+from sentry.types.ratelimit import RateLimitCategory, RateLimitData, RateLimitType
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -23,72 +24,105 @@ DEFAULT_ERROR_MESSAGE = (
 )
 
 
-class RatelimitMiddleware(MiddlewareMixin):
-    """Middleware that applies a rate limit to every endpoint."""
+class RatelimitMiddleware:
+    """Middleware that applies a rate limit to every endpoint.
+    See: https://docs.djangoproject.com/en/4.0/topics/http/middleware/#writing-your-own-middleware
+    """
 
-    def process_view(self, request: Request, view_func, view_args, view_kwargs) -> Response | None:
-        """Check if the endpoint call will violate."""
+    def __init__(self, get_response: Callable[[Request], Response]):
+        self.get_response = get_response
+
+    def __call__(self, request: Request) -> Response:
+        response, rate_limit_data = self.process_request(request)
+        # Hit the endpoint
+        if hasattr(rate_limit_data, "rate_limit_metadata"):
+            request.rate_limit_metadata = rate_limit_data.rate_limit_metadata
+        if not response:
+            response = self.get_response(request)
+
+        # Process the response
+        self.add_headers(response, request)
+        if hasattr(rate_limit_data, "rate_limit_key") and hasattr(
+            rate_limit_data, "rate_limit_uid"
+        ):
+            finish_request(rate_limit_data.rate_limit_key, rate_limit_data.rate_limit_uid)
+        return response
+
+    def process_request(self, request: Request) -> Tuple[HttpResponse | None, RateLimitData]:
+        rate_limit_data: RateLimitData = None
+        rate_limit_uid = None
+        rate_limit_key = None
+        rate_limit_metadata = None
+        response = None
+
+        # First, check if the endpoint call will violate.
         try:
-            # TODO: put these fields into their own object
-            request.will_be_rate_limited = False
-            request.rate_limit_category = None
-            request.rate_limit_uid = uuid.uuid4().hex
-            request.rate_limit_key = get_rate_limit_key(view_func, request)
-            if request.rate_limit_key is None:
-                return
-            category_str = request.rate_limit_key.split(":", 1)[0]
-            request.rate_limit_category = category_str
+            rate_limit_uid = uuid.uuid4().hex
+            # in deprecated django middleware the view function is passed in to process_view
+            # but we can still access it this way through the request
+            view_func = resolve(request.path).func
+            rate_limit_key = get_rate_limit_key(view_func, request)
+            if rate_limit_key is None:
+                return response, rate_limit_data
 
+            category_str = rate_limit_key.split(":", 1)[0]
             rate_limit = get_rate_limit_value(
                 http_method=request.method,
                 endpoint=view_func.view_class,
                 category=RateLimitCategory(category_str),
             )
             if rate_limit is None:
-                return
+                return response, rate_limit_data
 
-            request.rate_limit_metadata = above_rate_limit_check(
-                request.rate_limit_key, rate_limit, request.rate_limit_uid
+            rate_limit_metadata = above_rate_limit_check(
+                rate_limit_key,
+                rate_limit,
+                rate_limit_uid,
+                category_str,
             )
             # TODO: also limit by concurrent window once we have the data
             rate_limit_cond = (
-                request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
+                rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
                 if ENFORCE_CONCURRENT_RATE_LIMITS
-                else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
+                else rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
             )
             if rate_limit_cond:
-                request.will_be_rate_limited = True
                 enforce_rate_limit = getattr(view_func.view_class, "enforce_rate_limit", False)
                 if enforce_rate_limit:
-                    return HttpResponse(
+                    response = HttpResponse(
                         {
                             "detail": DEFAULT_ERROR_MESSAGE.format(
-                                limit=request.rate_limit_metadata.limit,
-                                window=request.rate_limit_metadata.window,
+                                limit=rate_limit_metadata.limit,
+                                window=rate_limit_metadata.window,
                             )
                         },
                         status=429,
                     )
+
         except Exception:
             logging.exception("Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN")
 
-    def process_response(self, request: Request, response: Response) -> Response:
-        try:
-            rate_limit_metadata: RateLimitMeta | None = getattr(
-                request, "rate_limit_metadata", None
-            )
-            if rate_limit_metadata:
-                response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
-                response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
-                response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                response[
-                    "X-Sentry-Rate-Limit-ConcurrentRemaining"
-                ] = rate_limit_metadata.concurrent_remaining
-                response[
-                    "X-Sentry-Rate-Limit-ConcurrentLimit"
-                ] = rate_limit_metadata.concurrent_limit
-            if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
-                finish_request(request.rate_limit_key, request.rate_limit_uid)
-        except Exception:
-            logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
+        rate_limit_data = RateLimitData(
+            rate_limit_uid=rate_limit_uid,
+            rate_limit_key=rate_limit_key,
+            rate_limit_metadata=rate_limit_metadata,
+        )
+        return response, rate_limit_data
+
+    def add_headers(self, response: Response, request: Request | None) -> Response:
+        if not hasattr(request, "rate_limit_metadata") or type(response) not in (
+            Response,
+            HttpResponse,
+        ):
+            return response
+        if request.rate_limit_metadata:
+            response["X-Sentry-Rate-Limit-Remaining"] = request.rate_limit_metadata.remaining
+            response["X-Sentry-Rate-Limit-Limit"] = request.rate_limit_metadata.limit
+            response["X-Sentry-Rate-Limit-Reset"] = request.rate_limit_metadata.reset_time
+            response[
+                "X-Sentry-Rate-Limit-ConcurrentRemaining"
+            ] = request.rate_limit_metadata.concurrent_remaining
+            response[
+                "X-Sentry-Rate-Limit-ConcurrentLimit"
+            ] = request.rate_limit_metadata.concurrent_limit
         return response
