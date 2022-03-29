@@ -83,7 +83,7 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 // causing unnecessary rerenders which can break persistent legends functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  (props, prevProps) => {
+  (prevProps, props) => {
     return (
       props.selection === prevProps.selection &&
       props.location.query[WidgetViewerQueryField.QUERY] ===
@@ -139,12 +139,23 @@ function WidgetViewerModal(props: Props) {
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-
-  const [modalSelection, setModalSelection] = React.useState<PageFilters>(
+  const locationPageFilter =
     start && end
-      ? {...selection, datetime: {start, end, period: null, utc: null}}
-      : selection
-  );
+      ? {
+          ...selection,
+          datetime: {start, end, period: null, utc: null},
+        }
+      : selection;
+  const [modalSelection, setModalSelection] =
+    React.useState<PageFilters>(locationPageFilter);
+
+  // Detect when a user clicks back and set the PageFilter state to match the location
+  // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
+  React.useEffect(() => {
+    if (location.action === 'POP') {
+      setModalSelection(locationPageFilter);
+    }
+  }, [location]);
 
   // Get legends toggle settings from location
   // We use the legend query params for just the initial state
