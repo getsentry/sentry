@@ -840,13 +840,13 @@ function WidgetBuilder({
     return columns.map((field, index) =>
       explodeField({field, alias: fieldAliases[index]})
     );
-  }, []);
+  }, [columns, fieldAliases]);
 
   const explodedAggregates = useMemo(() => {
     return aggregates.map((field, index) =>
       explodeField({field, alias: fieldAliases[index]})
     );
-  }, []);
+  }, [aggregates, fieldAliases]);
 
   const explodedFields = defined(fields)
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))

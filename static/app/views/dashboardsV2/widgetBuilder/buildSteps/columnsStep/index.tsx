@@ -105,6 +105,7 @@ export function ColumnsStep({
             newQuery.fields = fieldStrings;
             newQuery.aggregates = splitFields.aggregates;
             newQuery.columns = splitFields.columns;
+            newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
         />

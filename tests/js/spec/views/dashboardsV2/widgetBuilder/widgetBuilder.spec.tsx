@@ -1349,7 +1349,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('Update table header valuess (field alias)', async function () {
+  it('Update table header values (field alias)', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({
@@ -1467,6 +1467,41 @@ describe('WidgetBuilder', function () {
         'is:'
       );
       expect(await screen.findByText('resolved')).toBeInTheDocument();
+    });
+
+    it('Update table header values (field alias)', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Table');
+
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+
+      await screen.findAllByPlaceholderText('Alias');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+              }),
+            ],
+          }),
+        ]);
+      });
     });
   });
 
