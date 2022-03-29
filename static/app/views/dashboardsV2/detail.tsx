@@ -627,11 +627,11 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             {hasPageFilters && (
-                <DashboardPageFilterBar>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter alignDropdown="right" />
-                  <DatePageFilter alignDropdown="right" />
-                </DashboardPageFilterBar>
+              <DashboardPageFilterBar>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter alignDropdown="right" />
+                <DatePageFilter alignDropdown="right" />
+              </DashboardPageFilterBar>
             )}
             <HookHeader organization={organization} />
             <Dashboard
