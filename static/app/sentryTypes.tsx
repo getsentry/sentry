@@ -103,4 +103,6 @@ const Organization = PropTypes.shape({
   id: PropTypes.string.isRequired,
 });
 
-export default {Group, Organization, Project};
+const SentryTypes = {Group, Organization, Project};
+
+export default SentryTypes;

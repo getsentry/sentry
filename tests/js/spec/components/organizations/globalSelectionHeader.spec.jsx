@@ -20,6 +20,7 @@ const changeQuery = (routerContext, query) => ({
     router: {
       ...routerContext.context.router,
       location: {
+        ...routerContext.context.router.location,
         query,
       },
     },
@@ -49,7 +50,7 @@ describe('GlobalSelectionHeader', function () {
       },
     ],
     router: {
-      location: {query: {}},
+      location: {pathname: '/test', query: {}},
       params: {orgId: 'org-slug'},
     },
   });
@@ -274,7 +275,7 @@ describe('GlobalSelectionHeader', function () {
         {id: 2, slug: 'prod-project', environments: ['prod']},
       ],
       router: {
-        location: {query: {project: ['1']}},
+        location: {pathname: '/test', query: {project: ['1']}},
         params: {orgId: 'org-slug'},
       },
     });
@@ -478,7 +479,7 @@ describe('GlobalSelectionHeader', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {query: {project: ['1', '2']}},
+        location: {pathname: '/test', query: {project: ['1', '2']}},
       },
     });
 
@@ -504,7 +505,7 @@ describe('GlobalSelectionHeader', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {query: {project: ['1', '2']}},
+        location: {pathname: '/test', query: {project: ['1', '2']}},
       },
     });
 
@@ -530,7 +531,7 @@ describe('GlobalSelectionHeader', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {query: {}},
+        location: {pathname: '/test', query: {}},
       },
     });
 
@@ -630,7 +631,7 @@ describe('GlobalSelectionHeader', function () {
           // we need this to be set to make sure org in context is same as
           // current org in URL
           params: {orgId: 'org-slug'},
-          location: {query: {project: ['1']}},
+          location: {pathname: '/test', query: {project: ['1']}},
         },
       });
 
@@ -669,7 +670,7 @@ describe('GlobalSelectionHeader', function () {
         location: {query: {}},
         router: {
           ...initialData.router,
-          location: {query: {}},
+          location: {pathname: '/test', query: {}},
         },
       });
       wrapper.setProps({organization: updatedOrganization});
@@ -689,7 +690,7 @@ describe('GlobalSelectionHeader', function () {
           // we need this to be set to make sure org in context is same as
           // current org in URL
           params: {orgId: 'org-slug'},
-          location: {query: {project: ['1', '2']}},
+          location: {pathname: '/test', query: {project: ['1', '2']}},
         },
       });
 
@@ -715,7 +716,7 @@ describe('GlobalSelectionHeader', function () {
         organization: org,
         router: {
           params: {orgId: 'org-slug'},
-          location: {query: {}},
+          location: {pathname: '/test', query: {}},
         },
       });
 
@@ -740,7 +741,7 @@ describe('GlobalSelectionHeader', function () {
         {id: 2, slug: 'prod-project', environments: ['prod']},
       ],
       router: {
-        location: {query: {}},
+        location: {pathname: '/test', query: {}},
       },
     });
 
@@ -794,7 +795,7 @@ describe('GlobalSelectionHeader', function () {
       organization,
       projects: [{id: 1, slug: 'staging-project', environments: ['staging']}],
       router: {
-        location: {query: {}},
+        location: {pathname: '/test', query: {}},
       },
     });
 
@@ -870,7 +871,7 @@ describe('GlobalSelectionHeader', function () {
           {id: 2, slug: 'prod-project', environments: ['prod']},
         ],
         router: {
-          location: {query: {}},
+          location: {pathname: '/test', query: {}},
           params: {orgId: 'org-slug'},
         },
       });
@@ -900,7 +901,7 @@ describe('GlobalSelectionHeader', function () {
         // Projects are returned in sorted slug order, so `prod-project` would
         // be the first project
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: undefined,
+          pathname: '/test',
           query: {cursor: undefined, environment: [], project: ['2']},
         });
       });
@@ -921,7 +922,7 @@ describe('GlobalSelectionHeader', function () {
         wrapper.update();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: undefined,
+          pathname: '/test',
           query: {environment: [], project: ['1']},
         });
 
@@ -962,7 +963,7 @@ describe('GlobalSelectionHeader', function () {
         wrapper.update();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: undefined,
+          pathname: '/test',
           query: {environment: [], project: ['1']},
         });
       });
@@ -976,7 +977,7 @@ describe('GlobalSelectionHeader', function () {
           {id: 2, slug: 'prod-project', environments: ['prod']},
         ],
         router: {
-          location: {query: {statsPeriod: '90d'}},
+          location: {pathname: '/test', query: {statsPeriod: '90d'}},
           params: {orgId: 'org-slug'},
         },
       });
@@ -1009,7 +1010,7 @@ describe('GlobalSelectionHeader', function () {
         wrapper.update();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: undefined,
+          pathname: '/test',
           query: {environment: [], project: ['1'], statsPeriod: '90d'},
         });
       });
@@ -1026,7 +1027,7 @@ describe('GlobalSelectionHeader', function () {
           {id: 2, slug: 'prod-project', environments: ['prod']},
         ],
         router: {
-          location: {query: {}},
+          location: {pathname: '/test', query: {}},
           params: {orgId: 'org-slug'},
         },
       });
@@ -1091,7 +1092,7 @@ describe('GlobalSelectionHeader', function () {
         act(() => ProjectsStore.loadInitialData(initialData.projects));
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: undefined,
+          pathname: '/test',
           query: {environment: [], project: ['1']},
         });
 
@@ -1127,7 +1128,7 @@ describe('GlobalSelectionHeader', function () {
       initialData = initializeOrg({
         projects: [memberProject, nonMemberProject],
         router: {
-          location: {query: {}},
+          location: {pathname: '/test', query: {}},
           params: {
             orgId: 'org-slug',
           },

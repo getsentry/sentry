@@ -262,7 +262,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <PageFiltersContainer
           organization={organization}
           showDateSelector={false}
-          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+          hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
           <StyledLayoutBody>
@@ -273,12 +273,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
-                    organization={organization}
                     location={location}
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
                     hasStatusFilters
-                    hasEnvironmentFilter
                   />
                 </Fragment>
               )}
