@@ -230,13 +230,13 @@ class ProjectSerializer(Serializer):  # type: ignore
             transaction_stats = None
             session_stats = None
             project_ids = [o.id for o in item_list]
-            if self.transaction_stats and self.stats_period:
+
+            if self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
-                transaction_stats = self.get_stats(project_ids, "event.type:transaction")
-            elif self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
-            if self.session_stats:
-                session_stats = self.get_session_stats(project_ids)
+                if not self._collapse("transaction_stats"):
+                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                if not self._collapse("session_stats"):
+                    session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
