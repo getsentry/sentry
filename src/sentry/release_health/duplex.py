@@ -1309,7 +1309,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now = datetime.now(pytz.utc)
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
-        should_compare = lambda _: now > self.metrics_start
+        assert stats_start is not None  # because stats_period is not None
+        should_compare = lambda _: stats_start > self.metrics_start
         organization = self._org_from_projects(project_ids)
 
         return self._dispatch_call(  # type: ignore
