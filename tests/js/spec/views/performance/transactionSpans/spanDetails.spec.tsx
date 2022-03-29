@@ -300,6 +300,21 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       ).toBeInTheDocument();
     });
 
+    it("doesn't render a search bar", function () {
+      const data = initializeData({
+        features: ['performance-view', 'performance-suspect-spans-view'],
+        query: {project: '1', transaction: 'transaction'},
+      });
+
+      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+        context: data.routerContext,
+        organization: data.organization,
+      });
+
+      const searchBarNode = screen.queryByPlaceholderText('Filter Transactions');
+      expect(searchBarNode).not.toBeInTheDocument();
+    });
+
     it('renders timeseries chart', async function () {
       const data = initializeData({
         features: ['performance-view', 'performance-suspect-spans-view'],
@@ -333,6 +348,27 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
 
     describe('With histogram view feature flag enabled', function () {
+      const FEATURES = [
+        'performance-view',
+        'performance-suspect-spans-view',
+        'performance-span-histogram-view',
+      ];
+
+      it('renders a search bar', async function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
+        expect(searchBarNode).toBeInTheDocument();
+      });
+
       it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
@@ -344,11 +380,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const data = initializeData({
-          features: [
-            'performance-view',
-            'performance-suspect-spans-view',
-            'performance-span-histogram-view',
-          ],
+          features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
         });
 
@@ -393,11 +425,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const data = initializeData({
-          features: [
-            'performance-view',
-            'performance-suspect-spans-view',
-            'performance-span-histogram-view',
-          ],
+          features: FEATURES,
           query: {project: '1', transaction: 'transaction', display: 'histogram'},
         });
 
@@ -422,11 +450,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const data = initializeData({
-          features: [
-            'performance-view',
-            'performance-suspect-spans-view',
-            'performance-span-histogram-view',
-          ],
+          features: FEATURES,
           query: {project: '1', transaction: 'transaction', display: 'histogram'},
         });
 
@@ -449,11 +473,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const data = initializeData({
-          features: [
-            'performance-view',
-            'performance-suspect-spans-view',
-            'performance-span-histogram-view',
-          ],
+          features: FEATURES,
           query: {project: '1', transaction: 'transaction', display: 'histogram'},
         });
 
