@@ -27,8 +27,6 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   const [appStoreConnectStatusData, setAppStoreConnectStatusData] =
     useState<AppStoreConnectContextProps>(undefined);
 
-  const orgSlug = organization.slug;
-
   const appStoreConnectSymbolSources = (
     projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
   ).reduce((acc, {type, id, ...symbolSource}) => {
@@ -39,51 +37,58 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   }, {});
 
   useEffect(() => {
-    fetchProjectDetails();
-  }, [project]);
-
-  useEffect(() => {
-    fetchAppStoreConnectStatusData();
-  }, [projectDetails]);
-
-  async function fetchProjectDetails() {
     if (!project || projectDetails) {
-      return;
+      return undefined;
     }
 
     if (project.symbolSources) {
       setProjectDetails(project);
-      return;
+      return undefined;
     }
 
-    try {
-      const response = await api.requestPromise(`/projects/${orgSlug}/${project.slug}/`);
-      setProjectDetails(response);
-    } catch {
-      // do nothing
-    }
-  }
+    let unmounted = false;
 
-  async function fetchAppStoreConnectStatusData() {
+    api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/`)
+      .then(responseProjectDetails => {
+        if (unmounted) {
+          return;
+        }
+
+        setProjectDetails(responseProjectDetails);
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [project, organization, api]);
+
+  useEffect(() => {
     if (!projectDetails) {
-      return;
+      return undefined;
     }
 
     if (!Object.keys(appStoreConnectSymbolSources).length) {
-      return;
+      return undefined;
     }
 
-    try {
-      const response: Record<string, AppStoreConnectStatusData> =
-        await api.requestPromise(
-          `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
-        );
+    let unmounted = false;
 
-      setAppStoreConnectStatusData(response);
-    } catch {
-      // do nothing
-    }
-  }
+    api
+      .requestPromise(
+        `/projects/${organization.slug}/${projectDetails.slug}/appstoreconnect/status/`
+      )
+      .then(appStoreConnectStatus => {
+        if (unmounted) {
+          return;
+        }
+        setAppStoreConnectStatusData(appStoreConnectStatus);
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [projectDetails, organization]);
 
   function getUpdateAlertMessage(
     respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,
