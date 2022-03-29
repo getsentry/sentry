@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -37,25 +37,22 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
 
   useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-    trackAdvancedAnalyticsEvent('performance_views.overview.view', {
-      organization,
-      show_onboarding: shouldShowOnboarding(),
-    });
-  }, []);
-
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-  }, [selection.projects]);
-
-  useEffect(() => {
+    if (!mounted.current) {
+      trackAdvancedAnalyticsEvent('performance_views.overview.view', {
+        organization,
+        show_onboarding: shouldShowOnboarding(),
+      });
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+      mounted.current = true;
+      return;
+    }
     if (!isEqual(previousDateTime, selection.datetime)) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
