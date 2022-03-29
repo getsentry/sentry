@@ -1,5 +1,5 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
@@ -8,15 +8,12 @@ import {EntryType, EventTransaction} from 'sentry/types';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  ProjectsStore.loadInitialData(data.organization.projects);
+  // act(() => void ProjectsStore.loadInitialData(data.organization.projects));
   return data;
 }
 
 describe('TraceView', () => {
-  const data = initializeData({
-    features: ['performance-autogroup-sibling-spans'],
-  });
-
   const event = {
     id: '2b658a829a21496b87fd1f14a61abf65',
     eventID: '2b658a829a21496b87fd1f14a61abf65',
@@ -132,22 +129,37 @@ describe('TraceView', () => {
     ],
   } as EventTransaction;
 
-  const waterfallModel = new WaterfallModel(event);
-
   it('should render siblings with the same op and description as a grouped span in the minimap ', async () => {
+    const data = initializeData({
+      features: ['performance-autogroup-sibling-spans'],
+    });
+    const waterfallModel = new WaterfallModel(event);
+
     render(
       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
     );
 
-    expect(await screen.findByTestId('minimap-span-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('minimap-sibling-group-bar')).toBeInTheDocument();
   });
 
-  it('should render siblings with the same op and description as a grouped span in the minimap ', async () => {
+  it('should expand grouped siblings when clicked', async () => {
+    console.error = jest.fn();
+
+    const data = initializeData({
+      features: ['performance-autogroup-sibling-spans'],
+    });
+    const waterfallModel = new WaterfallModel(event);
+
     render(
       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
     );
 
-    console.dir(await screen.findAllByTestId('span-row-1'));
-    // expect(await screen.findAllByTestId('span-row-1')).toHaveLength(1);
+    const groupedSiblingsSpan = await screen.findByText('group me');
+    userEvent.click(groupedSiblingsSpan);
+
+    // Start at 2, since the root span will be span-row-1
+    for (let i = 2; i < 7; i++) {
+      expect(await screen.findByTestId(`span-row-${i}`)).toBeInTheDocument();
+    }
   });
 });

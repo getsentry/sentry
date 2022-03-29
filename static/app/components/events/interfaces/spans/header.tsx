@@ -551,7 +551,7 @@ class ActualMinimap extends React.PureComponent<{
 
           return (
             <MinimapSiblingGroupBar
-              data-test-id="minimap-span-bar"
+              data-test-id="minimap-sibling-group-bar"
               key={`${payload.type}-${i}`}
             >
               {spanSiblingGrouping?.map(({span}, index) => {
