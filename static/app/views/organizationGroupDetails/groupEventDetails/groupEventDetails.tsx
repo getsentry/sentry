@@ -33,12 +33,11 @@ import {
   ReprocessingStatus,
 } from '../utils';
 
-export type GroupEventDetailsProps = RouteComponentProps<
-  {groupId: string; orgId: string; eventId?: string},
-  {}
-> & {
+export interface GroupEventDetailsProps
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   api: Client;
   environments: Environment[];
+  eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
@@ -47,8 +46,7 @@ export type GroupEventDetailsProps = RouteComponentProps<
   project: Project;
   className?: string;
   event?: Event;
-  eventError?: boolean;
-};
+}
 
 type State = {
   eventNavLinks: string;

@@ -12,6 +12,8 @@ import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
+import {ReprocessingStatus} from '../../../../../static/app/views/organizationGroupDetails/utils';
+
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project
@@ -43,23 +45,28 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
     props.project
   );
 
-  return (
-    <GroupEventDetails
-      api={new MockApiClient()}
-      group={group}
-      event={event}
-      project={project}
-      organization={organization}
-      environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-      params={{orgId: organization.slug, groupId: group.id, eventId: '1'}}
-      router={router}
-      location={{} as Location<any>}
-      route={{}}
-      routes={[]}
-      routeParams={{}}
-      {...props}
-    />
-  );
+  const mergedProps: GroupEventDetailsProps = {
+    api: new MockApiClient(),
+    group,
+    event,
+    project,
+    organization,
+    environments: [{id: '1', name: 'dev', displayName: 'Dev'}],
+    params: {orgId: organization.slug, groupId: group.id, eventId: '1'},
+    router,
+    location: {} as Location<any>,
+    route: {},
+    eventError: props.eventError ?? false,
+    groupReprocessingStatus:
+      props.groupReprocessingStatus ?? ReprocessingStatus.NO_STATUS,
+    onRetry: props?.onRetry ?? jest.fn(),
+    loadingEvent: props.loadingEvent ?? false,
+    routes: [],
+    routeParams: {},
+    ...props,
+  };
+
+  return <GroupEventDetails {...mergedProps} />;
 };
 
 const mockGroupApis = (
@@ -269,19 +276,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(
-      <TestComponent
-        api={new MockApiClient()}
-        group={props.group}
-        event={undefined}
-        eventError
-        project={props.project}
-        organization={props.organization}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: props.organization.slug, groupId: props.group.id, eventId: '1'}}
-        location={{} as Location<any>}
-      />
-    );
+    render(<TestComponent event={undefined} eventError />);
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
@@ -332,18 +327,7 @@ describe('EventCauseEmpty', () => {
       ],
     });
 
-    render(
-      <TestComponent
-        api={new MockApiClient()}
-        group={props.group}
-        event={props.event}
-        project={props.project}
-        organization={props.organization}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: props.organization.slug, groupId: props.group.id, eventId: '1'}}
-        location={{} as Location<any>}
-      />
-    );
+    render(<TestComponent project={props.project} />);
 
     expect(await screen.findByTestId(/loaded-event-cause-empty/)).toBeInTheDocument();
     expect(screen.queryByText(/event-cause/)).not.toBeInTheDocument();
@@ -392,22 +376,7 @@ describe('EventCauseEmpty', () => {
       ]
     );
 
-    render(
-      <TestComponent
-        api={new MockApiClient()}
-        group={props.group}
-        event={props.event}
-        project={props.project}
-        organization={props.organization}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{
-          orgId: props.organization.slug,
-          groupId: props.group.id,
-          eventId: '1',
-        }}
-        location={{} as Location<any>}
-      />
-    );
+    render(<TestComponent project={props.project} />);
 
     expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
@@ -439,18 +408,7 @@ describe('EventCauseEmpty', () => {
       body: [],
     });
 
-    render(
-      <TestComponent
-        api={new MockApiClient()}
-        group={props.group}
-        event={props.event}
-        project={props.project}
-        organization={props.organization}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: props.organization.slug, groupId: props.group.id, eventId: '1'}}
-        location={{} as Location<any>}
-      />
-    );
+    render(<TestComponent project={props.project} />);
 
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
@@ -516,18 +474,7 @@ describe('Platform Integrations', () => {
       body: [component],
     });
 
-    render(
-      <TestComponent
-        api={new MockApiClient()}
-        group={props.group}
-        event={props.event}
-        project={props.project}
-        organization={props.organization}
-        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-        params={{orgId: props.organization.slug, groupId: props.group.id, eventId: '1'}}
-        location={{} as Location<any>}
-      />
-    );
+    render(<TestComponent />);
 
     expect(componentsRequest).toHaveBeenCalled();
   });
