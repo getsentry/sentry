@@ -164,7 +164,7 @@ function createIncidentSeries(
     ].join('');
   };
 
-  const series = {
+  return {
     seriesName: 'Incident Line',
     type: 'line' as const,
     markLine: MarkLine({
@@ -202,8 +202,6 @@ function createIncidentSeries(
       formatter,
     },
   };
-
-  return series;
 }
 
 class MetricChart extends React.PureComponent<Props, State> {
