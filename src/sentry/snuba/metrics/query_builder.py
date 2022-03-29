@@ -29,7 +29,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import DerivedMetric, metric_object_factory
+from sentry.snuba.metrics.fields import DerivedMetricExpression, metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
     get_derived_metrics,
@@ -67,14 +67,14 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
         operation = matches[1]
         metric_name = matches[2]
         if metric_name in derived_metrics and isinstance(
-            derived_metrics[metric_name], DerivedMetric
+            derived_metrics[metric_name], DerivedMetricExpression
         ):
             raise DerivedMetricParseException(
                 f"Failed to parse {field}. No operations can be applied on this field as it is "
                 f"already a derived metric with an aggregation applied to it."
             )
     except (IndexError, TypeError):
-        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetric):
+        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetricExpression):
             # The isinstance check is there to foreshadow adding raw metric aliases
             return None, field
         raise InvalidField(

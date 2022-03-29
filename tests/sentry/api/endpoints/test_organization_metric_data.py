@@ -928,7 +928,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.login_as(user=self.user)
         org_id = self.organization.id
-        indexer.record(org_id, SessionMetricKey.SESSION_DURATION.value)
+        self.session_duration_metric = indexer.record(
+            org_id, SessionMetricKey.SESSION_DURATION.value
+        )
         self.session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
         self.session_user_metric = indexer.record(org_id, SessionMetricKey.USER.value)
         self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
@@ -1786,3 +1788,45 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
                 "or a supported aggregate derived metric like `session.crash_free_rate"
             )
+
+    def test_session_duration_derived_alias(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [2, 6, 8],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [11, 13, 15],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "crashed")},
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["p50(session.duration)"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"p50(session.duration)": 6.0},
+            "series": {"p50(session.duration)": [6.0]},
+        }

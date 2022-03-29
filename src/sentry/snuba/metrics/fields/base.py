@@ -1,9 +1,9 @@
 __all__ = (
     "metric_object_factory",
     "run_metrics_query",
-    "RawAggregatedMetric",
-    "MetricFieldBase",
-    "DerivedMetric",
+    "MetricsExpression",
+    "MetricsExpressionBase",
+    "DerivedMetricExpression",
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
@@ -35,6 +35,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     percentage,
+    session_duration_filters,
     sessions_errored_set,
     subtraction,
 )
@@ -118,12 +119,23 @@ def org_id_from_projects(projects: Sequence[Project]) -> int:
 
 
 @dataclass
-class MetricFieldBaseDefinition:
-    op: str
-    metric_name: str
+class DerivedMetricAliasDefinition:
+    aliased_name: str
+    raw_metric_name: str
+    filters: Optional[Callable[..., Function]] = None
 
 
-class MetricFieldBase(MetricFieldBaseDefinition, ABC):
+class DerivedMetricAlias(DerivedMetricAliasDefinition):
+    def generate_filter_snql_conditions(self, org_id: int):
+        conditions = [
+            Function("equals", [Column("metric_id"), resolve_weak(org_id, self.raw_metric_name)])
+        ]
+        for filter_ in self.filters(org_id=org_id):
+            conditions.append(filter_)
+        return Function("and", conditions)
+
+
+class MetricsExpressionBase(ABC):
     @abstractmethod
     def get_entity(
         self, projects: Sequence[Project]
@@ -185,37 +197,33 @@ class MetricFieldBase(MetricFieldBaseDefinition, ABC):
         raise NotImplementedError
 
 
-class RawAggregatedMetric(MetricFieldBase):
+@dataclass
+class MetricsExpressionDefinition:
+    op: str
+    metric_name: str
+
+
+class MetricsExpression(MetricsExpressionDefinition, MetricsExpressionBase, ABC):
     """
     This class serves the purpose of representing any aggregate, raw metric combination for
     example `sum(sentry.sessions.session)`. It is created on the fly to abstract the field
     conversions to SnQL away from the query builder.
     """
 
+    @classmethod
+    def from_dict(cls, op, metric_name):
+        if metric_name in DERIVED_ALIASES:
+            metric = DERIVED_ALIASES[metric_name]
+            return AliasedFieldMetricExpression(op=op, metric=metric)
+        else:
+            return RawFieldMetricExpression(op=op, metric_name=metric_name)
+
     def get_entity(self, **kwargs: Any) -> MetricEntity:
-        # ToDo(ahmed): For raw metrics, we need to step away from determining the entity from the
-        #  op, and should rather do so dynamically with respect to the projects filter
         return OPERATIONS_TO_ENTITY[self.op]
-
-    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
-        return {resolve_weak(org_id_from_projects(projects), self.metric_name)}
-
-    def __build_conditional_aggregate_for_metric(
-        self, org_id: int, entity: MetricEntity
-    ) -> Function:
-        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
-        return Function(
-            snuba_function,
-            [
-                Column("value"),
-                Function("equals", [Column("metric_id"), resolve_weak(org_id, self.metric_name)]),
-            ],
-            alias=f"{self.op}({self.metric_name})",
-        )
 
     def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
         org_id = org_id_from_projects(projects)
-        return [self.__build_conditional_aggregate_for_metric(org_id, entity=self.get_entity())]
+        return [self.build_conditional_aggregate_for_metric(org_id, entity=self.get_entity())]
 
     def generate_orderby_clause(
         self, direction: Direction, projects: Sequence[Project]
@@ -237,9 +245,67 @@ class RawAggregatedMetric(MetricFieldBase):
         key = f"{self.op}({self.metric_name})"
         return data[key][idx] if idx is not None else data[key]
 
+    @abstractmethod
+    def build_conditional_aggregate_for_metric(self, org_id: int, entity: MetricEntity) -> Function:
+        raise NotImplementedError
+
+
+class RawFieldMetricExpression(MetricsExpression):
+    """
+    Defines a type of MetricExpression that contains a metric_name that is just a string and an
+    op that is just a string
+    """
+
+    def __init__(self, op: str, metric_name: str):
+        self.op = op
+        self.metric_name = metric_name
+
+    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+        return {resolve_weak(org_id_from_projects(projects), self.metric_name)}
+
+    def build_conditional_aggregate_for_metric(self, org_id: int, entity: MetricEntity) -> Function:
+        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
+        return Function(
+            snuba_function,
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), resolve_weak(org_id, self.metric_name)]),
+            ],
+            alias=f"{self.op}({self.metric_name})",
+        )
+
+
+class AliasedFieldMetricExpression(MetricsExpression):
+    """
+    Defines a type of MetricExpression that contains a metric_name that represents an instance of
+    DerivedMetricAlias and an op that is just a string
+    """
+
+    def __init__(self, op: str, metric: DerivedMetricAlias):
+        self.op = op
+        self.metric = metric
+
+    @property
+    def metric_name(self):
+        return self.metric.aliased_name
+
+    def generate_metric_ids(self, projects: Sequence[Project]) -> Set[int]:
+        return {resolve_weak(org_id_from_projects(projects), self.metric.raw_metric_name)}
+
+    def build_conditional_aggregate_for_metric(self, org_id: int, entity: MetricEntity) -> Function:
+        snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
+        return Function(
+            snuba_function,
+            [
+                Column("value"),
+                self.metric.generate_filter_snql_conditions(org_id=org_id),
+            ],
+            alias=f"{self.op}({self.metric_name})",
+        )
+
 
 @dataclass
-class DerivedMetricDefinition:
+class DerivedMetricExpressionDefinition:
     metric_name: str
     metrics: List[str]
     unit: str
@@ -250,7 +316,7 @@ class DerivedMetricDefinition:
     is_private: bool = False
 
 
-class DerivedMetric(DerivedMetricDefinition, MetricFieldBase, ABC):
+class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricsExpressionBase, ABC):
     def _raise_entity_validation_exception(self, func_name: str):
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
@@ -258,7 +324,7 @@ class DerivedMetric(DerivedMetricDefinition, MetricFieldBase, ABC):
         )
 
 
-class SingularEntityDerivedMetric(DerivedMetric):
+class SingularEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)  # type: ignore
         self.result_type = "numeric"
@@ -389,7 +455,7 @@ class SingularEntityDerivedMetric(DerivedMetric):
         return result
 
 
-class CompositeEntityDerivedMetric(DerivedMetric):
+class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)  # type: ignore
         self.result_type = "numeric"
@@ -430,7 +496,7 @@ class CompositeEntityDerivedMetric(DerivedMetric):
     def __recursively_generate_singular_entity_constituents(
         cls,
         projects: Optional[Sequence[Project]],
-        derived_metric_obj: DerivedMetric,
+        derived_metric_obj: DerivedMetricExpression,
         is_naive: bool = False,
     ) -> Dict[MetricEntity, Sequence[str]]:
         entities_and_metric_names = {}
@@ -548,6 +614,7 @@ class DerivedMetricKey(Enum):
     SESSION_HEALTHY_USER = "session.healthy_user"
     SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
     SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
+    SESSION_DURATION = "session.duration"
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -705,7 +772,19 @@ DERIVED_METRICS = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
+DERIVED_ALIASES = {
+    derived_alias.aliased_name: derived_alias
+    for derived_alias in [
+        DerivedMetricAlias(
+            aliased_name=DerivedMetricKey.SESSION_DURATION.value,
+            raw_metric_name=SessionMetricKey.SESSION_DURATION.value,
+            filters=lambda *_, org_id: session_duration_filters(org_id),
+        )
+    ]
+}
+
+
+def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     # This function is only used in the query builder, only after func `parse_field` validates
     # that no private derived metrics are required. The query builder requires access to all
@@ -713,10 +792,8 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBas
     # private constituents
     derived_metrics = get_derived_metrics(exclude_private=False)
     if metric_name in derived_metrics:
-        instance = derived_metrics[metric_name]
-    else:
-        instance = RawAggregatedMetric(op=op, metric_name=metric_name)
-    return instance
+        return derived_metrics[metric_name]
+    return MetricsExpression.from_dict(op=op, metric_name=metric_name)
 
 
 def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
