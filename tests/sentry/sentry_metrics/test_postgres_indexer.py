@@ -1,7 +1,12 @@
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.indexer.postgres_v2 import KeyCollection, PGStringIndexerV2
+from sentry.sentry_metrics.indexer.postgres_v2 import (
+    KeyCollection,
+    KeyResult,
+    KeyResults,
+    PGStringIndexerV2,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -94,8 +99,6 @@ class KeyCollectionTest(TestCase):
 
         assert collection.as_tuples() == []
         assert collection.as_strings() == []
-        assert collection.get_mapped_key_strings_to_ints() == {}
-        assert collection.get_mapped_results() == {}
 
     def test_basic(self) -> None:
         org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}}
@@ -108,35 +111,47 @@ class KeyCollectionTest(TestCase):
         assert list(collection.as_tuples()).sort() == collection_tuples.sort()
         assert list(collection.as_strings()).sort() == collection_strings.sort()
 
-        assert collection.get_mapped_key_strings_to_ints() == {}
-        assert collection.get_mapped_results() == {}
-        assert collection.get_unmapped_keys().mapping == org_strings
 
-        collection.add_key_result((1, "a"), 10)
+class KeyResultsTest(TestCase):
+    def test_basic(self) -> None:
+        key_results = KeyResults()
 
-        assert list(collection.as_tuples()).sort() == collection_tuples.sort()
-        assert list(collection.as_strings()).sort() == collection_strings.sort()
+        assert key_results.results == {}
+        assert key_results.get_mapped_results() == {}
+        assert key_results.get_mapped_key_strings_to_ints() == {}
 
-        assert collection.get_mapped_key_strings_to_ints() == {"1:a": 10}
-        assert collection.get_mapped_results() == {1: {"a": 10}}
+        org_strings = {1: {"a", "b", "c"}, 2: {"e", "f"}}
+        collection = KeyCollection(org_strings)
 
-        assert collection.get_unmapped_keys().mapping == {1: {"b", "c"}, 2: {"e", "f"}}
+        assert key_results.get_unmapped_keys(collection).mapping == org_strings
 
-        collection.add_key_result((1, "b"), 11)
-        collection.add_key_result((1, "c"), 12)
-        collection.add_key_result((2, "e"), 13)
-        collection.add_key_result((2, "f"), 14)
+        key_result = KeyResult(1, "a", 10)
+        key_results.add_key_results([key_result])
 
-        assert collection.get_mapped_key_strings_to_ints() == {
+        assert key_results.get_mapped_key_strings_to_ints() == {"1:a": 10}
+        assert key_results.get_mapped_results() == {1: {"a": 10}}
+
+        assert key_results.get_unmapped_keys(collection).mapping == {1: {"b", "c"}, 2: {"e", "f"}}
+
+        key_result_list = [
+            KeyResult(1, "a", 10),
+            KeyResult(1, "b", 11),
+            KeyResult(1, "c", 12),
+            KeyResult(2, "e", 13),
+            KeyResult(2, "f", 14),
+        ]
+        key_results.add_key_results(key_result_list)
+
+        assert key_results.get_mapped_key_strings_to_ints() == {
             "1:a": 10,
             "1:b": 11,
             "1:c": 12,
             "2:e": 13,
             "2:f": 14,
         }
-        assert collection.get_mapped_results() == {
+        assert key_results.get_mapped_results() == {
             1: {"a": 10, "b": 11, "c": 12},
             2: {"e": 13, "f": 14},
         }
 
-        assert collection.get_unmapped_keys().mapping == {}
+        assert key_results.get_unmapped_keys(collection).mapping == {}

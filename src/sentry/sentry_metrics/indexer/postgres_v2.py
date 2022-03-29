@@ -1,7 +1,19 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import reduce
 from operator import or_
-from typing import Any, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from django.db.models import Q
 
@@ -42,47 +54,67 @@ class KeyCollection:
     can be used for the next step in getting those ids.
     """
 
-    def __init__(self, mapping: MutableMapping[int, Set[str]]):
+    def __init__(self, mapping: Mapping[int, Set[str]]):
         self.mapping = mapping
-        self.results: MutableMapping[int, MutableMapping[str, int]] = {}
 
-    def as_tuples(self) -> Sequence[Tuple[int, str]]:
+    def as_tuples(self) -> MutableSequence[Tuple[int, str]]:
         """
         Returns all the keys, each key represented as tuple -> (1, "a")
         """
-        key_pairs: Sequence[Tuple[int, str]] = []
+        key_pairs: MutableSequence[Tuple[int, str]] = []
         for org_id in self.mapping:
             key_pairs.extend([(org_id, string) for string in self.mapping[org_id]])
 
         return key_pairs
 
-    def as_strings(self) -> Sequence[str]:
+    def as_strings(self) -> MutableSequence[str]:
         """
         Returns all the keys, each key represented as string -> "1:a"
         """
-        keys: Sequence[str] = []
+        keys: MutableSequence[str] = []
         for org_id in self.mapping:
             keys.extend([f"{org_id}:{string}" for string in self.mapping[org_id]])
 
         return keys
 
-    def add_key_result(self, key_pair: Tuple[int, str], result: int) -> None:
-        """
-        For a given key, add the id to the results.
-        """
-        org_id, string = key_pair
-        try:
-            self.results[org_id][string] = result
-        except KeyError:
-            self.results[org_id] = {string: result}
 
-    def get_unmapped_keys(self):
+KR = TypeVar("KR", bound="KeyResult")
+
+
+@dataclass(frozen=True)
+class KeyResult:
+    org_id: int
+    string: str
+    id: int
+
+    @classmethod
+    def from_string(cls: Type[KR], key: str, id: int) -> KR:
+        org_id, string = key.split(":")
+        return cls(int(org_id), string, id)
+
+
+class KeyResults:
+    def __init__(self) -> None:
+        self.results: MutableMapping[int, MutableMapping[str, int]] = {}
+
+    def add_key_results(self, key_results: Sequence[KeyResult]) -> None:
+        for key_result in key_results:
+            try:
+                self.results[key_result.org_id][key_result.string] = key_result.id
+            except KeyError:
+                self.results[key_result.org_id] = {key_result.string: key_result.id}
+
+    def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
+        return self.results
+
+    def get_unmapped_keys(self, keys: KeyCollection) -> KeyCollection:
         """
-        Return a new KeyCollection for any keys that don't have corresponding
+        Takes a KeyCollection and compares it to the results. Returns
+        a new KeyCollection for any keys that don't have corresponding
         ids in results.
         """
         unmapped_org_strings: MutableMapping[int, Set[str]] = defaultdict(set)
-        for org_id, strings in self.mapping.items():
+        for org_id, strings in keys.mapping.items():
             for string in strings:
                 try:
                     self.results[org_id][string]
@@ -90,12 +122,6 @@ class KeyCollection:
                     unmapped_org_strings[org_id].add(string)
 
         return KeyCollection(unmapped_org_strings)
-
-    def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
-        """
-        Return the results.
-        """
-        return self.results
 
     def get_mapped_key_strings_to_ints(self) -> MutableMapping[str, int]:
         """
@@ -141,61 +167,49 @@ class PGStringIndexerV2(Service):
         """
         TODO(meredith): add doc string
         """
-        mapped_results: MutableMapping[int, MutableMapping[str, int]] = {}
-
         cache_keys = KeyCollection(org_strings)
-
-        # Step 1: Lookup ids in the cache and add them to the
-        # cache KeyCollection results.
-        cache_hits = 0
-        cache_misses = 0
         cache_key_strs = cache_keys.as_strings()
         cache_results = indexer_cache.get_many(cache_key_strs)
-        for cache_key in cache_key_strs:
-            result = cache_results.get(cache_key)
-            org_id, string = cache_key.split(":")
-            if result:
-                cache_keys.add_key_result((int(org_id), string), result)
-                cache_hits += 1
-            else:
-                cache_misses += 1
 
+        hits = [k for k, v in cache_results.items() if v is not None]
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "true", "caller": "get_many_ids"},
-            amount=cache_hits,
+            amount=len(hits),
         )
         metrics.incr(
             _INDEXER_CACHE_METRIC,
             tags={"cache_hit": "false", "caller": "get_many_ids"},
-            amount=cache_misses,
+            amount=len(cache_results) - len(hits),
         )
-        mapped_results.update(cache_keys.get_mapped_results())
 
-        db_read_keys = cache_keys.get_unmapped_keys()
+        cache_key_results = KeyResults()
+        cache_key_results.add_key_results(
+            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None]
+        )
+
+        mapped_results = cache_key_results.get_mapped_results()
+        db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if not db_read_keys.as_strings():
             return mapped_results
 
-        # Step 2: Lookup ids in the db and add them to the
-        # db_read KeyCollection results.
-        for db_obj in self._get_db_records(db_read_keys):
-            db_read_keys.add_key_result((db_obj.organization_id, db_obj.string), db_obj.id)
+        db_read_key_results = KeyResults()
+        db_read_key_results.add_key_results(
+            [
+                KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
+                for db_obj in self._get_db_records(db_read_keys)
+            ]
+        )
+        new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
 
-        db_read_key_results = db_read_keys.get_mapped_results()
-
-        if len(db_read_key_results.keys()) > 0:
-            results_to_cache = db_read_keys.get_mapped_key_strings_to_ints()
-            indexer_cache.set_many(results_to_cache)
-            mapped_results.update(db_read_key_results)
-
-        db_write_keys = db_read_keys.get_unmapped_keys()
+        mapped_results.update(db_read_key_results.get_mapped_results())
+        db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
         if not db_write_keys.as_strings():
+            indexer_cache.set_many(new_results_to_cache)
             return mapped_results
 
-        # Step 3: Create new records in the db and add them to the
-        # db_write KeyCollection results.
         new_records = []
         for write_pair in db_write_keys.as_tuples():
             organization_id, string = write_pair
@@ -209,15 +223,18 @@ class PGStringIndexerV2(Service):
             # attempt to create the rows down below.
             StringIndexerTable.objects.bulk_create(new_records, ignore_conflicts=True)
 
-        for db_obj in self._get_db_records(db_write_keys):
-            db_write_keys.add_key_result((db_obj.organization_id, db_obj.string), db_obj.id)
+        db_write_key_results = KeyResults()
+        db_write_key_results.add_key_results(
+            [
+                KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
+                for db_obj in self._get_db_records(db_write_keys)
+            ]
+        )
 
-        db_write_key_results = db_write_keys.get_mapped_results()
+        new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
+        indexer_cache.set_many(new_results_to_cache)
 
-        if len(db_write_key_results) > 0:
-            results_to_cache = db_write_keys.get_mapped_key_strings_to_ints()
-            indexer_cache.set_many(results_to_cache)
-            mapped_results.update(db_write_key_results)
+        mapped_results.update(db_write_key_results.get_mapped_results())
 
         return mapped_results
 
