@@ -48,9 +48,13 @@ export function WorldMapChart({
   const theme = useTheme();
 
   const codeToCountryMap = useMemo(() => {
+    const countryMaps: Record<string, string> = {};
+
     for (const country in worldMap) {
-      codeToCountryMap[countryToCodeMap[country]] = country;
+      countryMaps[countryToCodeMap[country]] = country;
     }
+
+    return countryMaps;
   }, []);
 
   useEffect(() => {
