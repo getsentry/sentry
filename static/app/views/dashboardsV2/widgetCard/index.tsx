@@ -263,7 +263,7 @@ const WidgetTitle = styled(HeaderTitle)`
 `;
 
 const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(1)} 0 ${space(3)};
   width: 100%;
   display: flex;
   align-items: center;
