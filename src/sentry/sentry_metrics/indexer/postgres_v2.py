@@ -50,7 +50,7 @@ class KeyCollection:
             total_size += len(self.mapping[org_id])
         return total_size
 
-    def as_tuples(self) -> Sequence[Tuple[int, str]]:
+    def as_tuples(self) -> MutableSequence[Tuple[int, str]]:
         """
         Returns all the keys, each key represented as tuple -> (1, "a")
         """
@@ -60,7 +60,7 @@ class KeyCollection:
 
         return key_pairs
 
-    def as_strings(self) -> Sequence[str]:
+    def as_strings(self) -> MutableSequence[str]:
         """
         Returns all the keys, each key represented as string -> "1:a"
         """
