@@ -12,7 +12,6 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
 import {defined, toTitleCase} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
@@ -75,7 +74,6 @@ class SeenInfo extends React.Component<Props> {
             )
           }
           position="top"
-          tipColor={theme.gray500}
         >
           <DateWrapper>
             {date ? (
@@ -151,7 +149,6 @@ const TooltipWrapper = styled('span')`
 `;
 
 const TimeSinceWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(0.5)};
   display: flex;
   justify-content: space-between;
@@ -163,14 +160,9 @@ const StyledTimeSince = styled(TimeSince)`
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
-  font-weight: normal;
-  border: 1px solid ${p => p.theme.gray500};
-  background: ${p => p.theme.gray500};
   ${Header} {
     font-weight: normal;
-    color: ${p => p.theme.white};
-    background: ${p => p.theme.gray500};
-    border-bottom: 1px solid ${p => p.theme.gray400};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {
     padding: ${space(1.5)};
