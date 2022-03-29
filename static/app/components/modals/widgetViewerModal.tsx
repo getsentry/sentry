@@ -338,7 +338,7 @@ function WidgetViewerModal(props: Props) {
                     period: null,
                   },
                 });
-                router.replace({
+                router.push({
                   pathname: location.pathname,
                   query: {
                     ...location.query,
