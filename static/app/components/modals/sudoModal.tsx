@@ -10,6 +10,7 @@ import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import Hook from 'sentry/components/hook';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -41,13 +42,6 @@ type State = {
   superuserAccessCategory: string;
   superuserReason: string;
 };
-
-enum ErrorCodes {
-  invalidPassword = 'Incorrect password',
-  invalidSSOSession = 'Your SSO Session has expired, please reauthnticate',
-  invalidAccessCategory = 'Please fill out the access category and reason correctly',
-  unknownError = 'An error ocurred, please try again',
-}
 
 class SudoModal extends React.Component<Props, State> {
   state: State = {
