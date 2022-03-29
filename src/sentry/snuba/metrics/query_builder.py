@@ -29,8 +29,11 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import DERIVED_METRICS, DerivedMetric, metric_object_factory
-from sentry.snuba.metrics.fields.base import generate_bottom_up_dependency_tree_for_metrics
+from sentry.snuba.metrics.fields import DerivedMetric, metric_object_factory
+from sentry.snuba.metrics.fields.base import (
+    generate_bottom_up_dependency_tree_for_metrics,
+    get_derived_metrics,
+)
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -39,6 +42,7 @@ from sentry.snuba.metrics.utils import (
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
+    UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     TimeRange,
@@ -54,21 +58,22 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> Tuple[Optional[str], str]:
+    derived_metrics = get_derived_metrics(exclude_private=True)
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
         operation = matches[1]
         metric_name = matches[2]
-        if metric_name in DERIVED_METRICS and isinstance(
-            DERIVED_METRICS[metric_name], DerivedMetric
+        if metric_name in derived_metrics and isinstance(
+            derived_metrics[metric_name], DerivedMetric
         ):
             raise DerivedMetricParseException(
                 f"Failed to parse {field}. No operations can be applied on this field as it is "
                 f"already a derived metric with an aggregation applied to it."
             )
     except (IndexError, TypeError):
-        if field in DERIVED_METRICS and isinstance(DERIVED_METRICS[field], DerivedMetric):
+        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetric):
             # The isinstance check is there to foreshadow adding raw metric aliases
             return None, field
         raise InvalidField(
@@ -122,7 +127,9 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
-    # Todo(ahmed): Check against `session.status` that was decided not to be supported
+    for unallowed_tag in UNALLOWED_TAGS:
+        if f"{unallowed_tag}:" in query_string:
+            raise InvalidParams(f"Tag name {unallowed_tag} is not a valid query filter")
     try:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
@@ -317,13 +324,15 @@ class SnubaQueryBuilder:
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        # ToDo ensure we cannot add any other cols than tags and groupBy as columns
-        return [
-            Column(resolve_tag_key(field))
-            if field not in ALLOWED_GROUPBY_COLUMNS
-            else Column(field)
-            for field in query_definition.groupby
-        ]
+        groupby_cols = []
+        for field in query_definition.groupby:
+            if field in UNALLOWED_TAGS:
+                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
+            if field in ALLOWED_GROUPBY_COLUMNS:
+                groupby_cols.append(Column(field))
+            else:
+                groupby_cols.append(Column(resolve_tag_key(field)))
+        return groupby_cols
 
     def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:

@@ -99,27 +99,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "unit": "percentage",
             },
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
-            {
-                "name": "session.crashed_and_abnormal_user",
-                "operations": [],
-                "type": "numeric",
-                "unit": "users",
-            },
             {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
-                "name": "session.errored_preaggregated",
-                "type": "numeric",
-                "operations": [],
-                "unit": "sessions",
-            },
-            {
                 "name": "session.errored_user",
-                "type": "numeric",
-                "operations": [],
-                "unit": "users",
-            },
-            {
-                "name": "session.errored_user_all",
                 "type": "numeric",
                 "operations": [],
                 "unit": "users",
@@ -159,7 +141,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         assert response.data == self.session_metrics_meta
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_metrics_index_invalid_derived_metric(self):
+    def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
         for errors, minute in [(0, 0), (2, 1)]:
             self.store_session(
                 self.build_session(
@@ -182,7 +164,13 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "unit": None,
                 },
                 {
-                    "name": "session.errored_set",
+                    "name": "session.errored",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "sessions",
+                },
+                {
+                    "name": "session.healthy",
                     "type": "numeric",
                     "operations": [],
                     "unit": "sessions",

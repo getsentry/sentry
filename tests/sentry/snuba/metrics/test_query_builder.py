@@ -17,7 +17,6 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
-    Or,
     OrderBy,
     Query,
 )
@@ -86,21 +85,12 @@ def get_entity_of_metric_mocked(_, metric_name):
             ],
         ),
         (
-            "release:myapp@2.0.0 and environment:production or session.status:healthy",
+            "release:myapp@2.0.0 and environment:production",
             [
-                Or(
+                And(
                     [
-                        And(
-                            [
-                                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
-                                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
-                            ]
-                        ),
-                        Condition(
-                            Column(name="tags[8]"),
-                            Op.EQ,
-                            rhs=4,
-                        ),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
@@ -115,6 +105,19 @@ def test_parse_query(monkeypatch, query_string, expected):
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(parse_query(query_string))
     assert parsed == expected
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        "release:myapp@2.0.0 or session.status:init",
+        "release:myapp@2.0.0 and environment:production or session.status:healthy",
+        "session.status:crashed",
+    ],
+)
+def test_parse_query_invalid(query_string):
+    with pytest.raises(InvalidParams):
+        parse_query(query_string)
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -192,7 +195,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
             "query": [
                 "release:staging"
             ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["session.status", "environment"],
+            "groupBy": ["environment"],
             "field": [
                 "sum(sentry.sessions.session)",
                 "count_unique(sentry.sessions.user)",
@@ -220,7 +223,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     alias=f"{alias}({metric_name})",
                 )
             ],
-            groupby=[Column("tags[8]"), Column("tags[2]")] + extra_groupby,
+            groupby=[Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
@@ -397,7 +400,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "query": [
                 "release:staging"
             ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["session.status", "environment"],
+            "groupBy": ["environment"],
             "field": [
                 "sum(sentry.sessions.session)",
             ],
@@ -425,7 +428,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[8]"),
             Column("tags[2]"),
         ],
         where=[
@@ -446,7 +448,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[8]"),
             Column("tags[2]"),
             Column("bucketed_time"),
         ],

@@ -30,6 +30,7 @@ import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
+  getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
@@ -362,8 +363,9 @@ function WidgetBuilder({
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
-              query.columns = [...defaultWidgetQuery.columns];
-              query.aggregates = [...defaultWidgetQuery.aggregates];
+              const tableQuery = getColumnsAndAggregates(defaultTableColumns);
+              query.columns = [...tableQuery.columns];
+              query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
             });
           } else if (newDisplayType === displayType) {
@@ -489,11 +491,8 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
-      const descending = query.orderby.startsWith('-');
+    const newQueries = state.queries.map(query => {
+      const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
@@ -501,13 +500,23 @@ function WidgetBuilder({
       if (isColumn) {
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+      } else if (state.displayType === DisplayType.TOP_N) {
+        // Top N queries use n-1 fields for columns and the nth field for y-axis
+        newQuery.fields = [
+          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
+          ...fieldStrings,
+        ];
+        newQuery.aggregates = [
+          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
+          ...fieldStrings,
+        ];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;
       }
 
+      // Prevent overwriting columns when setting y-axis for time series
       if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        // Prevent overwriting columns when setting y-axis for time series
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
@@ -522,7 +531,7 @@ function WidgetBuilder({
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
             ];
 
-          if (descending) {
+          if (isDescending) {
             newQuery.orderby = `-${newOrderByValue}`;
           } else {
             newQuery.orderby = newOrderByValue;
@@ -532,9 +541,10 @@ function WidgetBuilder({
         }
       }
 
-      set(newState, `queries.${queryIndex}`, newQuery);
-    }
+      return newQuery;
+    });
 
+    set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
@@ -870,8 +880,6 @@ function WidgetBuilder({
                         handleYAxisOrColumnFieldChange(newFields, true);
                       }}
                       explodedFields={explodedFields}
-                      explodedColumns={explodedColumns}
-                      explodedAggregates={explodedAggregates}
                       tags={tags}
                       organization={organization}
                     />
