@@ -28,7 +28,6 @@ from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
 from .email import *  # NOQA
-from .email_pg14 import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
 from .eventattachment import *  # NOQA
