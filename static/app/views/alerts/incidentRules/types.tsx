@@ -21,6 +21,8 @@ export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   SESSIONS = 'sessions',
+  /** Also used for crash free alerts */
+  METRICS = 'metrics',
 }
 
 export enum EventTypes {

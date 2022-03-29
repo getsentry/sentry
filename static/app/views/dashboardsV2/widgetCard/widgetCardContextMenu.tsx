@@ -191,7 +191,7 @@ function WidgetCardContextMenu({
           priority="link"
           size="zero"
           icon={<IconExpand size="xs" />}
-          onClick={() => openWidgetViewerPath(widget.id)}
+          onClick={() => openWidgetViewerPath(widget.id ?? index)}
         />
       )}
     </ContextWrapper>

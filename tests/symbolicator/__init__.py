@@ -1,4 +1,5 @@
 import os
+import re
 
 from sentry.utils.safe import get_path
 
@@ -26,12 +27,41 @@ def strip_frame(frame):
     return frame
 
 
+NORMALIZED_REGISTERS = {}
+
+
+def normalize_register(name):
+    return NORMALIZED_REGISTERS.get(name, name)
+
+
 def strip_stacktrace(stacktrace):
     if stacktrace:
         stacktrace = dict(stacktrace)
         stacktrace["frames"] = [strip_frame(x) for x in stacktrace.get("frames") or ()]
+        try:
+            stacktrace["registers"] = {
+                normalize_register(k): v for k, v in stacktrace["registers"].items()
+            }
+        except KeyError:
+            pass
 
     return stacktrace
+
+
+STRIP_TRAILING_ADDR_RE = re.compile(" ?/ 0x[0-9a-fA-F]+$")
+
+
+def strip_trailing_addr(value):
+    return STRIP_TRAILING_ADDR_RE.sub("", value)
+
+
+def normalize_exception(exc):
+    if exc:
+        exc = dict(exc)
+        exc["type"] = strip_trailing_addr(exc["type"])
+        exc["value"] = strip_trailing_addr(exc["value"])
+
+    return exc
 
 
 def strip_stacktrace_container(container):
@@ -51,7 +81,7 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
             "stacktrace": strip_stacktrace(event.get("stacktrace")),
             "exception": {
                 "values": [
-                    strip_stacktrace_container(x)
+                    normalize_exception(strip_stacktrace_container(x))
                     for x in get_path(event, "exception", "values") or ()
                 ]
             },

@@ -30,9 +30,9 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([], false, null);
-
   beforeEach(function () {
+    TeamStore.init();
+    TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
@@ -54,6 +54,7 @@ describe('ProjectAlertsCreate', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    TeamStore.teardown();
   });
 
   const createWrapper = (props = {}, location = {}) => {
@@ -236,102 +237,218 @@ describe('ProjectAlertsCreate', function () {
       );
     });
 
-    it('updates values and saves', async function () {
-      const {router} = createWrapper({
-        organization: {
-          features: ['alert-filters'],
-        },
+    describe('updates and saves', function () {
+      let mock;
+
+      beforeEach(function () {
+        mock = MockApiClient.addMockResponse({
+          url: '/projects/org-slug/project-slug/rules/',
+          method: 'POST',
+          body: TestStubs.ProjectAlertRule(),
+        });
       });
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/rules/',
-        method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+
+      afterEach(function () {
+        jest.clearAllMocks();
       });
 
-      // Change target environment
-      await selectEvent.select(screen.getByText('All Environments'), ['production']);
-
-      // Change actionMatch and filterMatch dropdown
-      const allDropdowns = screen.getAllByText('all');
-      expect(allDropdowns).toHaveLength(2);
-      await selectEvent.select(allDropdowns[0], ['any']);
-      await selectEvent.select(allDropdowns[1], ['any']);
-
-      // `userEvent.paste` isn't really ideal, but since `userEvent.type` doesn't provide good performance and
-      // the purpose of this test is not focused on how the user interacts with the fields,
-      // but rather on whether the form will be saved and updated, we decided use `userEvent.paste`
-      // so that this test does not time out from the default jest value of 5000ms
-
-      // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
-
-      // Add another condition
-      await selectEvent.select(screen.getByText('Add optional condition...'), [
-        "An event's tags match {key} {match} {value}",
-      ]);
-      // Edit new Condition
-      userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
-
-      userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
-      await selectEvent.select(screen.getByText('equals'), ['does not equal']);
-
-      // Add a new filter
-      await selectEvent.select(screen.getByText('Add optional filter...'), [
-        'The issue is {comparison_type} than {value} {time}',
-      ]);
-      userEvent.paste(screen.getByPlaceholderText('10'), '12');
-
-      // Add a new action
-      await selectEvent.select(screen.getByText('Add action...'), [
-        'Send a notification via {service}',
-      ]);
-
-      // Update action interval
-      await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
-
-      userEvent.click(screen.getByText('Save Rule'));
-
-      expect(mock).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          data: {
-            actionMatch: 'any',
-            filterMatch: 'any',
-            actions: [
-              {
-                id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-                service: 'mail',
-              },
-            ],
-            conditions: [
-              {
-                id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-                key: 'conditionKey',
-                match: 'ne',
-                value: 'conditionValue',
-              },
-            ],
-            filters: [
-              {
-                id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-                comparison_type: 'older',
-                time: 'minute',
-                value: '12',
-              },
-            ],
-            environment: 'production',
-            frequency: '60',
-            name: 'My Rule Name',
-            owner: null,
+      it('environment, action and filter match', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
           },
-        })
-      );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+        });
 
-      await waitFor(() => {
-        expect(router.push).toHaveBeenCalledWith({
-          pathname: '/organizations/org-slug/alerts/rules/',
-          query: {project: '2'},
+        // Change target environment
+        await selectEvent.select(screen.getByText('All Environments'), ['production']);
+
+        // Change actionMatch and filterMatch dropdown
+        const allDropdowns = screen.getAllByText('all');
+        expect(allDropdowns).toHaveLength(2);
+        await selectEvent.select(allDropdowns[0], ['any']);
+        await selectEvent.select(allDropdowns[1], ['any']);
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'any',
+              filterMatch: 'any',
+              conditions: [],
+              actions: [],
+              filters: [],
+              environment: 'production',
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new condition', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+        // Add another condition
+        await selectEvent.select(screen.getByText('Add optional condition...'), [
+          "An event's tags match {key} {match} {value}",
+        ]);
+        // Edit new Condition
+        userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
+        userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
+        await selectEvent.select(screen.getByText('equals'), ['does not equal']);
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              filterMatch: 'all',
+              conditions: [
+                {
+                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+                  key: 'conditionKey',
+                  match: 'ne',
+                  value: 'conditionValue',
+                },
+              ],
+              actions: [],
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new filter', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+        // Add a new filter
+        await selectEvent.select(screen.getByText('Add optional filter...'), [
+          'The issue is {comparison_type} than {value} {time}',
+        ]);
+        userEvent.paste(screen.getByPlaceholderText('10'), '12');
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              filterMatch: 'all',
+              filters: [
+                {
+                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                  comparison_type: 'older',
+                  time: 'minute',
+                  value: '12',
+                },
+              ],
+              actions: [],
+              conditions: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
+        });
+      });
+
+      it('new action', async function () {
+        const wrapper = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
+
+        // Change name of alert rule
+        userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+
+        // Add a new action
+        await selectEvent.select(screen.getByText('Add action...'), [
+          'Send a notification via {service}',
+        ]);
+
+        // Update action interval
+        await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
+
+        userEvent.click(screen.getByText('Save Rule'));
+
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              filterMatch: 'all',
+              actions: [
+                {
+                  id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+                  service: 'mail',
+                },
+              ],
+              conditions: [],
+              filters: [],
+              frequency: '60',
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+        await waitFor(() => {
+          expect(wrapper.router.push).toHaveBeenCalledWith({
+            pathname: '/organizations/org-slug/alerts/rules/',
+            query: {project: '2'},
+          });
         });
       });
     });
