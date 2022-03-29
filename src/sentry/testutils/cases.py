@@ -382,7 +382,29 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, TestCase):
-    pass
+    @pytest.fixture(autouse=True)
+    def _require_db_usage(self, monkeypatch):
+        # Ensure that testcases that ask for DB setup actually make use of the
+        # DB. If they don't, they're wasting CI time.
+        from django.db.backends.base.base import BaseDatabaseWrapper
+
+        real_ensure_connection = BaseDatabaseWrapper.ensure_connection
+
+        used_db = False
+
+        def ensure_connection(*args, **kwargs):
+            nonlocal used_db
+            used_db = True
+            return real_ensure_connection(*args, **kwargs)
+
+        monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
+
+        yield
+
+        if not used_db:
+            pytest.fail(
+                "did not use DB! Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for those kinds of tests."
+            )
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
