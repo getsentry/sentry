@@ -77,7 +77,7 @@ class MetricAlertDetails extends Component<Props, State> {
 
   getTimePeriod(selectedIncident: Incident | null): TimePeriodType {
     const {location} = this.props;
-    const period = (location.query.period as string) ?? TimePeriod.SEVEN_DAYS;
+    const period = (location.query.period as string) ?? TimePeriod.FOURTEEN_DAYS;
 
     if (location.query.start && location.query.end) {
       return {
