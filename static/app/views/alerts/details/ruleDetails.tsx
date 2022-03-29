@@ -217,12 +217,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               crumbs={[
                 {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
                 {
-                  label: (
-                    <div>
-                      {t('Alert Rule')}
-                      <FeatureBadge type="beta" />
-                    </div>
-                  ),
+                  label: rule.name,
                   to: null,
                 },
               ]}
