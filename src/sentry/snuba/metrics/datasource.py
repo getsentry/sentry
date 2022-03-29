@@ -33,6 +33,7 @@ from sentry.snuba.metrics.query_builder import (
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
     METRIC_TYPE_TO_ENTITY,
+    UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
     MetricMeta,
@@ -306,7 +307,11 @@ def _fetch_tags_or_values_per_ids(
         ]
         tags_or_values.sort(key=lambda tag: (tag["key"], tag["value"]))
     else:
-        tags_or_values = [{"key": reverse_resolve(tag_id)} for tag_id in tag_or_value_ids]
+        tags_or_values = [
+            {"key": reversed_tag}
+            for tag_id in tag_or_value_ids
+            if (reversed_tag := reverse_resolve(tag_id)) not in UNALLOWED_TAGS
+        ]
         tags_or_values.sort(key=itemgetter("key"))
 
     if metric_names and len(metric_names) == 1:
@@ -367,6 +372,9 @@ def get_tag_values(
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
     assert projects
+
+    if tag_name in UNALLOWED_TAGS:
+        raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
 
     tag_id = indexer.resolve(tag_name)
     if tag_id is None:
