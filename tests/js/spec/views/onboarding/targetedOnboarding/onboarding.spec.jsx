@@ -24,7 +24,6 @@ describe('Onboarding', function () {
     );
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
-    expect(screen.getByLabelText('Explore')).toBeInTheDocument();
   });
 });
 it('renders the setup docs step', function () {
