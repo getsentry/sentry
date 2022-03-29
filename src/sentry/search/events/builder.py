@@ -153,14 +153,19 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
-        self.where, self.having = self.resolve_conditions(
-            query, use_aggregate_conditions=use_aggregate_conditions
-        )
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
-        self.orderby = self.resolve_orderby(orderby)
-        self.groupby = self.resolve_groupby()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby()
 
     def load_config(
         self,

@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence
 
+import sentry_sdk
 from snuba_sdk import AliasedExpression
 
 from sentry.discover.arithmetic import categorize_columns
@@ -15,19 +16,20 @@ def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
 
-    for column in metrics_query.columns:
-        if (
-            isinstance(column, AliasedExpression)
-            and column.exp.subscriptable == "tags"
-            and column.alias
-        ):
-            tags.append(column.alias)
+    with sentry_sdk.start_span(op="mep", description="resolve_tags"):
+        for column in metrics_query.columns:
+            if (
+                isinstance(column, AliasedExpression)
+                and column.exp.subscriptable == "tags"
+                and column.alias
+            ):
+                tags.append(column.alias)
 
-    for tag in tags:
-        for row in results["data"]:
-            row[tag] = indexer.reverse_resolve(row[tag])
-        if tag in results["meta"]:
-            results["meta"][tag] = "string"
+        for tag in tags:
+            for row in results["data"]:
+                row[tag] = indexer.reverse_resolve(row[tag])
+            if tag in results["meta"]:
+                results["meta"][tag] = "string"
 
     return results
 
@@ -70,19 +72,22 @@ def query(
                 limit=limit,
                 offset=offset,
             )
-            # Getting the 0th result for now, will need to consolidate multiple query results later
-            results = metrics_query.run_query(referrer + ".metrics-enhanced")
-            results = discover.transform_results(
-                results, metrics_query.function_alias_map, {}, None
-            )
-            results = resolve_tags(results, metrics_query)
-            results["meta"]["isMetricsData"] = True
-            return results
+            with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+                # Getting the 0th result for now, will need to consolidate multiple query results later
+                results = metrics_query.run_query(referrer + ".metrics-enhanced")
+                results = discover.transform_results(
+                    results, metrics_query.function_alias_map, {}, None
+                )
+                results = resolve_tags(results, metrics_query)
+                results["meta"]["isMetricsData"] = True
+                return results
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery:
+        except IncompatibleMetricsQuery as error:
+            sentry_sdk.set_tag("performance.use_metrics", False)
+            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
