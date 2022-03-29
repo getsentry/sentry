@@ -519,7 +519,7 @@ class ActualMinimap extends React.PureComponent<{
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
 
-    return spans.map(payload => {
+    return spans.map((payload, i) => {
       switch (payload.type) {
         case 'root_span':
         case 'span':
@@ -536,6 +536,7 @@ class ActualMinimap extends React.PureComponent<{
 
           return (
             <MinimapSpanBar
+              key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
                   payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
@@ -549,7 +550,7 @@ class ActualMinimap extends React.PureComponent<{
           const {spanSiblingGrouping} = payload;
 
           return (
-            <MinimapSiblingGroupBar>
+            <MinimapSiblingGroupBar key={`${payload.type}-${i}`}>
               {spanSiblingGrouping?.map(({span}, index) => {
                 const bounds = generateBounds({
                   startTimestamp: span.start_timestamp,
