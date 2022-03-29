@@ -505,13 +505,11 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             {hasPageFilters && (
-              <PageFilterWrapper>
-                <PageFilterBar>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-              </PageFilterWrapper>
+              <ReleasesPageFilterBar>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </ReleasesPageFilterBar>
             )}
 
             <SortAndFilterWrapper>
@@ -591,9 +589,9 @@ const AlertText = styled('div')`
   }
 `;
 
-const PageFilterWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content);
+const ReleasePageFilterBar = styled(PageFilterBar)`
+  width: max-content;
+  max-width: 100%;
   margin-bottom: ${space(1)};
 `;
 
