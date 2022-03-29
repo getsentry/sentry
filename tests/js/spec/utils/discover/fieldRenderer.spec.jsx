@@ -134,16 +134,37 @@ describe('getFieldRenderer', function () {
   it('can render error.handled values', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
-    // Should render the last value.
+    // Should render the same as the filter.
+    // ie. all 1 or null
     let wrapper = mountWithTheme(
       renderer({'error.handled': [0, 1]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [1, 0]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [null, 0]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [0, null]}, {location, organization})
+    );
+    expect(wrapper.text()).toEqual('false');
+
+    wrapper = mountWithTheme(
+      renderer({'error.handled': [null, 1]}, {location, organization})
     );
     expect(wrapper.text()).toEqual('true');
 
     wrapper = mountWithTheme(
-      renderer({'error.handled': [0, 0]}, {location, organization})
+      renderer({'error.handled': [1, null]}, {location, organization})
     );
-    expect(wrapper.text()).toEqual('false');
+    expect(wrapper.text()).toEqual('true');
 
     // null = true for error.handled data.
     wrapper = mountWithTheme(

@@ -719,6 +719,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_metric_condition_dedupe(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p75(transaction.duration)",
+                "p90(transaction.duration)",
+                "p95(transaction.duration)",
+                "p99(transaction.duration)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+            ],
+        )
+
     def test_p100(self):
         """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
         query = MetricsQueryBuilder(
@@ -1573,7 +1593,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             "end": self.end,
         }
 
-        for i in range(5):
+        for i in range(1, 5):
             self.store_metric(
                 100,
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
@@ -1587,7 +1607,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 4 / (3600 / 60)},
+            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
             {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(

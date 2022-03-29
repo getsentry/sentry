@@ -7,6 +7,9 @@ describe('TeamBadge', function () {
   beforeEach(() => {
     TeamStore.init();
   });
+  afterEach(() => {
+    TeamStore.teardown();
+  });
 
   it('renders with Avatar and team name', function () {
     render(<TeamBadge team={TestStubs.Team()} />);

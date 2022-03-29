@@ -123,7 +123,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "type": "numeric",
             "operations": [],
             "unit": "percentage",
-            "tags": [{"key": "environment"}, {"key": "release"}, {"key": "session.status"}],
+            "tags": [{"key": "environment"}, {"key": "release"}],
         }
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
