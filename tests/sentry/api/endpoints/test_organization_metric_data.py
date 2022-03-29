@@ -898,8 +898,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.release_tag = indexer.record(self.organization.id, "release")
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.query_builder.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_derived_metric_incorrectly_defined_as_singular_entity(self):
+    @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
+    def test_derived_metric_incorrectly_defined_as_singular_entity(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -1073,16 +1074,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set", "session.errored"],
+            field=["session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["session.errored_set"] == 3
-        assert group["totals"]["session.errored_preaggregated"] == 4
         assert group["totals"]["session.errored"] == 7
-        assert group["series"]["session.errored_set"] == [0, 0, 0, 0, 0, 3]
-        assert group["series"]["session.errored_preaggregated"] == [0, 4, 0, 0, 0, 0]
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
         response = self.get_success_response(
@@ -1733,3 +1730,21 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy_user"] == 0
         assert group["series"]["session.healthy_user"] == [0]
+
+    def test_request_private_derived_metric(self):
+        for private_name in [
+            "session.crashed_and_abnormal_user",
+            "session.errored_preaggregated",
+            "session.errored_set",
+            "session.errored_user_all",
+        ]:
+            response = self.get_response(
+                self.organization.slug,
+                field=[private_name],
+                statsPeriod="6m",
+                interval="6m",
+            )
+            assert response.data["detail"] == (
+                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
+                "or a supported aggregate derived metric like `session.crash_free_rate"
+            )
