@@ -95,7 +95,6 @@ const organizationNavigation: NavigationSection[] = [
         title: t('Developer Settings'),
         description: t('Manage developer applications'),
         id: 'developer-settings',
-        badge: () => 'new',
       },
     ],
   },

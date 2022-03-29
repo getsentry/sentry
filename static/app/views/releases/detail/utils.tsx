@@ -208,9 +208,10 @@ export function generateReleaseMarkLines(
   const markLines: Series[] = [];
   const adoptionStages = release.adoptionStages?.[project.slug];
   const isSingleEnv = decodeList(location.query.environment).length === 1;
+  const releaseBounds = getReleaseBounds(release);
   const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
     location,
-    releaseBounds: getReleaseBounds(release),
+    releaseBounds,
   });
   let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(
@@ -226,7 +227,10 @@ export function generateReleaseMarkLines(
   }
 
   const releaseCreated = moment(release.dateCreated).startOf('minute');
-  if (releaseCreated.isBetween(start, end) || isDefaultPeriod) {
+  if (
+    releaseCreated.isBetween(start, end) ||
+    (isDefaultPeriod && releaseBounds.type === 'normal')
+  ) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.created,
