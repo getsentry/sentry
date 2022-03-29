@@ -136,7 +136,7 @@ function Onboarding(props: Props) {
             />
           )}
         </AnimatePresence>
-        <Hook name="onboarding:targeted-onboarding-header" />
+        <Hook name="onboarding:targeted-onboarding-header" source="targeted-onboarding" />
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
         <Back

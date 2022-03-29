@@ -9,7 +9,7 @@ describe('OnboardingController', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 1,
+          TargetedOnboardingWelcomePageExperimentV2: 1,
         },
       },
       router: {
@@ -34,7 +34,7 @@ describe('OnboardingController', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 0,
+          TargetedOnboardingWelcomePageExperimentV2: 0,
         },
       },
       router: {
@@ -58,7 +58,7 @@ describe('OnboardingController', function () {
     const {organization, router, routerContext} = initializeOrg({
       organization: {
         experiments: {
-          TargetedOnboardingWelcomePageExperiment: 1,
+          TargetedOnboardingWelcomePageExperimentV2: 1,
         },
       },
       router: {
