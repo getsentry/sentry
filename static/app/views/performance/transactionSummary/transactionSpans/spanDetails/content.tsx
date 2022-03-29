@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -146,11 +147,13 @@ function SpanDetailsContent(props: ContentProps) {
         totalCount={totalCount}
         suspectSpan={suspectSpan}
       />
-      <SpanDetailsSearchBar
-        organization={organization}
-        location={location}
-        eventView={eventView}
-      />
+      <Feature features={['performance-span-histogram-view']}>
+        <SpanDetailsSearchBar
+          organization={organization}
+          location={location}
+          eventView={eventView}
+        />
+      </Feature>
       <SpanChart
         totalCount={transactionCountContainingSpan}
         organization={organization}
