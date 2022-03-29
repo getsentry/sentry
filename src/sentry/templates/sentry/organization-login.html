@@ -34,7 +34,7 @@
   }
   setInterval(function() {
     csrfCookieVal = getCookie('sc')
-    csrfEls = document.getElementsByName('csrfmiddlewaretoken')
+    csrfEls = document.getElementsByName('csrf'+'middleware'+'token')
     if (csrfEls.length == 1 && csrfCookieVal) {
       csrfEls[0].value = csrfCookieVal
     }
