@@ -183,6 +183,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         self,
         environment_id: str | None = None,
         stats_period: str | None = None,
+        expand: Iterable[str] | None = None,
         collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
@@ -190,7 +191,14 @@ class ProjectSerializer(Serializer):  # type: ignore
 
         self.environment_id = environment_id
         self.stats_period = stats_period
+        self.expand = expand
         self.collapse = collapse
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
 
     def _collapse(self, key: str) -> bool:
         if self.collapse is None:
@@ -233,9 +241,9 @@ class ProjectSerializer(Serializer):  # type: ignore
 
             if self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
-                if not self._collapse("transaction_stats"):
+                if self._expand("transaction_stats"):
                     transaction_stats = self.get_stats(project_ids, "event.type:transaction")
-                if not self._collapse("session_stats"):
+                if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}

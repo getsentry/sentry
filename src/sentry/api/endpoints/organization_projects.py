@@ -100,17 +100,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 serialize(list(queryset), request.user, ProjectSummarySerializer(collapse=collapse))
             )
         else:
-            collapse = set(collapse)
-            if not request.GET.get("transactionStats"):
-                collapse.add("transaction_stats")
-            if not request.GET.get("sessionStats"):
-                collapse.add("session_stats")
+            expand = set()
+            if request.GET.get("transactionStats"):
+                expand.add("transaction_stats")
+            if request.GET.get("sessionStats"):
+                expand.add("session_stats")
 
             def serialize_on_result(result):
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
                     stats_period=stats_period,
+                    expand=expand,
                     collapse=collapse,
                 )
                 return serialize(result, request.user, serializer)
