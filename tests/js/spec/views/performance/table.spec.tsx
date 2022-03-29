@@ -271,6 +271,7 @@ describe('Performance > Table', function () {
             'user_misery()',
           ],
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
           per_page: 50,
           project: ['1', '2'],
           query: 'event.type:transaction transaction:/api*',

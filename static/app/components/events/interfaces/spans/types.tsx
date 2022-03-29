@@ -120,7 +120,7 @@ export type EnhancedProcessedSpanType =
       continuingTreeDepths: Array<TreeDepthType>;
       span: SpanType;
       treeDepth: number;
-      type: 'span_group_sibling';
+      type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
@@ -192,3 +192,8 @@ export type TraceBound = {
   traceEndTimestamp: number;
   traceStartTimestamp: number;
 };
+
+export enum GroupType {
+  DESCENDANTS,
+  SIBLINGS,
+}

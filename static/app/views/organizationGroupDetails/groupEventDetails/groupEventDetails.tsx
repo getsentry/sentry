@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 
 import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
 import {Client} from 'sentry/api';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import EventEntries from 'sentry/components/events/eventEntries';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -15,7 +14,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
-import SuggestProjectCTA from 'sentry/components/suggestProjectCTA';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -231,11 +229,6 @@ class GroupEventDetails extends Component<Props, State> {
 
     return (
       <div className={className}>
-        {event && (
-          <ErrorBoundary customComponent={null}>
-            <SuggestProjectCTA event={event} organization={organization} />
-          </ErrorBoundary>
-        )}
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
