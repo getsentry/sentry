@@ -201,7 +201,7 @@ describe('Modals -> WidgetViewerModal', function () {
           }),
         })
       );
-      expect(initialData.router.replace).toHaveBeenCalledWith(
+      expect(initialData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
         })
