@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -132,7 +131,6 @@ function PageLayout(props: Props) {
                   }}
                 />
                 <Layout.Body>
-                  <StyledSdkUpdatesAlert />
                   {defined(error) && (
                     <StyledAlert type="error" icon={<IconFlag size="md" />}>
                       {error}
@@ -168,12 +166,6 @@ export function NoAccess() {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
 `;
 
 const StyledAlert = styled(Alert)`
