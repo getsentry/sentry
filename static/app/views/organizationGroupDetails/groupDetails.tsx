@@ -100,10 +100,12 @@ class GroupDetails extends React.Component<Props, State> {
   componentWillUnmount() {
     GroupStore.reset();
     callIfFunction(this.listener);
-    if (this.interval) {
-      clearInterval(this.interval);
+    if (this.refetchInterval) {
+      window.clearInterval(this.refetchInterval);
     }
   }
+
+  refetchInterval: number | null = null;
 
   get initialState(): State {
     return {
@@ -200,7 +202,10 @@ class GroupDetails extends React.Component<Props, State> {
     if (!hasReprocessingV2Feature) {
       return;
     }
-    this.interval = setInterval(this.refetchGroup, 30000);
+    if (this.refetchInterval) {
+      window.clearInterval(this.refetchInterval);
+    }
+    this.refetchInterval = window.setInterval(this.refetchGroup, 30000);
   }
 
   hasReprocessingV2Feature() {
@@ -422,7 +427,6 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
-  interval: ReturnType<typeof setInterval> | undefined = undefined;
 
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
