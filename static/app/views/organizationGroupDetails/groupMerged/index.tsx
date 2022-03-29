@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as qs from 'query-string';
 
@@ -115,36 +115,34 @@ class GroupMergedView extends Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
-      <Fragment>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Alert type="warning">
-              {t(
-                'This is an experimental feature. Data may not be immediately available while we process unmerges.'
-              )}
-            </Alert>
-
-            {isLoading && <LoadingIndicator />}
-            {isError && (
-              <LoadingError
-                message={t('Unable to load merged events, please try again later')}
-                onRetry={this.fetchData}
-              />
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process unmerges.'
             )}
+          </Alert>
 
-            {isLoadedSuccessfully && (
-              <MergedList
-                project={project}
-                fingerprints={mergedItems}
-                pageLinks={mergedLinks}
-                groupId={groupId}
-                onUnmerge={this.handleUnmerge}
-                onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
-              />
-            )}
-          </Layout.Main>
-        </Layout.Body>
-      </Fragment>
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <LoadingError
+              message={t('Unable to load merged events, please try again later')}
+              onRetry={this.fetchData}
+            />
+          )}
+
+          {isLoadedSuccessfully && (
+            <MergedList
+              project={project}
+              fingerprints={mergedItems}
+              pageLinks={mergedLinks}
+              groupId={groupId}
+              onUnmerge={this.handleUnmerge}
+              onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
+            />
+          )}
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }
