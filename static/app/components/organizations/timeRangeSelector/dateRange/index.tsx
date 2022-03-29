@@ -79,6 +79,11 @@ type Props = WithRouterProps & {
   showTimePicker?: boolean;
 
   /**
+   * Should we have the option to hide UTC?
+   */
+  hideUTCPicker?: boolean;
+
+  /**
    * Use UTC
    */
   utc?: boolean | null;
@@ -177,7 +182,7 @@ class BaseDateRange extends React.Component<Props, State> {
   };
 
   render() {
-    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, theme} =
+    const {className, maxPickableDays, utc, showTimePicker, hideUTCPicker, onChangeUtc, theme} =
       this.props;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
@@ -229,7 +234,7 @@ class BaseDateRange extends React.Component<Props, State> {
               onChangeStart={this.handleChangeStart}
               onChangeEnd={this.handleChangeEnd}
             />
-            <UtcPicker>
+            {!hideUTCPicker && (<UtcPicker>
               {t('Use UTC')}
               <Checkbox
                 onChange={onChangeUtc}
@@ -238,7 +243,7 @@ class BaseDateRange extends React.Component<Props, State> {
                   margin: '0 0 0 0.5em',
                 }}
               />
-            </UtcPicker>
+            </UtcPicker>)}
           </TimeAndUtcPicker>
         )}
       </div>

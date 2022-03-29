@@ -159,6 +159,11 @@ type Props = WithRouterProps & {
    * Show the pin button in the dropdown's header actions
    */
   showPin?: boolean;
+
+  /**
+   * Option to hide UTC option
+   */
+  hideUTCPicker?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -395,6 +400,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       detached,
       alignDropdown,
       showPin,
+      hideUTCPicker,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -454,6 +460,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                         end={end ?? null}
                         organization={organization}
                         showTimePicker
+                        hideUTCPicker={hideUTCPicker}
                         utc={this.state.utc}
                         onChange={this.handleSelectDateRange}
                         onChangeUtc={this.handleUseUtc}
