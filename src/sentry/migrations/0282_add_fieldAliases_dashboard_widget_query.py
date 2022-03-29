@@ -24,16 +24,16 @@ class Migration(CheckedMigration):
     # back-fills this results in us locking an increasing number of rows until we finally commit.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0281_add_new_indexer_table'),
+        ("sentry", "0281_add_new_indexer_table"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dashboardwidgetquery',
-            name='fieldAliases',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), null=True, size=None),
+            model_name="dashboardwidgetquery",
+            name="field_aliases",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(), null=True, size=None
+            ),
         ),
     ]
-

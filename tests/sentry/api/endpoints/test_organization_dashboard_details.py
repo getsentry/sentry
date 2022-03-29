@@ -39,7 +39,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.anon_users_query["fields"],
             columns=self.anon_users_query["columns"],
             aggregates=self.anon_users_query["aggregates"],
-            fieldAliases=self.anon_users_query["fieldAliases"],
+            field_aliases=self.anon_users_query["fieldAliases"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -321,6 +321,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 1
+
+        for expected_widget, actual_widget in zip(data["widgets"], widgets):
+            self.assert_serialized_widget(expected_widget, actual_widget)
+            queries = actual_widget.dashboardwidgetquery_set.all()
+            print("Priscila", queries[0].conditions)
+
+            for expected_query, actual_query in zip(expected_widget["queries"], queries):
+                self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_aggregates_and_columns(self):
         data = {

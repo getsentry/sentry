@@ -89,7 +89,7 @@ class DashboardWidgetQuery(Model):
     columns = DjangoArrayField(models.TextField(), null=True)
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header
-    fieldAliases = DjangoArrayField(models.TextField(), null=True)
+    field_aliases = DjangoArrayField(models.TextField(), null=True)
     # Orderby condition for the query
     orderby = models.TextField(default="")
     # Order of the widget query in the widget.
