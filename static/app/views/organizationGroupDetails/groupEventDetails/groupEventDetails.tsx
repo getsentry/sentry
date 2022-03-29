@@ -294,9 +294,6 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const Wrapper = styled('div')`
-  /* Break alerts out of DataSection component */
-  margin-left: -40px;
-  margin-right: -30px;
   margin-bottom: -1px;
 `;
 
