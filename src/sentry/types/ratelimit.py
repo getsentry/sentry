@@ -35,13 +35,6 @@ class RateLimitType(Enum):
 
 
 @dataclass
-class RateLimitData:
-    rate_limit_uid: str | None
-    rate_limit_key: str | None
-    rate_limit_metadata: RateLimitMeta | None
-
-
-@dataclass(frozen=True)
 class RateLimitMeta:
     """
     Rate Limit response metadata
@@ -63,7 +56,6 @@ class RateLimitMeta:
     reset_time: int
     concurrent_limit: int | None
     concurrent_requests: int | None
-    rate_limit_category: RateLimitCategory
 
     @property
     def concurrent_remaining(self) -> int | None:
