@@ -1,3 +1,5 @@
+import localStorage from 'sentry/utils/localStorage';
+
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
