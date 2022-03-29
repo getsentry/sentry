@@ -307,12 +307,12 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(org_id, SessionMetricKey.SESSION.value)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -332,12 +332,12 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             environment=None,
         )
-        session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        session_status = resolve_tag_key("session.status")
+        session_status_tag_values = resolve_many_weak(["crashed", "init"])
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(org_id, SessionMetricKey.USER.value)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [session_status, "IN", session_status_tag_values],
         ]
         assert snuba_filter.groupby == [session_status]
@@ -384,7 +384,6 @@ class BuildSnubaFilterTest(TestCase):
         ]
 
     def test_query_and_environment_sessions_metrics(self):
-        org_id = self.organization.id
         env = self.create_environment(self.project, name="development")
         org_id = self.organization.id
         for tag in [
@@ -411,16 +410,16 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(org_id, SessionMetricKey.SESSION.value)],
+            ["metric_id", "=", resolve(SessionMetricKey.SESSION.value)],
             [
-                resolve_tag_key(org_id, "session.status"),
+                resolve_tag_key("session.status"),
                 "IN",
-                resolve_many_weak(org_id, ["crashed", "init"]),
+                resolve_many_weak(["crashed", "init"]),
             ],
-            [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
-            [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
+            [resolve_tag_key("environment"), "=", resolve_weak("development")],
+            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
         ]
 
     def test_query_and_environment_users(self):
@@ -477,16 +476,16 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+        assert snuba_filter.groupby == [resolve_tag_key("session.status")]
         assert snuba_filter.conditions == [
-            ["metric_id", "=", resolve(org_id, SessionMetricKey.USER.value)],
+            ["metric_id", "=", resolve(SessionMetricKey.USER.value)],
             [
-                resolve_tag_key(org_id, "session.status"),
+                resolve_tag_key("session.status"),
                 "IN",
-                resolve_many_weak(org_id, ["crashed", "init"]),
+                resolve_many_weak(["crashed", "init"]),
             ],
-            [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
-            [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
+            [resolve_tag_key("environment"), "=", resolve_weak("development")],
+            [resolve_tag_key("release"), "=", resolve_weak("ahmed@12.2")],
         ]
 
     def test_aliased_query_transactions(self):

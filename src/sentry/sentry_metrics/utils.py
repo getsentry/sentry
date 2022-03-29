@@ -38,20 +38,20 @@ def reverse_resolve_weak(index: int) -> Optional[str]:
     return reverse_resolve(index)
 
 
-def resolve(org_id: int, string: str) -> int:
-    resolved = indexer.resolve(org_id, string)
+def resolve(string: str) -> int:
+    resolved = indexer.resolve(string)
     if resolved is None:
         raise MetricIndexNotFound(f"Unknown string: {string!r}")
 
     return resolved  # type: ignore
 
 
-def resolve_tag_key(org_id: int, string: str) -> str:
-    resolved = resolve(org_id, string)
+def resolve_tag_key(string: str) -> str:
+    resolved = resolve(string)
     return f"tags[{resolved}]"
 
 
-def resolve_weak(org_id: int, string: str) -> int:
+def resolve_weak(string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 
@@ -59,21 +59,21 @@ def resolve_weak(org_id: int, string: str) -> int:
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    resolved = indexer.resolve(org_id, string)
+    resolved = indexer.resolve(string)
     if resolved is None:
         return STRING_NOT_FOUND
 
     return resolved  # type: ignore
 
 
-def resolve_many_weak(org_id: int, strings: Sequence[str]) -> Sequence[int]:
+def resolve_many_weak(strings: Sequence[str]) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in
     the same way as `resolve_weak` is, e.g. `WHERE x in values`.
     """
     rv = []
     for string in strings:
-        resolved = resolve_weak(org_id, string)
+        resolved = resolve_weak(string)
         if resolved != STRING_NOT_FOUND:
             rv.append(resolved)
 

@@ -33,7 +33,6 @@ from sentry.snuba.metrics.fields import DerivedMetric, metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
     get_derived_metrics,
-    org_id_from_projects,
 )
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
@@ -90,7 +89,7 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
         return operation, metric_name
 
 
-def resolve_tags(org_id: int, input_: Any) -> Any:
+def resolve_tags(input_: Any) -> Any:
     """Translate tags in snuba condition
 
     This assumes that all strings are either tag names or tag values, so do not
@@ -98,33 +97,28 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
 
     """
     if isinstance(input_, list):
-        return [resolve_tags(org_id, item) for item in input_]
+        return [resolve_tags(item) for item in input_]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(org_id, input_.parameters[0])
+            return resolve_tags(input_.parameters[0])
         return Function(
             function=input_.function,
-            parameters=input_.parameters
-            and [resolve_tags(org_id, item) for item in input_.parameters],
+            parameters=input_.parameters and [resolve_tags(item) for item in input_.parameters],
         )
     if isinstance(input_, Condition):
-        return Condition(
-            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
-        )
+        return Condition(lhs=resolve_tags(input_.lhs), op=input_.op, rhs=resolve_tags(input_.rhs))
     if isinstance(input_, BooleanCondition):
-        return input_.__class__(
-            conditions=[resolve_tags(org_id, item) for item in input_.conditions]
-        )
+        return input_.__class__(conditions=[resolve_tags(item) for item in input_.conditions])
     if isinstance(input_, Column):
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             name = input_.key
         else:
             name = input_.name
-        return Column(name=resolve_tag_key(org_id, name))
+        return Column(name=resolve_tag_key(name))
     if isinstance(input_, str):
-        return resolve_weak(org_id, input_)
+        return resolve_weak(input_)
 
     return input_
 
@@ -309,20 +303,21 @@ class SnubaQueryBuilder:
 
     def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
         self._projects = projects
-        self._org_id = org_id_from_projects(projects)
         self._fields_in_entities = {}
         self._queries = self._build_queries(query_definition)
 
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
+        assert self._projects
+        org_id = self._projects[0].organization_id
         where: List[Union[BooleanCondition, Condition]] = [
-            Condition(Column("org_id"), Op.EQ, self._org_id),
+            Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = resolve_tags(self._org_id, query_definition.parsed_query)
+        filter_ = resolve_tags(query_definition.parsed_query)
         if filter_:
             where.extend(filter_)
 
@@ -336,7 +331,7 @@ class SnubaQueryBuilder:
             if field in ALLOWED_GROUPBY_COLUMNS:
                 groupby_cols.append(Column(field))
             else:
-                groupby_cols.append(Column(resolve_tag_key(self._org_id, field)))
+                groupby_cols.append(Column(resolve_tag_key(field)))
         return groupby_cols
 
     def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
@@ -445,7 +440,7 @@ class SnubaQueryBuilder:
             for op, name in fields:
                 metric_field_obj = metric_name_to_obj_dict[(op, name)]
                 select += metric_field_obj.generate_select_statements(projects=self._projects)
-                metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
+                metric_ids_set |= metric_field_obj.generate_metric_ids()
 
             where_for_entity = [
                 Condition(

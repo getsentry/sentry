@@ -1162,12 +1162,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         if tags is None:
             tags = {}
         else:
-            tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
-                    self.organization.id, value
-                )
-                for key, value in tags.items()
-            }
+            tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
 
         if timestamp is None:
             metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
@@ -1182,7 +1177,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
                 {
                     "org_id": self.organization.id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],

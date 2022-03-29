@@ -105,7 +105,6 @@ class QueryBuilder:
     ):
         self.dataset = dataset
         self.params = params
-        self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -795,7 +794,7 @@ class QueryBuilder:
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
-        resolved = self.resolve_column_name(name, self.organization_id)
+        resolved = self.resolve_column_name(name)
         column = Column(resolved)
 
         # If the expected alias is identical to the resolved snuba column,
@@ -816,7 +815,7 @@ class QueryBuilder:
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name, self.organization_id)
+        resolved_column = self.resolve_column_name(name)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -1486,10 +1485,6 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        if "organization_id" in self.params:
-            self.organization_id = self.params["organization_id"]
-        else:
-            raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.granularity = self.resolve_granularity()
 
     def column(self, name: str) -> Column:
@@ -1540,7 +1535,9 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
-        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
+        conditions.append(
+            Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
+        )
         return conditions
 
     def resolve_query(self, *args: Any, **kwargs: Any) -> None:
@@ -1610,8 +1607,9 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
-    def _resolve_tag_value(self, value: str) -> int:
-        result = indexer.resolve(self.organization_id, value)
+    @staticmethod
+    def _resolve_tag_value(value: str) -> int:
+        result = indexer.resolve(value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
         return cast(int, result)

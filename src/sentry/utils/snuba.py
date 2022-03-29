@@ -1003,7 +1003,7 @@ def nest_groups(data, groups, aggregate_cols):
 
 
 def resolve_column(dataset):
-    def _resolve_column(col: str, organization_id: Optional[int] = None) -> str:
+    def _resolve_column(col):
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -1018,7 +1018,7 @@ def resolve_column(dataset):
         elif dataset == Dataset.Metrics:
             if col in DATASETS[dataset]:
                 return DATASETS[dataset][col]
-            tag_id = indexer.resolve(organization_id, col)
+            tag_id = indexer.resolve(col)
             if tag_id is None:
                 raise InvalidSearchQuery(f"Unknown field: {col}")
             return f"tags[{tag_id}]"
