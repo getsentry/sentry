@@ -64,23 +64,24 @@ function DashboardList({
       });
   }
 
-  function handleDuplicate(dashboard: DashboardListItem) {
-    fetchDashboard(api, organization.slug, dashboard.id)
-      .then(dashboardDetail => {
-        const newDashboard = cloneDashboard(dashboardDetail);
-        newDashboard.widgets.map(widget => (widget.id = undefined));
-        return createDashboard(api, organization.slug, newDashboard, true).then(() => {
-          trackAnalyticsEvent({
-            eventKey: 'dashboards_manage.duplicate',
-            eventName: 'Dashboards Manager: Dashboard Duplicated',
-            organization_id: parseInt(organization.id, 10),
-            dashboard_id: parseInt(dashboard.id, 10),
-          });
-          onDashboardsChange();
-          addSuccessMessage(t('Dashboard duplicated'));
-        });
-      })
-      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
+  async function handleDuplicate(dashboard: DashboardListItem) {
+    try {
+      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
+      const newDashboard = cloneDashboard(dashboardDetail);
+      newDashboard.widgets.map(widget => (widget.id = undefined));
+      await createDashboard(api, organization.slug, newDashboard, true);
+
+      trackAnalyticsEvent({
+        eventKey: 'dashboards_manage.duplicate',
+        eventName: 'Dashboards Manager: Dashboard Duplicated',
+        organization_id: parseInt(organization.id, 10),
+        dashboard_id: parseInt(dashboard.id, 10),
+      });
+      onDashboardsChange();
+      addSuccessMessage(t('Dashboard duplicated'));
+    } catch (e) {
+      addErrorMessage(t('Error duplicating Dashboard'));
+    }
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem) {
