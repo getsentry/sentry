@@ -21,6 +21,7 @@ import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
 import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
@@ -81,8 +82,9 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const eventType =
-      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
+    const eventType = isCrashFreeAlert(dataset)
+      ? null
+      : extractEventTypeFilterFromRule(rule);
     const queryWithEventType = [eventType, query].join(' ').split(' ');
 
     return queryWithEventType;
@@ -189,14 +191,16 @@ export default class DetailsBody extends React.Component<Props> {
               organization={organization}
               project={project}
               interval={this.getInterval()}
-              query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+              query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
               orgId={orgId}
             />
             <DetailWrapper>
               <ActivityWrapper>
                 <MetricHistory organization={organization} incidents={incidents} />
-                {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
+                {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(
+                  dataset
+                ) && (
                   <RelatedIssues
                     organization={organization}
                     rule={rule}
@@ -205,7 +209,7 @@ export default class DetailsBody extends React.Component<Props> {
                     query={
                       dataset === Dataset.ERRORS
                         ? queryWithTypeFilter
-                        : dataset === Dataset.SESSIONS
+                        : isCrashFreeAlert(dataset)
                         ? `${query} error.unhandled:true`
                         : undefined
                     }
