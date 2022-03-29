@@ -352,10 +352,12 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       handleAddCustomWidget,
-      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
         organization,
       });

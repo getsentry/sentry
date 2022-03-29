@@ -109,7 +109,7 @@ class DashboardDetail extends Component<Props, State> {
 
   checkIfShouldMountWidgetViewerModal() {
     const {
-      params: {widgetId},
+      params: {widgetId, dashboardId},
       organization,
       dashboard,
       location,
@@ -133,6 +133,31 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
+            if (
+              organization.features.includes('new-widget-builder-experience') &&
+              !organization.features.includes(
+                'new-widget-builder-experience-modal-access'
+              )
+            ) {
+              trackAdvancedAnalyticsEvent(
+                'dashboards_views.add_widget_in_builder.opened',
+                {
+                  organization,
+                }
+              );
+
+              const widgetIndex = dashboard.widgets.indexOf(widget);
+              if (dashboardId) {
+                router.push({
+                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                  query: {
+                    ...location.query,
+                    source: DashboardWidgetSource.DASHBOARDS,
+                  },
+                });
+                return;
+              }
+            }
             openAddDashboardWidgetModal({
               organization,
               widget,
@@ -389,11 +414,36 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard} = this.props;
+    const {
+      organization,
+      dashboard,
+      router,
+      location,
+      params: {dashboardId},
+    } = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
 
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.opened', {
+        organization,
+      });
+
+      if (dashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        });
+        return;
+      }
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
