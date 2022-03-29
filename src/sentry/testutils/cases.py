@@ -392,9 +392,12 @@ class TestCase(BaseTestCase, TestCase):
 
         used_db = False
 
+        import inspect
+
         def ensure_connection(*args, **kwargs):
             nonlocal used_db
-            used_db = True
+            if any(x.function.startswith("test_") for x in inspect.stack()):
+                used_db = True
             return real_ensure_connection(*args, **kwargs)
 
         monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
