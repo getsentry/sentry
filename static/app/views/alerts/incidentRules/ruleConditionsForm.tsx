@@ -19,12 +19,13 @@ import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
+import MetricFieldV2 from 'sentry/views/alerts/incidentRules/metricFieldV2';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getFunctionHelpText, hidePrimarySelectorSet} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {
@@ -145,6 +146,25 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
+  renderMetricFieldV2() {
+    const {disabled} = this.props;
+
+    return (
+      <MetricFieldV2
+        name="aggregate"
+        help={null}
+        disabled={disabled}
+        style={{
+          ...this.formElemBaseStyle,
+          flex: 1,
+        }}
+        inline={false}
+        flexibleControlStateSize
+        required
+      />
+    );
+  }
+
   renderEventTypeFilter() {
     const {organization, disabled, alertType} = this.props;
 
@@ -237,7 +257,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       timeWindow,
       comparisonDelta,
       comparisonType,
-      allowChangeEventTypes,
       onTimeWindowChange,
       onComparisonDeltaChange,
     } = this.props;
@@ -259,9 +278,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             </Tooltip>
           </StyledListTitle>
         </StyledListItem>
-        {hasAlertWizardV3 && allowChangeEventTypes && this.renderEventTypeFilter()}
         <FormRow>
-          {timeWindowText && (
+          {hasAlertWizardV3 && this.renderMetricFieldV2()}
+          {!hidePrimarySelectorSet.has(alertType) && timeWindowText && (
             <MetricField
               name="aggregate"
               help={null}
@@ -375,7 +394,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         ) : (
           <StyledListItem>{t('Filter events')}</StyledListItem>
         )}
-        <FormRow>
+        <FormRow noMargin>
           <SelectField
             name="environment"
             placeholder={t('All')}
@@ -399,7 +418,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             flexibleControlStateSize
             inFieldLabel={t('Environment: ')}
           />
-          {!hasAlertWizardV3 && allowChangeEventTypes && this.renderEventTypeFilter()}
+          {allowChangeEventTypes && this.renderEventTypeFilter()}
+        </FormRow>
+        <FormRow>
           <FormField
             name="query"
             inline={false}
@@ -496,12 +517,12 @@ const StyledListItem = styled(ListItem)`
   line-height: 1.3;
 `;
 
-const FormRow = styled('div')`
+const FormRow = styled('div')<{noMargin?: boolean}>`
   display: flex;
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => (p.noMargin ? 0 : space(4))};
 `;
 
 const FormRowText = styled('div')`
