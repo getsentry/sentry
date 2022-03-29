@@ -39,9 +39,9 @@ class Replays extends AsyncView<Props, State> {
       version: 2,
       fields: ['eventID', 'timestamp'],
       orderby: '',
-      projects: [2],
+      projects: [],
       range: statsPeriod,
-      query: 'event.type:error', // future: change to replay event
+      query: 'transaction:sentry-replay', // future: change to replay event
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
     return [
@@ -50,6 +50,10 @@ class Replays extends AsyncView<Props, State> {
   }
   getTitle() {
     return `Replays - ${this.props.params.orgId}`;
+  }
+
+  renderLoading() {
+    return <PageContent>{super.renderLoading()}</PageContent>;
   }
 
   renderBody() {
