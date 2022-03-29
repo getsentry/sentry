@@ -43,6 +43,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
+    TREND_FUNCTION_TYPE_MAP,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
@@ -532,6 +533,35 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        if function in TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, resolve_only=True)
+
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type: Optional[str] = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
+
     def resolve_snql_function(
         self,
         snql_function: SnQLFunction,
@@ -800,7 +830,7 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params, builder=self)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1030,10 +1060,6 @@ class QueryBuilder:
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-        # TODO: This is no longer true, can order by fields that aren't selected, keeping
-        # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -1452,7 +1478,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
-        self.metric_ids: List[int] = []
+        self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics

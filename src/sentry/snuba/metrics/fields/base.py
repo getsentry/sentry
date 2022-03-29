@@ -27,12 +27,10 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
-    addition,
     all_sessions,
     all_users,
     crashed_sessions,
     crashed_users,
-    errored_all_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
@@ -514,9 +512,14 @@ class CompositeEntityDerivedMetric(DerivedMetric):
         return reversed(results)
 
     def naively_generate_singular_entity_constituents(self):
-        return self.__recursively_generate_singular_entity_constituents(
-            projects=None, derived_metric_obj=self, is_naive=True
+        single_entity_constituents = set(
+            list(
+                self.__recursively_generate_singular_entity_constituents(
+                    projects=None, derived_metric_obj=self, is_naive=True
+                ).values()
+            ).pop()
         )
+        return single_entity_constituents
 
     def run_post_query_function(self, data, idx=None):
         compute_func_args = [
@@ -692,8 +695,13 @@ DERIVED_METRICS = {
 
 def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    if metric_name in DERIVED_METRICS:
-        instance = DERIVED_METRICS[metric_name]
+    # This function is only used in the query builder, only after func `parse_field` validates
+    # that no private derived metrics are required. The query builder requires access to all
+    # derived metrics to be able to compute derived metrics that are not private but might have
+    # private constituents
+    derived_metrics = get_derived_metrics(exclude_private=False)
+    if metric_name in derived_metrics:
+        instance = derived_metrics[metric_name]
     else:
         instance = RawAggregatedMetric(op=op, metric_name=metric_name)
     return instance
@@ -718,3 +726,11 @@ def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
         elif isinstance(derived_metric, SingularEntityDerivedMetric):
             dependency_list.append((None, derived_metric.metric_name))
     return dependency_list
+
+
+def get_derived_metrics(exclude_private=True):
+    return (
+        {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
+        if exclude_private
+        else DERIVED_METRICS
+    )

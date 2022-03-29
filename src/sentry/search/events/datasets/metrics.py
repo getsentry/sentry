@@ -45,7 +45,7 @@ class MetricsDatasetConfig(DatasetConfig):
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
 
-        self.builder.metric_ids.append(metric_id)
+        self.builder.metric_ids.add(metric_id)
         return metric_id
 
     @property

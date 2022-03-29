@@ -725,6 +725,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_metric_condition_dedupe(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p75(transaction.duration)",
+                "p90(transaction.duration)",
+                "p95(transaction.duration)",
+                "p99(transaction.duration)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+            ],
+        )
+
     def test_p100(self):
         """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
         query = MetricsQueryBuilder(
