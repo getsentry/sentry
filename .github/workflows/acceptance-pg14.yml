@@ -8,6 +8,63 @@ on:
   pull_request:
 
 jobs:
+  webpack:
+    name: create frontend bundle
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    outputs:
+      dist-path: ${{ steps.config.outputs.dist-path }}
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sentry
+
+      - uses: volta-cli/action@v1
+
+      - name: Step configurations
+        id: config
+        run: |
+          echo "::set-output name=yarn-path::$(yarn cache dir)"
+          echo "::set-output name=webpack-path::.webpack_cache"
+          echo "::set-output name=dist-path::src/sentry/static/sentry/dist"
+
+      - name: yarn cache
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
+        with:
+          path: ${{ steps.config.outputs.yarn-path }}
+          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: webpack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
+
+      - name: Install Javascript Dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: webpack
+        env:
+          WEBPACK_CACHE_PATH: ${{ steps.config.outputs.webpack-path }}
+          SENTRY_INSTRUMENTATION: 1
+          # this is fine to not have for forks, it shouldn't fail
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+        run: |
+          yarn build-acceptance
+
+      # Bundle dist for faster uploading
+      - name: bundle dist
+        run: |
+          tar czf dist.tar.gz ${{ steps.config.outputs.dist-path }}
+
+      - name: Save frontend dist
+        uses: actions/upload-artifact@v2
+        with:
+          retention-days: 3
+          name: frontend-dist
+          path: dist.tar.gz
+
   acceptance:
     name: acceptance-pg14
     runs-on: ubuntu-20.04
