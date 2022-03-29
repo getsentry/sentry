@@ -43,6 +43,7 @@ from sentry.snuba.metrics.utils import (
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
+    UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     TimeRange,
@@ -132,7 +133,9 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
-    # Todo(ahmed): Check against `session.status` that was decided not to be supported
+    for unallowed_tag in UNALLOWED_TAGS:
+        if f"{unallowed_tag}:" in query_string:
+            raise InvalidParams(f"Tag name {unallowed_tag} is not a valid query filter")
     try:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
@@ -326,13 +329,15 @@ class SnubaQueryBuilder:
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        # ToDo(ahmed): ensure we cannot add any other cols than tags and groupBy as columns
-        return [
-            Column(resolve_tag_key(self._org_id, field))
-            if field not in ALLOWED_GROUPBY_COLUMNS
-            else Column(field)
-            for field in query_definition.groupby
-        ]
+        groupby_cols = []
+        for field in query_definition.groupby:
+            if field in UNALLOWED_TAGS:
+                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
+            if field in ALLOWED_GROUPBY_COLUMNS:
+                groupby_cols.append(Column(field))
+            else:
+                groupby_cols.append(Column(resolve_tag_key(self.org_id, field)))
+        return groupby_cols
 
     def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:

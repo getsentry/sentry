@@ -73,7 +73,8 @@ def resolve_project_slug_alias(builder: QueryBuilder, alias: str) -> SelectType:
     if not builder.has_or_condition and len(builder.projects_to_filter) > 0:
         project_ids &= builder.projects_to_filter
 
-    projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+    # Order by id so queries are consistent
+    projects = Project.objects.filter(id__in=project_ids).values("slug", "id").order_by("id")
 
     return Function(
         "transform",
