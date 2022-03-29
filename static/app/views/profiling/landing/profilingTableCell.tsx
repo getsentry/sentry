@@ -26,8 +26,8 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
   const {projects} = useProjects();
 
   const project =
-    column.key === 'id' || column.key === 'app_id'
-      ? projects.find(proj => proj.id === dataRow.app_id)
+    column.key === 'id' || column.key === 'project_id'
+      ? projects.find(proj => proj.id === dataRow.project_id)
       : undefined;
 
   const value = dataRow[column.key];
@@ -50,7 +50,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
           <Link to={target}>{getShortEventId(dataRow.id)}</Link>
         </Container>
       );
-    case 'app_id':
+    case 'project_id':
       if (!defined(project)) {
         // should never happen but just in case
         return <Container>{t('n/a')}</Container>;
@@ -61,10 +61,10 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
           <ProjectBadge project={project} avatarSize={16} />
         </Container>
       );
-    case 'app_version_name':
+    case 'version_name':
       return (
         <Container>
-          {dataRow.app_version ? t('%s (build %s)', value, dataRow.app_version) : value}
+          {dataRow.version_code ? t('%s (build %s)', value, dataRow.version_code) : value}
         </Container>
       );
     case 'failed':
@@ -77,7 +77,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
           )}
         </Container>
       );
-    case 'start_time_unix':
+    case 'timestamp':
       return (
         <Container>
           <DateTime date={value * 1000} />

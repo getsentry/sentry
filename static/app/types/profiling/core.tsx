@@ -4,18 +4,18 @@ type Annotation = {
 };
 
 export type Trace = {
-  app_id: string;
-  app_version: string;
-  app_version_name: string;
-  device_class: string;
+  device_classification: string;
   device_locale: string;
   device_manufacturer: string;
   device_model: string;
   failed: boolean;
   id: string;
-  interaction_name: string;
-  start_time_unix: number;
+  project_id: string;
+  timestamp: number;
   trace_duration_ms: number;
+  transaction_name: string;
+  version_code: string;
+  version_name: string;
   backtrace_available?: boolean;
   error_code?: number;
   error_code_name?: string;
