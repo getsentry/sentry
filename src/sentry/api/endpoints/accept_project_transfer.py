@@ -126,7 +126,9 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
             if not is_team_org_owner:
                 return Response({"detail": "Invalid team"}, status=400)
+            from sentry.utils import metrics
 
+            metrics.incr("accept_project_transfer.post.to_team")
             project.transfer_to(team=team)
 
         if org_slug:
