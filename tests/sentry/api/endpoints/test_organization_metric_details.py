@@ -12,7 +12,7 @@ MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
             metric_name="derived_metric.multiple_metrics",
-            metrics=["metric_foo_doe", "session.init"],
+            metrics=["metric_foo_doe", "session.all"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
                 *args, alias="session.crash_free_rate"
@@ -127,8 +127,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         }
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
-    def test_incorrectly_setup_derived_metric(self):
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
@@ -149,13 +150,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
-    def test_same_entity_multiple_metric_ids(self):
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
         """
         Test that ensures that if a derived metric is defined with constituent metrics that
         belong to the same entity but have different ids, then we are able to correctly return
         its detail info
         """
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         self.store_session(
             self.build_session(
                 project_id=self.project.id,

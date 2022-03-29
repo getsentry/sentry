@@ -22,6 +22,7 @@ export function getMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
         metricsEnhanced: '1',
+        preventMetricAggregates: '1', // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
       }
     : undefined;
 }

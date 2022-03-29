@@ -1,6 +1,7 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import AlertLink from 'sentry/components/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
@@ -145,9 +146,10 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={t('Releases not configured')}>
-              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-              {t(' to make issues easier to fix.')}
+            <SidebarSection secondary title={t('Releases')}>
+              <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
+                {t('See which release caused this issue ')}
+              </AlertLink>
             </SidebarSection>
           ) : null}
         </Fragment>
