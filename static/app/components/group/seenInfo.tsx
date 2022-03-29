@@ -12,7 +12,6 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
 import {defined, toTitleCase} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
