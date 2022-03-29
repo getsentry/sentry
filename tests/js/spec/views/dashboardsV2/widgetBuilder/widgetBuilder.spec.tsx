@@ -26,7 +26,6 @@ const defaultOrgFeatures = [
 ];
 
 function renderTestComponent({
-  widget,
   dashboard,
   query,
   orgFeatures,
@@ -36,9 +35,8 @@ function renderTestComponent({
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
-  params?: WidgetBuilderProps['params'];
+  params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
-  widget?: WidgetBuilderProps['widget'];
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
@@ -62,20 +60,18 @@ function renderTestComponent({
       routes={router.routes}
       routeParams={router.params}
       location={router.location}
-      dashboard={
-        dashboard ?? {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-        }
-      }
+      dashboard={{
+        id: 'new',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [],
+        ...dashboard,
+      }}
       onSave={onSave ?? jest.fn()}
-      widget={widget}
       params={{
         orgId: organization.slug,
-        widgetIndex: widget ? 0 : undefined,
+        dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
     />,
@@ -106,6 +102,7 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsv2Mock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -123,7 +120,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       method: 'GET',
       statusCode: 200,
@@ -209,9 +206,59 @@ describe('WidgetBuilder', function () {
       id: '1',
     };
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
     renderTestComponent({
-      widget,
+      dashboard,
       orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '2', // Out of bounds, only one widget
+      },
+    });
+
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
+    const widget: Widget = {
+      displayType: DisplayType.AREA,
+      interval: '1d',
+      queries: [
+        {
+          name: 'Known Users',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          conditions: '',
+          orderby: '-time',
+        },
+      ],
+      title: 'Transactions',
+      id: '1',
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      dashboard,
+      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '0.5', // Invalid index
+      },
     });
 
     expect(
@@ -558,7 +605,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     await screen.findByText('Line Chart');
 
@@ -658,7 +705,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({dashboard, widget, onSave: handleSave});
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
@@ -701,6 +748,43 @@ describe('WidgetBuilder', function () {
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should properly query for table fields ', async function () {
+    const defaultWidgetQuery = {
+      name: '',
+      fields: ['title', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultTableColumns = ['title', 'count()', 'count_unique(user)', 'epm()'];
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+        defaultTableColumns,
+      },
+    });
+
+    expect(await screen.findByText('Line Chart')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    await waitFor(() => {
+      expect(eventsv2Mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: defaultTableColumns,
+          }),
+        })
+      );
+    });
   });
 
   it('should automatically add columns for top n widget charts according to the URL params', async function () {
@@ -864,7 +948,7 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     userEvent.click(await screen.findByText('Delete'));
 
@@ -906,8 +990,7 @@ describe('WidgetBuilder', function () {
 
     const {router} = renderTestComponent({
       dashboard,
-      widget,
-      params: {orgId: 'org-slug', dashboardId: '1'},
+      params: {orgId: 'org-slug', widgetIndex: '0'},
       query: {statsPeriod: '90d'},
     });
 
@@ -1014,7 +1097,9 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
-        widget,
+        params: {
+          widgetIndex: '0',
+        },
       });
 
       // Click on the displayType selector
@@ -1042,20 +1127,12 @@ describe('WidgetBuilder', function () {
         displayType: DisplayType.TABLE,
         queries: [
           {
-            name: 'errors',
-            conditions: 'event.type:error',
+            name: '',
+            conditions: '',
             fields: ['count()', 'count_unique(id)'],
             aggregates: ['count()', 'count_unique(id)'],
             columns: [],
-            orderby: '',
-          },
-          {
-            name: 'csp',
-            conditions: 'event.type:csp',
-            fields: ['count()', 'count_unique(id)'],
-            aggregates: ['count()', 'count_unique(id)'],
-            columns: [],
-            orderby: '',
+            orderby: '-count',
           },
         ],
       };
@@ -1071,8 +1148,10 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         dashboard,
-        widget,
         onSave: handleSave,
+        params: {
+          widgetIndex: '0',
+        },
       });
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
