@@ -21,6 +21,10 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
+  [Dataset.METRICS]: {
+    crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
+    crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
+  },
 };
 
 /**

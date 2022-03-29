@@ -89,6 +89,15 @@ describe('Wizard utils', function () {
     ).toEqual('crash_free_users');
   });
 
+  it('extracts crash free users alert from metrics', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: SessionsAggregate.CRASH_FREE_USERS,
+        dataset: Dataset.METRICS,
+      })
+    ).toBe('crash_free_users');
+  });
+
   it('defaults to custom', function () {
     expect(
       getAlertTypeFromAggregateDataset({
