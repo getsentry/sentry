@@ -1,4 +1,4 @@
-import {createContext, useEffect, useState} from 'react';
+import {createContext, useEffect, useMemo, useState} from 'react';
 
 import {Organization, Project} from 'sentry/types';
 import {
@@ -27,14 +27,16 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   const [appStoreConnectStatusData, setAppStoreConnectStatusData] =
     useState<AppStoreConnectContextProps>(undefined);
 
-  const appStoreConnectSymbolSources = (
-    projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
-  ).reduce((acc, {type, id, ...symbolSource}) => {
-    if (type.toLowerCase() === 'appstoreconnect') {
-      acc[id] = {type, ...symbolSource};
-    }
-    return acc;
-  }, {});
+  const appStoreConnectSymbolSources = useMemo(() => {
+    return (
+      projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
+    ).reduce((acc, {type, id, ...symbolSource}) => {
+      if (type.toLowerCase() === 'appstoreconnect') {
+        acc[id] = {type, ...symbolSource};
+      }
+      return acc;
+    }, {});
+  }, [projectDetails?.symbolSources]);
 
   useEffect(() => {
     if (!project || projectDetails) {
@@ -56,6 +58,9 @@ const Provider = ({children, project, organization}: ProviderProps) => {
         }
 
         setProjectDetails(responseProjectDetails);
+      })
+      .catch(() => {
+        // We do not care about the error
       });
 
     return () => {
@@ -83,12 +88,15 @@ const Provider = ({children, project, organization}: ProviderProps) => {
           return;
         }
         setAppStoreConnectStatusData(appStoreConnectStatus);
+      })
+      .catch(() => {
+        // We do not care about the error
       });
 
     return () => {
       unmounted = true;
     };
-  }, [projectDetails, organization]);
+  }, [projectDetails, organization, appStoreConnectSymbolSources]);
 
   function getUpdateAlertMessage(
     respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,

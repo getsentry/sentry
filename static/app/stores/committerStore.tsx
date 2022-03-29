@@ -24,6 +24,8 @@ type CommitterStoreInterface = {
     committersLoading?: boolean;
   };
 
+  init(): void;
+
   load(orgSlug: string, projectSlug: string, eventId: string): void;
   loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
   loadSuccess(
@@ -88,7 +90,7 @@ export const storeConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
       },
     };
 
-    this.trigger(this.state);
+    // this.trigger(this.state);
   },
 
   get(orgSlug: string, projectSlug: string, eventId: string) {
