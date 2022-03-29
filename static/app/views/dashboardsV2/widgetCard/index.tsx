@@ -6,14 +6,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconExpand, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -111,6 +109,10 @@ class WidgetCard extends React.Component<Props> {
       onDuplicate,
       onDelete,
       isEditing,
+      showWidgetViewerButton,
+      router,
+      location,
+      index,
     } = this.props;
 
     if (isEditing) {
@@ -128,6 +130,10 @@ class WidgetCard extends React.Component<Props> {
         onDuplicate={onDuplicate}
         onEdit={onEdit}
         onDelete={onDelete}
+        showWidgetViewerButton={showWidgetViewerButton}
+        router={router}
+        location={location}
+        index={index}
       />
     );
   }
@@ -143,13 +149,7 @@ class WidgetCard extends React.Component<Props> {
       tableItemLimit,
       windowWidth,
       noLazyLoad,
-      location,
-      showWidgetViewerButton,
-      router,
-      isEditing,
-      index,
     } = this.props;
-    const id = widget.id ?? index;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -159,24 +159,6 @@ class WidgetCard extends React.Component<Props> {
             <Tooltip title={widget.title} containerDisplayMode="grid" showOnlyOnOverflow>
               <WidgetTitle>{widget.title}</WidgetTitle>
             </Tooltip>
-            {showWidgetViewerButton && !isEditing && id && (
-              <OpenWidgetViewerButton
-                aria-label={t('Open Widget Viewer')}
-                priority="link"
-                size="zero"
-                icon={<IconExpand size="xs" />}
-                onClick={() => {
-                  if (!isWidgetViewerPath(location.pathname)) {
-                    router.push({
-                      pathname: `${location.pathname}${
-                        location.pathname.endsWith('/') ? '' : '/'
-                      }widget/${id}/`,
-                      query: location.query,
-                    });
-                  }
-                }}
-              />
-            )}
             {this.renderContextMenu()}
           </WidgetHeader>
           {noLazyLoad ? (
@@ -281,15 +263,9 @@ const WidgetTitle = styled(HeaderTitle)`
 `;
 
 const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(1)} 0 ${space(3)};
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-`;
-
-const OpenWidgetViewerButton = styled(Button)`
-  margin-left: ${space(0.5)};
-  margin-right: auto;
-  color: ${p => p.theme.textColor};
 `;

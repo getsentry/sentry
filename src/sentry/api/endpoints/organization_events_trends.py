@@ -52,6 +52,7 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
+# TODO move this to the builder file and introduce a top-events version instead
 class TrendQueryBuilder(QueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
@@ -550,9 +551,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         use_snql,
     ):
         def on_results(events_results):
-            def get_event_stats(
-                query_columns, query, params, rollup, zerofill_results, comparison_delta=None
-            ):
+            def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,

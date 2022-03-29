@@ -661,7 +661,7 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-interface BufferedInputProps extends React.HTMLProps<HTMLInputElement> {
+interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
 }
@@ -713,7 +713,7 @@ class BufferedInput extends React.Component<BufferedInputProps, InputState> {
   };
 
   render() {
-    const {onUpdate: _, as: _as, ...props} = this.props;
+    const {onUpdate: _, ...props} = this.props;
     return (
       <StyledInput
         {...props}

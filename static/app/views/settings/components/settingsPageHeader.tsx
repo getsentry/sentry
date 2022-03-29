@@ -60,10 +60,10 @@ function UnstyledSettingsPageHeader({
   );
 }
 
-type TitleProps = {
+interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
   styled?: boolean;
   tabs?: ReactNode;
-};
+}
 
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
@@ -73,7 +73,7 @@ const TitleWrapper = styled('div')`
   flex: 1;
 `;
 
-const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
+const Title = styled('div')<TitleProps>`
   ${p => !p.styled && `font-size: 20px; font-weight: 600;`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;

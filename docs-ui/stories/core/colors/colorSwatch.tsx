@@ -6,8 +6,8 @@ import space from 'sentry/styles/space';
 import {darkColors, lightColors} from 'sentry/utils/theme';
 
 type Props = {
-  theme: 'light' | 'dark';
   colors: Array<keyof typeof lightColors>;
+  theme: 'light' | 'dark';
 };
 
 const ColorSwatch = ({colors, theme}: Props) => {
@@ -55,7 +55,7 @@ const ColorWrap = styled('div')<{value: string}>`
   padding: ${space(2)} ${space(2)};
 `;
 
-const Label = styled('p')<{color: boolean}>`
+const Label = styled('p')<{color: string}>`
   margin-bottom: 0;
   white-space: nowrap;
   && {
