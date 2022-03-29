@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, List, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, List, MutableMapping, Sequence
 
 import sentry_sdk
 from django.db import connection
@@ -179,18 +181,21 @@ class ProjectSerializer(Serializer):  # type: ignore
 
     def __init__(
         self,
-        environment_id: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        transaction_stats: Optional[str] = None,
-        session_stats: Optional[str] = None,
+        environment_id: str | None = None,
+        stats_period: str | None = None,
+        collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
-        self.transaction_stats = transaction_stats
-        self.session_stats = session_stats
+        self.collapse = collapse
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -450,24 +455,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(
-        self,
-        environment_id=None,
-        stats_period=None,
-        transaction_stats=None,
-        session_stats=None,
-        collapse=None,
-    ):
-        super(ProjectWithTeamSerializer, self).__init__(
-            environment_id, stats_period, transaction_stats, session_stats
-        )
-        self.collapse = collapse
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
-
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
