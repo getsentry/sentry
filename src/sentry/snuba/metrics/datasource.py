@@ -381,7 +381,7 @@ def get_tag_values(
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
     assert projects
-    
+
     org_id = org_id_from_projects(projects)
     tag_id = indexer.resolve(org_id, tag_name)
 
