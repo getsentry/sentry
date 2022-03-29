@@ -1757,7 +1757,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": "postgres:9.6-alpine",
+            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
