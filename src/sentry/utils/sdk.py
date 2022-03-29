@@ -61,10 +61,10 @@ SAMPLED_URL_NAMES = {
     # debug files
     "sentry-api-0-assemble-dif-files": 0.1,
     # scim
-    "sentry-api-0-organization-scim-member-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-member-index": 0.1,
+    "sentry-api-0-organization-scim-member-details": 0.1,
+    "sentry-api-0-organization-scim-team-index": 0.1,
+    "sentry-api-0-organization-scim-team-details": 0.1,
     # members
     "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
