@@ -30,9 +30,9 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ProjectAlertsCreate', function () {
-  TeamStore.loadInitialData([], false, null);
-
   beforeEach(function () {
+    TeamStore.init();
+    TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
@@ -54,6 +54,7 @@ describe('ProjectAlertsCreate', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    TeamStore.teardown();
   });
 
   const createWrapper = (props = {}, location = {}) => {
