@@ -119,9 +119,15 @@ class IssueListActions extends React.Component<Props, State> {
   handleUpdate = (data?: any) => {
     const {selection, api, organization, query, onMarkReviewed} = this.props;
     const orgId = organization.slug;
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes\u2026'));
+      // TODO(Kelly): remove once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
 
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
@@ -148,7 +154,9 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
+            if (!hasIssueListRemovalAction) {
+              clearIndicators();
+            }
           },
         }
       );
@@ -158,8 +166,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleDelete = () => {
     const {selection, api, organization, query, onDelete} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       bulkDelete(
@@ -174,7 +180,6 @@ class IssueListActions extends React.Component<Props, State> {
         },
         {
           complete: () => {
-            clearIndicators();
             onDelete();
           },
         }
@@ -185,8 +190,6 @@ class IssueListActions extends React.Component<Props, State> {
   handleMerge = () => {
     const {selection, api, organization, query} = this.props;
     const orgId = organization.slug;
-
-    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       mergeGroups(
@@ -199,11 +202,7 @@ class IssueListActions extends React.Component<Props, State> {
           environment: selection.environments,
           ...selection.datetime,
         },
-        {
-          complete: () => {
-            clearIndicators();
-          },
-        }
+        {}
       );
     });
   };

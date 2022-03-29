@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   deleteSavedSearch,
@@ -30,7 +31,7 @@ import QueryCount from 'sentry/components/queryCount';
 import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
@@ -773,21 +774,21 @@ class IssueListOverview extends React.Component<Props, State> {
         .map(item => item.id);
       const reviewedIds = this._streamManager
         .getAllItems()
-        .filter(id => !id.inbox)
+        .filter(id => !id.inbox && id.status !== 'resolved' && id.status !== 'ignored')
         .map(item => item.id);
       // Remove Ignored and Resolved group ids from the issue stream, but if you have a query
       // that includes these statuses or there's no query/you want to see ALL issues,
       // don't trigger these group ids to be removed from the issue stream.
       if (resolvedIds.length > 0 && !query.includes('is:resolved') && !!query) {
-        this.onIssueAction(resolvedIds);
+        this.onIssueAction(resolvedIds, t('Resolved'));
       }
       if (ignoredIds.length > 0 && !query.includes('is:ignored') && !!query) {
-        this.onIssueAction(ignoredIds);
+        this.onIssueAction(ignoredIds, t('Ignored'));
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if not on the For Review tab, or no query for ALL issues.
       if (reviewedIds.length > 0 && isForReviewQuery(query) && !!query) {
-        this.onIssueAction(reviewedIds);
+        this.onIssueAction(reviewedIds, t('Reviewed'));
       }
     }
 
@@ -1048,6 +1049,12 @@ class IssueListOverview extends React.Component<Props, State> {
     );
 
     if (!isForReviewQuery(query)) {
+      if (itemIds.length > 1) {
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+      } else {
+        const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+      }
       return;
     }
 
@@ -1073,7 +1080,16 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  onIssueAction = (itemIds: string[]) => {
+  onIssueAction = (itemIds: string[], actionType: string) => {
+    if (itemIds.length > 1) {
+      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+        duration: 4000,
+      });
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+    }
+
     GroupStore.remove(itemIds);
     this.setState({
       actionTaken: true,
