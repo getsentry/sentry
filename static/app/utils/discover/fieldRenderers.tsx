@@ -378,8 +378,12 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (values === null || values?.length === 0) {
         return <Container>{emptyValue}</Container>;
       }
-      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
-      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+      const value = Array.isArray(values) ? values : [values];
+      return (
+        <Container>
+          {value.every(v => [1, null].includes(v)) ? 'true' : 'false'}
+        </Container>
+      );
     },
   },
   team_key_transaction: {
