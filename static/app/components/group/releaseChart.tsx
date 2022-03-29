@@ -1,5 +1,4 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
@@ -108,7 +107,9 @@ function GroupReleaseChart(props: Props) {
 
   return (
     <SidebarSection secondary title={title} className={className}>
-      <TotalEventCount value={totalEvents} />
+      <div>
+        <Count value={totalEvents} />
+      </div>
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip
@@ -121,8 +122,3 @@ function GroupReleaseChart(props: Props) {
 }
 
 export default GroupReleaseChart;
-
-const TotalEventCount = styled(Count)`
-  display: block;
-  margin-bottom: 0;
-`;
