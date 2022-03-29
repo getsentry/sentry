@@ -69,7 +69,7 @@ function DashboardList({
       .then(dashboardDetail => {
         const newDashboard = cloneDashboard(dashboardDetail);
         newDashboard.widgets.map(widget => (widget.id = undefined));
-        createDashboard(api, organization.slug, newDashboard, true).then(() => {
+        return createDashboard(api, organization.slug, newDashboard, true).then(() => {
           trackAnalyticsEvent({
             eventKey: 'dashboards_manage.duplicate',
             eventName: 'Dashboards Manager: Dashboard Duplicated',
