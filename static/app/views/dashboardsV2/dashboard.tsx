@@ -148,9 +148,13 @@ class Dashboard extends Component<Props, State> {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (organization.features.includes('dashboards-metrics')) {
+    if (
+      organization.features.includes('dashboards-metrics') &&
+      !organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
       fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
+      // fetchMetricsTags(api, organization.slug, selection.projects);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
@@ -178,8 +182,15 @@ class Dashboard extends Component<Props, State> {
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
+
+      if (
+        organization.features.includes('dashboards-metrics') &&
+        !organization.features.includes('new-widget-builder-experience') &&
+        organization.features.includes('new-widget-builder-experience-modal-access')
+      ) {
+        fetchMetricsFields(api, organization.slug, selection.projects);
+        // fetchMetricsTags(api, organization.slug, selection.projects);
+      }
     }
   }
 

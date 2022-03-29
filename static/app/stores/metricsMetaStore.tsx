@@ -7,10 +7,12 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
+  isFetching: boolean;
   metricsMeta: MetricsMetaCollection;
 };
 
 type InternalDefinition = {
+  isFetching: boolean;
   metricsMeta: MetricsMetaCollection;
 };
 
@@ -24,6 +26,7 @@ interface MetricsMetaStoreDefinition
 const storeConfig: MetricsMetaStoreDefinition = {
   unsubscribeListeners: [],
   metricsMeta: {},
+  isFetching: false,
 
   init() {
     this.unsubscribeListeners.push(
@@ -33,12 +36,13 @@ const storeConfig: MetricsMetaStoreDefinition = {
 
   reset() {
     this.metricsMeta = {};
-    this.trigger(this.metricsMeta);
+    this.isFetching = true;
+    this.trigger(this.state);
   },
 
   getState() {
-    const {metricsMeta} = this;
-    return {metricsMeta};
+    const {metricsMeta, isFetching} = this;
+    return {metricsMeta, isFetching};
   },
 
   onLoadSuccess(data) {
@@ -51,7 +55,8 @@ const storeConfig: MetricsMetaStoreDefinition = {
     }, {});
 
     this.metricsMeta = {...this.metricsMeta, ...newFields};
-    this.trigger(this.metricsMeta);
+    this.isFetching = false;
+    this.trigger(this.state);
   },
 };
 

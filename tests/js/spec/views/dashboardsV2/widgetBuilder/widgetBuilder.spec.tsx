@@ -172,6 +172,16 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/tags/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/meta/',
+      body: [],
+    });
   });
 
   afterEach(function () {
