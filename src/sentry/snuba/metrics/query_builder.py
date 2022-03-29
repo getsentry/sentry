@@ -336,7 +336,7 @@ class SnubaQueryBuilder:
             if field in ALLOWED_GROUPBY_COLUMNS:
                 groupby_cols.append(Column(field))
             else:
-                groupby_cols.append(Column(resolve_tag_key(self.org_id, field)))
+                groupby_cols.append(Column(resolve_tag_key(self._org_id, field)))
         return groupby_cols
 
     def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
