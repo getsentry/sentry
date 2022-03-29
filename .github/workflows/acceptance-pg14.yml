@@ -9,7 +9,7 @@ on:
 
 jobs:
   webpack:
-    name: create frontend bundle
+    name: create frontend bundle pg14
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     outputs:
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           retention-days: 3
-          name: frontend-dist
+          name: frontend-dist-pg14
           path: dist.tar.gz
 
   acceptance:
@@ -101,13 +101,13 @@ jobs:
         id: wait-for-frontend
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: create frontend bundle
+          checkName: create frontend bundle pg14
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Download frontend dist
         uses: actions/download-artifact@v2
         with:
-          name: frontend-dist
+          name: frontend-dist-pg14
 
       - name: Extract dist
         run: |
