@@ -2,6 +2,7 @@ import * as React from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import type {LocationDescriptor} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -223,7 +224,7 @@ class StreamGroup extends React.Component<Props, State> {
     SelectedGroupStore.toggleSelect(this.state.data.id);
   };
 
-  getDiscoverUrl(isFiltered?: boolean) {
+  getDiscoverUrl(isFiltered?: boolean): LocationDescriptor {
     const {organization, query, selection, customStatsPeriod} = this.props;
     const {data} = this.state;
 
@@ -253,7 +254,7 @@ class StreamGroup extends React.Component<Props, State> {
     const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
     if (hasDiscoverQuery) {
-      const {period, start, end} = customStatsPeriod ?? (selection.datetime || {});
+      const {period, start, end, utc} = customStatsPeriod ?? (selection.datetime || {});
 
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -266,8 +267,11 @@ class StreamGroup extends React.Component<Props, State> {
       };
 
       if (!!start && !!end) {
-        discoverQuery.start = String(start);
-        discoverQuery.end = String(end);
+        discoverQuery.start = new Date(start).toISOString();
+        discoverQuery.end = new Date(end).toISOString();
+        if (utc) {
+          discoverQuery.utc = true;
+        }
       } else {
         discoverQuery.range = period || DEFAULT_STATS_PERIOD;
       }
@@ -694,9 +698,9 @@ const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
-  to?: React.ComponentProps<typeof Link>['to'];
-};
+interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
+  to?: LocationDescriptor;
+}
 
 const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>

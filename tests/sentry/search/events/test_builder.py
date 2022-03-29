@@ -719,6 +719,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_metric_condition_dedupe(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p75(transaction.duration)",
+                "p90(transaction.duration)",
+                "p95(transaction.duration)",
+                "p99(transaction.duration)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(["transaction.duration"]),
+            ],
+        )
+
     def test_p100(self):
         """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
         query = MetricsQueryBuilder(
@@ -1264,6 +1284,55 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "95", "transaction.duration", "test"
         )
 
+    def test_error_if_aggregates_disallowed(self):
+        def run_query(query, use_aggregate_conditions):
+            with self.assertRaises(IncompatibleMetricsQuery):
+                MetricsQueryBuilder(
+                    self.params,
+                    selected_columns=[
+                        "transaction",
+                        "p95()",
+                        "count_unique(user)",
+                    ],
+                    query=query,
+                    allow_metric_aggregates=False,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                )
+
+        queries = [
+            "p95():>5s",
+            "count_unique(user):>0",
+            "transaction:foo_transaction AND (!transaction:bar_transaction OR p95():>5s)",
+        ]
+        for query in queries:
+            for use_aggregate_conditions in [True, False]:
+                run_query(query, use_aggregate_conditions)
+
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        )
+
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "p95()",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=False,
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
@@ -1419,6 +1488,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=900,
             query="p50(transaction.duration):>100",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
+            allow_metric_aggregates=True,
         )
         # Aggregate conditions should be dropped
         assert query.having == []
@@ -1523,7 +1593,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             "end": self.end,
         }
 
-        for i in range(5):
+        for i in range(1, 5):
             self.store_metric(
                 100,
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
@@ -1537,7 +1607,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 4 / (3600 / 60)},
+            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
             {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
@@ -1592,4 +1662,32 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "time", "type": "DateTime('Universal')"},
                 {"name": "p50_transaction_duration", "type": "Float64"},
             ],
+        )
+
+    def test_error_if_aggregates_disallowed(self):
+        def run_query(query):
+            with self.assertRaises(IncompatibleMetricsQuery):
+                TimeseriesMetricQueryBuilder(
+                    self.params,
+                    interval=900,
+                    query=query,
+                    selected_columns=["p50(transaction.duration)"],
+                    allow_metric_aggregates=False,
+                )
+
+        queries = [
+            "p95():>5s",
+            "count_unique(user):>0",
+            "transaction:foo_transaction AND (!transaction:bar_transaction OR p95():>5s)",
+        ]
+        for query in queries:
+            run_query(query)
+
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+        TimeseriesMetricQueryBuilder(
+            self.params,
+            interval=900,
+            selected_columns=["p50(transaction.duration)"],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
         )

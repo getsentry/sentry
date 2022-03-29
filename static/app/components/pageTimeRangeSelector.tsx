@@ -10,6 +10,7 @@ import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof TimeRangeSelector> & {
   className?: string;
+  showPin?: boolean;
 };
 
 function PageTimeRangeSelector({className, customDropdownButton, ...props}: Props) {
@@ -47,11 +48,7 @@ const DropdownDate = styled(Panel)<{hasCustomButton: boolean; isCalendarOpen: bo
     height: 42px;
     background: ${p.theme.background};
     border: 1px solid ${p.theme.border};
-    border-radius: ${
-      p.isCalendarOpen
-        ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
-        : p.theme.borderRadius
-    };
+    border-radius: ${p.theme.borderRadius};
 
     font-size: ${p.theme.fontSizeMedium};
     color: ${p.theme.textColor};
