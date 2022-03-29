@@ -130,9 +130,11 @@ def get_rate_limit_value(
     return rate_limit_config.get_rate_limit(http_method, category)
 
 
-def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) -> RateLimitMeta:
+def above_rate_limit_check(
+    key: str, rate_limit: RateLimit, request_uid: str, category_str: RateLimitCategory
+) -> RateLimitMeta:
     # TODO: This is not as performant as it could be. The roundtrip betwwen the server and redis
-    # is doubled because the fixd window limit and concurrent limit are two separate things with different
+    # is doubled because the fixed window limit and concurrent limit are two separate things with different
     # paths. Ideally there is just one lua script that does both and just says what kind of limit was hit
     # (if any)
     rate_limit_type = RateLimitType.NOT_LIMITED
@@ -163,6 +165,7 @@ def above_rate_limit_check(key: str, rate_limit: RateLimit, request_uid: str) ->
         remaining=remaining,
         concurrent_limit=rate_limit.concurrent_limit,
         concurrent_requests=concurrent_requests,
+        rate_limit_category=category_str,
     )
 
 

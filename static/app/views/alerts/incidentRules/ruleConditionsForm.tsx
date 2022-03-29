@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
 
+import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {
   COMPARISON_DELTA_OPTIONS,
   DEFAULT_AGGREGATE,
@@ -99,7 +100,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
 
-    if (this.props.dataset === Dataset.SESSIONS) {
+    if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
         // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
         TimeWindow.ONE_HOUR,
@@ -119,6 +120,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     switch (this.props.dataset) {
       case Dataset.ERRORS:
         return t('Filter events by level, message, and other properties\u2026');
+      case Dataset.METRICS:
       case Dataset.SESSIONS:
         return t('Filter sessions by release version\u2026');
       case Dataset.TRANSACTIONS:
@@ -128,7 +130,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   get searchSupportedTags() {
-    if (this.props.dataset === Dataset.SESSIONS) {
+    if (isCrashFreeAlert(this.props.dataset)) {
       return {
         release: {
           key: 'release',

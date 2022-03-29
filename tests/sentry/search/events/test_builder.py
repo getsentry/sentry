@@ -1593,7 +1593,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             "end": self.end,
         }
 
-        for i in range(5):
+        for i in range(1, 5):
             self.store_metric(
                 100,
                 timestamp=self.start + datetime.timedelta(minutes=i * 15),
@@ -1607,7 +1607,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"] == [
-            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 4 / (3600 / 60)},
+            {"time": "2015-01-01T00:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
             {"time": "2015-01-01T01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
