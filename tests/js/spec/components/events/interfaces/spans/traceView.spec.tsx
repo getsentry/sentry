@@ -129,7 +129,7 @@ describe('TraceView', () => {
     ],
   } as EventTransaction;
 
-  it('should render siblings with the same op and description as a grouped span in the minimap ', async () => {
+  it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
     const data = initializeData({
       features: ['performance-autogroup-sibling-spans'],
     });
@@ -140,9 +140,11 @@ describe('TraceView', () => {
     );
 
     expect(await screen.findByTestId('minimap-sibling-group-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent('Autogrouped');
+    expect(screen.queryByTestId('span-row-3')).not.toBeInTheDocument();
   });
 
-  it('should expand grouped siblings when clicked', async () => {
+  it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
     console.error = jest.fn();
 
     const data = initializeData({
@@ -161,5 +163,278 @@ describe('TraceView', () => {
     for (let i = 2; i < 7; i++) {
       expect(await screen.findByTestId(`span-row-${i}`)).toBeInTheDocument();
     }
+
+    const regroupButton = await screen.findByText('Regroup');
+    expect(regroupButton).toBeInTheDocument();
+    userEvent.click(regroupButton);
+
+    expect(screen.queryByTestId('span-row-6')).not.toBeInTheDocument();
+  });
+
+  it("should not group sibling spans that don't have the same op or description", async () => {
+    const data = initializeData({
+      features: ['performance-autogroup-sibling-spans'],
+    });
+
+    const newEvent = {
+      ...event,
+      entries: [
+        {
+          data: [
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'do not group me',
+              op: 'http',
+              span_id: 'b000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'c000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'd000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'e000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'f000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'f000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'do not group me',
+              op: 'http',
+              span_id: 'ff00000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+          ],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const waterfallModel = new WaterfallModel(newEvent);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    expect(await screen.findByText('group me')).toBeInTheDocument();
+    expect(await screen.findAllByText('do not group me')).toHaveLength(2);
+  });
+
+  it('should autogroup similar nested spans', async () => {
+    const data = initializeData({});
+
+    const newEvent = {
+      ...event,
+      entries: [
+        {
+          data: [
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'b000000000000000',
+              parent_span_id: 'a000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'c000000000000000',
+              parent_span_id: 'b000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'd000000000000000',
+              parent_span_id: 'c000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'e000000000000000',
+              parent_span_id: 'd000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+            {
+              start_timestamp: 1000,
+              timestamp: 2000,
+              description: 'group me',
+              op: 'http',
+              span_id: 'f000000000000000',
+              parent_span_id: 'e000000000000000',
+              trace_id: '8cbbc19c0f54447ab702f00263262726',
+              status: 'ok',
+              tags: {
+                'http.status_code': '200',
+              },
+              data: {
+                method: 'GET',
+                type: 'fetch',
+                url: '/api/0/organizations/?member=1',
+              },
+            },
+          ],
+          type: EntryType.SPANS,
+        },
+      ],
+    } as EventTransaction;
+
+    const waterfallModel = new WaterfallModel(newEvent);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    const grouped = await screen.findByText('group me');
+    await screen.findAllByTestId('span-row-6');
+    expect(grouped).toBeInTheDocument();
   });
 });
