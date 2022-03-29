@@ -131,6 +131,11 @@ type Props = WithRouterProps & {
   detached?: boolean;
 
   /**
+   * Option to hide UTC option
+   */
+  hideUTCPicker?: boolean;
+
+  /**
    * Small info icon with tooltip hint text
    */
   hint?: string;
@@ -159,11 +164,6 @@ type Props = WithRouterProps & {
    * Show the pin button in the dropdown's header actions
    */
   showPin?: boolean;
-
-  /**
-   * Option to hide UTC option
-   */
-  hideUTCPicker?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
