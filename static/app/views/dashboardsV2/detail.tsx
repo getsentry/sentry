@@ -76,6 +76,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   route: PlainRoute;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+  onSetNewWidget?: () => void;
 };
 
 type State = {
@@ -108,7 +109,7 @@ class DashboardDetail extends Component<Props, State> {
 
   checkIfShouldMountWidgetViewerModal() {
     const {
-      params: {widgetId},
+      params: {widgetId, dashboardId},
       organization,
       dashboard,
       location,
@@ -132,6 +133,31 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
+            if (
+              organization.features.includes('new-widget-builder-experience') &&
+              !organization.features.includes(
+                'new-widget-builder-experience-modal-access'
+              )
+            ) {
+              trackAdvancedAnalyticsEvent(
+                'dashboards_views.add_widget_in_builder.opened',
+                {
+                  organization,
+                }
+              );
+
+              const widgetIndex = dashboard.widgets.indexOf(widget);
+              if (dashboardId) {
+                router.push({
+                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                  query: {
+                    ...location.query,
+                    source: DashboardWidgetSource.DASHBOARDS,
+                  },
+                });
+                return;
+              }
+            }
             openAddDashboardWidgetModal({
               organization,
               widget,
@@ -388,11 +414,36 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard} = this.props;
+    const {
+      organization,
+      dashboard,
+      router,
+      location,
+      params: {dashboardId},
+    } = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
 
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.opened', {
+        organization,
+      });
+
+      if (dashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        });
+        return;
+      }
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -601,8 +652,16 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   renderDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location, newWidget} =
-      this.props;
+    const {
+      organization,
+      dashboard,
+      dashboards,
+      params,
+      router,
+      location,
+      newWidget,
+      onSetNewWidget,
+    } = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
@@ -670,6 +729,7 @@ class DashboardDetail extends Component<Props, State> {
                     router={router}
                     location={location}
                     newWidget={newWidget}
+                    onSetNewWidget={onSetNewWidget}
                     isPreview={this.isPreview}
                   />
                 </Layout.Main>

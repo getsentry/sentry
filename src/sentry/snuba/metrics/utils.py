@@ -28,6 +28,7 @@ __all__ = (
     "NotSupportedOverCompositeEntityException",
     "TimeRange",
     "MetricEntity",
+    "UNALLOWED_TAGS",
 )
 
 
@@ -145,6 +146,7 @@ DEFAULT_AGGREGATES = {
     "histogram": [],
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNALLOWED_TAGS = {"session.status"}
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):

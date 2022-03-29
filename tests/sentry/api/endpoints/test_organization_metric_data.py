@@ -42,6 +42,46 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 200
 
+    def test_groupby_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            groupBy="session.status",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == (
+            "Tag name session.status cannot be used to groupBy query"
+        )
+
+    def test_filter_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            query="session.status:crashed",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
+
     def test_invalid_filter(self):
         query = "release:foo or "
         response = self.get_response(
@@ -768,15 +808,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
             field="sum(sentry.sessions.session)",
-            groupBy=["project_id", "session.status"],
+            groupBy=["project_id"],
         )
 
         assert response.status_code == 200
 
         groups = response.data["groups"]
-        assert len(groups) >= 2 and all(
-            group["by"].keys() == {"project_id", "session.status"} for group in groups
-        )
+        assert len(groups) >= 2 and all(group["by"].keys() == {"project_id"} for group in groups)
 
         expected = {
             self.project2.id: 1,
@@ -800,19 +838,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "foo"],
+            groupBy=["foo"],
         )
 
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+        assert groups[0]["by"] == {"foo": None}
 
         response = self.get_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "bar"],
+            groupBy=["bar"],
         )
         assert response.status_code == 400
 
@@ -972,8 +1010,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.release_tag = indexer.record(self.organization.id, "release")
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.query_builder.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_derived_metric_incorrectly_defined_as_singular_entity(self):
+    @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
+    def test_derived_metric_incorrectly_defined_as_singular_entity(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -1147,16 +1186,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set", "session.errored"],
+            field=["session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["session.errored_set"] == 3
-        assert group["totals"]["session.errored_preaggregated"] == 4
         assert group["totals"]["session.errored"] == 7
-        assert group["series"]["session.errored_set"] == [0, 0, 0, 0, 0, 3]
-        assert group["series"]["session.errored_preaggregated"] == [0, 4, 0, 0, 0, 0]
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
         response = self.get_success_response(
@@ -1807,3 +1842,21 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy_user"] == 0
         assert group["series"]["session.healthy_user"] == [0]
+
+    def test_request_private_derived_metric(self):
+        for private_name in [
+            "session.crashed_and_abnormal_user",
+            "session.errored_preaggregated",
+            "session.errored_set",
+            "session.errored_user_all",
+        ]:
+            response = self.get_response(
+                self.organization.slug,
+                field=[private_name],
+                statsPeriod="6m",
+                interval="6m",
+            )
+            assert response.data["detail"] == (
+                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
+                "or a supported aggregate derived metric like `session.crash_free_rate"
+            )

@@ -58,6 +58,7 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -779,7 +780,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}

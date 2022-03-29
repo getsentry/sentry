@@ -201,6 +201,11 @@ describe('Modals -> WidgetViewerModal', function () {
           }),
         })
       );
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
+        })
+      );
     });
 
     it('renders multiquery label and selector', async function () {
@@ -409,6 +414,32 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    });
+
+    it('does not render pagination buttons', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+        },
+        body: {
+          data: [
+            {
+              'error.type': ['No Pagination'],
+              count: 1,
+            },
+          ],
+          meta: {
+            'error.type': 'array',
+            count: 'integer',
+          },
+        },
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {

@@ -1,4 +1,5 @@
 import React from 'react';
+import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -106,6 +107,7 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsv2Mock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -123,7 +125,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       method: 'GET',
       statusCode: 200,
@@ -437,9 +439,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(2);
 
-    userEvent.click(countFields[1]);
-    userEvent.type(countFields[1], 'last');
-    userEvent.click(screen.getByText('last_seen()'));
+    await selectEvent.select(countFields[1], ['last_seen()']);
 
     userEvent.click(screen.getByText('Select a dashboard'));
     userEvent.click(screen.getByText('Test Dashboard'));
@@ -481,9 +481,7 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     userEvent.click(screen.getByLabelText('Add Widget'));
 
@@ -751,6 +749,43 @@ describe('WidgetBuilder', function () {
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should properly query for table fields ', async function () {
+    const defaultWidgetQuery = {
+      name: '',
+      fields: ['title', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultTableColumns = ['title', 'count()', 'count_unique(user)', 'epm()'];
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+        defaultTableColumns,
+      },
+    });
+
+    expect(await screen.findByText('Line Chart')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    await waitFor(() => {
+      expect(eventsv2Mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: defaultTableColumns,
+          }),
+        })
+      );
+    });
   });
 
   it('should automatically add columns for top n widget charts according to the URL params', async function () {
@@ -1235,6 +1270,41 @@ describe('WidgetBuilder', function () {
     expect(
       await screen.findByText('count_if(transaction.duration,equals,300)*2')
     ).toBeInTheDocument();
+  });
+
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {

@@ -52,6 +52,7 @@ default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:alert-filters", OrganizationFeature)
+default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-rule-status-page", OrganizationFeature, True)
 default_manager.add("organizations:alert-wizard-v3", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
@@ -84,6 +85,9 @@ default_manager.add("organizations:metric-alert-threshold-period", OrganizationF
 default_manager.add("organizations:metrics", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
+default_manager.add(
+    "organizations:new-widget-builder-experience-modal-access", OrganizationFeature, True
+)
 default_manager.add("organizations:metrics-extraction", OrganizationFeature)
 default_manager.add("organizations:metrics-performance-ui", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)

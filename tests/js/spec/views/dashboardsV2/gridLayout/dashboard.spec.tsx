@@ -114,6 +114,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -127,16 +128,19 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -149,20 +153,50 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not try to add new widget if no newWidget', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
-      // @ts-ignore
+    beforeEach(() => {
       MemberListStore.init();
+    });
+    afterEach(() => {
+      MemberListStore.teardown();
     });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(

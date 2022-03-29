@@ -1,16 +1,5 @@
 from __future__ import annotations
 
-__all__ = (
-    "metric_object_factory",
-    "run_metrics_query",
-    "RawAggregatedMetric",
-    "MetricFieldBase",
-    "DerivedMetric",
-    "SingularEntityDerivedMetric",
-    "DERIVED_METRICS",
-    "generate_bottom_up_dependency_tree_for_metrics",
-)
-
 import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -70,6 +59,18 @@ from sentry.snuba.metrics.utils import (
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
+
+__all__ = (
+    "metric_object_factory",
+    "run_metrics_query",
+    "RawAggregatedMetric",
+    "MetricFieldBase",
+    "DerivedMetric",
+    "SingularEntityDerivedMetric",
+    "DERIVED_METRICS",
+    "generate_bottom_up_dependency_tree_for_metrics",
+)
+
 
 if TYPE_CHECKING:
     from sentry.snuba.metrics.query_builder import QueryDefinition
@@ -504,20 +505,31 @@ class CompositeEntityDerivedMetric(DerivedMetric):
     def get_entity(self, projects: Sequence[Project]) -> Dict[MetricEntity, Sequence[str]]:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
-        return self.__recursively_generate_singular_entity_constituents(projects, self)
+        return self.__recursively_generate_singular_entity_constituents(
+            projects=projects, derived_metric_obj=self
+        )
 
     def generate_available_operations(self):
         return []
 
     @classmethod
-    def __recursively_generate_singular_entity_constituents(cls, projects, derived_metric_obj):
+    def __recursively_generate_singular_entity_constituents(
+        cls,
+        projects: Optional[Sequence[Project]],
+        derived_metric_obj: DerivedMetric,
+        is_naive: bool = False,
+    ) -> Dict[MetricEntity, Sequence[str]]:
         entities_and_metric_names = {}
         for metric_name in derived_metric_obj.metrics:
             if metric_name not in DERIVED_METRICS:
                 continue
             constituent_metric_obj = DERIVED_METRICS[metric_name]
             if isinstance(constituent_metric_obj, SingularEntityDerivedMetric):
-                entity = constituent_metric_obj.get_entity(projects=projects)
+                if is_naive:
+                    entity = None
+                else:
+                    entity = constituent_metric_obj.get_entity(projects=projects)
+
                 entities_and_metric_names.setdefault(entity, []).append(
                     constituent_metric_obj.metric_name
                 )
@@ -526,7 +538,7 @@ class CompositeEntityDerivedMetric(DerivedMetric):
             entities_and_metric_names = combine_dictionary_of_list_values(
                 entities_and_metric_names,
                 cls.__recursively_generate_singular_entity_constituents(
-                    projects, constituent_metric_obj
+                    projects, constituent_metric_obj, is_naive
                 ),
             )
 
@@ -550,6 +562,16 @@ class CompositeEntityDerivedMetric(DerivedMetric):
                 if metric in DERIVED_METRICS:
                     metric_nodes.append(DERIVED_METRICS[metric])
         return reversed(results)
+
+    def naively_generate_singular_entity_constituents(self):
+        single_entity_constituents = set(
+            list(
+                self.__recursively_generate_singular_entity_constituents(
+                    projects=None, derived_metric_obj=self, is_naive=True
+                ).values()
+            ).pop()
+        )
+        return single_entity_constituents
 
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         compute_func_args = [
@@ -718,8 +740,13 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricFieldBas
     if op in DERIVED_OPS and metric_name in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
 
-    if metric_name in DERIVED_METRICS:
-        return DERIVED_METRICS[metric_name]
+    # This function is only used in the query builder, only after func `parse_field` validates
+    # that no private derived metrics are required. The query builder requires access to all
+    # derived metrics to be able to compute derived metrics that are not private but might have
+    # private constituents
+    derived_metrics = get_derived_metrics(exclude_private=False)
+    if metric_name in derived_metrics:
+        return derived_metrics[metric_name]
 
     # at this point we know we have an op. Add assertion to appease mypy
     assert op is not None
@@ -741,3 +768,11 @@ def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
             metric_object_factory(op, metric_name).generate_bottom_up_derived_metrics_dependencies()
         )
     return dependency_list
+
+
+def get_derived_metrics(exclude_private=True):
+    return (
+        {key: value for (key, value) in DERIVED_METRICS.items() if not value.is_private}
+        if exclude_private
+        else DERIVED_METRICS
+    )
