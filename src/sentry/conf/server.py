@@ -929,7 +929,7 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
