@@ -1678,7 +1678,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
-    def validate_orderby_clause(self):
+    def validate_orderby_clause(self) -> None:
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
