@@ -57,7 +57,8 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            text = e.response.text if e.response else None
+            # NOTE: bool(e.response) is always False because non-2xx responses are Falsey.
+            text = e.response.text if e.response is not None else None
             message = f"{self.sentry_app.name}: {text or DEFAULT_ERROR_MESSAGE}"
             # Bubble up error message from Sentry App to the UI for the user.
             return {"success": False, "message": message}
