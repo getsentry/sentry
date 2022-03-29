@@ -37,6 +37,27 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         assert response.data == []
 
+    def test_session_metric_tags(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
+
     def test_metric_tags_metric_does_not_exist_in_indexer(self):
         assert (
             self.get_response(
@@ -57,15 +78,14 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
 
     def test_derived_metric_tags(self):
-        for minute in range(4):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
-                    status="ok",
-                    release="foobar@2.0",
-                )
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
             )
+        )
         response = self.get_success_response(
             self.organization.slug,
             metric=["session.crash_free_rate"],
@@ -73,7 +93,6 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         assert response.data == [
             {"key": "environment"},
             {"key": "release"},
-            {"key": "session.status"},
         ]
 
         response = self.get_success_response(
@@ -83,7 +102,6 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         assert response.data == [
             {"key": "environment"},
             {"key": "release"},
-            {"key": "session.status"},
         ]
 
     def test_composite_derived_metrics(self):

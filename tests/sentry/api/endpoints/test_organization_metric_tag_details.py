@@ -63,6 +63,22 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data == []
 
+    def test_tag_values_for_session_status_tag(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "session.status",
+        )
+        assert response.data["detail"] == "Tag name session.status is an unallowed tag"
+
     def test_tag_values_for_derived_metrics(self):
         self.store_session(
             self.build_session(
