@@ -33,12 +33,14 @@
     return null;
   }
   setInterval(function() {
-    csrfCookieVal = getCookie('sc')
-    csrfEls = document.getElementsByName('csrf'+'middleware'+'token')
+    var csrfCookieVal = getCookie('sc');
+    // combine strings for csrf name as some tests grep on the token name :(
+    var csrfName = 'csrf'+'middleware'+'token';
+    var csrfEls = document.getElementsByName(csrfName);
     if (csrfEls.length == 1 && csrfCookieVal) {
-      csrfEls[0].value = csrfCookieVal
+      csrfEls[0].value = csrfCookieVal;
     }
-  },200)
+  },200);
 </script>
 {% endscript %}
 {% endblock %}
