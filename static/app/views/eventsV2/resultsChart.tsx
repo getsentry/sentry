@@ -159,10 +159,6 @@ type ContainerProps = {
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
-  componentDidMount() {
-    this.trackQueryConditions();
-  }
-
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -175,26 +171,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
 
     return !isEqual(restProps, restNextProps);
-  }
-
-  componentDidUpdate(prevProps: ContainerProps) {
-    if (this.props.eventView.query !== prevProps.eventView.query) {
-      this.trackQueryConditions();
-    }
-  }
-
-  trackQueryConditions() {
-    const {organization, eventView} = this.props;
-    const parsedSearch = parseSearch(eventView.query);
-    if (parsedSearch) {
-      const conditions = parsedSearch
-        .filter(({text}) => text.trim() !== '')
-        .map(({text}) => text);
-      trackAdvancedAnalyticsEvent('discover_views.query', {
-        organization,
-        conditions,
-      });
-    }
   }
 
   render() {
