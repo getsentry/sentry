@@ -1,6 +1,5 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -136,24 +135,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
     pageStatsPeriod?: string | null;
     pageUtc?: boolean | null;
     team?: string;
-  }): LocationDescriptorObject {
-    const {location, router} = this.props;
-    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
-
-    const nextLocation = {
-      ...location,
+  }) {
+    return this.props.router.push({
+      ...this.props.location,
       query: {
-        ...location.query,
-        ...nextQueryParams,
+        ...this.props.location.query,
+        ...pick(nextState, PAGE_QUERY_PARAMS),
       },
-    };
-
-    router.push(nextLocation);
-
-    return nextLocation;
+    });
   }
 
-  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
+  handleUpdateDatetime = (datetime: ChangeData) => {
     const {start, end, relative, utc} = datetime;
 
     if (start && end) {
