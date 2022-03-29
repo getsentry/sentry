@@ -5,7 +5,7 @@ import {Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type ProfileFilters = {[key: string]: Tag};
+type ProfileFilters = Record<string, Tag>;
 
 function useProfileFilters(): ProfileFilters {
   const api = useApi();
