@@ -55,6 +55,15 @@ export function Header({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <Button
+            title={t(
+              'How do you like the new widget builder? Submit feedback on GitHub.'
+            )}
+            href="https://github.com/getsentry/sentry/issues/new/choose"
+            target="_blank"
+          >
+            {t('Give Feedback')}
+          </Button>
+          <Button
             external
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
