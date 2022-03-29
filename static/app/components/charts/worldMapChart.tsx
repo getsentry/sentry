@@ -1,11 +1,9 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {MapSeriesOption, TooltipComponentOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import max from 'lodash/max';
 
-import countryToCodeMap from 'sentry/data/countryCodesMap';
-import worldMap from 'sentry/data/world.json';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 import VisualMap from './components/visualMap';
@@ -31,6 +29,14 @@ export interface WorldMapChartProps extends Omit<ChartProps, 'series'> {
   seriesOptions?: MapSeriesOption;
 }
 
+type JSONResult = Record<string, any>;
+
+type State = {
+  codeToCountryMap: JSONResult | null;
+  countryToCodeMap: JSONResult | null;
+  map: JSONResult | null;
+};
+
 const DEFAULT_ZOOM = 1.3;
 const DISCOVER_ZOOM = 1.1;
 const DISCOVER_QUERY_LIST_ZOOM = 0.9;
@@ -46,20 +52,49 @@ export function WorldMapChart({
   ...props
 }: WorldMapChartProps) {
   const theme = useTheme();
-
-  const codeToCountryMap = useMemo(() => {
-    const countryMaps: Record<string, string> = {};
-
-    for (const country in worldMap) {
-      countryMaps[countryToCodeMap[country]] = country;
-    }
-
-    return countryMaps;
-  }, []);
+  const [state, setState] = useState<State>(() => ({
+    countryToCodeMap: null,
+    map: null,
+    codeToCountryMap: null,
+  }));
 
   useEffect(() => {
-    echarts.registerMap?.('sentryWorld', worldMap as any);
+    let unmounted = false;
+
+    async () => {
+      Promise.all([
+        import('sentry/data/countryCodesMap'),
+        import('sentry/data/world.json'),
+      ]).then(([countryToCodeMap, worldMap]) => {
+        if (unmounted) {
+          return;
+        }
+
+        // Echarts not available in tests
+        echarts.registerMap?.('sentryWorld', worldMap as any);
+
+        const codeToCountryMap: Record<string, string> = {};
+
+        for (const country in worldMap) {
+          codeToCountryMap[countryToCodeMap[country]] = country;
+        }
+
+        setState({
+          countryToCodeMap: countryToCodeMap.default,
+          map: worldMap.default,
+          codeToCountryMap,
+        });
+      });
+    };
+
+    return () => {
+      unmounted = true;
+    };
   }, []);
+
+  if (state.countryToCodeMap === null || state.map === null) {
+    return null;
+  }
 
   const processedSeries = series.map(({seriesName, data, ...options}) =>
     MapSeries({
@@ -67,7 +102,7 @@ export function WorldMapChart({
       ...options,
       map: 'sentryWorld',
       name: seriesName,
-      nameMap: countryToCodeMap ?? undefined,
+      nameMap: state.countryToCodeMap ?? undefined,
       aspectScale: 0.85,
       zoom: fromDiscover
         ? DISCOVER_ZOOM
@@ -110,7 +145,7 @@ export function WorldMapChart({
 
     // `value` should be a number
     const formattedValue = typeof value === 'number' ? value.toLocaleString() : '';
-    const countryOrCode = codeToCountryMap?.[name as string] || name;
+    const countryOrCode = state.codeToCountryMap?.[name as string] || name;
 
     return [
       `<div class="tooltip-series tooltip-series-solo">
