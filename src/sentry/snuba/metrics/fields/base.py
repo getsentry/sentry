@@ -27,10 +27,12 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
+    addition,
     all_sessions,
     all_users,
     crashed_sessions,
     crashed_users,
+    errored_all_users,
     errored_preaggr_sessions,
     percentage,
     sessions_errored_set,
@@ -565,7 +567,9 @@ DERIVED_METRICS = {
             metric_name=DerivedMetricKey.SESSION_ALL_USER.value,
             metrics=[SessionMetricKey.USER.value],
             unit="users",
-            snql=lambda *_, metric_ids, alias=None: all_users(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: all_users(
+                org_id, metric_ids, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_ABNORMAL.value,
@@ -579,7 +583,9 @@ DERIVED_METRICS = {
             metric_name=DerivedMetricKey.SESSION_ABNORMAL_USER.value,
             metrics=[SessionMetricKey.USER.value],
             unit="users",
-            snql=lambda *_, metric_ids, alias=None: abnormal_users(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: abnormal_users(
+                org_id, metric_ids, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_CRASHED.value,
@@ -593,7 +599,9 @@ DERIVED_METRICS = {
             metric_name=DerivedMetricKey.SESSION_CRASHED_USER.value,
             metrics=[SessionMetricKey.USER.value],
             unit="users",
-            snql=lambda *_, metric_ids, alias=None: crashed_users(metric_ids, alias=alias),
+            snql=lambda *_, org_id, metric_ids, alias=None: crashed_users(
+                org_id, metric_ids, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
@@ -610,7 +618,9 @@ DERIVED_METRICS = {
                 DerivedMetricKey.SESSION_ALL_USER.value,
             ],
             unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
+                org_id, *args, alias=alias
+            ),
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
@@ -643,7 +653,7 @@ DERIVED_METRICS = {
             metric_name=DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
             metrics=[SessionMetricKey.USER.value],
             unit="users",
-            snql=lambda *_, org_id, metric_ids, alias=None: all_users(
+            snql=lambda *_, org_id, metric_ids, alias=None: errored_all_users(
                 org_id, metric_ids, alias=alias
             ),
             is_private=True,
@@ -655,9 +665,7 @@ DERIVED_METRICS = {
                 DerivedMetricKey.SESSION_ABNORMAL_USER.value,
             ],
             unit="users",
-            snql=lambda *_, org_id, metric_ids, alias=None: crashed_users(
-                org_id, metric_ids, alias=alias
-            ),
+            snql=lambda *args, org_id, metric_ids, alias=None: addition(org_id, *args, alias=alias),
             is_private=True,
         ),
         SingularEntityDerivedMetric(
@@ -667,7 +675,9 @@ DERIVED_METRICS = {
                 DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
             ],
             unit="users",
-            snql=lambda *args, metric_ids, alias=None: subtraction(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: subtraction(
+                org_id, *args, alias=alias
+            ),
             post_query_func=lambda *args: max(0, *args),
         ),
         CompositeEntityDerivedMetric(
@@ -686,7 +696,9 @@ DERIVED_METRICS = {
                 DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
             ],
             unit="users",
-            snql=lambda *args, metric_ids, alias=None: subtraction(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: subtraction(
+                org_id, *args, alias=alias
+            ),
             post_query_func=lambda *args: max(0, *args),
         ),
     ]

@@ -726,6 +726,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_metric_condition_dedupe(self):
+        org_id = 1
         query = MetricsQueryBuilder(
             self.params,
             "",
@@ -741,7 +742,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.where,
             [
                 *self.default_conditions,
-                *_metric_conditions(["transaction.duration"]),
+                *_metric_conditions(org_id, ["transaction.duration"]),
             ],
         )
 

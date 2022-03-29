@@ -109,7 +109,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         required to query for the instance of DerivedMetric
         """
         org_id = self.project.organization_id
-        for status in ("init", "crashed"):
+        for status in ("init", "abnormal", "crashed", "errored"):
             indexer.record(org_id, status)
         session_ids = [indexer.record(org_id, "sentry.sessions.session")]
         session_user_ids = [indexer.record(org_id, "sentry.sessions.user")]
@@ -136,13 +136,13 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                     alias=metric_name,
                 ),
             ]
-
         assert MOCKED_DERIVED_METRICS[
             "session.crashed_and_abnormal_user"
         ].generate_select_statements([self.project]) == [
             addition(
-                crashed_users(session_user_ids, alias="session.crashed_user"),
-                abnormal_users(session_user_ids, alias="session.abnormal_user"),
+                org_id,
+                crashed_users(org_id, session_user_ids, alias="session.crashed_user"),
+                abnormal_users(org_id, session_user_ids, alias="session.abnormal_user"),
                 alias="session.crashed_and_abnormal_user",
             )
         ]
@@ -150,10 +150,12 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             subtraction(
-                errored_all_users(session_user_ids, alias="session.errored_user_all"),
+                org_id,
+                errored_all_users(org_id, session_user_ids, alias="session.errored_user_all"),
                 addition(
-                    crashed_users(session_user_ids, alias="session.crashed_user"),
-                    abnormal_users(session_user_ids, alias="session.abnormal_user"),
+                    org_id,
+                    crashed_users(org_id, session_user_ids, alias="session.crashed_user"),
+                    abnormal_users(org_id, session_user_ids, alias="session.abnormal_user"),
                     alias="session.crashed_and_abnormal_user",
                 ),
                 alias="session.errored_user",
@@ -164,8 +166,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             subtraction(
-                all_users(session_user_ids, alias="session.all_user"),
-                errored_all_users(session_user_ids, alias="session.errored_user_all"),
+                org_id,
+                all_users(org_id, session_user_ids, alias="session.all_user"),
+                errored_all_users(org_id, session_user_ids, alias="session.errored_user_all"),
                 alias="session.healthy_user",
             )
         ]
@@ -184,8 +187,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             percentage(
-                crashed_users(metric_ids=session_user_ids, alias="session.crashed_user"),
-                all_users(metric_ids=session_user_ids, alias="session.all_user"),
+                org_id,
+                crashed_users(org_id, metric_ids=session_user_ids, alias="session.crashed_user"),
+                all_users(org_id, metric_ids=session_user_ids, alias="session.all_user"),
                 alias="session.crash_free_user_rate",
             )
         ]
@@ -337,7 +341,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
     def test_generate_metric_ids(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):
-            self.sessions_errored.generate_metric_ids()
+            self.sessions_errored.generate_metric_ids(projects=[1])
 
     def test_generate_select_snql_of_derived_metric(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):

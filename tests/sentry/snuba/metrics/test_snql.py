@@ -109,11 +109,13 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_addition_in_snql(self):
+        org_id = 666
         alias = "session.crashed_and_abnormal_user"
-        arg1_snql = crashed_users(self.metric_ids, alias="session.crashed_user")
-        arg2_snql = abnormal_users(self.metric_ids, alias="session.abnormal_user")
+        arg1_snql = crashed_users(org_id, self.metric_ids, alias="session.crashed_user")
+        arg2_snql = abnormal_users(org_id, self.metric_ids, alias="session.abnormal_user")
         assert (
             addition(
+                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias=alias,
@@ -122,11 +124,13 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_subtraction_in_snql(self):
-        arg1_snql = all_users(self.metric_ids, alias="session.all_user")
-        arg2_snql = errored_all_users(self.metric_ids, alias="session.errored_user_all")
+        org_id = 666
+        arg1_snql = all_users(org_id, self.metric_ids, alias="session.all_user")
+        arg2_snql = errored_all_users(org_id, self.metric_ids, alias="session.errored_user_all")
 
         assert (
             subtraction(
+                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias="session.healthy_user",
