@@ -589,7 +589,7 @@ const AlertText = styled('div')`
   }
 `;
 
-const ReleasePageFilterBar = styled(PageFilterBar)`
+const ReleasesPageFilterBar = styled(PageFilterBar)`
   width: max-content;
   max-width: 100%;
   margin-bottom: ${space(1)};
