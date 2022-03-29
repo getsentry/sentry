@@ -1006,6 +1006,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
