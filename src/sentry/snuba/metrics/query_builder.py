@@ -177,6 +177,7 @@ class QueryDefinition:
         self.histogram_from = int(histogram_from) if histogram_from is not None else None
         self.histogram_to = int(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
+        self.include_totals = query_params.get("includeTotals", "1") == "1"
 
         # Validates that time series limit will not exceed the snuba limit of 10,000
         self._validate_series_limit(query_params)
@@ -343,6 +344,10 @@ class SnubaQueryBuilder:
     def __build_totals_and_series_queries(
         self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
     ):
+        if not self._query_definition.include_totals and not self._query_definition.include_series:
+            return {}
+
+        rv = {}
         totals_query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity),
@@ -355,20 +360,21 @@ class SnubaQueryBuilder:
             orderby=orderby,
         )
 
-        if not self._query_definition.include_series:
-            return {"totals": totals_query}
+        if self._query_definition.include_totals:
+            rv["totals"] = totals_query
 
-        series_query = totals_query.set_groupby(
-            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
-        )
+        if self._query_definition.include_series:
+            series_query = totals_query.set_groupby(
+                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+            )
 
-        # In a series query, we also need to factor in the len of the intervals array
-        series_limit = MAX_POINTS
-        if limit:
-            series_limit = limit * intervals_len
-        series_query = series_query.set_limit(series_limit)
+            # In a series query, we also need to factor in the len of the intervals array
+            series_limit = MAX_POINTS
+            if limit:
+                series_limit = limit * intervals_len
+            rv["series"] = series_query.set_limit(series_limit)
 
-        return {"totals": totals_query, "series": series_query}
+        return rv
 
     def __update_query_dicts_with_component_entities(
         self, component_entities, metric_name_to_obj_dict, fields_in_entities
@@ -518,12 +524,11 @@ class SnubaResultConverter:
             if (key.startswith("tags[") or key in ALLOWED_GROUPBY_COLUMNS)
         )
 
-        tag_data = groups.setdefault(
-            tags,
-            {"totals": {}, "series": {}}
-            if self._query_definition.include_series
-            else {"totals": {}},
-        )
+        tag_data = groups.setdefault(tags, {})
+        if self._query_definition.include_series:
+            tag_data.setdefault("series", {})
+        if self._query_definition.include_totals:
+            tag_data.setdefault("totals", {})
 
         bucketed_time = data.pop(TS_COL_GROUP, None)
         if bucketed_time is not None:
@@ -568,14 +573,11 @@ class SnubaResultConverter:
     def translate_results(self):
         groups = {}
         for entity, subresults in self._results.items():
-            totals = subresults["totals"]["data"]
-            for data in totals:
-                self._extract_data(data, groups)
-
-            if "series" in subresults:
-                series = subresults["series"]["data"]
-                for data in series:
-                    self._extract_data(data, groups)
+            for k in "totals", "series":
+                if k in subresults:
+                    totals = subresults[k]["data"]
+                    for data in totals:
+                        self._extract_data(data, groups)
 
         groups = [
             dict(
@@ -592,18 +594,16 @@ class SnubaResultConverter:
 
         # Applying post query operations for totals and series
         for group in groups:
-            totals = group["totals"]
-            if self._query_definition.include_series:
-                series = group["series"]
-            else:
-                series = None
+            totals = group.get("totals")
+            series = group.get("series")
 
             for op, metric_name in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_name=metric_name)
-                # Totals
-                totals[metric_name] = metric_obj.run_post_query_function(
-                    totals, query_definition=self._query_definition
-                )
+                if totals is not None:
+                    totals[metric_name] = metric_obj.run_post_query_function(
+                        totals, query_definition=self._query_definition
+                    )
+
                 if series is not None:
                     # Series
                     for idx in range(0, len(self._intervals)):
@@ -620,13 +620,10 @@ class SnubaResultConverter:
         # be able to generate fields that require further processing post query, but are not
         # required nor expected in the response
         for group in groups:
-            totals = group["totals"]
-            if self._query_definition.include_series:
-                series = group["series"]
-            else:
-                series = None
+            totals = group.get("totals")
+            series = group.get("series")
 
-            for key in list(totals.keys()):
+            for key in set(totals or ()) | set(series or ()):
                 matches = FIELD_REGEX.match(key)
                 if matches:
                     operation = matches[1]
@@ -635,7 +632,8 @@ class SnubaResultConverter:
                     operation = None
                     metric_name = key
                 if (operation, metric_name) not in self._query_definition_fields_set:
-                    del totals[key]
+                    if totals is not None:
+                        del totals[key]
                     if series is not None:
                         del series[key]
 

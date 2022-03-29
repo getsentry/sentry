@@ -881,6 +881,32 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    def test_include_series(self):
+        indexer.record(self.organization.id, "session.status")
+        self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == [
+            {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == []
+
     def test_histogram(self):
         # Record some strings
         org_id = self.organization.id
