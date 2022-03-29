@@ -308,9 +308,11 @@ const StyledLayoutMain = styled(Layout.Main)`
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding-top: ${space(3)};
+  padding: ${space(3)} ${space(4)} ${space(3)};
+
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     padding-right: ${space(4)};
+    padding-left: 0;
   }
 `;
 
