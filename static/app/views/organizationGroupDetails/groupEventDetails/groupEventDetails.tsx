@@ -290,8 +290,7 @@ class GroupEventDetails extends Component<Props, State> {
 
 const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  padding: 0 !important;
 `;
 
 const Wrapper = styled('div')`
@@ -304,12 +303,15 @@ const Wrapper = styled('div')`
 const StyledLayoutMain = styled(Layout.Main)`
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     border-right: 1px solid ${p => p.theme.border};
-    padding-right: ${space(4)};
+    padding-right: 0;
   }
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
   padding-top: ${space(3)};
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    padding-right: ${space(4)};
+  }
 `;
 
 export default styled(GroupEventDetails)`

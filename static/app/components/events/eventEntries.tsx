@@ -353,14 +353,12 @@ const EventEntries = memo(
     return (
       <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
         {hasErrors && !isLoading && (
-          <Wrapper>
-            <EventErrors
-              event={event}
-              orgSlug={orgSlug}
-              projectSlug={projectSlug}
-              proGuardErrors={proGuardErrors}
-            />
-          </Wrapper>
+          <EventErrors
+            event={event}
+            orgSlug={orgSlug}
+            projectSlug={projectSlug}
+            proGuardErrors={proGuardErrors}
+          />
         )}
         {!isShare &&
           isNotSharedOrganization(organization) &&
@@ -454,12 +452,6 @@ const EventEntries = memo(
     );
   }
 );
-
-const Wrapper = styled('div')`
-  /* Makes this component stretch the full width of its container */
-  margin-left: -40px;
-  margin-right: -30px;
-`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   /* Hiding the top border because of the event section appears at this breakpoint */

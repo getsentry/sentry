@@ -11,8 +11,8 @@ export const DataSection = styled('div')`
   padding: ${space(3)} ${space(2)} ${space(3)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    margin: 0 -30px 0 -40px;
-    padding: ${space(3)} ${space(4)} ${space(3)} 40px;
+    margin: 0;
+    padding: ${space(3)} ${space(4)} ${space(3)};
   }
 `;
 
