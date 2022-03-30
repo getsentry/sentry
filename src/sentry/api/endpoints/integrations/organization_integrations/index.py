@@ -55,8 +55,12 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         :auth: required
         """
 
+        feature_filters = request.GET.getlist("features", [])
+        provider_key = request.GET.get("provider_key", "")
+        include_config_raw = request.GET.get("includeConfig")
+
         # filter by integration provider features
-        features = [feature.lower() for feature in request.GET.getlist("features", [])]
+        features = [feature.lower() for feature in feature_filters]
 
         # show disabled org integrations but not ones being deleted
         integrations = OrganizationIntegration.objects.filter(
@@ -64,8 +68,8 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
             status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION],
         )
 
-        if "provider_key" in request.GET:
-            integrations = integrations.filter(integration__provider=request.GET["provider_key"])
+        if provider_key:
+            integrations = integrations.filter(integration__provider=provider_key.lower())
 
         # include the configurations by default if no param
         include_config = True
