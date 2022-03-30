@@ -271,11 +271,6 @@ const MaskedContent = styled('div')`
   overflow: hidden;
   flex-grow: 1;
   flex-basis: 0;
-
-  /* Specify bottom margin specifically to offset the margin of the footer, so
-   * the hidden content flows directly to the border of the footer
-   */
-  margin-bottom: -20px;
 `;
 
 export default PageOverlay;

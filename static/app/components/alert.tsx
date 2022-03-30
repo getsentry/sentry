@@ -3,16 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {IconChevron} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   expand?: React.ReactNode[];
-  expandIcon?: React.ReactNode;
-  icon?: React.ReactNode;
-  onExpandIconClick?: () => void;
   opaque?: boolean;
+  showIcon?: boolean;
   system?: boolean;
   type?: keyof Theme['alert'];
 }
@@ -21,11 +19,8 @@ const DEFAULT_TYPE = 'info';
 
 const IconWrapper = styled('span')`
   display: flex;
+  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
   margin-right: ${space(1)};
-
-  /* Give the wrapper an explicit height so icons are line height with the
-   * (common) line height. */
-  height: 22px;
   align-items: center;
 `;
 
@@ -34,6 +29,7 @@ const alertStyles = ({
   type = DEFAULT_TYPE,
   system,
   opaque,
+  expand,
 }: AlertProps & {theme: Theme}) => {
   const alertColors = theme.alert[type] ?? theme.alert[DEFAULT_TYPE];
 
@@ -42,8 +38,7 @@ const alertStyles = ({
     flex-direction: column;
     margin: 0 0 ${space(2)};
     padding: ${space(1.5)} ${space(2)};
-    font-size: ${theme.fontSizeLarge};
-    box-shadow: ${theme.dropShadowLight};
+    font-size: ${theme.fontSizeMedium};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};
     background: ${opaque
@@ -52,23 +47,42 @@ const alertStyles = ({
 
     a:not([role='button']) {
       color: ${theme.textColor};
-      border-bottom: 1px dotted ${theme.textColor};
+      text-decoration-color: ${theme.translucentBorder};
+      text-decoration-style: solid;
+      text-decoration-line: underline;
+      text-decoration-thickness: 0.08em;
+      text-underline-offset: 0.06em;
     }
-
-    ${system &&
-    `
-    border-width: 0 0 1px 0;
-    border-radius: 0;
-  `}
+    a:not([role='button']):hover {
+      text-decoration-color: ${theme.subText};
+      text-decoration-style: solid;
+    }
 
     ${IconWrapper} {
       color: ${alertColors.iconColor};
     }
+
+    ${expand &&
+    `
+      cursor: pointer;
+      &:hover {
+        border-color: ${alertColors.borderHover}
+      }
+      &:hover ${IconWrapper} {
+        color: ${alertColors.iconHoverColor};
+      }
+    `}
+
+    ${system &&
+    `
+      border-width: 0 0 1px 0;
+      border-radius: 0;
+    `}
   `;
 };
 
 const StyledTextBlock = styled('span')`
-  line-height: 1.5;
+  line-height: ${p => p.theme.text.lineHeightBody};
   position: relative;
   flex: 1;
 `;
@@ -82,29 +96,26 @@ const ExpandContainer = styled('div')`
   display: grid;
   grid-template-columns: minmax(${space(4)}, 1fr) 30fr 1fr;
   grid-template-areas: '. details details';
-  padding: ${space(1.5)} 0;
+  padding-top: ${space(1.5)};
 `;
 const DetailsContainer = styled('div')`
   grid-area: details;
 `;
 
 const ExpandIcon = styled(props => (
-  <IconWrapper {...props}>{<IconChevron size="md" />}</IconWrapper>
+  <IconWrapper {...props}>{<IconChevron />}</IconWrapper>
 ))`
   transform: ${props => (props.isExpanded ? 'rotate(0deg)' : 'rotate(180deg)')};
-  cursor: pointer;
   justify-self: flex-end;
 `;
 
 const Alert = styled(
   ({
     type,
-    icon,
     children,
     className,
+    showIcon = false,
     expand,
-    expandIcon,
-    onExpandIconClick,
     opaque: _opaque, // don't forward to `div`
     system: _system, // don't forward to `div`
     ...props
@@ -112,18 +123,31 @@ const Alert = styled(
     const [isExpanded, setIsExpanded] = useState(false);
     const showExpand = expand && expand.length;
     const showExpandItems = showExpand && isExpanded;
-    const handleOnExpandIconClick = onExpandIconClick ? onExpandIconClick : setIsExpanded;
+
+    const getIcon = () => {
+      switch (type) {
+        case 'warning':
+          return <IconWarning />;
+        case 'success':
+          return <IconCheckmark />;
+        case 'error':
+          return <IconNot />;
+        case 'info':
+        default:
+          return <IconInfo />;
+      }
+    };
 
     return (
-      <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
+      <div
+        onClick={() => showExpand && setIsExpanded(!isExpanded)}
+        className={classNames(type ? `ref-${type}` : '', className)}
+        {...props}
+      >
         <MessageContainer>
-          {icon && <IconWrapper>{icon}</IconWrapper>}
+          {showIcon && <IconWrapper>{getIcon()}</IconWrapper>}
           <StyledTextBlock>{children}</StyledTextBlock>
-          {showExpand && (
-            <div onClick={() => handleOnExpandIconClick(!isExpanded)}>
-              {expandIcon || <ExpandIcon isExpanded={isExpanded} />}
-            </div>
-          )}
+          {showExpand && <ExpandIcon isExpanded={isExpanded} />}
         </MessageContainer>
         {showExpandItems && (
           <ExpandContainer>

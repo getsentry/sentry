@@ -13,7 +13,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button, {ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {IconClose, IconSiren} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -120,7 +120,7 @@ function IncompatibleQueryAlert({
   };
 
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
+    <StyledAlert type="warning" showIcon>
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&

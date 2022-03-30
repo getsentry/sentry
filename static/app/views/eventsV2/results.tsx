@@ -22,7 +22,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -455,7 +454,7 @@ class Results extends React.Component<Props, State> {
       return null;
     }
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <Alert type="error" showIcon>
         {error}
       </Alert>
     );

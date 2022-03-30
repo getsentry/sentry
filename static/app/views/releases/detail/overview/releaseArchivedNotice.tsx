@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -13,7 +12,7 @@ type Props = {
 
 function ReleaseArchivedNotice({onRestore, multi}: Props) {
   return (
-    <Alert icon={<IconInfo size="md" />} type="warning">
+    <Alert type="warning">
       {multi
         ? t('These releases have been archived.')
         : t('This release has been archived.')}
