@@ -199,7 +199,7 @@ describe('Performance > Widgets > Query Batching', function () {
     );
   });
 
-  it('Multiple EventsRequest based component merge queries with provider ', async function () {
+  it('Multiple EventsRequest based component merge queries with provider', async function () {
     const data = initializeData();
 
     render(

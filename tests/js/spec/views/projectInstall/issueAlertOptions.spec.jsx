@@ -81,7 +81,7 @@ describe('IssueAlertOptions', function () {
     expect(wrapper.find('RadioLineItem')).toHaveLength(3);
   });
 
-  it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition` ', () => {
+  it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition`', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,

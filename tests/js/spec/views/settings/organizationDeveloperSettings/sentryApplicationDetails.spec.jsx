@@ -45,7 +45,7 @@ describe('Sentry Application Details', function () {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows empty scopes and no credentials', function () {
+    it('shows empty scopes and no credentials', function () {
       // new app starts off with no scopes selected
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
       expect(
@@ -172,7 +172,7 @@ describe('Sentry Application Details', function () {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows application data', function () {
+    it('shows application data', function () {
       // data should be filled out
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
         'project:read',
@@ -360,7 +360,7 @@ describe('Sentry Application Details', function () {
       );
     });
 
-    it('it updates app with correct data', function () {
+    it('updates app with correct data', function () {
       wrapper
         .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});
