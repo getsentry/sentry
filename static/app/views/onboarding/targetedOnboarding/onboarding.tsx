@@ -136,7 +136,12 @@ function Onboarding(props: Props) {
             />
           )}
         </AnimatePresence>
-        <Hook name="onboarding:targeted-onboarding-header" source="targeted-onboarding" />
+        <UpsellWrapper>
+          <Hook
+            name="onboarding:targeted-onboarding-header"
+            source="targeted-onboarding"
+          />
+        </UpsellWrapper>
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
         <Back
@@ -298,6 +303,11 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+`;
+
+const UpsellWrapper = styled('div')`
+  grid-column: 3;
+  margin-left: auto;
 `;
 
 export default withOrganization(withProjects(Onboarding));

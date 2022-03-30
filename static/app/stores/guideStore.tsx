@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
@@ -82,7 +82,7 @@ type GuideStoreInterface = {
   updatePrevGuide(nextGuide: Guide | null): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & GuideStoreInterface & SafeStoreDefinition = {
+const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition = {
   state: defaultState,
   unsubscribeListeners: [],
   browserHistoryListener: null,
@@ -279,8 +279,7 @@ const storeConfig: Reflux.StoreDefinition & GuideStoreInterface & SafeStoreDefin
   },
 };
 
-const GuideStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & GuideStoreInterface;
+const GuideStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  GuideStoreInterface;
 
 export default GuideStore;

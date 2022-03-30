@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import BarChart from 'sentry/components/charts/barChart';
-import LineChart from 'sentry/components/charts/lineChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';

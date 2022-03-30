@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
@@ -66,7 +66,7 @@ type TagStoreInterface = CommonStoreInterface<TagCollection> & {
   state: TagCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & TagStoreInterface & SafeStoreDefinition = {
+const storeConfig: StoreDefinition & TagStoreInterface & SafeStoreDefinition = {
   state: {},
   unsubscribeListeners: [],
 
@@ -189,7 +189,7 @@ const storeConfig: Reflux.StoreDefinition & TagStoreInterface & SafeStoreDefinit
   },
 };
 
-const TagStore = Reflux.createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+const TagStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
   TagStoreInterface;
 
 export default TagStore;
