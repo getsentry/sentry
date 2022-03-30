@@ -22,7 +22,6 @@ import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {FieldObject} from 'sentry/components/forms/type';
 import {PanelItem} from 'sentry/components/panels';
 import U2fsign from 'sentry/components/u2f/u2fsign';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
@@ -405,7 +404,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
         <TextBlock>{authenticator.description}</TextBlock>
 
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <Alert type="warning" icon={<IconWarning size="md" />}>
+          <Alert type="warning" showIcon>
             {authenticator.rotationWarning}
           </Alert>
         )}

@@ -13,7 +13,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Switch from 'sentry/components/switchButton';
-import {IconDelete, IconFlag, IconSettings} from 'sentry/icons';
+import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -43,7 +43,7 @@ export class InstalledPlugin extends Component<Props> {
   getConfirmMessage() {
     return (
       <Fragment>
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {t(
             'Deleting this installation will disable the integration for this project and remove any configurations.'
           )}

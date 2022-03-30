@@ -12,7 +12,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
-import {IconCommit, IconFlag} from 'sentry/icons';
+import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -196,7 +196,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
     if (badRequest) {
       return (
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {t(
             'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
           )}

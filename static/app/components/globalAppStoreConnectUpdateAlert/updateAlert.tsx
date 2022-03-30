@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import {IconRefresh} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
@@ -37,7 +36,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
         }
 
         return (
-          <NoMarginBottomAlert key={key} type="warning" icon={<IconRefresh />}>
+          <NoMarginBottomAlert key={key} type="warning" showIcon>
             <AlertContent>{updateAlertMessage}</AlertContent>
           </NoMarginBottomAlert>
         );

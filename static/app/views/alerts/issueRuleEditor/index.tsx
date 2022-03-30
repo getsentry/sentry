@@ -27,7 +27,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
@@ -551,7 +551,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" icon={<IconWarning />}>
+      <Alert type="error" showIcon>
         {t(
           'Unable to access this alert rule -- check to make sure you have the correct permissions'
         )}

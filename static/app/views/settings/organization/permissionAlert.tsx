@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = React.ComponentPropsWithoutRef<typeof Alert> &
@@ -12,7 +11,7 @@ const PermissionAlert = ({access = ['org:write'], ...props}: Props) => (
   <Access access={access}>
     {({hasAccess}) =>
       !hasAccess && (
-        <Alert type="warning" icon={<IconWarning size="sm" />} {...props}>
+        <Alert type="warning" showIcon {...props}>
           {t(
             'These settings can only be edited by users with the organization owner or manager role.'
           )}

@@ -6,7 +6,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
@@ -83,7 +82,7 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
         <FlamegraphThemeProvider>
           <FullScreenFlamegraphContainer>
             {requestState === 'errored' ? (
-              <Alert type="error" icon={<IconFlag size="md" />}>
+              <Alert type="error" showIcon>
                 {t('Unable to load profiles')}
               </Alert>
             ) : requestState === 'loading' ? (

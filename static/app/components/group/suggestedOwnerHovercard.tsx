@@ -8,7 +8,7 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
-import {IconCommit, IconWarning} from 'sentry/icons';
+import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Actor, Commit} from 'sentry/types';
@@ -70,7 +70,7 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
               {actor.name || actor.email}
             </HovercardHeader>
             {actor.id === undefined && (
-              <EmailAlert icon={<IconWarning size="xs" />} type="warning">
+              <EmailAlert type="warning" showIcon>
                 {tct(
                   'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
                   {

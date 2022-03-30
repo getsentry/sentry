@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 
@@ -24,7 +23,7 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
   }
 
   return (
-    <Alert className={className} type="info" icon={<IconInfo size="sm" />}>
+    <Alert className={className} type="info" showIcon>
       {projectsInTheLowPriorityQueue.length === 1
         ? tct(
             'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',

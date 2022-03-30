@@ -6,7 +6,7 @@ import {revertToPinnedFilters} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {IconClose, IconInfo} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -31,7 +31,7 @@ export default function DesyncedFilterAlert({router}: Props) {
   }
 
   return (
-    <Alert type="info" icon={<IconInfo size="md" />} system>
+    <Alert type="info" showIcon system>
       <AlertWrapper>
         <AlertText>
           {t(

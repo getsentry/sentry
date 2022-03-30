@@ -10,7 +10,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Plugin, Project, TimeseriesValue} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -162,7 +161,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               </TextBlock>
               <PermissionAlert />
 
-              <Alert icon={<IconInfo size="md" />}>
+              <Alert showIcon>
                 {tct(
                   `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,

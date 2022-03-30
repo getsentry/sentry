@@ -13,7 +13,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconInfo, IconWarning} from 'sentry/icons';
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -165,7 +165,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     if (possiblyWrongProject) {
       return (
         <PageContent>
-          <Alert type="error" icon={<IconWarning />}>
+          <Alert type="error" showIcon>
             {t('This release may not be in your selected project.')}
           </Alert>
         </PageContent>
@@ -288,7 +288,7 @@ class ReleasesDetailContainer extends AsyncComponent<
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
         <PageContent>
-          <Alert type="error" icon={<IconWarning />}>
+          <Alert type="error" showIcon>
             {t('This release could not be found.')}
           </Alert>
         </PageContent>

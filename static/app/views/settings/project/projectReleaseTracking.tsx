@@ -11,7 +11,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -121,7 +120,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
         {!hasWrite && (
-          <Alert icon={<IconFlag size="md" />} type="warning">
+          <Alert type="warning">
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

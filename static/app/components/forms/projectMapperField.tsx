@@ -276,7 +276,7 @@ export class RenderField extends Component<RenderProps, State> {
           </FieldControlWrapper>
         </Item>
         {nextUrl && (
-          <NextButtonPanelAlert icon={false} type="muted">
+          <NextButtonPanelAlert type="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <Button

@@ -259,7 +259,9 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
+  alerts?: Array<
+    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
+  >;
   configure_integration?: {
     title: string;
   };

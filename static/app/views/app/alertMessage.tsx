@@ -5,7 +5,7 @@ import AlertActions from 'sentry/actions/alertActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import space from 'sentry/styles/space';
@@ -20,15 +20,8 @@ const AlertMessage = ({alert, system}: Props) => {
 
   const {url, message, type, opaque} = alert;
 
-  const icon =
-    type === 'success' ? (
-      <IconCheckmark size="md" isCircled />
-    ) : (
-      <IconWarning size="md" />
-    );
-
   return (
-    <StyledAlert type={type} icon={icon} system={system} opaque={opaque}>
+    <StyledAlert type={type} showIcon system={system} opaque={opaque}>
       <StyledMessage>
         {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
       </StyledMessage>

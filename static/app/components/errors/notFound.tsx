@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 const NotFound = () => (
-  <NotFoundAlert type="error" icon={<IconInfo size="lg" />}>
+  <NotFoundAlert type="error" showIcon>
     <Heading>{t('Page Not Found')}</Heading>
     <p>{t('The page you are looking for was not found.')}</p>
     <p>{t('You may wish to try the following:')}</p>

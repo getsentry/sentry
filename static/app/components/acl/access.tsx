@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import Alert from 'sentry/components/alert';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Config, Organization, Scope} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
@@ -9,7 +8,7 @@ import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" icon={<IconInfo size="md" />}>
+  <Alert type="error" showIcon>
     {t('You do not have sufficient permissions to access this.')}
   </Alert>
 );

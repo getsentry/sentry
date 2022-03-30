@@ -9,7 +9,6 @@ import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -111,7 +110,7 @@ class SudoModal extends React.Component<Props, State> {
         </StyledTextBlock>
 
         {error && (
-          <StyledAlert type="error" icon={<IconFlag size="md" />}>
+          <StyledAlert type="error" showIcon>
             {t('Incorrect password')}
           </StyledAlert>
         )}

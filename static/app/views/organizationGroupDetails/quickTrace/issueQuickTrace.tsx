@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {IconClose, IconInfo} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -115,7 +115,7 @@ class IssueQuickTrace extends Component<Props, State> {
       }
 
       return (
-        <StyledAlert type="info" icon={<IconInfo size="sm" />}>
+        <StyledAlert type="info" showIcon>
           <AlertContent>
             {tct('The [type] for this error cannot be found. [link]', {
               type: type === 'missing' ? t('transaction') : t('trace'),
