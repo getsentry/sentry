@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
@@ -31,51 +31,46 @@ export interface GroupEventDetailsProps
   selection: PageFilters;
 }
 
-type State = typeof OrganizationEnvironmentsStore['state'];
+export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+  const [state, setState] = useState<typeof OrganizationEnvironmentsStore['state']>(
+    OrganizationEnvironmentsStore.get()
+  );
 
-export class GroupEventDetailsContainer extends Component<GroupEventDetailsProps, State> {
-  state = OrganizationEnvironmentsStore.get();
+  useEffect(() => {
+    const unsubscribe = OrganizationEnvironmentsStore.listen(data => {
+      setState(data);
+    }, undefined);
 
-  componentDidMount() {
-    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(
-      data => this.setState(data),
-      undefined
-    );
     const {environments, error} = OrganizationEnvironmentsStore.get();
+
     if (!environments && !error) {
-      fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.environmentUnsubscribe) {
-      this.environmentUnsubscribe();
-    }
-  }
-
-  // TODO(ts): reflux :(
-  environmentUnsubscribe: any;
-
-  render() {
-    if (this.state.error) {
-      return (
-        <LoadingError
-          message={t("There was an error loading your organization's environments")}
-        />
-      );
-    }
-    // null implies loading state
-    if (!this.state.environments) {
-      return <LoadingIndicator />;
+      fetchOrganizationEnvironments(props.api, props.organization.slug);
     }
 
-    const {selection, ...otherProps} = this.props;
-    const environments: Environment[] = this.state.environments.filter(env =>
-      selection.environments.includes(env.name)
+    return () => {
+      unsubscribe();
+    };
+    // XXX: Missing dependencies, but it reflects the old of componentDidMount
+  }, []);
+
+  if (state.error) {
+    return (
+      <LoadingError
+        message={t("There was an error loading your organization's environments")}
+      />
     );
-
-    return <GroupEventDetails {...otherProps} environments={environments} />;
   }
+  // null implies loading state
+  if (!state.environments) {
+    return <LoadingIndicator />;
+  }
+
+  const {selection, ...otherProps} = props;
+  const environments: Environment[] = state.environments.filter(env =>
+    selection.environments.includes(env.name)
+  );
+
+  return <GroupEventDetails {...otherProps} environments={environments} />;
 }
 
 export default withApi(withOrganization(withPageFilters(GroupEventDetailsContainer)));
