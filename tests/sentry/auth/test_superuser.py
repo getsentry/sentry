@@ -18,6 +18,7 @@ from sentry.auth.superuser import (
     MAX_AGE,
     SESSION_KEY,
     Superuser,
+    SuperuserAccessFormInvalidJson,
     SuperuserAccessSerializer,
     is_active_superuser,
 )
@@ -153,7 +154,7 @@ class SuperuserTestCase(TestCase):
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
                 {
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
                 }
             )
@@ -168,7 +169,7 @@ class SuperuserTestCase(TestCase):
                     "superuser_token_id": superuser.token,
                     "user_id": 10,
                     "user_email": "test@sentry.io",
-                    "su_access_category": "debugging",
+                    "su_access_category": "for_unit_test",
                     "reason_for_su": "Edit organization settings",
                 },
             )
@@ -200,15 +201,16 @@ class SuperuserTestCase(TestCase):
             superuser.set_logged_in(request.user)
             logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
 
-    def test_su_access_invalid_request_body(self, logger):
+    def test_su_access_invalid_request_body(self):
         user = User(is_superuser=True, id=10, email="test@sentry.io")
         request = self.make_request(user=user, method="PUT")
         request._body = '{"invalid" "json"}'
 
         superuser = Superuser(request, org_id=None)
         with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
-            superuser.set_logged_in(request.user)
-            assert superuser.is_active is False
+            with self.assertRaises(SuperuserAccessFormInvalidJson):
+                superuser.set_logged_in(request.user)
+                assert superuser.is_active is False
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -308,7 +310,7 @@ class SuperuserTestCase(TestCase):
             request = self.make_request(user=user, method="PUT")
             request._body = json.dumps(
                 {
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
                 }
             )
@@ -332,7 +334,7 @@ class SuperuserTestCase(TestCase):
 
         serialized_data = SuperuserAccessSerializer(
             data={
-                "superuserAccessCategory": "debugging",
+                "superuserAccessCategory": "for_unit_test",
             }
         )
         assert serialized_data.is_valid() is False
@@ -353,7 +355,7 @@ class SuperuserTestCase(TestCase):
 
         serialized_data = SuperuserAccessSerializer(
             data={
-                "superuserAccessCategory": "debugging",
+                "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Eds",
             }
         )
@@ -365,7 +367,7 @@ class SuperuserTestCase(TestCase):
 
         serialized_data = SuperuserAccessSerializer(
             data={
-                "superuserAccessCategory": "debugging",
+                "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars 128 max chars ",
             }
         )
