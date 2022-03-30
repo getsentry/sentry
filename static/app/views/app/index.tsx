@@ -12,23 +12,16 @@ import AlertActions from 'sentry/actions/alertActions';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 
 import SystemAlerts from './systemAlerts';
-
-const GlobalNotifications = HookOrDefault({
-  hookName: 'component:global-notifications',
-  defaultComponent: () => null,
-});
 
 type Props = {
   children: React.ReactNode;
@@ -43,7 +36,6 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 function App({children}: Props) {
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
-  const {organization} = useLegacyStore(OrganizationStore);
 
   // Command palette global-shortcut
   useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
@@ -164,10 +156,6 @@ function App({children}: Props) {
       <MainContainer tabIndex={-1} ref={mainContainerRef}>
         <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
         <SystemAlerts className="messages-container" />
-        <GlobalNotifications
-          className="notifications-container messages-container"
-          organization={organization ?? undefined}
-        />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>
       </MainContainer>
