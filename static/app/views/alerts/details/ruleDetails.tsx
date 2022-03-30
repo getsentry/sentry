@@ -9,7 +9,6 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -217,12 +216,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
               crumbs={[
                 {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
                 {
-                  label: (
-                    <div>
-                      {t('Alert Rule')}
-                      <FeatureBadge type="beta" />
-                    </div>
-                  ),
+                  label: rule.name,
                   to: null,
                 },
               ]}
