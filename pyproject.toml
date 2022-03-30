@@ -34,6 +34,11 @@ filterwarnings = [
 
     "ignore::django.utils.deprecation.RemovedInDjango30Warning",
 
+    # It would be really nice not to ignore these but unfortunately a lot of tests
+    # are failing locally in certain environments due to temporary files not being
+    # closed all over the place
+    "ignore::ResourceWarning",
+
     # DeprecationWarnings from Python 3.6's sre_parse are just so painful,
     # and I haven't found a way to ignore it specifically from a module.
     # This one in particular is from the "cookies" packages as depended

@@ -1,3 +1,4 @@
+import unittest
 from datetime import datetime
 from unittest.mock import patch
 
@@ -5,7 +6,6 @@ import pytest
 import pytz
 
 from sentry.analytics import Attribute, Event, Map
-from sentry.testutils import TestCase
 
 
 class ExampleEvent(Event):
@@ -22,7 +22,7 @@ class DummyType:
     key = "value"
 
 
-class EventTest(TestCase):
+class EventTest(unittest.TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):
         mock_uuid1.return_value = self.get_mock_uuid()
