@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createActions, createStore, StoreDefinition} from 'reflux';
 
 import {
   makeSafeRefluxStore,
@@ -6,7 +6,7 @@ import {
   SafeStoreDefinition,
 } from 'sentry/utils/makeSafeRefluxStore';
 
-const DebugMetaActions = Reflux.createActions(['updateFilter']);
+const DebugMetaActions = createActions(['updateFilter']);
 
 type State = {
   filter: string | null;
@@ -23,7 +23,7 @@ type Internals = {
   filter: string | null;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   DebugMetaStoreInterface &
   Internals &
   SafeStoreDefinition = {
@@ -55,9 +55,8 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const DebugMetaStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & DebugMetaStoreInterface;
+const DebugMetaStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  DebugMetaStoreInterface;
 
 export {DebugMetaActions, DebugMetaStore};
 export default DebugMetaStore;
