@@ -118,6 +118,10 @@ describe('TraceView', () => {
     const groupedSiblingsSpan = await screen.findByText('Autogrouped — http —');
     userEvent.click(groupedSiblingsSpan);
 
+    await waitFor(() =>
+      expect(screen.queryByText('Autogrouped — http —')).not.toBeInTheDocument()
+    );
+
     for (let i = 1; i < 7; i++) {
       expect(await screen.findByTestId(`span-row-${i}`)).toBeInTheDocument();
     }
@@ -129,6 +133,7 @@ describe('TraceView', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('span-row-6')).not.toBeInTheDocument()
     );
+
     expect(await screen.findByText('Autogrouped — http —')).toBeInTheDocument();
   });
 
