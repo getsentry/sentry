@@ -858,8 +858,8 @@ DERIVED_METRICS = {
             metric_name=DerivedMetricKey.TRANSACTION_ALL.value,
             metrics=[TransactionMetricsKey.TRANSACTION.value],
             unit="transactions",
-            snql=lambda *_, metric_ids, alias=None: all_transactions(
-                metric_ids=metric_ids, alias=alias
+            snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
+                org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
     ]
