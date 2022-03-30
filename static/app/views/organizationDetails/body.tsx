@@ -6,7 +6,6 @@ import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Footer from 'sentry/components/footer';
 import {Body, Main} from 'sentry/components/layouts/thirds';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -21,7 +20,7 @@ function DeletionInProgress({organization}: Props) {
   return (
     <Body>
       <Main>
-        <Alert type="warning" icon={<IconWarning />}>
+        <Alert type="warning" showIcon>
           {tct(
             'The [organization] organization is currently in the process of being deleted from Sentry.',
             {

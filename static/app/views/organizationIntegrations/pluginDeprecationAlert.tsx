@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, PluginWithProjectList} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -30,7 +29,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
     }referrer=directory_upgrade_now`;
     return (
       <div>
-        <Alert type="warning" icon={<IconWarning size="sm" />}>
+        <Alert type="warning" showIcon>
           <span>{`This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`}</span>
           <UpgradeNowButton
             href={`${upgradeUrl}${queryParams}`}
