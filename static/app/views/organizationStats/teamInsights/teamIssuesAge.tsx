@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';

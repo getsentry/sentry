@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -584,7 +584,7 @@ function FlamegraphZoomView({
   }, [flamegraphCanvasRef, zoom, scroll]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
         onMouseDown={onCanvasMouseDown}
@@ -608,7 +608,7 @@ function FlamegraphZoomView({
           {hoveredNode?.frame?.name}
         </BoundTooltip>
       ) : null}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

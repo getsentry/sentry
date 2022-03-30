@@ -206,9 +206,12 @@ def __translated_payload(
     """
     indexer = MockIndexer()
     payload = payload.copy()
+    org_id = payload["org_id"]
 
-    new_tags = {indexer.resolve(k): indexer.resolve(v) for k, v in payload["tags"].items()}
-    payload["metric_id"] = indexer.resolve(payload["name"])
+    new_tags = {
+        indexer.resolve(org_id, k): indexer.resolve(org_id, v) for k, v in payload["tags"].items()
+    }
+    payload["metric_id"] = indexer.resolve(org_id, payload["name"])
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 
