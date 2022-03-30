@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode, render} from 'react-dom';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
@@ -17,10 +17,7 @@ const globals = {
   Sentry,
   moment,
   Router: ReactRouter,
-  ReactDOM: {
-    findDOMNode: ReactDOM.findDOMNode,
-    render: ReactDOM.render,
-  },
+  ReactDOM: {findDOMNode, render},
 
   // django templates make use of these globals
   SentryApp: {},
