@@ -54,10 +54,10 @@ function MergedList({
 
   return (
     <Fragment>
-      <h2>
+      <h4>
         <span>{t('Merged fingerprints with latest event')}</span>{' '}
         <QueryCount count={fingerprintsWithLatestEvent.length} />
-      </h2>
+      </h4>
 
       <Panel>
         <MergedToolbar

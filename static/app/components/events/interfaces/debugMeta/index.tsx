@@ -427,7 +427,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     return (
-      <StyledEventDataSection
+      <EventDataSection
         type="images-loaded"
         title={
           <GuideAnchor target="images-loaded" position="bottom">
@@ -455,7 +455,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
             </EmptyMessage>
           )}
         </DebugImagesPanel>
-      </StyledEventDataSection>
+      </EventDataSection>
     );
   }
 }
@@ -480,16 +480,6 @@ const Label = styled('label')`
 
   > input {
     margin-right: 1ex;
-  }
-`;
-
-const StyledEventDataSection = styled(EventDataSection)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(4)};
-  }
-  /* to increase specificity */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(2)};
   }
 `;
 

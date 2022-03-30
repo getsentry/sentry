@@ -150,7 +150,7 @@ export default class DetailsBody extends React.Component<Props> {
               </StyledAlert>
             </StyledLayoutBody>
           )}
-        <StyledLayoutBodyWrapper>
+        <Layout.Body>
           <Layout.Main>
             <DateContainer>
               <StyledDropdownControl
@@ -232,7 +232,7 @@ export default class DetailsBody extends React.Component<Props> {
           <Layout.Side>
             <Sidebar incidents={incidents} rule={rule} />
           </Layout.Side>
-        </StyledLayoutBodyWrapper>
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -272,10 +272,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledLayoutBodyWrapper = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`

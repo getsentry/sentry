@@ -6,7 +6,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Teams from 'sentry/utils/teams';
@@ -116,8 +115,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
 }
 
 const EditConditionsBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-
   *:not(img) {
     max-width: 1000px;
   }

@@ -8,7 +8,6 @@ import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
   BreadcrumbLevelType,
@@ -368,7 +367,7 @@ function BreadcrumbsContainer({
   }
 
   return (
-    <StyledEventDataSection
+    <EventDataSection
       type={eventType}
       title={
         <GuideAnchor target="breadcrumbs" position="right">
@@ -402,15 +401,11 @@ function BreadcrumbsContainer({
           relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
         />
       </ErrorBoundary>
-    </StyledEventDataSection>
+    </EventDataSection>
   );
 }
 
 export default BreadcrumbsContainer;
-
-const StyledEventDataSection = styled(EventDataSection)`
-  margin-bottom: ${space(3)};
-`;
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 2;

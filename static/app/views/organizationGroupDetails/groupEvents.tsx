@@ -1,16 +1,19 @@
 import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
@@ -154,23 +157,31 @@ class GroupEvents extends React.Component<Props, State> {
 
   render() {
     return (
-      <div>
-        <div style={{marginBottom: 20}}>
-          <SearchBar
-            defaultQuery=""
-            placeholder={t('search event id, message, or tags')}
-            query={this.state.query}
-            onSearch={this.handleSearch}
-          />
-        </div>
-        <Panel className="event-list">
-          <PanelBody>{this.renderBody()}</PanelBody>
-        </Panel>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Wrapper>
+            <SearchBar
+              defaultQuery=""
+              placeholder={t('Search events by id, message, or tags')}
+              query={this.state.query}
+              onSearch={this.handleSearch}
+            />
+
+            <Panel className="event-list">
+              <PanelBody>{this.renderBody()}</PanelBody>
+            </Panel>
+            <Pagination pageLinks={this.state.pageLinks} />
+          </Wrapper>
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
 
 export {GroupEvents};
 

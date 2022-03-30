@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
@@ -124,13 +124,15 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <Fragment>
-        <GroupEventAttachmentsFilter />
-        <Panel className="event-list">
-          <PanelBody>{this.renderInnerBody()}</PanelBody>
-        </Panel>
-        <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
-      </Fragment>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <GroupEventAttachmentsFilter />
+          <Panel className="event-list">
+            <PanelBody>{this.renderInnerBody()}</PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

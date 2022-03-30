@@ -16,6 +16,7 @@ import Note from 'sentry/components/activity/note';
 import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
 import {CreateError} from 'sentry/components/activity/note/types';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
@@ -157,87 +158,86 @@ class GroupActivity extends Component<Props, State> {
             groupId={groupId}
           />
         )}
-        <div className="row">
-          <div className="col-md-9">
-            <div>
-              <ActivityItem author={{type: 'user', user: me}}>
-                {() => (
-                  <NoteInputWithStorage
-                    key={this.state.inputId}
-                    storageKey="groupinput:latest"
-                    itemKey={group.id}
-                    onCreate={this.handleNoteCreate}
-                    busy={this.state.createBusy}
-                    error={this.state.error}
-                    errorJSON={this.state.errorJSON}
-                    {...noteProps}
-                  />
-                )}
-              </ActivityItem>
 
-              <Teams
-                ids={uniq(
-                  group.activity
-                    .filter(
-                      (item): item is GroupActivityAssigned =>
-                        item.type === GroupActivityType.ASSIGNED &&
-                        item.data.assigneeType === 'team' &&
-                        item.data.assignee?.length > 0
-                    )
-                    .map(item => item.data.assignee)
-                )}
-              >
-                {({initiallyLoaded}) =>
-                  initiallyLoaded ? (
-                    group.activity.map(item => {
-                      const authorName = item.user ? item.user.name : 'Sentry';
+        <Layout.Body>
+          <Layout.Main>
+            <ActivityItem author={{type: 'user', user: me}}>
+              {() => (
+                <NoteInputWithStorage
+                  key={this.state.inputId}
+                  storageKey="groupinput:latest"
+                  itemKey={group.id}
+                  onCreate={this.handleNoteCreate}
+                  busy={this.state.createBusy}
+                  error={this.state.error}
+                  errorJSON={this.state.errorJSON}
+                  {...noteProps}
+                />
+              )}
+            </ActivityItem>
 
-                      if (item.type === GroupActivityType.NOTE) {
-                        return (
-                          <ErrorBoundary mini key={`note-${item.id}`}>
-                            <Note
-                              showTime={false}
-                              text={item.data.text}
-                              modelId={item.id}
-                              user={item.user as User}
-                              dateCreated={item.dateCreated}
-                              authorName={authorName}
-                              onDelete={this.handleNoteDelete}
-                              onUpdate={this.handleNoteUpdate}
-                              {...noteProps}
-                            />
-                          </ErrorBoundary>
-                        );
-                      }
+            <Teams
+              ids={uniq(
+                group.activity
+                  .filter(
+                    (item): item is GroupActivityAssigned =>
+                      item.type === GroupActivityType.ASSIGNED &&
+                      item.data.assigneeType === 'team' &&
+                      item.data.assignee?.length > 0
+                  )
+                  .map(item => item.data.assignee)
+              )}
+            >
+              {({initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  group.activity.map(item => {
+                    const authorName = item.user ? item.user.name : 'Sentry';
 
+                    if (item.type === GroupActivityType.NOTE) {
                       return (
-                        <ErrorBoundary mini key={`item-${item.id}`}>
-                          <ActivityItem
-                            author={{
-                              type: item.user ? 'user' : 'system',
-                              user: item.user ?? undefined,
-                            }}
-                            date={item.dateCreated}
-                            header={
-                              <GroupActivityItem
-                                author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                                activity={item}
-                                orgSlug={this.props.params.orgId}
-                                projectId={group.project.id}
-                              />
-                            }
+                        <ErrorBoundary mini key={`note-${item.id}`}>
+                          <Note
+                            showTime={false}
+                            text={item.data.text}
+                            modelId={item.id}
+                            user={item.user as User}
+                            dateCreated={item.dateCreated}
+                            authorName={authorName}
+                            onDelete={this.handleNoteDelete}
+                            onUpdate={this.handleNoteUpdate}
+                            {...noteProps}
                           />
                         </ErrorBoundary>
                       );
-                    })
-                  ) : (
-                    <LoadingIndicator />
-                  )
-                }
-              </Teams>
-            </div>
-          </div>
-        </div>
+                    }
+
+                    return (
+                      <ErrorBoundary mini key={`item-${item.id}`}>
+                        <ActivityItem
+                          author={{
+                            type: item.user ? 'user' : 'system',
+                            user: item.user ?? undefined,
+                          }}
+                          date={item.dateCreated}
+                          header={
+                            <GroupActivityItem
+                              author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                              activity={item}
+                              orgSlug={this.props.params.orgId}
+                              projectId={group.project.id}
+                            />
+                          }
+                        />
+                      </ErrorBoundary>
+                    );
+                  })
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Teams>
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }

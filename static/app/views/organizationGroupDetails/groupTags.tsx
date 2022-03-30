@@ -8,6 +8,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -116,19 +117,21 @@ class GroupTags extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <div>
-        {this.renderTags()}
-        <Alert type="info">
-          {tct(
-            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
-              ),
-            }
-          )}
-        </Alert>
-      </div>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="info">
+            {tct(
+              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
+                ),
+              }
+            )}
+          </Alert>
+          {this.renderTags()}
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }
