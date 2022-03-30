@@ -496,7 +496,7 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    const newQueries = state.queries.map((query, queryIndex) => {
+    const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
