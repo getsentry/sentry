@@ -17,6 +17,8 @@ import {
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -24,7 +26,9 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -109,7 +113,7 @@ class DashboardDetail extends Component<Props, State> {
 
   checkIfShouldMountWidgetViewerModal() {
     const {
-      params: {widgetId},
+      params: {widgetId, dashboardId},
       organization,
       dashboard,
       location,
@@ -133,6 +137,31 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
+            if (
+              organization.features.includes('new-widget-builder-experience') &&
+              !organization.features.includes(
+                'new-widget-builder-experience-modal-access'
+              )
+            ) {
+              trackAdvancedAnalyticsEvent(
+                'dashboards_views.add_widget_in_builder.opened',
+                {
+                  organization,
+                }
+              );
+
+              const widgetIndex = dashboard.widgets.indexOf(widget);
+              if (dashboardId) {
+                router.push({
+                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                  query: {
+                    ...location.query,
+                    source: DashboardWidgetSource.DASHBOARDS,
+                  },
+                });
+                return;
+              }
+            }
             openAddDashboardWidgetModal({
               organization,
               widget,
@@ -389,11 +418,36 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onAddWidget = () => {
-    const {organization, dashboard} = this.props;
+    const {
+      organization,
+      dashboard,
+      router,
+      location,
+      params: {dashboardId},
+    } = this.props;
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
 
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
+      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.opened', {
+        organization,
+      });
+
+      if (dashboardId) {
+        router.push({
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+          query: {
+            ...location.query,
+            source: DashboardWidgetSource.DASHBOARDS,
+          },
+        });
+        return;
+      }
+    }
     openAddDashboardWidgetModal({
       organization,
       dashboard,
@@ -535,9 +589,12 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
+        hideGlobalHeader={hasPageFilters}
         defaultSelection={{
           datetime: {
             start: null,
@@ -569,6 +626,13 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
+            {hasPageFilters && (
+              <DashboardPageFilterBar>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter alignDropdown="right" />
+                <DatePageFilter alignDropdown="right" />
+              </DashboardPageFilterBar>
+            )}
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -615,10 +679,13 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           skipLoadLastUsed={organization.features.includes('global-views')}
+          hideGlobalHeader={hasPageFilters}
           defaultSelection={{
             datetime: {
               start: null,
@@ -667,6 +734,13 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
+                  {hasPageFilters && (
+                    <DashboardPageFilterBar>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter alignDropdown="right" />
+                      <DatePageFilter alignDropdown="right" />
+                    </DashboardPageFilterBar>
+                  )}
                   <Dashboard
                     paramDashboardId={dashboardId}
                     dashboard={modifiedDashboard ?? dashboard}
@@ -726,6 +800,12 @@ const StyledTitle = styled(Layout.Title)`
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const DashboardPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
+  width: max-content;
+  max-width: 100%;
 `;
 
 export default withApi(withOrganization(DashboardDetail));

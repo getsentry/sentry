@@ -123,7 +123,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "type": "numeric",
             "operations": [],
             "unit": "percentage",
-            "tags": [{"key": "environment"}, {"key": "release"}, {"key": "session.status"}],
+            "tags": [{"key": "environment"}, {"key": "release"}],
         }
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
@@ -185,7 +185,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                     "metric_id": indexer.record(org_id, "metric_foo_doe"),
                     "timestamp": int(time.time()),
                     "tags": {
-                        resolve_weak("release"): indexer.record(org_id, "foo"),
+                        resolve_weak(self.organization.id, "release"): indexer.record(
+                            org_id, "foo"
+                        ),
                     },
                     "type": "c",
                     "value": 1,

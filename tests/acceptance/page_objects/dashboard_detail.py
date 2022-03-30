@@ -17,6 +17,7 @@ class DashboardDetailPage(BasePage):
         self.browser.wait_until_not('[data-test-id="events-request-loading"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+        self.browser.wait_until_not(".loading")
 
     def visit_default_overview(self):
         self.browser.get(f"/organizations/{self.organization.slug}/dashboard/default-overview/")

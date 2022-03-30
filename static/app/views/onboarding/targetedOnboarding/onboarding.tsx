@@ -19,6 +19,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
+import Stepper from './components/stepper';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
 import {StepDescriptor} from './types';
@@ -61,7 +62,8 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  if (!stepObj) {
+  const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+  if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
 
@@ -85,9 +87,13 @@ function Onboarding(props: Props) {
     setPlatforms(platforms.filter(p => p !== platform));
   };
 
+  const goToStep = (step: StepDescriptor) => {
+    browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
+  };
+
   const goNextStep = (step: StepDescriptor) => {
-    const stepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
-    const nextStep = ONBOARDING_STEPS[stepIndex + 1];
+    const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
+    const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
 
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
@@ -121,7 +127,21 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        <Hook name="onboarding:targeted-onboarding-header" />
+        <AnimatePresence initial={false}>
+          {stepIndex !== 0 && (
+            <StyledStepper
+              numSteps={ONBOARDING_STEPS.length - 1}
+              currentStepIndex={stepIndex - 1}
+              onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
+            />
+          )}
+        </AnimatePresence>
+        <UpsellWrapper>
+          <Hook
+            name="onboarding:targeted-onboarding-header"
+            source="targeted-onboarding"
+          />
+        </UpsellWrapper>
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
         <Back
@@ -183,8 +203,8 @@ const Header = styled('header')`
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -236,6 +256,12 @@ const AdaptivePageCorners = styled(PageCorners)`
   }
 `;
 
+const StyledStepper = styled(Stepper)`
+  margin-left: auto;
+  margin-right: auto;
+  align-self: center;
+`;
+
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
   className?: string;
@@ -277,6 +303,11 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+`;
+
+const UpsellWrapper = styled('div')`
+  grid-column: 3;
+  margin-left: auto;
 `;
 
 export default withOrganization(withProjects(Onboarding));
