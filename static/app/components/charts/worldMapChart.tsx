@@ -61,36 +61,43 @@ export function WorldMapChart({
   useEffect(() => {
     let unmounted = false;
 
-    async () => {
-      Promise.all([
-        import('sentry/data/countryCodesMap'),
-        import('sentry/data/world.json'),
-      ]).then(([countryToCodeMap, worldMap]) => {
-        if (unmounted) {
-          return;
-        }
-
-        // Echarts not available in tests
-        echarts.registerMap?.('sentryWorld', worldMap as any);
-
-        const codeToCountryMap: Record<string, string> = {};
-
-        for (const country in worldMap) {
-          codeToCountryMap[countryToCodeMap[country]] = country;
-        }
-
-        setState({
-          countryToCodeMap: countryToCodeMap.default,
-          map: worldMap.default,
-          codeToCountryMap,
-        });
-      });
-    };
+    if (!unmounted) {
+      loadWorldMap();
+    }
 
     return () => {
       unmounted = true;
     };
   }, []);
+
+  async function loadWorldMap() {
+    try {
+      const [countryCodesMap, world] = await Promise.all([
+        import('sentry/data/countryCodesMap'),
+        import('sentry/data/world.json'),
+      ]);
+
+      const countryToCodeMap = countryCodesMap.default;
+      const worldMap = world.default;
+
+      // Echarts not available in tests
+      echarts.registerMap?.('sentryWorld', worldMap as any);
+
+      const codeToCountryMap: Record<string, string> = {};
+
+      for (const country in worldMap) {
+        codeToCountryMap[countryToCodeMap[country]] = country;
+      }
+
+      setState({
+        countryToCodeMap,
+        map: worldMap,
+        codeToCountryMap,
+      });
+    } catch {
+      // do nothing
+    }
+  }
 
   if (state.countryToCodeMap === null || state.map === null) {
     return null;
