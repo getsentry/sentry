@@ -71,10 +71,8 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         if provider_key:
             integrations = integrations.filter(integration__provider=provider_key.lower())
 
-        # include the configurations by default if no param
-        include_config = True
-        if request.GET.get("includeConfig") == "0":
-            include_config = False
+        # Include the configurations by default if includeConfig is not present.
+        include_config = query_param_to_bool(include_config_raw, default=True)
 
         def on_results(results):
             if len(features):
