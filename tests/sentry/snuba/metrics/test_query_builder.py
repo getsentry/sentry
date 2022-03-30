@@ -17,7 +17,6 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
-    Or,
     OrderBy,
     Query,
 )
@@ -86,21 +85,12 @@ def get_entity_of_metric_mocked(_, metric_name):
             ],
         ),
         (
-            "release:myapp@2.0.0 and environment:production or session.status:healthy",
+            "release:myapp@2.0.0 and environment:production",
             [
-                Or(
+                And(
                     [
-                        And(
-                            [
-                                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
-                                Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
-                            ]
-                        ),
-                        Condition(
-                            Column(name="tags[8]"),
-                            Op.EQ,
-                            rhs=4,
-                        ),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
@@ -109,12 +99,26 @@ def get_entity_of_metric_mocked(_, metric_name):
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
+    org_id = 666  # mock indexer does not require a real organization ID
     local_indexer = MockIndexer()
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
         local_indexer.record(1, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string))
     assert parsed == expected
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        "release:myapp@2.0.0 or session.status:init",
+        "release:myapp@2.0.0 and environment:production or session.status:healthy",
+        "session.status:crashed",
+    ],
+)
+def test_parse_query_invalid(query_string):
+    with pytest.raises(InvalidParams):
+        parse_query(query_string)
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -192,7 +196,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
             "query": [
                 "release:staging"
             ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["session.status", "environment"],
+            "groupBy": ["environment"],
             "field": [
                 "sum(sentry.sessions.session)",
                 "count_unique(sentry.sessions.user)",
@@ -205,6 +209,8 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
         [PseudoProject(1, 1)], query_definition
     ).get_snuba_queries()
 
+    org_id = 666  # mock indexer does not require a real organization ID
+
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
@@ -215,19 +221,21 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     OP_TO_SNUBA_FUNCTION[match][alias],
                     [
                         Column("value"),
-                        Function("equals", [Column("metric_id"), resolve_weak(metric_name)]),
+                        Function(
+                            "equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]
+                        ),
                     ],
                     alias=f"{alias}({metric_name})",
                 )
             ],
-            groupby=[Column("tags[8]"), Column("tags[2]")] + extra_groupby,
+            groupby=[Column("tags[2]")] + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.IN, [10]),
-                Condition(Column("metric_id"), Op.IN, [resolve_weak(metric_name)]),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, metric_name)]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -285,6 +293,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
 )
 def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
+    org_id = 666
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
     query_params = MultiValueDict(
@@ -320,22 +329,28 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 match=Entity("metrics_counters"),
                 select=[
                     errored_preaggr_sessions(
-                        metric_ids=[resolve_weak("sentry.sessions.session")],
+                        org_id,
+                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
                         alias="session.errored_preaggregated",
                     ),
                     percentage(
+                        org_id,
                         crashed_sessions(
-                            metric_ids=[resolve_weak("sentry.sessions.session")],
+                            org_id,
+                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
                             alias="session.crashed",
                         ),
                         all_sessions(
-                            metric_ids=[resolve_weak("sentry.sessions.session")],
+                            org_id,
+                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
                             alias="session.all",
                         ),
                         alias="session.crash_free_rate",
                     ),
                     all_sessions(
-                        metric_ids=[resolve_weak("sentry.sessions.session")], alias="session.all"
+                        org_id,
+                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
+                        alias="session.all",
                     ),
                 ],
                 groupby=groupby,
@@ -349,7 +364,9 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
                     ),
                     Condition(
-                        Column("metric_id"), Op.IN, [resolve_weak("sentry.sessions.session")]
+                        Column("metric_id"),
+                        Op.IN,
+                        [resolve_weak(org_id, "sentry.sessions.session")],
                     ),
                 ],
                 limit=Limit(MAX_POINTS),
@@ -363,7 +380,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 match=Entity("metrics_sets"),
                 select=[
                     sessions_errored_set(
-                        metric_ids=[resolve_weak("sentry.sessions.session.error")],
+                        org_id,
+                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session.error")],
                         alias="session.errored_set",
                     ),
                 ],
@@ -378,7 +396,9 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
                     ),
                     Condition(
-                        Column("metric_id"), Op.IN, [resolve_weak("sentry.sessions.session.error")]
+                        Column("metric_id"),
+                        Op.IN,
+                        [resolve_weak(org_id, "sentry.sessions.session.error")],
                     ),
                 ],
                 limit=Limit(MAX_POINTS),
@@ -397,7 +417,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "query": [
                 "release:staging"
             ],  # weird release but we need a string exising in mock indexer
-            "groupBy": ["session.status", "environment"],
+            "groupBy": ["environment"],
             "field": [
                 "sum(sentry.sessions.session)",
             ],
@@ -409,6 +429,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         [PseudoProject(1, 1)], query_definition
     ).get_snuba_queries()
 
+    org_id = 666  # mock indexer does not require a real organization ID
+
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
 
@@ -416,7 +438,10 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     metric_name = "sentry.sessions.session"
     select = Function(
         OP_TO_SNUBA_FUNCTION["metrics_counters"]["sum"],
-        [Column("value"), Function("equals", [Column("metric_id"), resolve_weak(metric_name)])],
+        [
+            Column("value"),
+            Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+        ],
         alias=f"{op}({metric_name})",
     )
 
@@ -425,7 +450,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[8]"),
             Column("tags[2]"),
         ],
         where=[
@@ -446,7 +470,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column("tags[8]"),
             Column("tags[2]"),
             Column("bucketed_time"),
         ],

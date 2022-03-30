@@ -20,10 +20,6 @@ import {
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
-// Mock World Map because setState inside componentDidMount is
-// throwing UnhandledPromiseRejection
-jest.mock('sentry/components/charts/worldMapChart');
-
 const defaultOrgFeatures = [
   'new-widget-builder-experience',
   'dashboards-edit',
@@ -1272,6 +1268,41 @@ describe('WidgetBuilder', function () {
     expect(
       await screen.findByText('count_if(transaction.duration,equals,300)*2')
     ).toBeInTheDocument();
+  });
+
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
   });
 
   describe('Widget creation coming from other verticals', function () {
