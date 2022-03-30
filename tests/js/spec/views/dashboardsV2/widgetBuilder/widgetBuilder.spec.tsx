@@ -1,4 +1,3 @@
-import React from 'react';
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
