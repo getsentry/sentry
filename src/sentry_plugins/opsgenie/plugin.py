@@ -78,7 +78,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     def build_payload(group, event, triggering_rules):
         return {
             "message": event.message or event.title,
-            "alias": "sentry: %d" % group.id,
+            "alias": f"sentry: {group.id}",
             "source": "Sentry",
             "details": {
                 "Sentry ID": str(group.id),
@@ -91,10 +91,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
                 "Triggering Rules": json.dumps(triggering_rules),
             },
             "entity": group.culprit,
-            "tags": [
-                "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", ""))
-                for x, y in event.tags
-            ],
+            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
 
     def notify_users(self, group, event, fail_silently=False, triggering_rules=None, **kwargs):
