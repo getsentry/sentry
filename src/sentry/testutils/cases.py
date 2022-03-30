@@ -1364,6 +1364,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
             "columns": [],
+            "fieldAliases": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
@@ -1371,6 +1372,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
             "columns": ["geo.country_code"],
+            "fieldAliases": [],
             "conditions": "has:geo.country_code",
         }
 
