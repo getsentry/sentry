@@ -14,12 +14,11 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import theme from 'sentry/utils/theme';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
