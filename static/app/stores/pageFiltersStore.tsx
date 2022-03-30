@@ -1,5 +1,5 @@
 import isEqual from 'lodash/isEqual';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
@@ -52,7 +52,7 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   Internals &
   PageFiltersStoreInterface &
   SafeStoreDefinition = {
@@ -171,7 +171,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const PageFiltersStore = Reflux.createStore(
+const PageFiltersStore = createStore(
   makeSafeRefluxStore(storeConfig)
 ) as SafeRefluxStore & PageFiltersStoreInterface;
 

@@ -1,13 +1,13 @@
 import {useEffect, useState} from 'react';
 import isEqual from 'lodash/isEqual';
-import Reflux from 'reflux';
+import {Store} from 'reflux';
 
 import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
 type LegacyStoreShape =
-  | (Reflux.Store & CommonStoreInterface<any>)
+  | (Store & CommonStoreInterface<any>)
   | (SafeRefluxStore & CommonStoreInterface<any>);
 
 /**
