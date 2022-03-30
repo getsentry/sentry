@@ -397,30 +397,27 @@ class TestCase(BaseTestCase, TestCase):
 
             state = State()
 
-            def finalizer():
-                did_not_use = set()
-                did_use = set()
-                for name, used in state.used_db.items():
-                    if used:
-                        did_use.add(name)
-                    else:
-                        did_not_use.add(name)
-
-                if did_not_use and not did_use:
-                    pytest.fail(
-                        f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
-                        f"instead of `sentry.testutils.TestCase` for those kinds of tests."
-                    )
-                elif did_not_use and did_use:
-                    pytest.fail(
-                        f"Some of the test functions in {state.base} used the DB and some did not! "
-                        f"test functions using the db: {did_use}\n"
-                        f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
-                    )
-
-            request.addfinalizer(finalizer)
-
             yield state
+
+            did_not_use = set()
+            did_use = set()
+            for name, used in state.used_db.items():
+                if used:
+                    did_use.add(name)
+                else:
+                    did_not_use.add(name)
+
+            if did_not_use and not did_use:
+                pytest.fail(
+                    f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
+                    f"instead of `sentry.testutils.TestCase` for those kinds of tests."
+                )
+            elif did_not_use and did_use:
+                pytest.fail(
+                    f"Some of the test functions in {state.base} used the DB and some did not! "
+                    f"test functions using the db: {did_use}\n"
+                    f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
+                )
 
         @pytest.fixture(autouse=True, scope="function")
         def _check_function_for_db(self, request, monkeypatch, _require_db_usage):
