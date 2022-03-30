@@ -24,11 +24,11 @@ import useTeams from 'sentry/utils/useTeams';
 import GenericFooter from './genericFooter';
 
 type Props = {
+  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   organization: Organization;
   platforms: PlatformKey[];
-  clearPlatforms: () => void;
 };
 
 export default function CreateProjectsFooter({

@@ -9,13 +9,13 @@ export type StepData = {
 export type StepProps = {
   active: boolean;
   addPlatform: (platform: PlatformKey) => void;
+  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   orgId: string;
   organization: Organization;
   platforms: PlatformKey[];
   removePlatform: (platform: PlatformKey) => void;
-  clearPlatforms: () => void;
   search: string;
   stepIndex: number;
 };

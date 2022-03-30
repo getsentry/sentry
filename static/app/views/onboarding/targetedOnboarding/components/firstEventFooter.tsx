@@ -135,6 +135,7 @@ export default function FirstEventFooter({
 
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
+  justify-self: end;
 `;
 
 const AnimatedText = styled(motion.div)<{errorReceived: boolean}>`

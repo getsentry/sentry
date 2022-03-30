@@ -69,8 +69,8 @@ function Onboarding(props: Props) {
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    // TODO: find better way to delay thhe corner animation
-    setTimeout(
+    // TODO: find better way to delay the corner animation
+    window.setTimeout(
       () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
@@ -140,14 +140,12 @@ function Onboarding(props: Props) {
             <div />
           )}
         </AnimatePresence>
-        <div>
-          <HookInnerWrapper>
-            <Hook
-              name="onboarding:targeted-onboarding-header"
-              source="targeted-onboarding"
-            />
-          </HookInnerWrapper>
-        </div>
+        <UpsellWrapper>
+          <Hook
+            name="onboarding:targeted-onboarding-header"
+            source="targeted-onboarding"
+          />
+        </UpsellWrapper>
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
         <Back
@@ -272,10 +270,6 @@ const StyledStepper = styled(Stepper)`
   align-self: center;
 `;
 
-const HookInnerWrapper = styled('div')`
-  float: right;
-`;
-
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
   animate: MotionProps['animate'];
   className?: string;
@@ -317,6 +311,11 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+`;
+
+const UpsellWrapper = styled('div')`
+  grid-column: 3;
+  margin-left: auto;
 `;
 
 export default withOrganization(withProjects(Onboarding));

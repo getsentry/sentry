@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
@@ -24,7 +24,7 @@ type OrganizationEnvironmentsStoreInterface = {
   state: State;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   OrganizationEnvironmentsStoreInterface &
   SafeStoreDefinition = {
   unsubscribeListeners: [],
@@ -87,8 +87,8 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const OrganizationEnvironmentsStore = Reflux.createStore(
+const OrganizationEnvironmentsStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & OrganizationEnvironmentsStoreInterface;
+) as Store & OrganizationEnvironmentsStoreInterface;
 
 export default OrganizationEnvironmentsStore;
