@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
@@ -18,10 +18,12 @@ describe('Dashboards > Create', function () {
 
   describe('new dashboards', function () {
     let initialData;
-
     const projects = [TestStubs.Project()];
+
     beforeEach(function () {
-      act(() => ProjectsStore.loadInitialData(projects));
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData(projects);
+
       initialData = initializeOrg({
         organization,
         project: undefined,
@@ -64,6 +66,7 @@ describe('Dashboards > Create', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
+      ProjectsStore.teardown();
     });
 
     it('can create with new widget', async function () {
@@ -76,8 +79,6 @@ describe('Dashboards > Create', function () {
 
       mountGlobalModal(initialData.routerContext);
 
-      const widgetTitle = 'Widget Title';
-
       render(
         <CreateDashboard
           organization={initialData.organization}
@@ -89,21 +90,11 @@ describe('Dashboards > Create', function () {
         {context: initialData.routerContext}
       );
 
-      await act(async () => {
-        // Wrap with act because GlobalSelectionHeaderContainer triggers update
-        await tick();
-      });
-
-      userEvent.click(screen.getByTestId('widget-add'));
-
-      await act(async () => {
-        // Flakeyness with global modal
-        await tick();
-      });
+      userEvent.click(await screen.findByTestId('widget-add'));
 
       // Add a custom widget to the dashboard
       userEvent.click(await screen.findByText('Custom Widget'));
-      userEvent.paste(screen.getByTestId('widget-title-input'), widgetTitle);
+      userEvent.paste(screen.getByTestId('widget-title-input'), 'Widget Title');
       userEvent.click(screen.getByText('Save'));
 
       // Committing dashboard should complete without throwing error
