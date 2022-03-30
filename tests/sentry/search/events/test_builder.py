@@ -1326,12 +1326,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p95(transaction.duration)",
                 "count_unique(user)",
             ],
+            allow_metric_aggregates=True,
             use_aggregate_conditions=True,
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve("baz_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
@@ -1374,12 +1375,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             orderby=["p95(transaction.duration)"],
+            allow_metric_aggregates=True,
             use_aggregate_conditions=True,
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
         assert result["data"][0] == {
-            "transaction": indexer.resolve("baz_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
