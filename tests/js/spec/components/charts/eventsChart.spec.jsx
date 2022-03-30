@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'sentry/actionCreators/pageFilters';
 import EventsChart from 'sentry/components/charts/eventsChart';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 jest.mock('sentry/components/charts/eventsRequest', () => jest.fn(() => null));

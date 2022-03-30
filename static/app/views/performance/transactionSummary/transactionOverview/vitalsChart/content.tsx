@@ -3,7 +3,7 @@ import {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -28,7 +28,7 @@ type Props = {
     start: number;
   };
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
-  Pick<React.ComponentProps<typeof LineChart>, 'onLegendSelectChanged' | 'legend'>;
+  Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
 function Content({
   errored,

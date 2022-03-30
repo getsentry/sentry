@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import NotAvailable from 'sentry/components/notAvailable';
@@ -142,7 +142,7 @@ function ReleaseAdoption({
     },
   };
 
-  const chartOptions: Omit<React.ComponentProps<typeof LineChart>, 'series' | 'ref'> = {
+  const chartOptions: Omit<LineChartProps, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
       {

@@ -13,12 +13,12 @@ export type LineChartSeries = Series &
     dataArray?: LineSeriesOption['data'];
   };
 
-type Props = Omit<ChartProps, 'series'> & {
+export interface LineChartProps extends Omit<ChartProps, 'series'> {
   series: LineChartSeries[];
   seriesOptions?: LineSeriesOption;
-};
+}
 
-function LineChart({series, seriesOptions, ...props}: Props) {
+export function LineChart({series, seriesOptions, ...props}: LineChartProps) {
   return (
     <BaseChart
       {...props}
@@ -36,5 +36,3 @@ function LineChart({series, seriesOptions, ...props}: Props) {
     />
   );
 }
-
-export default LineChart;

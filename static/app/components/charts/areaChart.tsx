@@ -10,42 +10,37 @@ type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
-type Props = Omit<ChartProps, 'series'> & {
+export interface AreaChartProps extends Omit<ChartProps, 'series'> {
   series: AreaChartSeries[];
   stacked?: boolean;
-};
-
-class AreaChart extends React.Component<Props> {
-  render() {
-    const {series, stacked, colors, ...props} = this.props;
-
-    return (
-      <BaseChart
-        {...props}
-        colors={colors}
-        series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
-          AreaSeries({
-            stack: stacked ? 'area' : undefined,
-            name: seriesName,
-            data: data.map(({name, value}) => [name, value]),
-            lineStyle: {
-              color: colors?.[i],
-              opacity: 1,
-              width: 0.4,
-            },
-            areaStyle: {
-              color: colors?.[i],
-              opacity: 1.0,
-            },
-            animation: false,
-            animationThreshold: 1,
-            animationDuration: 0,
-            ...otherSeriesProps,
-          })
-        )}
-      />
-    );
-  }
 }
 
-export default AreaChart;
+export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
+  return (
+    <BaseChart
+      {...props}
+      data-test-id="area-chart"
+      colors={colors}
+      series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
+        AreaSeries({
+          stack: stacked ? 'area' : undefined,
+          name: seriesName,
+          data: data.map(({name, value}) => [name, value]),
+          lineStyle: {
+            color: colors?.[i],
+            opacity: 1,
+            width: 0.4,
+          },
+          areaStyle: {
+            color: colors?.[i],
+            opacity: 1.0,
+          },
+          animation: false,
+          animationThreshold: 1,
+          animationDuration: 0,
+          ...otherSeriesProps,
+        })
+      )}
+    />
+  );
+}

@@ -5,7 +5,7 @@ import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
