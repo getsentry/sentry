@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
@@ -17,7 +17,7 @@ type Internals = {
   orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   Internals &
   SdkUpdatesStoreInterface &
   SafeStoreDefinition = {
@@ -44,8 +44,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const SdkUpdatesStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SdkUpdatesStoreInterface;
+const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  SdkUpdatesStoreInterface;
 
 export default SdkUpdatesStore;

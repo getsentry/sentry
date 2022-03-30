@@ -193,7 +193,7 @@
     "**/is-svg": ">=4.2.2",
     "webpack": "5.66.0",
     "css-loader": "^5.2.6",
-    "dotenv-webpack": "^6.0.0",
+    "dotenv-webpack": "^7.1.0",
     "html-webpack-plugin": "^5.0.0",
     "less-loader": "^10.0.0",
     "style-loader": "^2.0.0",

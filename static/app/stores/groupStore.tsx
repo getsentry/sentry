@@ -1,6 +1,6 @@
 import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
@@ -57,7 +57,7 @@ type Internals = {
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
 };
 
-type GroupStoreInterface = Reflux.StoreDefinition & {
+type GroupStoreInterface = StoreDefinition & {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
@@ -97,7 +97,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   reset: () => void;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
+const storeConfig: StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],
   pendingChanges: new PendingChangeQueue(),
   items: [],
@@ -519,8 +519,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-const GroupStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & GroupStoreInterface;
+const GroupStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  GroupStoreInterface;
 
 export default GroupStore;
