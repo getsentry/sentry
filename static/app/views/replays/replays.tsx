@@ -38,7 +38,7 @@ class Replays extends AsyncView<Props, State> {
       name: '',
       version: 2,
       fields: ['eventID', 'timestamp'],
-      orderby: '',
+      orderby: '-timestamp',
       projects: [],
       range: statsPeriod,
       query: 'transaction:sentry-replay', // future: change to replay event

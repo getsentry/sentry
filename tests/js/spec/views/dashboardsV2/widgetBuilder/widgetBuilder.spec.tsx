@@ -1,4 +1,3 @@
-import React from 'react';
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
@@ -19,10 +18,6 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-
-// Mock World Map because setState inside componentDidMount is
-// throwing UnhandledPromiseRejection
-jest.mock('sentry/components/charts/worldMapChart');
 
 const defaultOrgFeatures = [
   'new-widget-builder-experience',
@@ -171,6 +166,11 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-geo/',
       body: {data: [], meta: {}},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
     });
   });
 
@@ -497,6 +497,7 @@ describe('WidgetBuilder', function () {
               conditions: '',
               fields: ['count()', 'count_unique(user)'],
               aggregates: ['count()', 'count_unique(user)'],
+              fieldAliases: [],
               columns: [],
               orderby: '',
               name: '',
@@ -540,6 +541,7 @@ describe('WidgetBuilder', function () {
               fields: ['count()', 'equation|count() + 100'],
               aggregates: ['count()', 'equation|count() + 100'],
               columns: [],
+              fieldAliases: [],
               conditions: '',
               orderby: '',
             },
@@ -1272,6 +1274,41 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -1347,6 +1384,37 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  // Disabling for CI, but should run locally when making changes
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('Update table header values (field alias)', async function () {
+    const handleSave = jest.fn();
+
+    renderTestComponent({
+      onSave: handleSave,
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+
+    userEvent.click(screen.getByLabelText('Add a Column'));
+
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          queries: [
+            expect.objectContaining({fieldAliases: ['First Alias', 'Second Alias']}),
+          ],
+        }),
+      ]);
+    });
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
@@ -1369,6 +1437,7 @@ describe('WidgetBuilder', function () {
                 fields: ['issue', 'assignee', 'title'],
                 columns: ['issue', 'assignee', 'title'],
                 aggregates: [],
+                fieldAliases: [],
                 name: '',
                 orderby: '',
               },
@@ -1435,6 +1504,43 @@ describe('WidgetBuilder', function () {
         'is:'
       );
       expect(await screen.findByText('resolved')).toBeInTheDocument();
+    });
+
+    // Disabling for CI, but should run locally when making changes
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('Update table header values (field alias)', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Table');
+
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+
+      await screen.findAllByPlaceholderText('Alias');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+              }),
+            ],
+          }),
+        ]);
+      });
     });
   });
 
@@ -1581,7 +1687,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('limit field', function () {
-    it('renders if groupBy value and  is present in the handleSave', async function () {
+    it('renders if groupBy value is present', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -1590,8 +1696,8 @@ describe('WidgetBuilder', function () {
         onSave: handleSave,
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await screen.findByText('Group your results');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -8,6 +8,7 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -86,6 +87,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: ['count()'],
       columns: [],
+      fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
       orderby: widgetBuilderNewDesign ? '-count' : '',
@@ -94,6 +96,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: ['issue', 'assignee', 'title'] as string[],
       columns: ['issue', 'assignee', 'title'],
+      fieldAliases: [],
       aggregates: [],
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
@@ -102,6 +105,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       name: '',
       fields: [`sum(${SessionMetric.SESSION})`],
       columns: [],
+      fieldAliases: [],
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
       orderby: '',
@@ -181,6 +185,8 @@ function WidgetBuilder({
     widgetIndexNum < dashboard.widgets.length &&
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
+
+  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
   const widgetBuilderNewDesign = organization.features.includes(
     'new-widget-builder-experience-design'
   );
@@ -268,6 +274,10 @@ function WidgetBuilder({
       setWidgetToBeUpdated(widgetFromDashboard);
     }
   }, []);
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
+  }, [selection.projects]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -491,11 +501,8 @@ function WidgetBuilder({
 
     const newState = cloneDeep(state);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
-
-      const descending = query.orderby.startsWith('-');
+    const newQueries = state.queries.map(query => {
+      const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
       const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
       const newQuery = cloneDeep(query);
@@ -503,13 +510,23 @@ function WidgetBuilder({
       if (isColumn) {
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+      } else if (state.displayType === DisplayType.TOP_N) {
+        // Top N queries use n-1 fields for columns and the nth field for y-axis
+        newQuery.fields = [
+          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
+          ...fieldStrings,
+        ];
+        newQuery.aggregates = [
+          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
+          ...fieldStrings,
+        ];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;
       }
 
+      // Prevent overwriting columns when setting y-axis for time series
       if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        // Prevent overwriting columns when setting y-axis for time series
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
@@ -524,7 +541,7 @@ function WidgetBuilder({
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
             ];
 
-          if (descending) {
+          if (isDescending) {
             newQuery.orderby = `-${newOrderByValue}`;
           } else {
             newQuery.orderby = newOrderByValue;
@@ -534,9 +551,14 @@ function WidgetBuilder({
         }
       }
 
-      set(newState, `queries.${queryIndex}`, newQuery);
-    }
+      if (widgetBuilderNewDesign) {
+        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+      }
 
+      return newQuery;
+    });
+
+    set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
     if (widgetBuilderNewDesign && isTimeseriesChart) {
@@ -622,6 +644,10 @@ function WidgetBuilder({
       widgetData.queries.forEach(query => {
         query.orderby = '';
       });
+    }
+
+    if (!widgetBuilderNewDesign) {
+      widgetData.queries.forEach(query => omit(query, 'fieldAliases'));
     }
 
     // Only Time Series charts shall have a limit
@@ -815,11 +841,24 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
-  const {columns, aggregates, fields} = state.queries[0];
-  const explodedColumns = columns.map(field => explodeField({field}));
-  const explodedAggregates = aggregates.map(field => explodeField({field}));
+  // Tabular visualizations will always have only one query and that query cannot be deleted,
+  // so we will always have the first query available to get data from.
+  const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
+
+  const explodedColumns = useMemo(() => {
+    return columns.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, [columns, fieldAliases]);
+
+  const explodedAggregates = useMemo(() => {
+    return aggregates.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, [aggregates, fieldAliases]);
+
   const explodedFields = defined(fields)
-    ? fields.map(field => explodeField({field}))
+    ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
   return (
@@ -872,8 +911,6 @@ function WidgetBuilder({
                         handleYAxisOrColumnFieldChange(newFields, true);
                       }}
                       explodedFields={explodedFields}
-                      explodedColumns={explodedColumns}
-                      explodedAggregates={explodedAggregates}
                       tags={tags}
                       organization={organization}
                     />
@@ -907,7 +944,9 @@ function WidgetBuilder({
                     <GroupByStep
                       columns={columns
                         .filter(field => !(field === 'equation|'))
-                        .map(field => explodeField({field}))}
+                        .map((field, index) =>
+                          explodeField({field, alias: fieldAliases[index]})
+                        )}
                       onGroupByChange={handleGroupByChange}
                       organization={organization}
                       tags={tags}

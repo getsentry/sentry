@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -448,7 +448,7 @@ function FlamegraphZoomViewMinimap({
   }, [flamegraphMiniMapCanvasRef, onMinimapScroll, onMinimapZoom]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Canvas
         ref={canvas => setFlamegraphMiniMapRef(canvas)}
         onMouseDown={onMinimapCanvasMouseDown}
@@ -467,7 +467,7 @@ function FlamegraphZoomViewMinimap({
         }}
       />
       <OverlayCanvas ref={canvas => setFlamegraphMiniMapOverlayCanvasRef(canvas)} />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
