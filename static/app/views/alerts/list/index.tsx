@@ -264,7 +264,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
-          <StyledLayoutBody>
+          <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
@@ -281,7 +281,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               )}
               {this.renderList()}
             </Layout.Main>
-          </StyledLayoutBody>
+          </Layout.Body>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     );
@@ -335,10 +335,6 @@ class IncidentsListContainer extends Component<Props> {
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
-`;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
 `;
 
 const EmptyStateAction = styled('p')`

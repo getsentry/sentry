@@ -180,11 +180,11 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -252,7 +252,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
-        <StyledLayoutBody>
+        <Layout.Body>
           <Layout.Main>
             <StyledPageTimeRangeSelector
               organization={organization}
@@ -286,17 +286,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           <Layout.Side>
             <Sidebar rule={rule} />
           </Layout.Side>
-        </StyledLayoutBody>
+        </Layout.Body>
       </PageFiltersContainer>
     );
   }
 }
 
 export default AlertRuleDetails;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
