@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from rest_framework import serializers
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -17,6 +16,7 @@ from sentry.auth.superuser import (
     IDLE_MAX_AGE,
     MAX_AGE,
     SESSION_KEY,
+    EmptySuperuserAccessForm,
     Superuser,
     SuperuserAccessFormInvalidJson,
     SuperuserAccessSerializer,
@@ -180,7 +180,7 @@ class SuperuserTestCase(TestCase):
 
         superuser = Superuser(request, org_id=None)
         with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True):
-            with self.assertRaises(serializers.ValidationError):
+            with self.assertRaises(EmptySuperuserAccessForm):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False
 

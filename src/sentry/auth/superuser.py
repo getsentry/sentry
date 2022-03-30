@@ -74,6 +74,12 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
     message = "The request contains invalid json"
 
 
+class EmptySuperuserAccessForm(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "empty-superuser-access-form"
+    message = "The request contains an empty superuser acccess form data"
+
+
 class Superuser:
     allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
@@ -318,7 +324,7 @@ class Superuser:
         except json.JSONDecodeError:
             raise SuperuserAccessFormInvalidJson()
         except AttributeError:
-            su_access_json = {}
+            raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 
