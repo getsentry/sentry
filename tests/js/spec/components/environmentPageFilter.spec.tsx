@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -33,17 +33,15 @@ describe('EnvironmentPageFilter', function () {
     ProjectsStore.init();
     ProjectsStore.loadInitialData(organization.projects);
 
-    act(() => {
-      PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [2],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
-    });
+    PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [2],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set()
+    );
   });
 
   afterEach(() => {
