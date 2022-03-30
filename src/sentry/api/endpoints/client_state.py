@@ -25,7 +25,7 @@ class ClientStateEndpoint(OrganizationEndpoint):
 
     def get_key(self, organization, category, user):
         if category not in STATE_CATEGORIES:
-            return NotFound(detail="Category not found")
+            raise NotFound(detail="Category not found")
         scope = STATE_CATEGORIES[category]["scope"]
         if scope == "member":
             return f"client-state:{category}:{organization}:{user}"
