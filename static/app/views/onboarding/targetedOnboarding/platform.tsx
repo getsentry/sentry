@@ -42,5 +42,5 @@ function OnboardingPlatform(props: StepProps) {
 export default OnboardingPlatform;
 
 const Wrapper = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;

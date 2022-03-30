@@ -37,7 +37,7 @@ function Sidebar({
           <PlatformIcon platform={project.platform || 'other'} size={36} />
         </IconWrapper>
         <MiddleWrapper>
-          {name}
+          <NameWrapper>{name}</NameWrapper>
           <SubHeader errorReceived={errorReceived}>
             {errorReceived ? t('Error Received') : t('Waiting for error')}
           </SubHeader>
@@ -71,7 +71,7 @@ const Title = styled('span')`
 
 const ProjectWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
-  grid-template-columns: 1fr fit-content(100%) 1fr;
+  grid-template-columns: fit-content(100%) 230px fit-content(100%);
   background-color: ${p => p.isActive && p.theme.gray100};
   padding: ${space(2)};
   cursor: pointer;
@@ -108,8 +108,18 @@ const MiddleWrapper = styled('div')`
   margin: 0 ${space(1)};
 `;
 
+const NameWrapper = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;
+
 // the number icon will be space(2) + 30px to the left of the margin of center column
 // so we need to offset the right margin by that much
+// also hide the sidebar if the screen is too small
 const Wrapper = styled('div')`
   margin: ${space(1)} calc(${space(2)} + 30px + ${space(4)}) 0 ${space(2)};
+  @media (max-width: 1150px) {
+    display: none;
+  }
 `;
