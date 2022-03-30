@@ -2,7 +2,7 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';

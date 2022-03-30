@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
