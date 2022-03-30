@@ -77,7 +77,7 @@ def _aggregation_on_tx_status_func_factory(aggregate):
     return _snql_on_tx_status_factory
 
 
-def _dist_sum_aggregation_on_tx_status_factory(
+def _dist_count_aggregation_on_tx_status_factory(
     org_id, exclude_tx_statuses: List[str], metric_ids, alias=None
 ):
     return _aggregation_on_tx_status_func_factory("countIf")(
@@ -151,7 +151,7 @@ def sessions_errored_set(metric_ids, alias=None):
 
 
 def all_transactions(org_id, metric_ids, alias=None):
-    return _dist_sum_aggregation_on_tx_status_factory(
+    return _dist_count_aggregation_on_tx_status_factory(
         org_id,
         exclude_tx_statuses=[],
         metric_ids=metric_ids,
