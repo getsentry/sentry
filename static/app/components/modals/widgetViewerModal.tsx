@@ -313,6 +313,11 @@ function WidgetViewerModal(props: Props) {
     };
     getDiscoverTotals();
   }, [selectedQueryIndex]);
+  // State update causes browser to lose focus on the modal portal.
+  // Refocus on the close button so that pressing esc closes the modal when opened.
+  React.useEffect(() => {
+    (document.querySelector('[aria-label="Close Modal"]') as HTMLElement)?.focus();
+  }, [totalResults]);
 
   function renderWidgetViewer() {
     return (
