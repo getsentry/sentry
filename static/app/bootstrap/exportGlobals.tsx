@@ -3,7 +3,7 @@ import {findDOMNode, render} from 'react-dom';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import plugins from 'sentry/plugins';
