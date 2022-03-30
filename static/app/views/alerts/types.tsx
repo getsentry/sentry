@@ -65,12 +65,6 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
-export enum IncidentStatusMethod {
-  MANUAL = 1,
-  RULE_UPDATED = 2,
-  RULE_TRIGGERED = 3,
-}
-
 export enum AlertRuleStatus {
   PENDING = 0,
   SNAPSHOT = 4,
