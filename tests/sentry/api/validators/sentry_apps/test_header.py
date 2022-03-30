@@ -1,10 +1,11 @@
+import unittest
+
 from sentry.api.validators.sentry_apps.schema import validate_component
-from sentry.testutils import TestCase
 
 from .util import invalid_schema
 
 
-class TestHeaderSchemaValidation(TestCase):
+class TestHeaderSchemaValidation(unittest.TestCase):
     def setUp(self):
         self.schema = {"type": "header", "text": "Beep"}
 
