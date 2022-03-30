@@ -247,9 +247,13 @@ class QueryBuilder:
         query: Optional[str],
         use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
+        sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
+        sentry_sdk.set_tag("query.use_aggregate_conditions", use_aggregate_conditions)
         parsed_terms = self.parse_query(query)
 
         self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
+        sentry_sdk.set_tag("query.has_or_condition", self.has_or_condition)
+
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
@@ -258,6 +262,10 @@ class QueryBuilder:
         else:
             where = self.resolve_where(parsed_terms)
             having = self.resolve_having(parsed_terms, use_aggregate_conditions)
+
+        sentry_sdk.set_tag("query.has_having_conditions", len(having) > 0)
+        sentry_sdk.set_tag("query.has_where_conditions", len(where) > 0)
+
         return where, having
 
     def resolve_boolean_conditions(
@@ -404,6 +412,7 @@ class QueryBuilder:
         resolved_columns = []
         stripped_columns = [column.strip() for column in set(selected_columns)]
 
+        sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
             _, _, parsed_equations = resolve_equation_list(
                 equations, stripped_columns, use_snql=True, **self.equation_config
