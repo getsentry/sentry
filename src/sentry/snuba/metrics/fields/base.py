@@ -369,6 +369,7 @@ class AliasedFieldMetricExpression(MetricExpression):
             alias=f"{self.op}({self.metric_name})",
         )
 
+
 class HistogramMetricField(RawFieldMetricExpression):
     def generate_orderby_clause(
         self, projects: Sequence[Project], direction: Direction
