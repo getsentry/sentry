@@ -928,8 +928,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -1008,6 +1010,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1060,8 +1064,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Display a global dashboard notification for this org
-    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1759,7 +1761,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": "postgres:9.6-alpine",
+            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},

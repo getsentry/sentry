@@ -6,11 +6,14 @@ import {Theme} from 'sentry/utils/theme';
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
+  margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(3)} ${space(4)} 0 40px;
+  /* Padding aligns with Layout.Body */
+  padding: ${space(3)} ${space(2)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    padding: ${space(3)} ${space(4)} ${space(3)};
   }
 `;
 
@@ -57,8 +60,12 @@ export const BannerContainer = styled('div')<BannerProps>`
 export const BannerSummary = styled('p')`
   display: flex;
   align-items: flex-start;
-  padding: ${space(2)} ${space(4)} ${space(2)} 40px;
   margin-bottom: 0;
+  padding: ${space(2)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    padding: ${space(2)} ${space(4)};
+  }
 
   /* Get icons in top right of content box */
   & > .icon,

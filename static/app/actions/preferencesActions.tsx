@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const PreferencesActions = Reflux.createActions([
+const PreferencesActions = createActions([
   'loadInitialState',
   'hideSidebar',
   'showSidebar',
