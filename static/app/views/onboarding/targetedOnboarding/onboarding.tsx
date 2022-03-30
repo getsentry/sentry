@@ -87,6 +87,8 @@ function Onboarding(props: Props) {
     setPlatforms(platforms.filter(p => p !== platform));
   };
 
+  const clearPlatforms = () => setPlatforms([]);
+
   const goToStep = (step: StepDescriptor) => {
     browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
   };
@@ -162,10 +164,13 @@ function Onboarding(props: Props) {
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
-                platforms={platforms}
-                addPlatform={addPlatform}
-                removePlatform={removePlatform}
-                genSkipOnboardingLink={genSkipOnboardingLink}
+                {...{
+                  platforms,
+                  addPlatform,
+                  removePlatform,
+                  genSkipOnboardingLink,
+                  clearPlatforms,
+                }}
               />
             )}
           </OnboardingStep>
@@ -205,6 +210,7 @@ const Header = styled('header')`
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  justify-items: stretch;
 `;
 
 const LogoSvg = styled(LogoSentry)`

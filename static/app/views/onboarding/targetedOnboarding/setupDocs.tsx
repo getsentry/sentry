@@ -262,5 +262,5 @@ const Wrapper = styled('div')`
 `;
 
 const MainContent = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;
