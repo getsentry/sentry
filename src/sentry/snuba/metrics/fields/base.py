@@ -1,8 +1,8 @@
 __all__ = (
     "metric_object_factory",
     "run_metrics_query",
-    "MetricsExpression",
-    "MetricsExpressionBase",
+    "MetricExpression",
+    "MetricExpressionBase",
     "DerivedMetricExpression",
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Union, Callable
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 from snuba_sdk.orderby import Direction, OrderBy
@@ -135,7 +135,7 @@ class DerivedMetricAlias(DerivedMetricAliasDefinition):
         return Function("and", conditions)
 
 
-class MetricsExpressionBase(ABC):
+class MetricExpressionBase(ABC):
     @abstractmethod
     def get_entity(
         self, projects: Sequence[Project]
@@ -198,12 +198,12 @@ class MetricsExpressionBase(ABC):
 
 
 @dataclass
-class MetricsExpressionDefinition:
+class MetricExpressionDefinition:
     op: str
     metric_name: str
 
 
-class MetricsExpression(MetricsExpressionDefinition, MetricsExpressionBase, ABC):
+class MetricExpression(MetricExpressionDefinition, MetricExpressionBase, ABC):
     """
     This class serves the purpose of representing any aggregate, raw metric combination for
     example `sum(sentry.sessions.session)`. It is created on the fly to abstract the field
@@ -250,7 +250,7 @@ class MetricsExpression(MetricsExpressionDefinition, MetricsExpressionBase, ABC)
         raise NotImplementedError
 
 
-class RawFieldMetricExpression(MetricsExpression):
+class RawFieldMetricExpression(MetricExpression):
     """
     Defines a type of MetricExpression that contains a metric_name that is just a string and an
     op that is just a string
@@ -275,7 +275,7 @@ class RawFieldMetricExpression(MetricsExpression):
         )
 
 
-class AliasedFieldMetricExpression(MetricsExpression):
+class AliasedFieldMetricExpression(MetricExpression):
     """
     Defines a type of MetricExpression that contains a metric_name that represents an instance of
     DerivedMetricAlias and an op that is just a string
@@ -316,7 +316,7 @@ class DerivedMetricExpressionDefinition:
     is_private: bool = False
 
 
-class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricsExpressionBase, ABC):
+class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressionBase, ABC):
     def _raise_entity_validation_exception(self, func_name: str):
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
@@ -784,7 +784,7 @@ DERIVED_ALIASES = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsExpressionBase:
+def metric_object_factory(op: Optional[str], metric_name: str) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     # This function is only used in the query builder, only after func `parse_field` validates
     # that no private derived metrics are required. The query builder requires access to all
@@ -793,7 +793,7 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsExpress
     derived_metrics = get_derived_metrics(exclude_private=False)
     if metric_name in derived_metrics:
         return derived_metrics[metric_name]
-    return MetricsExpression.from_dict(op=op, metric_name=metric_name)
+    return MetricExpression.from_dict(op=op, metric_name=metric_name)
 
 
 def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
