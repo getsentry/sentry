@@ -38,7 +38,12 @@ function renderComponent(event?: Event) {
 
 describe('GroupActions', function () {
   beforeEach(function () {
+    ConfigStore.init();
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
   });
 
   describe('render()', function () {
@@ -74,6 +79,7 @@ describe('GroupActions', function () {
 
   describe('bookmarking', function () {
     let issuesApi: any;
+
     beforeEach(function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
