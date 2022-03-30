@@ -1,4 +1,4 @@
-import {Listenable, createStore, createAction} from 'reflux';
+import {createAction, createStore, Listenable} from 'reflux';
 
 import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
