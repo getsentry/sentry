@@ -1,4 +1,4 @@
-import React, {ReducerAction, ReducerState} from 'react';
+import {createContext} from 'react';
 
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {
@@ -132,15 +132,16 @@ export const combinedReducers = makeCombinedReducers({
   preferences: flamegraphPreferencesReducer,
 });
 
-type FlamegraphState = ReducerState<FlamegraphStateReducer>['current'];
+type FlamegraphState = React.ReducerState<FlamegraphStateReducer>['current'];
 type FlamegraphAction = React.Dispatch<
-  UndoableReducerAction<ReducerAction<FlamegraphStateReducer>>
+  UndoableReducerAction<React.ReducerAction<FlamegraphStateReducer>>
 >;
 type FlamegraphStateReducer = UndoableReducer<typeof combinedReducers>;
 export type FlamegraphStateContextValue = [FlamegraphState, FlamegraphAction];
 
-export const FlamegraphStateContext =
-  React.createContext<FlamegraphStateContextValue | null>(null);
+export const FlamegraphStateContext = createContext<FlamegraphStateContextValue | null>(
+  null
+);
 
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;

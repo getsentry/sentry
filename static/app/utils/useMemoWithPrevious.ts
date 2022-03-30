@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 
 import {useEffectAfterFirstRender} from './useEffectAfterFirstRender';
 import usePrevious from './usePrevious';

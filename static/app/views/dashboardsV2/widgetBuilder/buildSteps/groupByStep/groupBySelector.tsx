@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -52,7 +52,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   if (columns.length === 0) {
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledField inline={false} flexibleControlStateSize stacked>
           <QueryFieldWrapper>
             <QueryField
@@ -68,7 +68,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
         <AddGroupButton size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
           {t('Add Group')}
         </AddGroupButton>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -80,7 +80,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
   const canDelete = columns.length > 1 || hasOnlySingleColumnWithValue;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <StyledField inline={false} flexibleControlStateSize stacked>
         {columns.map((column, index) => (
           <QueryFieldWrapper key={`groupby-${index}`}>
@@ -110,7 +110,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
           {t('Add Group')}
         </AddGroupButton>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
