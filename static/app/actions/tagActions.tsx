@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const TagActions = Reflux.createActions(['loadTagsError', 'loadTagsSuccess']);
+const TagActions = createActions(['loadTagsError', 'loadTagsSuccess']);
 
 export default TagActions;

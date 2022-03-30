@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -400,7 +400,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       </Ghost>
     );
 
-    return ReactDOM.createPortal(ghost, this.portal);
+    return createPortal(ghost, this.portal);
   }
 
   renderItem(
