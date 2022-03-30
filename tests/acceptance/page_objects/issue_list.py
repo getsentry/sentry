@@ -36,7 +36,8 @@ class IssueListPage(BasePage):
         self.browser.wait_until('[data-test-id="resolved-issue"]')
 
     def wait_for_issue_removal(self):
-        self.browser.wait_until_not('[data-test-id="toast-loading"]')
+        self.browser.click_when_visible('[data-test-id="toast-success"]')
+        self.browser.wait_until_not('[data-test-id="toast-success"]')
 
     def wait_for_issue(self):
         self.browser.wait_until('[data-test-id="group"]')

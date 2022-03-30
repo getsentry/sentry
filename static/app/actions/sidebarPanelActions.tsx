@@ -1,9 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const SidebarPanelActions = Reflux.createActions([
-  'activatePanel',
-  'togglePanel',
-  'hidePanel',
-]);
+const SidebarPanelActions = createActions(['activatePanel', 'togglePanel', 'hidePanel']);
 
 export default SidebarPanelActions;

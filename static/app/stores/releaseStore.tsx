@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ReleaseActions from 'sentry/actions/releaseActions';
@@ -45,9 +45,29 @@ type ReleaseStoreInterface = {
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;
 
-const storeConfig: Reflux.StoreDefinition & ReleaseStoreInterface & SafeStoreDefinition =
-  {
-    state: {
+const storeConfig: StoreDefinition & ReleaseStoreInterface & SafeStoreDefinition = {
+  state: {
+    orgSlug: undefined,
+    release: new Map() as StoreRelease,
+    releaseLoading: new Map() as StoreLoading,
+    releaseError: new Map() as StoreError,
+    deploys: new Map() as StoreDeploys,
+    deploysLoading: new Map() as StoreLoading,
+    deploysError: new Map() as StoreError,
+  },
+
+  listenables: ReleaseActions,
+  unsubscribeListeners: [],
+
+  init() {
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationActions.update, this.updateOrganization)
+    );
+    this.reset();
+  },
+
+  reset() {
+    this.state = {
       orgSlug: undefined,
       release: new Map() as StoreRelease,
       releaseLoading: new Map() as StoreLoading,
@@ -55,180 +75,158 @@ const storeConfig: Reflux.StoreDefinition & ReleaseStoreInterface & SafeStoreDef
       deploys: new Map() as StoreDeploys,
       deploysLoading: new Map() as StoreLoading,
       deploysError: new Map() as StoreError,
-    },
+    };
+    this.trigger(this.state);
+  },
 
-    listenables: ReleaseActions,
-    unsubscribeListeners: [],
+  updateOrganization(org: Organization) {
+    this.reset();
+    this.state.orgSlug = org.slug;
+    this.trigger(this.state);
+  },
 
-    init() {
-      this.unsubscribeListeners.push(
-        this.listenTo(OrganizationActions.update, this.updateOrganization)
-      );
+  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string) {
+    // Wipe entire store if the user switched organizations
+    if (!this.orgSlug || this.orgSlug !== orgSlug) {
       this.reset();
-    },
+      this.orgSlug = orgSlug;
+    }
 
-    reset() {
-      this.state = {
-        orgSlug: undefined,
-        release: new Map() as StoreRelease,
-        releaseLoading: new Map() as StoreLoading,
-        releaseError: new Map() as StoreError,
-        deploys: new Map() as StoreDeploys,
-        deploysLoading: new Map() as StoreLoading,
-        deploysError: new Map() as StoreError,
-      };
-      this.trigger(this.state);
-    },
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {releaseLoading, releaseError, ...state} = this.state;
 
-    updateOrganization(org: Organization) {
+    this.state = {
+      ...state,
+      releaseLoading: {
+        ...releaseLoading,
+        [releaseKey]: true,
+      },
+      releaseError: {
+        ...releaseError,
+        [releaseKey]: undefined,
+      },
+    };
+    this.trigger(this.state);
+  },
+
+  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error) {
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {releaseLoading, releaseError, ...state} = this.state;
+
+    this.state = {
+      ...state,
+      releaseLoading: {
+        ...releaseLoading,
+        [releaseKey]: false,
+      },
+      releaseError: {
+        ...releaseError,
+        [releaseKey]: error,
+      },
+    };
+    this.trigger(this.state);
+  },
+
+  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release) {
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {release, releaseLoading, releaseError, ...state} = this.state;
+    this.state = {
+      ...state,
+      release: {
+        ...release,
+        [releaseKey]: data,
+      },
+      releaseLoading: {
+        ...releaseLoading,
+        [releaseKey]: false,
+      },
+      releaseError: {
+        ...releaseError,
+        [releaseKey]: undefined,
+      },
+    };
+    this.trigger(this.state);
+  },
+
+  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string) {
+    // Wipe entire store if the user switched organizations
+    if (!this.orgSlug || this.orgSlug !== orgSlug) {
       this.reset();
-      this.state.orgSlug = org.slug;
-      this.trigger(this.state);
-    },
+      this.orgSlug = orgSlug;
+    }
 
-    loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string) {
-      // Wipe entire store if the user switched organizations
-      if (!this.orgSlug || this.orgSlug !== orgSlug) {
-        this.reset();
-        this.orgSlug = orgSlug;
-      }
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {deploysLoading, deploysError, ...state} = this.state;
 
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {releaseLoading, releaseError, ...state} = this.state;
+    this.state = {
+      ...state,
+      deploysLoading: {
+        ...deploysLoading,
+        [releaseKey]: true,
+      },
+      deploysError: {
+        ...deploysError,
+        [releaseKey]: undefined,
+      },
+    };
+    this.trigger(this.state);
+  },
 
-      this.state = {
-        ...state,
-        releaseLoading: {
-          ...releaseLoading,
-          [releaseKey]: true,
-        },
-        releaseError: {
-          ...releaseError,
-          [releaseKey]: undefined,
-        },
-      };
-      this.trigger(this.state);
-    },
+  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error) {
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {deploysLoading, deploysError, ...state} = this.state;
 
-    loadReleaseError(projectSlug: string, releaseVersion: string, error: Error) {
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {releaseLoading, releaseError, ...state} = this.state;
+    this.state = {
+      ...state,
+      deploysLoading: {
+        ...deploysLoading,
+        [releaseKey]: false,
+      },
+      deploysError: {
+        ...deploysError,
+        [releaseKey]: error,
+      },
+    };
+    this.trigger(this.state);
+  },
 
-      this.state = {
-        ...state,
-        releaseLoading: {
-          ...releaseLoading,
-          [releaseKey]: false,
-        },
-        releaseError: {
-          ...releaseError,
-          [releaseKey]: error,
-        },
-      };
-      this.trigger(this.state);
-    },
+  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release) {
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
+    const {deploys, deploysLoading, deploysError, ...state} = this.state;
 
-    loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release) {
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {release, releaseLoading, releaseError, ...state} = this.state;
-      this.state = {
-        ...state,
-        release: {
-          ...release,
-          [releaseKey]: data,
-        },
-        releaseLoading: {
-          ...releaseLoading,
-          [releaseKey]: false,
-        },
-        releaseError: {
-          ...releaseError,
-          [releaseKey]: undefined,
-        },
-      };
-      this.trigger(this.state);
-    },
+    this.state = {
+      ...state,
+      deploys: {
+        ...deploys,
+        [releaseKey]: data,
+      },
+      deploysLoading: {
+        ...deploysLoading,
+        [releaseKey]: false,
+      },
+      deploysError: {
+        ...deploysError,
+        [releaseKey]: undefined,
+      },
+    };
+    this.trigger(this.state);
+  },
 
-    loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string) {
-      // Wipe entire store if the user switched organizations
-      if (!this.orgSlug || this.orgSlug !== orgSlug) {
-        this.reset();
-        this.orgSlug = orgSlug;
-      }
+  get(projectSlug: string, releaseVersion: string) {
+    const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
 
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {deploysLoading, deploysError, ...state} = this.state;
+    return {
+      release: this.state.release[releaseKey],
+      releaseLoading: this.state.releaseLoading[releaseKey],
+      releaseError: this.state.releaseError[releaseKey],
+      deploys: this.state.deploys[releaseKey],
+      deploysLoading: this.state.deploysLoading[releaseKey],
+      deploysError: this.state.deploysError[releaseKey],
+    };
+  },
+};
 
-      this.state = {
-        ...state,
-        deploysLoading: {
-          ...deploysLoading,
-          [releaseKey]: true,
-        },
-        deploysError: {
-          ...deploysError,
-          [releaseKey]: undefined,
-        },
-      };
-      this.trigger(this.state);
-    },
-
-    loadDeploysError(projectSlug: string, releaseVersion: string, error: Error) {
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {deploysLoading, deploysError, ...state} = this.state;
-
-      this.state = {
-        ...state,
-        deploysLoading: {
-          ...deploysLoading,
-          [releaseKey]: false,
-        },
-        deploysError: {
-          ...deploysError,
-          [releaseKey]: error,
-        },
-      };
-      this.trigger(this.state);
-    },
-
-    loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release) {
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-      const {deploys, deploysLoading, deploysError, ...state} = this.state;
-
-      this.state = {
-        ...state,
-        deploys: {
-          ...deploys,
-          [releaseKey]: data,
-        },
-        deploysLoading: {
-          ...deploysLoading,
-          [releaseKey]: false,
-        },
-        deploysError: {
-          ...deploysError,
-          [releaseKey]: undefined,
-        },
-      };
-      this.trigger(this.state);
-    },
-
-    get(projectSlug: string, releaseVersion: string) {
-      const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
-
-      return {
-        release: this.state.release[releaseKey],
-        releaseLoading: this.state.releaseLoading[releaseKey],
-        releaseError: this.state.releaseError[releaseKey],
-        deploys: this.state.deploys[releaseKey],
-        deploysLoading: this.state.deploysLoading[releaseKey],
-        deploysError: this.state.deploysError[releaseKey],
-      };
-    },
-  };
-
-const ReleaseStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & ReleaseStoreInterface;
+const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  ReleaseStoreInterface;
 
 export default ReleaseStore;

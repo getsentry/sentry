@@ -5,13 +5,13 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
-import AreaChart from 'sentry/components/charts/areaChart';
-import BarChart from 'sentry/components/charts/barChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
 import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval, processTableResults} from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
@@ -104,7 +104,7 @@ class MiniGraph extends React.Component<Props> {
 
   getChartComponent(
     chartType: PlotType
-  ): React.ComponentType<BarChart['props']> | React.ComponentType<AreaChart['props']> {
+  ): React.ComponentType<BarChartProps> | React.ComponentType<AreaChartProps> {
     switch (chartType) {
       case 'bar':
         return BarChart;
