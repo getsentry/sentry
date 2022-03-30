@@ -16,6 +16,13 @@ export function trimSlug(slug: string, maxLength: number = 20) {
    * E.g. "my-project-name" becomes ["my", "project", "name"]
    */
   const words: string[] = slug.split('-');
+
+  // If the string is too long but not hyphenated, return an end-trimmed
+  // string. E.g. "javascriptfrontendproject" --> "javascriptfrontendp…"
+  if (words.length === 1) {
+    return `${slug.slice(0, maxLength - 1)}\u2026`;
+  }
+
   /**
    * Returns the length (total number of letters plus hyphens in between
    * words) of the current words array.
