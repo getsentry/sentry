@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const SentryAppComponentActions = Reflux.createActions(['loadComponents']);
+const SentryAppComponentActions = createActions(['loadComponents']);
 
 export default SentryAppComponentActions;

@@ -1,11 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const IndicatorActions = Reflux.createActions([
-  'replace',
-  'append',
-  'remove',
-  'clear',
-  'undo',
-]);
+const IndicatorActions = createActions(['replace', 'append', 'remove', 'clear', 'undo']);
 
 export default IndicatorActions;

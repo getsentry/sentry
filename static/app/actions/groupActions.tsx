@@ -1,8 +1,8 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
 // TODO(dcramer): we should probably just make every parameter update
 // work on bulk groups
-const GroupActions = Reflux.createActions([
+const GroupActions = createActions([
   'assignTo',
   'assignToError',
   'assignToSuccess',

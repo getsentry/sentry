@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Organization} from 'sentry/types';
@@ -18,7 +18,7 @@ type OrganizationsStoreInterface = {
   state: Organization[];
 };
 
-const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
+const storeConfig: StoreDefinition & OrganizationsStoreInterface = {
   listenables: [OrganizationsActions],
 
   state: [],
@@ -86,7 +86,7 @@ const storeConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
   },
 };
 
-const OrganizationsStore = Reflux.createStore(
+const OrganizationsStore = createStore(
   makeSafeRefluxStore(storeConfig)
 ) as SafeRefluxStore & OrganizationsStoreInterface;
 

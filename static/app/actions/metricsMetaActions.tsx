@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const MetricsMetaActions = Reflux.createActions(['loadMetricsMetaSuccess']);
+const MetricsMetaActions = createActions(['loadMetricsMetaSuccess']);
 
 export default MetricsMetaActions;

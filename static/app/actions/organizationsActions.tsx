@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const OrganizationsActions = Reflux.createActions([
+const OrganizationsActions = createActions([
   'update',
   'setActive',
   'changeSlug',

@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const SavedSearchActions = Reflux.createActions([
+const SavedSearchActions = createActions([
   'resetSavedSearches',
   'startFetchSavedSearches',
   'fetchSavedSearchesSuccess',

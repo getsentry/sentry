@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -16,9 +16,7 @@ type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
   onTogglePanel(panel: SidebarPanelKey): void;
 };
 
-const storeConfig: Reflux.StoreDefinition &
-  SidebarPanelStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & SidebarPanelStoreInterface & SafeStoreDefinition = {
   activePanel: '',
   unsubscribeListeners: [],
 
@@ -61,8 +59,7 @@ const storeConfig: Reflux.StoreDefinition &
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SidebarPanelStoreInterface;
+const SidebarPanelStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  SidebarPanelStoreInterface;
 
 export default SidebarPanelStore;

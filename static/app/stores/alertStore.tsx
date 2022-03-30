@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import AlertActions from 'sentry/actions/alertActions';
 import {defined} from 'sentry/utils';
@@ -31,7 +31,7 @@ type Internals = {
   count: number;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
+const storeConfig: StoreDefinition & Internals & AlertStoreInterface = {
   listenables: AlertActions,
   alerts: [],
   count: 0,
@@ -109,6 +109,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   },
 };
 
-const AlertStore = Reflux.createStore(storeConfig) as Reflux.Store & AlertStoreInterface;
+const AlertStore = createStore(storeConfig) as Store & AlertStoreInterface;
 
 export default AlertStore;

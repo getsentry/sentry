@@ -1,5 +1,5 @@
 import findIndex from 'lodash/findIndex';
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
@@ -20,9 +20,7 @@ type SavedSearchesStoreInterface = {
   updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
 };
 
-const storeConfig: Reflux.StoreDefinition &
-  SavedSearchesStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & SavedSearchesStoreInterface & SafeStoreDefinition = {
   unsubscribeListeners: [],
 
   state: {
@@ -247,8 +245,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const SavedSearchesStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SavedSearchesStoreInterface;
+const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  SavedSearchesStoreInterface;
 
 export default SavedSearchesStore;

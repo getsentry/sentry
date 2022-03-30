@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const SdkUpdatesActions = Reflux.createActions(['load']);
+const SdkUpdatesActions = createActions(['load']);
 
 export default SdkUpdatesActions;

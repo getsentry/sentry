@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const ReleaseActions = Reflux.createActions([
+const ReleaseActions = createActions([
   'loadRelease', // Singular as it loads 1 release
   'loadReleaseError',
   'loadReleaseSuccess',

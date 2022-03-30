@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -110,7 +110,7 @@ type IdState = {
   collapsed?: boolean;
 };
 
-type GroupingStoreInterface = Reflux.StoreDefinition & {
+type GroupingStoreInterface = StoreDefinition & {
   getInitialState(): State;
   init(): void;
   isAllUnmergedSelected(): boolean;
@@ -172,7 +172,7 @@ type Internals = {
   api: Client;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface = {
+const storeConfig: StoreDefinition & Internals & GroupingStoreInterface = {
   listenables: [GroupingActions],
   api: new Client(),
 
@@ -617,8 +617,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-const GroupingStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & GroupingStoreInterface;
+const GroupingStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  GroupingStoreInterface;
 
 export default GroupingStore;
