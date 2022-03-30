@@ -154,14 +154,19 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
-        self.where, self.having = self.resolve_conditions(
-            query, use_aggregate_conditions=use_aggregate_conditions
-        )
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
-        self.orderby = self.resolve_orderby(orderby)
-        self.groupby = self.resolve_groupby()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby()
 
     def load_config(
         self,
@@ -242,9 +247,13 @@ class QueryBuilder:
         query: Optional[str],
         use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
+        sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
+        sentry_sdk.set_tag("query.use_aggregate_conditions", use_aggregate_conditions)
         parsed_terms = self.parse_query(query)
 
         self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
+        sentry_sdk.set_tag("query.has_or_condition", self.has_or_condition)
+
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
@@ -253,6 +262,10 @@ class QueryBuilder:
         else:
             where = self.resolve_where(parsed_terms)
             having = self.resolve_having(parsed_terms, use_aggregate_conditions)
+
+        sentry_sdk.set_tag("query.has_having_conditions", len(having) > 0)
+        sentry_sdk.set_tag("query.has_where_conditions", len(where) > 0)
+
         return where, having
 
     def resolve_boolean_conditions(
@@ -399,6 +412,7 @@ class QueryBuilder:
         resolved_columns = []
         stripped_columns = [column.strip() for column in set(selected_columns)]
 
+        sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
             _, _, parsed_equations = resolve_equation_list(
                 equations, stripped_columns, use_snql=True, **self.equation_config
