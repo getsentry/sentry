@@ -1830,3 +1830,48 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "totals": {"p50(session.duration)": 6.0},
             "series": {"p50(session.duration)": [6.0]},
         }
+
+    @patch("sentry.snuba.metrics.query_builder.UNALLOWED_TAGS", set())
+    def test_session_duration_derived_alias_groupby(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [2, 6, 8],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [11, 13, 15],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "crashed")},
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["p50(session.duration)"],
+            statsPeriod="6m",
+            interval="6m",
+            groupBy="session.status",
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"p50(session.duration)": 6.0},
+                "series": {"p50(session.duration)": [6.0]},
+            }
+        ]
