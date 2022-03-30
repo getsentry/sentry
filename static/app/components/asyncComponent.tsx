@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -61,7 +61,7 @@ function wrapErrorHandling<T extends any[], U>(
 class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
-> extends React.Component<P, S> {
+> extends Component<P, S> {
   static contextTypes = {
     router: PropTypes.object,
   };
