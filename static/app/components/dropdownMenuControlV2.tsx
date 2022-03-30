@@ -129,7 +129,7 @@ function MenuControl({
   const updateTriggerWidth = useCallback(async () => {
     // Wait until the trigger element finishes rendering, otherwise
     // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => setTimeout(resolve));
+    await new Promise(resolve => window.setTimeout(resolve));
 
     const newTriggerWidth = ref.current?.offsetWidth;
     !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);

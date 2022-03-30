@@ -179,7 +179,7 @@ class DropdownMenu extends React.Component<Props, State> {
     // happened on a hovercard or some other element rendered outside of the
     // dropdown, but controlled by the existence of the dropdown, we need to
     // ensure any click handlers are run.
-    await new Promise(resolve => setTimeout(resolve));
+    await new Promise(resolve => window.setTimeout(resolve));
 
     this.handleClose();
   };

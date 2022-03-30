@@ -29,7 +29,7 @@ class PieChart extends React.Component<Props> {
 
     // Timeout is because we need to wait for rendering animation to complete
     // And I haven't found a callback for this
-    setTimeout(() => this.highlight(0), 1000);
+    window.setTimeout(() => this.highlight(0), 1000);
   }
 
   isInitialSelected = true;

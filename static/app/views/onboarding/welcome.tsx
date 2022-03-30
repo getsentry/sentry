@@ -39,7 +39,7 @@ class OnboardingWelcome extends Component<Props> {
     // Next step will render the platform picker (using both large and small
     // icons). Keep things smooth by prefetching them. Preload a bit late to
     // avoid jank on welcome animations.
-    setTimeout(preloadIcons, 1500);
+    window.setTimeout(preloadIcons, 1500);
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
       organization: this.props.organization ?? null,
     });

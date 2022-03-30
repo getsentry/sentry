@@ -69,8 +69,8 @@ function Onboarding(props: Props) {
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    // TODO: find better way to delay thhe corner animation
-    setTimeout(
+    // TODO: find better way to delay the corner animation
+    window.setTimeout(
       () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );

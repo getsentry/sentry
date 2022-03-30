@@ -203,7 +203,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -232,7 +232,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }
