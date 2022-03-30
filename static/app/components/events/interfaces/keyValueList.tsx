@@ -40,7 +40,7 @@ const KeyValueList = ({
     <table className="table key-value" onClick={onClick}>
       <tbody>
         {getData().map(
-          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
+          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}, i) => {
             const dataValue: React.ReactNode =
               typeof value === 'object' && !React.isValidElement(value)
                 ? JSON.stringify(value, null, 2)
@@ -68,7 +68,7 @@ const KeyValueList = ({
             }
 
             return (
-              <tr key={key}>
+              <tr key={`${key}-${i}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
