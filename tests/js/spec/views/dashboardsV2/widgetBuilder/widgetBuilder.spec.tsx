@@ -746,7 +746,7 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('should properly query for table fields ', async function () {
+  it('should properly query for table fields', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['title', 'count()'],
