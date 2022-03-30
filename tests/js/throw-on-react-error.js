@@ -13,6 +13,11 @@ const IGNORED_ERRORS = [
     message.includes(
       'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering.'
     ),
+  // XXX(epurkhiser): We can remove this check once we've switched over to
+  // react 18 (Using createRoot instead of ReactDOM.render)
+  message =>
+    typeof message === 'string' &&
+    message.includes('ReactDOM.render is no longer supported in React 18'),
   message =>
     typeof message === 'string' && message.includes('HTMLMediaElement.prototype.play'),
 ];
