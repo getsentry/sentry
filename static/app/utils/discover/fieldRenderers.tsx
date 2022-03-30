@@ -89,7 +89,19 @@ export type FieldTypes = keyof FieldFormatters;
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
-const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+
+export function nullableValue(value: string | null): string | React.ReactElement {
+  switch (value) {
+    case null:
+      return emptyValue;
+    case '':
+      return emptyStringValue;
+    default:
+      return value;
+  }
+}
 
 /**
  * A mapping of field types to their rendering function.
@@ -173,7 +185,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </Container>
         );
       }
-      return <Container>{value}</Container>;
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {

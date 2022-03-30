@@ -72,6 +72,15 @@ describe('getFieldRenderer', function () {
     expect(text.text()).toEqual(data.url);
   });
 
+  it('can render empty string fields', function () {
+    const renderer = getFieldRenderer('url', {url: 'string'});
+    data.url = '';
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    const value = wrapper.find('EmptyValueContainer');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual('(empty string)');
+  });
+
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
@@ -104,7 +113,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(0);
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
   });
 
   it('can render timestamp.to_day', function () {
@@ -165,11 +174,11 @@ describe('getFieldRenderer', function () {
 
     // Default events won't have error.handled and will return an empty list.
     wrapper = mountWithTheme(renderer({'error.handled': []}, {location, organization}));
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
 
     // Transactions will have null for error.handled as the 'tag' won't be set.
     wrapper = mountWithTheme(renderer({'error.handled': null}, {location, organization}));
-    expect(wrapper.text()).toEqual('n/a');
+    expect(wrapper.text()).toEqual('(no value)');
   });
 
   it('can render user fields with aliased user', function () {
@@ -196,7 +205,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('n/a');
+    expect(value.text()).toEqual('(no value)');
   });
 
   it('can render null release fields', function () {
@@ -207,7 +216,7 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('n/a');
+    expect(value.text()).toEqual('(no value)');
   });
 
   it('can render project as an avatar', function () {
