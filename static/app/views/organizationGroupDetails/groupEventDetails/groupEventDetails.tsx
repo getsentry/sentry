@@ -10,10 +10,12 @@ import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDe
 import EventEntries from 'sentry/components/events/eventEntries';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
+import space from 'sentry/styles/space';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -226,7 +228,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
 
     return (
       <div className={className} data-test-id="group-event-details">
-        <div className="event-details-container">
+        <StyledLayoutBody>
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
@@ -238,7 +240,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
             />
           ) : (
             <Fragment>
-              <div className="primary">
+              <StyledLayoutMain>
                 {eventWithMeta && (
                   <GroupEventToolbar
                     group={group}
@@ -248,23 +250,25 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     project={project}
                   />
                 )}
-                {group.status === 'ignored' && (
-                  <MutedBox statusDetails={group.statusDetails} />
-                )}
-                {group.status === 'resolved' && (
-                  <ResolutionBox
-                    statusDetails={group.statusDetails}
-                    activities={activities}
-                    projectId={project.id}
-                  />
-                )}
-                {this.renderReprocessedBox(
-                  groupReprocessingStatus,
-                  mostRecentActivity as GroupActivityReprocess
-                )}
+                <Wrapper>
+                  {group.status === 'ignored' && (
+                    <MutedBox statusDetails={group.statusDetails} />
+                  )}
+                  {group.status === 'resolved' && (
+                    <ResolutionBox
+                      statusDetails={group.statusDetails}
+                      activities={activities}
+                      projectId={project.id}
+                    />
+                  )}
+                  {this.renderReprocessedBox(
+                    groupReprocessingStatus,
+                    mostRecentActivity as GroupActivityReprocess
+                  )}
+                </Wrapper>
                 {this.renderContent(eventWithMeta)}
-              </div>
-              <div className="secondary">
+              </StyledLayoutMain>
+              <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}
                   project={project}
@@ -272,14 +276,39 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                   event={eventWithMeta}
                   environments={environments}
                 />
-              </div>
+              </StyledLayoutSide>
             </Fragment>
           )}
-        </div>
+        </StyledLayoutBody>
       </div>
     );
   }
 }
+
+const StyledLayoutBody = styled(Layout.Body)`
+  /* Makes the borders align correctly */
+  padding: 0 !important;
+`;
+
+const Wrapper = styled('div')`
+  margin-bottom: -1px;
+`;
+
+const StyledLayoutMain = styled(Layout.Main)`
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    border-right: 1px solid ${p => p.theme.border};
+    padding-right: 0;
+  }
+`;
+
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(3)} ${space(2)} ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    padding-right: ${space(4)};
+    padding-left: 0;
+  }
+`;
 
 export default styled(GroupEventDetails)`
   display: flex;

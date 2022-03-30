@@ -32,6 +32,7 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
+  Environments: OverridableStub;
   Event: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
@@ -136,9 +137,7 @@ type TestStubFixtures = {
   VstsPlugin: SimpleStub;
 
   // TODO: These need propertly typed still
-
   // Widget(queries = {...DEFAULT_QUERIES}, options)
-  // Environments(hidden)
   // Dashboard(widgets = DEFAULT_WIDGETS, props = {})
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)
