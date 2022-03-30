@@ -40,6 +40,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         "sentry.sessions.session": EntityKey.MetricsCounters,
         "sentry.sessions.user": EntityKey.MetricsSets,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
+        "transaction": EntityKey.Transactions,
     }[metric_name]
 
 
