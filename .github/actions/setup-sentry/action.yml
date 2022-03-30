@@ -34,6 +34,10 @@ inputs:
     description: 'pip cache version in order to bust cache'
     required: false
     default: '1630355466247'
+  pg-version:
+    description: 'PostgreSQL version to use'
+    default: '9.6'
+    required: false
 
 outputs:
   yarn-cache-dir:
@@ -160,6 +164,7 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
+        PG_VERSION: ${{ inputs.pg-version }}
       run: |
         sentry init
 
