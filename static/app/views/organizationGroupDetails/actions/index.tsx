@@ -436,6 +436,7 @@ class Actions extends Component<Props, State> {
                       },
                       {
                         key: 'delete-issue',
+                        priority: 'danger',
                         label: t('Delete'),
                         hidden: !hasAccess,
                         onAction: () =>
@@ -461,6 +462,7 @@ class Actions extends Component<Props, State> {
                       },
                       {
                         key: 'delete-and-discard',
+                        priority: 'danger',
                         label: t('Delete and discard future events'),
                         hidden: !hasAccess,
                         onAction: () => this.openDiscardModal(),
