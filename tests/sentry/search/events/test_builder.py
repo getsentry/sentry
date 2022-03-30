@@ -1132,12 +1132,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve("foo_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve("foo_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
@@ -1154,12 +1154,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
         assert len(result["data"]) == 2
         assert result["data"][0] == {
-            "transaction": indexer.resolve("foo_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
             "project": project_2.slug,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
-            "transaction": indexer.resolve("foo_transaction"),
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
             "project": project_1.slug,
             "p95_transaction_duration": 100,
         }
