@@ -149,6 +149,13 @@ from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.integrations import (
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
 from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -231,13 +238,10 @@ from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
-from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
@@ -268,8 +272,6 @@ from .endpoints.organization_metrics import (
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_plugins import OrganizationPluginsEndpoint
-from .endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,

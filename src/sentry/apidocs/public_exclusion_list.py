@@ -87,6 +87,13 @@ from sentry.api.endpoints.grouping_level_new_issues import GroupingLevelNewIssue
 from sentry.api.endpoints.grouping_levels import GroupingLevelsEndpoint
 from sentry.api.endpoints.index import IndexEndpoint
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.api.endpoints.integrations import (
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
 from sentry.api.endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -181,17 +188,10 @@ from sentry.api.endpoints.organization_group_index import OrganizationGroupIndex
 from sentry.api.endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from sentry.api.endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from sentry.api.endpoints.organization_index import OrganizationIndexEndpoint
-from sentry.api.endpoints.organization_integration_details import (
-    OrganizationIntegrationDetailsEndpoint,
-)
 from sentry.api.endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from sentry.api.endpoints.organization_integration_request import (
-    OrganizationIntegrationRequestEndpoint,
-)
 from sentry.api.endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
-from sentry.api.endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from sentry.api.endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from sentry.api.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
@@ -228,8 +228,6 @@ from sentry.api.endpoints.organization_metrics import (
 from sentry.api.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.api.endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from sentry.api.endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from sentry.api.endpoints.organization_plugins import OrganizationPluginsEndpoint
-from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
