@@ -5,33 +5,44 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
+const {organization, router, routerContext} = initializeOrg({
+  organization: {features: ['selection-filters-v2']},
+  project: undefined,
+  projects: undefined,
+  router: {
+    location: {
+      query: {},
+      pathname: '/test',
+    },
+    params: {orgId: 'org-slug'},
+  },
+});
+
 describe('DatePageFilter', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['selection-filters-v2']},
-    project: undefined,
-    projects: undefined,
-    router: {
-      location: {
-        query: {},
-        pathname: '/test',
+  beforeEach(() => {
+    PageFiltersStore.init();
+    OrganizationStore.init();
+
+    OrganizationStore.onUpdate(organization, {replace: true});
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {
+          period: '7d',
+          start: null,
+          end: null,
+          utc: null,
+        },
       },
-      params: {orgId: 'org-slug'},
-    },
+      new Set()
+    );
   });
-  OrganizationStore.onUpdate(organization, {replace: true});
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: [],
-      environments: [],
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      },
-    },
-    new Set()
-  );
+
+  afterEach(() => {
+    PageFiltersStore.teardown();
+    OrganizationStore.teardown();
+  });
 
   it('can change period', async function () {
     render(<DatePageFilter />, {
