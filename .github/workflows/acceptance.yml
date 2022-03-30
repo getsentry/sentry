@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-        instance: [0, 1, 2, 3]
+        instance: [0]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -62,10 +62,10 @@ jobs:
           # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
           #      Otherwise, if there are other things in the matrix, using strategy.job-total
           #      wouldn't be correct.
-          CI_NODE_TOTAL: 4
+          CI_NODE_TOTAL: 1
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn -s jest tests/js/spec/views/alerts/create.spec.jsx --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2

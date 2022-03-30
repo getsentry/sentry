@@ -401,25 +401,46 @@ describe('ProjectAlertsCreate', function () {
         });
       });
 
-      it('new action', async function () {
+      // eslint-disable-next-line
+      it.only('new action', async function slowFailingTest() {
+        let start = performance.now();
         const wrapper = createWrapper({
           organization: {
             features: ['alert-filters'],
           },
         });
+        let end = performance.now();
+        // eslint-disable-next-line
+        console.log(1, end - start);
 
+        start = performance.now();
         // Change name of alert rule
         userEvent.paste(screen.getByPlaceholderText('My Rule Name'), 'My Rule Name');
+        end = performance.now();
+        // eslint-disable-next-line
+        console.log(2, end - start);
 
+        start = performance.now();
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
           'Send a notification via {service}',
         ]);
+        end = performance.now();
+        // eslint-disable-next-line
+        console.log(3, end - start);
 
+        start = performance.now();
         // Update action interval
         await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
+        end = performance.now();
+        // eslint-disable-next-line
+        console.log(4, end - start);
 
+        start = performance.now();
         userEvent.click(screen.getByText('Save Rule'));
+        end = performance.now();
+        // eslint-disable-next-line
+        console.log(5, end - start);
 
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
