@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'sentry/types';
@@ -12,7 +12,7 @@ type SentryAppComponentsStoreInterface = {
   onLoadComponents: (items: SentryAppComponent[]) => void;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   SentryAppComponentsStoreInterface &
   SafeStoreDefinition = {
   unsubscribeListeners: [],
@@ -51,8 +51,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const SentryAppComponentsStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & SentryAppComponentsStoreInterface;
+const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  SentryAppComponentsStoreInterface;
 
 export default SentryAppComponentsStore;

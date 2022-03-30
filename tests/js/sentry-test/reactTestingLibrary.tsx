@@ -1,12 +1,7 @@
 import {Component, Fragment} from 'react';
 import {cache} from '@emotion/css';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-// eslint-disable-next-line no-restricted-imports
-import {
-  fireEvent as reactRtlFireEvent,
-  render as reactTestingLibraryRender,
-  RenderOptions,
-} from '@testing-library/react';
+import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
@@ -20,7 +15,7 @@ type ProviderOptions = {
   organization?: Organization;
 };
 
-type Options = ProviderOptions & RenderOptions;
+type Options = ProviderOptions & rtl.RenderOptions;
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {
@@ -66,7 +61,7 @@ function render(ui: React.ReactElement, options?: Options) {
 
   const AllTheProviders = makeAllTheProviders({context, organization});
 
-  return reactTestingLibraryRender(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
 }
 
 /**
@@ -74,11 +69,14 @@ function render(ui: React.ReactElement, options?: Options) {
  * Use userEvent over fireEvent where possible.
  * More details: https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#not-using-testing-libraryuser-event
  */
-const fireEvent = reactRtlFireEvent;
+const fireEvent = rtl.fireEvent;
 
 function renderGlobalModal(options?: Options) {
   return render(<GlobalModal />, options);
 }
 
-export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+// eslint-disable-next-line no-restricted-imports, import/export
+export * from '@testing-library/react';
+
+// eslint-disable-next-line import/export
 export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};

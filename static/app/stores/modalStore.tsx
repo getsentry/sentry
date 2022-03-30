@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 import ModalActions from 'sentry/actions/modalActions';
@@ -23,7 +23,7 @@ type ModalStoreInterface = {
   reset(): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & ModalStoreInterface & SafeStoreDefinition = {
+const storeConfig: StoreDefinition & ModalStoreInterface & SafeStoreDefinition = {
   unsubscribeListeners: [],
 
   init() {
@@ -58,8 +58,7 @@ const storeConfig: Reflux.StoreDefinition & ModalStoreInterface & SafeStoreDefin
   },
 };
 
-const ModalStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & ModalStoreInterface;
+const ModalStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  ModalStoreInterface;
 
 export default ModalStore;

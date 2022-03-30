@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
