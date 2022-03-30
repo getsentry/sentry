@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -383,7 +383,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       </Ghost>
     );
 
-    return ReactDOM.createPortal(ghost, this.portal);
+    return createPortal(ghost, this.portal);
   }
 
   renderItem(

@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -92,7 +92,7 @@ function SidebarPanel({
     };
   }, []);
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <PanelContainer
       role="dialog"
       collapsed={collapsed}

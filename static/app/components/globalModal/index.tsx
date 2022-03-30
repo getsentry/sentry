@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -180,7 +180,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target && allowClickClose && closeModal();
 
-  return ReactDOM.createPortal(
+  return createPortal(
     <React.Fragment>
       <Backdrop
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import ReactDOM from 'react-dom';
+import {render} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import throttle from 'lodash/throttle';
@@ -110,6 +110,6 @@ export const attachTo = ({input, element}) =>
   input.addEventListener(
     'input',
     throttle(e => {
-      ReactDOM.render(<PasswordStrength value={e.target.value} />, element);
+      render(<PasswordStrength value={e.target.value} />, element);
     })
   );

@@ -1,5 +1,5 @@
 import {cloneElement, Component, isValidElement} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -39,7 +39,7 @@ class Clipboard extends Component<Props> {
     this.element?.removeEventListener('click', this.handleClick);
   }
 
-  element?: ReturnType<typeof ReactDOM.findDOMNode>;
+  element?: ReturnType<typeof findDOMNode>;
 
   handleClick = () => {
     const {value, hideMessages, successMessage, errorMessage, onSuccess, onError} =
@@ -66,7 +66,7 @@ class Clipboard extends Component<Props> {
     }
 
     // eslint-disable-next-line react/no-find-dom-node
-    this.element = ReactDOM.findDOMNode(ref);
+    this.element = findDOMNode(ref);
     this.element?.addEventListener('click', this.handleClick);
   };
 

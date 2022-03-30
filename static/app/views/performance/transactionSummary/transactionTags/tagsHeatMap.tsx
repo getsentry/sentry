@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
@@ -416,7 +416,7 @@ const TagsHeatMap = (
 
             return (
               <Fragment>
-                {ReactDOM.createPortal(<div>{portaledContent}</div>, getPortal())}
+                {createPortal(<div>{portaledContent}</div>, getPortal())}
                 {getDynamicText({
                   value: (
                     <HeatMapChart
