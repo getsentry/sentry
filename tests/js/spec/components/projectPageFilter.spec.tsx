@@ -26,6 +26,8 @@ const {organization, router, routerContext} = initializeOrg({
 
 describe('ProjectPageFilter', function () {
   beforeEach(() => {
+    OrganizationStore.init();
+
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -41,6 +43,7 @@ describe('ProjectPageFilter', function () {
   });
 
   afterEach(() => {
+    OrganizationStore.teardown();
     PageFiltersStore.teardown();
     PageFiltersStore.reset();
   });
