@@ -142,6 +142,7 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 
 
 DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
+SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -412,7 +413,7 @@ class TestCase(BaseTestCase, TestCase):
                     f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
                     f"instead of `sentry.testutils.TestCase` for those kinds of tests."
                 )
-            elif did_not_use and did_use:
+            elif did_not_use and did_use and not SILENCE_MIXED_TESTCASE_MISUSE:
                 pytest.fail(
                     f"Some of the test functions in {state.base} used the DB and some did not! "
                     f"test functions using the db: {did_use}\n"
