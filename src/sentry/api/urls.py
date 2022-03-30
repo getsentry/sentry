@@ -591,11 +591,6 @@ urlpatterns = [
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
     ),
-    url(
-        r"^client-state/(?P<category>[^\/]+)/$",
-        ClientStateEndpoint.as_view(),
-        name="sentry-api-0-client-state",
-    ),
     # Auth
     url(
         r"^auth/",
@@ -1575,6 +1570,11 @@ urlpatterns = [
                             ),
                         ],
                     ),
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
+                    ClientStateEndpoint.as_view(),
+                    name="sentry-api-0-organization-client-state",
                 ),
             ]
         ),
