@@ -30,7 +30,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
         help_text="The user names of individual users or groups (comma separated)",
         required=False,
     )
-    alert_url = forms.CharField(
+    alert_url = forms.URLField(
         max_length=255,
         label="OpsGenie Alert URL",
         widget=forms.TextInput(
