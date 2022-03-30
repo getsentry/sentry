@@ -93,12 +93,9 @@ describe('AsyncComponent', function () {
 
     render(<UniqueErrorsAsyncComponent />);
 
-    expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
-      'oops there was a problem'
-    );
-    expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
-      'oops there was a different problem'
-    );
+    expect(
+      screen.getByText('oops there was a problem oops there was a different problem')
+    ).toBeInTheDocument();
   });
 
   describe('multi-route component', () => {

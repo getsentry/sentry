@@ -21,17 +21,22 @@ const AlertMessage = ({alert, system}: Props) => {
   const {url, message, type, opaque} = alert;
 
   return (
-    <StyledAlert type={type} showIcon system={system} opaque={opaque}>
-      <StyledMessage>
-        {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
-      </StyledMessage>
-      <StyledCloseButton
-        icon={<IconClose size="sm" />}
-        aria-label={t('Close')}
-        onClick={alert.onClose ?? handleClose}
-        size="zero"
-        borderless
-      />
+    <StyledAlert
+      type={type}
+      showIcon
+      system={system}
+      opaque={opaque}
+      trailingItems={
+        <StyledCloseButton
+          icon={<IconClose size="sm" />}
+          aria-label={t('Close')}
+          onClick={alert.onClose ?? handleClose}
+          size="zero"
+          borderless
+        />
+      }
+    >
+      {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
     </StyledAlert>
   );
 };
@@ -43,18 +48,9 @@ const StyledAlert = styled(Alert)`
   margin: 0;
 `;
 
-const StyledMessage = styled('span')`
-  display: block;
-  margin: auto ${space(4)} auto 0;
-`;
-
 const StyledCloseButton = styled(Button)`
   background-color: transparent;
   transition: opacity 0.1s linear;
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
 
   &:hover,
   &:focus {

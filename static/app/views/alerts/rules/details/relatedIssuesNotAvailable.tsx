@@ -6,8 +6,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
-import {IconInfo} from 'sentry/icons';
-import space from 'sentry/styles/space';
 
 type Props = {
   buttonText: string;
@@ -21,18 +19,20 @@ export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
  * Renders an Alert box of type "info" for boolean queries in alert details. Renders a discover link if the feature is available.
  */
 export const RelatedIssuesNotAvailable = ({buttonTo, buttonText}: Props) => (
-  <StyledAlert type="info">
-    <Content>
-      <IconInfo size="lg" />
-      <div data-test-id="loading-error-message">
-        Related Issues unavailable for this alert.
-      </div>
+  <StyledAlert
+    type="info"
+    showIcon
+    trailingItems={
       <Feature features={['discover-basic']}>
-        <Button type="button" priority="default" size="small" to={buttonTo}>
+        <Button type="button" priority="default" size="xsmall" to={buttonTo}>
           {buttonText}
         </Button>
       </Feature>
-    </Content>
+    }
+  >
+    <div data-test-id="loading-error-message">
+      Related Issues unavailable for this alert.
+    </div>
   </StyledAlert>
 );
 
@@ -41,11 +41,4 @@ const StyledAlert = styled(Alert)`
     border-radius: 0;
     border-width: 1px 0;
   }
-`;
-
-const Content = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: min-content auto max-content;
-  align-items: center;
 `;

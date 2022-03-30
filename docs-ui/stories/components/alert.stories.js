@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import space from 'sentry/styles/space';
 
@@ -57,11 +58,41 @@ export const WithIcons = () => (
   </Grid>
 );
 
-WithIcons.storyName = 'With Icons';
+WithIcons.storyName = 'With Leading Icons';
 WithIcons.parameters = {
   docs: {
     description: {
-      story: 'Inline alert messages',
+      story: 'Optional leading icon via the `showIcon` prop',
+    },
+  },
+};
+
+export const WithTrailingItems = () => (
+  <Grid>
+    <Alert type="info" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      <ExternalLink href="#">Info message with a url</ExternalLink>
+    </Alert>
+
+    <Alert type="success" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Success message without a url
+    </Alert>
+
+    <Alert type="warning" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Warning message
+    </Alert>
+
+    <Alert type="error" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Background workers haven't checked in recently. This can mean an issue with your
+      configuration or a serious backlog in tasks.
+    </Alert>
+  </Grid>
+);
+
+WithTrailingItems.storyName = 'With Trailing Items';
+WithTrailingItems.parameters = {
+  docs: {
+    description: {
+      story: 'Optional trailing items via the `trailingItems` prop',
     },
   },
 };

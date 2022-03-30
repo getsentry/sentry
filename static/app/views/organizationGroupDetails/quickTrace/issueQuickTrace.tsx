@@ -115,16 +115,10 @@ class IssueQuickTrace extends Component<Props, State> {
       }
 
       return (
-        <StyledAlert type="info" showIcon>
-          <AlertContent>
-            {tct('The [type] for this error cannot be found. [link]', {
-              type: type === 'missing' ? t('transaction') : t('trace'),
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
-                  {t('Read the docs to understand why.')}
-                </ExternalLink>
-              ),
-            })}
+        <StyledAlert
+          type="info"
+          showIcon
+          trailingItems={
             <Button
               priority="link"
               size="zero"
@@ -133,7 +127,16 @@ class IssueQuickTrace extends Component<Props, State> {
             >
               <IconClose />
             </Button>
-          </AlertContent>
+          }
+        >
+          {tct('The [type] for this error cannot be found. [link]', {
+            type: type === 'missing' ? t('transaction') : t('trace'),
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
+                {t('Read the docs to understand why.')}
+              </ExternalLink>
+            ),
+          })}
         </StyledAlert>
       );
     }
@@ -193,15 +196,6 @@ const QuickTraceWrapper = styled('div')`
 
 const StyledAlert = styled(Alert)`
   margin: 0;
-`;
-
-const AlertContent = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    justify-content: space-between;
-  }
 `;
 
 export default withApi(IssueQuickTrace);
