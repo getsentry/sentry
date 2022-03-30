@@ -44,6 +44,7 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
         "rate_limit_type": "DNE",
         "concurrent_limit": str(None),
         "concurrent_requests": str(None),
+        "rate_limit_category": str(None),
     }
 
     rate_limit_metadata = getattr(request, "rate_limit_metadata", None)
@@ -71,10 +72,10 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = response.status_code if response else 500
+        rate_limited = True if status_code == 429 else False
         log_metrics = dict(
             method=str(request.method),
             view=view,
@@ -88,8 +89,7 @@ def _create_api_access_log(
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
-            rate_limited=str(getattr(request, "will_be_rate_limited", False)),
-            rate_limit_category=str(getattr(request, "rate_limit_category", None)),
+            rate_limited=rate_limited,
             request_duration_seconds=access_log_metadata.get_request_duration(),
             **_get_rate_limit_stats_dict(request),
         )
