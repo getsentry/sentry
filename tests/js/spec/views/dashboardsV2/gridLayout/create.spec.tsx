@@ -69,7 +69,8 @@ describe('Dashboards > Create', function () {
       ProjectsStore.teardown();
     });
 
-    it('can create with new widget', async function () {
+    // eslint-disable-next-line
+    it.skip('can create with new widget', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',

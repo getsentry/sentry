@@ -3,13 +3,14 @@ import {createAction, createStore, Listenable} from 'reflux';
 import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 describe('makeSafeRefluxStore', () => {
-  it('cleans up listeners on teardown', () => {
+  it('cleans up all listeners on teardown', () => {
     const safeStore = createStore(makeSafeRefluxStore({})) as unknown as SafeRefluxStore;
 
-    const statusUpdateAction = createAction({'status update': ''});
-    safeStore.unsubscribeListeners.push(
-      safeStore.listenTo(statusUpdateAction, () => null)
-    );
+    const fakeAction = createAction({'status update': ''});
+    const anotherAction = createAction({'other status update': ''});
+
+    safeStore.unsubscribeListeners.push(safeStore.listenTo(fakeAction, () => null));
+    safeStore.unsubscribeListeners.push(safeStore.listenTo(anotherAction, () => null));
 
     // @ts-ignore idk why this thinks it's a never type
     const stopListenerSpy = jest.spyOn(safeStore.unsubscribeListeners[0], 'stop');
