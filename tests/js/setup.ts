@@ -3,9 +3,9 @@
 import {TextDecoder, TextEncoder} from 'util';
 
 import {InjectedRouter} from 'react-router';
-import {configure} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
-import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
+import {configure as configureEnzyme} from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
 import MockDate from 'mockdate';
 import * as PropTypes from 'prop-types';
@@ -36,7 +36,7 @@ SVGElement.prototype.getTotalLength ??= () => 1;
  *
  * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
  */
-configure({testIdAttribute: 'data-test-id'});
+configureRtl({testIdAttribute: 'data-test-id'});
 
 /**
  * Enzyme configuration
@@ -46,7 +46,7 @@ configure({testIdAttribute: 'data-test-id'});
  *
  * https://github.com/enzymejs/enzyme/issues/2429
  */
-Enzyme.configure({adapter: new Adapter()});
+configureEnzyme({adapter: new Adapter()});
 
 /**
  * Mock (current) date to always be National Pasta Day
