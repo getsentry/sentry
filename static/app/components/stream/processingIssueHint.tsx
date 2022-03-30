@@ -69,19 +69,18 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   }
 
   return (
-    <StyledAlert type={alertType} showIcon>
-      <Wrapper>
-        <div>
-          {project} <strong>{text}</strong> {lastEvent}
-        </div>
-        {showButton && (
-          <div>
-            <StyledButton size="xsmall" to={link}>
-              {t('Show details')}
-            </StyledButton>
-          </div>
-        )}
-      </Wrapper>
+    <StyledAlert
+      type={alertType}
+      showIcon
+      trailingItems={
+        showButton && (
+          <StyledButton size="xsmall" to={link}>
+            {t('Show details')}
+          </StyledButton>
+        )
+      }
+    >
+      {project} <strong>{text}</strong> {lastEvent}
     </StyledAlert>
   );
 }
@@ -93,11 +92,6 @@ const StyledAlert = styled(Alert)`
   border-radius: 0;
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledButton = styled(Button)`
