@@ -15,7 +15,7 @@ describe('Discover > ArrayValue', function () {
   });
 
   it('renders all elements when expanded', function () {
-    render(<ArrayValue value={['one', 'two', 'three']} />);
+    render(<ArrayValue value={['one', 'two', 'three', '', null]} />);
 
     // Should have a button
     let button = screen.getByRole('button');
@@ -29,6 +29,8 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('one')).toBeInTheDocument();
     expect(screen.getByText('two')).toBeInTheDocument();
     expect(screen.getByText('three')).toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+    expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
   it('hides toggle on 1 element', function () {

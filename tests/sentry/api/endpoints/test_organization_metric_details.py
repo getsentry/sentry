@@ -185,7 +185,9 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                     "metric_id": indexer.record(org_id, "metric_foo_doe"),
                     "timestamp": int(time.time()),
                     "tags": {
-                        resolve_weak("release"): indexer.record(org_id, "foo"),
+                        resolve_weak(self.organization.id, "release"): indexer.record(
+                            org_id, "foo"
+                        ),
                     },
                     "type": "c",
                     "value": 1,

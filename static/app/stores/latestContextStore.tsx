@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
@@ -37,9 +37,7 @@ type LatestContextStoreInterface = {
  * Only keep slug so that people don't get the idea to access org/project data
  * here Org/project data is currently in organizationsStore/projectsStore
  */
-const storeConfig: Reflux.StoreDefinition &
-  LatestContextStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & LatestContextStoreInterface & SafeStoreDefinition = {
   unsubscribeListeners: [],
 
   state: {
@@ -150,7 +148,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const LatestContextStore = Reflux.createStore(
+const LatestContextStore = createStore(
   makeSafeRefluxStore(storeConfig)
 ) as SafeRefluxStore & LatestContextStoreInterface;
 
