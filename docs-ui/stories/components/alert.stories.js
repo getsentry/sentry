@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconCheckmark, IconInfo, IconLightning, IconNot, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 export default {
@@ -39,30 +39,60 @@ Default.parameters = {
 
 export const WithIcons = () => (
   <Grid>
-    <Alert type="info" icon={<IconInfo size="md" />}>
+    <Alert type="info" showIcon>
       <ExternalLink href="#">Info message with a url</ExternalLink>
     </Alert>
 
-    <Alert type="success" icon={<IconCheckmark size="md" />}>
+    <Alert type="success" showIcon>
       Success message without a url
     </Alert>
 
-    <Alert type="warning" icon={<IconWarning size="md" />}>
+    <Alert type="warning" showIcon>
       Warning message
     </Alert>
 
-    <Alert type="error" icon={<IconNot size="md" />}>
+    <Alert type="error" showIcon>
       Background workers haven't checked in recently. This can mean an issue with your
       configuration or a serious backlog in tasks.
     </Alert>
   </Grid>
 );
 
-WithIcons.storyName = 'With Icons';
+WithIcons.storyName = 'With Leading Icons';
 WithIcons.parameters = {
   docs: {
     description: {
-      story: 'Inline alert messages',
+      story: 'Optional leading icon via the `showIcon` prop',
+    },
+  },
+};
+
+export const WithTrailingItems = () => (
+  <Grid>
+    <Alert type="info" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      <ExternalLink href="#">Info message with a url</ExternalLink>
+    </Alert>
+
+    <Alert type="success" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Success message without a url
+    </Alert>
+
+    <Alert type="warning" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Warning message
+    </Alert>
+
+    <Alert type="error" trailingItems={<Button size="xsmall">Trailing Button</Button>}>
+      Background workers haven't checked in recently. This can mean an issue with your
+      configuration or a serious backlog in tasks.
+    </Alert>
+  </Grid>
+);
+
+WithTrailingItems.storyName = 'With Trailing Items';
+WithTrailingItems.parameters = {
+  docs: {
+    description: {
+      story: 'Optional trailing items via the `trailingItems` prop',
     },
   },
 };
@@ -100,31 +130,8 @@ System.parameters = {
 export const Expandable = () => {
   return (
     <Grid>
-      <Alert
-        type="info"
-        icon={<IconInfo size="md" />}
-        expand={[<div key="1">Here is some details</div>]}
-      >
+      <Alert type="info" showIcon expand={[<div key="1">Here is some details</div>]}>
         Expandable Alert
-      </Alert>
-
-      <Alert
-        type="success"
-        icon={<IconCheckmark size="md" />}
-        expand={[<div key="1">Here is some details</div>]}
-        expandIcon={<IconLightning size="md" />}
-      >
-        Expandable Alert with Custom Expand Icon
-      </Alert>
-
-      <Alert
-        type="warning"
-        icon={<IconWarning size="md" />}
-        expand={[<div key="1">Here is some details</div>]}
-        expandIcon={<IconCheckmark size="md" />}
-        onExpandIconClick={() => {}}
-      >
-        Expandable Alert with Custom Expand Icon behaviour
       </Alert>
     </Grid>
   );

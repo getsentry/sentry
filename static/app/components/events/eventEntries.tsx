@@ -453,6 +453,15 @@ const EventEntries = memo(
   }
 );
 
+const StyledEventDataSection = styled(EventDataSection)`
+  /* Hiding the top border because of the event section appears at this breakpoint */
+  @media (max-width: 767px) {
+    &:first-of-type {
+      border-top: none;
+    }
+  }
+`;
+
 const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
@@ -469,6 +478,8 @@ const ErrorContainer = styled('div')`
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${/* sc-selector */ DataSection} {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     padding: ${space(3)} 0 0 0;
   }
   & ${/* sc-selector */ DataSection}:first-child {
@@ -491,10 +502,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   border: 0;
   ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
-`;
-
-const StyledEventDataSection = styled(EventDataSection)`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledReplayEventDataSection = styled(EventDataSection)`
