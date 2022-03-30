@@ -1,7 +1,7 @@
-import * as React from 'react';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,7 +15,9 @@ import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -55,7 +57,7 @@ type State = {
   event?: Event;
 };
 
-class GroupDetails extends React.Component<Props, State> {
+class GroupDetails extends Component<Props, State> {
   static childContextTypes = {
     group: SentryTypes.Group,
     location: PropTypes.object,
@@ -71,16 +73,20 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
     this.updateReprocessingProgress();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
+    const globalSelectionReadyChanged =
+      prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady;
+
     if (
-      prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady ||
+      globalSelectionReadyChanged ||
       prevProps.location.pathname !== this.props.location.pathname
     ) {
-      this.fetchData();
+      // Skip tracking for other navigation events like switching events
+      this.fetchData(globalSelectionReadyChanged);
     }
 
     if (
@@ -110,6 +116,21 @@ class GroupDetails extends React.Component<Props, State> {
       errorType: null,
       project: null,
     };
+  }
+
+  trackView(project: Project) {
+    const {organization, params, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.viewed', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(params.groupId, 10),
+      // Alert properties track if the user came from email/slack alerts
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(alert_date) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
   }
 
   remountComponent = () => {
@@ -326,7 +347,7 @@ class GroupDetails extends React.Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchData() {
+  async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
     // Need to wait for global selection store to be ready before making request
@@ -391,6 +412,10 @@ class GroupDetails extends React.Component<Props, State> {
       this.setState({project, loadingGroup: false});
 
       GroupStore.loadInitialData([data]);
+
+      if (trackView) {
+        this.trackView(project);
+      }
     } catch (error) {
       this.handleRequestError(error);
     }
@@ -492,7 +517,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GroupHeader
           groupReprocessingStatus={groupReprocessingStatus}
           project={project as Project}
@@ -501,10 +526,8 @@ class GroupDetails extends React.Component<Props, State> {
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
-        {React.isValidElement(children)
-          ? React.cloneElement(children, childProps)
-          : children}
-      </React.Fragment>
+        {isValidElement(children) ? cloneElement(children, childProps) : children}
+      </Fragment>
     );
   }
 
@@ -550,7 +573,7 @@ class GroupDetails extends React.Component<Props, State> {
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isSampleError && project && (
           <SampleEventAlert project={project} organization={organization} />
         )}
@@ -567,7 +590,7 @@ class GroupDetails extends React.Component<Props, State> {
             <PageContent>{this.renderPageContent()}</PageContent>
           </PageFiltersContainer>
         </SentryDocumentTitle>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

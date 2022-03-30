@@ -409,7 +409,7 @@ def _get_snuba_query(
             continue
 
         try:
-            groupby[field] = Column(resolve_tag_key(field))
+            groupby[field] = Column(resolve_tag_key(org_id, field))
         except MetricIndexNotFound:
             # exclude unresolved keys from groupby
             pass
@@ -475,8 +475,19 @@ def _get_snuba_query_data(
             query_data = []
         else:
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
-            limit_state.update(snuba_query.groupby, query_data)
 
+        if not query_data:
+            # If the first totals query returned empty results,
+            # 1. there is no need to query time series,
+            # 2. we do not update the LimitState. This gives the next query
+            #    the chance to populate the groups.
+            #    For example: if the first totals query fetches count_uniq(users),
+            #    but a project does not track users at all, we should order by
+            #    the results of the second totals query instead.
+            break
+
+        assert snuba_query is not None
+        limit_state.update(snuba_query.groupby, query_data)
         yield (metric_key, query_data)
 
 
@@ -513,7 +524,7 @@ def _fetch_data_for_field(
     limit_state: _LimitState,
     columns_fetched: Set[SelectableExpression],  # output param
 ) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
-    tag_key_session_status = resolve_tag_key("session.status")
+    tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
     data: _SnubaDataByMetric = []
 
@@ -532,14 +543,14 @@ def _fetch_data_for_field(
                 Column("value"),
                 Function(
                     "equals",
-                    [Column(tag_key_session_status), indexer.resolve(status)],
+                    [Column(tag_key_session_status), indexer.resolve(org_id, status)],
                 ),
             ],
             alias=f"{prefix}_{status}",
         )
 
     if "count_unique(user)" == raw_field:
-        metric_id = indexer.resolve(MetricKey.USER.value)
+        metric_id = indexer.resolve(org_id, MetricKey.USER.value)
         if metric_id is not None:
             if group_by_status:
                 data.extend(
@@ -575,7 +586,7 @@ def _fetch_data_for_field(
             metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
 
     if raw_field in _DURATION_FIELDS:
-        metric_id = indexer.resolve(MetricKey.SESSION_DURATION.value)
+        metric_id = indexer.resolve(org_id, MetricKey.SESSION_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -583,7 +594,7 @@ def _fetch_data_for_field(
 
             # Filter down
             # to healthy sessions, because that's what sessions_v2 exposes:
-            healthy = indexer.resolve("exited")
+            healthy = indexer.resolve(org_id, "exited")
             if healthy is None:
                 # There are no healthy sessions, return
                 return [], {}
@@ -611,7 +622,7 @@ def _fetch_data_for_field(
             )
 
     if "sum(session)" == raw_field:
-        metric_id = indexer.resolve(MetricKey.SESSION.value)
+        metric_id = indexer.resolve(org_id, MetricKey.SESSION.value)
         if metric_id is not None:
             if group_by_status:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -637,7 +648,7 @@ def _fetch_data_for_field(
                 )
 
                 # 2: session.error
-                error_metric_id = indexer.resolve(MetricKey.SESSION_ERROR.value)
+                error_metric_id = indexer.resolve(org_id, MetricKey.SESSION_ERROR.value)
                 if error_metric_id is not None:
                     # Should not limit session.error to session.status=X,
                     # because that tag does not exist for this metric
@@ -657,7 +668,7 @@ def _fetch_data_for_field(
                     limit_state.skip_columns.remove(Column(tag_key_session_status))
             else:
                 # Simply count the number of started sessions:
-                init = indexer.resolve("init")
+                init = indexer.resolve(org_id, "init")
                 if tag_key_session_status is not None and init is not None:
                     extra_conditions = [Condition(Column(tag_key_session_status), Op.EQ, init)]
                     data.extend(
@@ -684,9 +695,9 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = resolve_tag_key("release")
-    tag_key_environment = resolve_tag_key("environment")
-    tag_key_session_status = resolve_tag_key("session.status")
+    tag_key_release = resolve_tag_key(org_id, "release")
+    tag_key_environment = resolve_tag_key(org_id, "environment")
+    tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
     for metric_key, metric_data in data:
         for row in metric_data:
@@ -770,8 +781,9 @@ def run_sessions_query(
     if len(data_points) == 0:
         # We're only interested in `session.status` group-byes. The rest of the
         # conditions require work (e.g. getting all environments) that we can't
-        # get without querying the DB.
-        if "session.status" in query_clone.raw_groupby:
+        # get without querying the DB, including group-byes consisting of
+        # multiple parameters (even if `session.status` is one of them).
+        if query_clone.raw_groupby == ["session.status"]:
             for status in get_args(_SessionStatus):
                 gkey: GroupKey = (("session.status", status),)
                 groups[gkey]
@@ -848,14 +860,14 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        return Column(resolve_tag_key(input_.name))
+        return Column(resolve_tag_key(org_id, input_.name))
 
     if isinstance(input_, str):
         # Assuming this is the right-hand side, we need to fetch a tag value.
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return indexer.resolve(input_)
+        return indexer.resolve(org_id, input_)
 
     if isinstance(input_, Function):
         return Function(

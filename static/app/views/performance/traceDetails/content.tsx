@@ -34,10 +34,11 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/formatters';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
@@ -90,8 +91,53 @@ class TraceDetailsContent extends React.Component<Props, State> {
     filteredTransactionIds: undefined,
   };
 
+  componentDidMount() {
+    this.initFuse();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.traces !== prevProps.traces) {
+      this.initFuse();
+    }
+  }
+
+  fuse: Fuse<IndexedFusedTransaction> | null = null;
   traceViewRef = React.createRef<HTMLDivElement>();
   virtualScrollbarContainerRef = React.createRef<HTMLDivElement>();
+
+  async initFuse() {
+    if (defined(this.props.traces) && this.props.traces.length > 0) {
+      const transformed: IndexedFusedTransaction[] = this.props.traces.flatMap(trace =>
+        reduceTrace<IndexedFusedTransaction[]>(
+          trace,
+          (acc, transaction) => {
+            const indexed: string[] = [
+              transaction['transaction.op'],
+              transaction.transaction,
+              transaction.project_slug,
+            ];
+
+            acc.push({
+              transaction,
+              indexed,
+            });
+
+            return acc;
+          },
+          []
+        )
+      );
+
+      this.fuse = await createFuzzySearch(transformed, {
+        keys: ['indexed'],
+        includeMatches: true,
+        threshold: 0.6,
+        location: 0,
+        distance: 100,
+        maxPatternLength: 32,
+      });
+    }
+  }
 
   renderTraceLoading() {
     return <LoadingIndicator />;
@@ -176,11 +222,11 @@ class TraceDetailsContent extends React.Component<Props, State> {
     this.setState({searchQuery: searchQuery || undefined}, this.filterTransactions);
   };
 
-  filterTransactions = async () => {
+  filterTransactions = () => {
     const {traces} = this.props;
     const {filteredTransactionIds, searchQuery} = this.state;
 
-    if (!searchQuery || traces === null || traces.length <= 0) {
+    if (!searchQuery || traces === null || traces.length <= 0 || !defined(this.fuse)) {
       if (filteredTransactionIds !== undefined) {
         this.setState({
           filteredTransactionIds: undefined,
@@ -189,37 +235,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       return;
     }
 
-    const transformed = traces.flatMap(trace =>
-      reduceTrace<IndexedFusedTransaction[]>(
-        trace,
-        (acc, transaction) => {
-          const indexed: string[] = [
-            transaction['transaction.op'],
-            transaction.transaction,
-            transaction.project_slug,
-          ];
-
-          acc.push({
-            transaction,
-            indexed,
-          });
-
-          return acc;
-        },
-        []
-      )
-    );
-
-    const fuse = await createFuzzySearch(transformed, {
-      keys: ['indexed'],
-      includeMatches: true,
-      threshold: 0.6,
-      location: 0,
-      distance: 100,
-      maxPatternLength: 32,
-    });
-
-    const fuseMatches = fuse
+    const fuseMatches = this.fuse
       .search<IndexedFusedTransaction>(searchQuery)
       /**
        * Sometimes, there can be matches that don't include any

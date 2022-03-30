@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -187,7 +187,7 @@ class SelectOwners extends React.Component<Props, State> {
     // Close select menu
     if (this.selectRef.current) {
       // eslint-disable-next-line react/no-find-dom-node
-      const node = ReactDOM.findDOMNode(this.selectRef.current);
+      const node = findDOMNode(this.selectRef.current);
       const input: HTMLInputElement | null = (node as Element)?.querySelector(
         '.Select-input input'
       );

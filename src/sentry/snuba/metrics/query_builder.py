@@ -9,8 +9,8 @@ __all__ = (
     "resolve_tags",
 )
 
+import copy
 import math
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -29,15 +29,21 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import DERIVED_METRICS, DerivedMetric, metric_object_factory
+from sentry.snuba.metrics.fields import DerivedMetric, metric_object_factory
+from sentry.snuba.metrics.fields.base import (
+    generate_bottom_up_dependency_tree_for_metrics,
+    get_derived_metrics,
+    org_id_from_projects,
+)
 from sentry.snuba.metrics.utils import (
-    _OPERATIONS_PERCENTILES,
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
     MAX_POINTS,
     OPERATIONS,
+    OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
+    UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     TimeRange,
@@ -53,21 +59,22 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> Tuple[Optional[str], str]:
+    derived_metrics = get_derived_metrics(exclude_private=True)
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
         operation = matches[1]
         metric_name = matches[2]
-        if metric_name in DERIVED_METRICS and isinstance(
-            DERIVED_METRICS[metric_name], DerivedMetric
+        if metric_name in derived_metrics and isinstance(
+            derived_metrics[metric_name], DerivedMetric
         ):
             raise DerivedMetricParseException(
                 f"Failed to parse {field}. No operations can be applied on this field as it is "
                 f"already a derived metric with an aggregation applied to it."
             )
     except (IndexError, TypeError):
-        if field in DERIVED_METRICS and isinstance(DERIVED_METRICS[field], DerivedMetric):
+        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetric):
             # The isinstance check is there to foreshadow adding raw metric aliases
             return None, field
         raise InvalidField(
@@ -83,7 +90,7 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
         return operation, metric_name
 
 
-def resolve_tags(input_: Any) -> Any:
+def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
     This assumes that all strings are either tag names or tag values, so do not
@@ -91,28 +98,33 @@ def resolve_tags(input_: Any) -> Any:
 
     """
     if isinstance(input_, list):
-        return [resolve_tags(item) for item in input_]
+        return [resolve_tags(org_id, item) for item in input_]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
-            return resolve_tags(input_.parameters[0])
+            return resolve_tags(org_id, input_.parameters[0])
         return Function(
             function=input_.function,
-            parameters=input_.parameters and [resolve_tags(item) for item in input_.parameters],
+            parameters=input_.parameters
+            and [resolve_tags(org_id, item) for item in input_.parameters],
         )
     if isinstance(input_, Condition):
-        return Condition(lhs=resolve_tags(input_.lhs), op=input_.op, rhs=resolve_tags(input_.rhs))
+        return Condition(
+            lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
+        )
     if isinstance(input_, BooleanCondition):
-        return input_.__class__(conditions=[resolve_tags(item) for item in input_.conditions])
+        return input_.__class__(
+            conditions=[resolve_tags(org_id, item) for item in input_.conditions]
+        )
     if isinstance(input_, Column):
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             name = input_.key
         else:
             name = input_.name
-        return Column(name=resolve_tag_key(name))
+        return Column(name=resolve_tag_key(org_id, name))
     if isinstance(input_, str):
-        return resolve_weak(input_)
+        return resolve_weak(org_id, input_)
 
     return input_
 
@@ -121,7 +133,9 @@ def parse_query(query_string: str) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
-    # Todo(ahmed): Check against `session.status` that was decided not to be supported
+    for unallowed_tag in UNALLOWED_TAGS:
+        if f"{unallowed_tag}:" in query_string:
+            raise InvalidParams(f"Tag name {unallowed_tag} is not a valid query filter")
     try:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
@@ -295,33 +309,35 @@ class SnubaQueryBuilder:
 
     def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
         self._projects = projects
+        self._org_id = org_id_from_projects(projects)
+        self._fields_in_entities = {}
         self._queries = self._build_queries(query_definition)
 
     def _build_where(
         self, query_definition: QueryDefinition
     ) -> List[Union[BooleanCondition, Condition]]:
-        assert self._projects
-        org_id = self._projects[0].organization_id
         where: List[Union[BooleanCondition, Condition]] = [
-            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, [p.id for p in self._projects]),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
-        filter_ = resolve_tags(query_definition.parsed_query)
+        filter_ = resolve_tags(self._org_id, query_definition.parsed_query)
         if filter_:
             where.extend(filter_)
 
         return where
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[Column]:
-        # ToDo ensure we cannot add any other cols than tags and groupBy as columns
-        return [
-            Column(resolve_tag_key(field))
-            if field not in ALLOWED_GROUPBY_COLUMNS
-            else Column(field)
-            for field in query_definition.groupby
-        ]
+        groupby_cols = []
+        for field in query_definition.groupby:
+            if field in UNALLOWED_TAGS:
+                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
+            if field in ALLOWED_GROUPBY_COLUMNS:
+                groupby_cols.append(Column(field))
+            else:
+                groupby_cols.append(Column(resolve_tag_key(self._org_id, field)))
+        return groupby_cols
 
     def _build_orderby(self, query_definition: QueryDefinition) -> Optional[List[OrderBy]]:
         if query_definition.orderby is None:
@@ -359,17 +375,53 @@ class SnubaQueryBuilder:
 
         return {"totals": totals_query, "series": series_query}
 
+    def __update_query_dicts_with_component_entities(
+        self, component_entities, metric_name_to_obj_dict
+    ):
+        # At this point in time, we are only supporting raw metrics in the metrics attribute of
+        # any instance of DerivedMetric, and so in this case the op will always be None
+        # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
+        #  an aggregate and in this case, we would need to parse the op here
+        op = None
+        for entity, metric_names in component_entities.items():
+            for metric_name in metric_names:
+                metric_key = (op, metric_name)
+                if metric_key not in metric_name_to_obj_dict:
+                    metric_name_to_obj_dict[metric_key] = metric_object_factory(op, metric_name)
+                    self._fields_in_entities.setdefault(entity, []).append(metric_key)
+        return metric_name_to_obj_dict
+
     def _build_queries(self, query_definition):
         metric_name_to_obj_dict = {}
 
-        queries_by_entity = OrderedDict()
         for op, metric_name in query_definition.fields.values():
             metric_field_obj = metric_object_factory(op, metric_name)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
             try:
-                entity = metric_field_obj.get_entity(projects=self._projects)
+                #  When we get to an instance of a MetricFieldBase where the entity is an
+                #  instance of dict, we know it is from a composite entity derived metric, and
+                #  we need to traverse down the constituent metrics dependency tree until we get
+                #  to instances of SingleEntityDerivedMetric, and add those to our queries so
+                #  that we are able to generate the original CompositeEntityDerivedMetric later
+                #  on as a result of a post query operation on the results of the constituent
+                #  SingleEntityDerivedMetric instances
+                component_entities = metric_field_obj.get_entity(projects=self._projects)
+                if isinstance(component_entities, dict):
+                    # In this case, component_entities is a dictionary with entity keys and
+                    # lists of metric_names as values representing all the entities and
+                    # metric_names combination that this metric_object is composed of, or rather
+                    # the instances of SingleEntityDerivedMetric that it is composed of
+                    metric_name_to_obj_dict = self.__update_query_dicts_with_component_entities(
+                        component_entities=component_entities,
+                        metric_name_to_obj_dict=metric_name_to_obj_dict,
+                    )
+                    continue
+                elif isinstance(component_entities, str):
+                    entity = component_entities
+                else:
+                    raise DerivedMetricParseException("Entity parsed is in incorrect format")
             except MetricDoesNotExistException:
                 # If we get here, it means that one or more of the constituent metrics for a
                 # derived metric does not exist, and so no further attempts to query that derived
@@ -377,34 +429,23 @@ class SnubaQueryBuilder:
                 # the response
                 continue
 
-            if not entity:
-                # ToDo(ahmed): When we get to an instance of a MetricFieldBase where entity is
-                #  None, we know it is from a composite entity derived metric, and we need to
-                #  traverse down the constituent metrics dependency tree until we get to instances
-                #  of SingleEntityDerivedMetric, and add those to our queries so that we are able
-                #  to generate the original CompositeEntityDerivedMetric later on as a result of
-                #  a post query operation on the results of the constituent
-                #  SingleEntityDerivedMetric instances
-                continue
-
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
             metric_name_to_obj_dict[(op, metric_name)] = metric_field_obj
-
-            queries_by_entity.setdefault(entity, []).append((op, metric_name))
+            self._fields_in_entities.setdefault(entity, []).append((op, metric_name))
 
         where = self._build_where(query_definition)
         groupby = self._build_groupby(query_definition)
 
         queries_dict = {}
-        for entity, fields in queries_by_entity.items():
+        for entity, fields in self._fields_in_entities.items():
             select = []
             metric_ids_set = set()
             for op, name in fields:
                 metric_field_obj = metric_name_to_obj_dict[(op, name)]
                 select += metric_field_obj.generate_select_statements(projects=self._projects)
-                metric_ids_set |= metric_field_obj.generate_metric_ids()
+                metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
 
             where_for_entity = [
                 Condition(
@@ -430,7 +471,7 @@ class SnubaQueryBuilder:
         return queries_dict
 
     def get_snuba_queries(self):
-        return self._queries
+        return self._queries, self._fields_in_entities
 
 
 class SnubaResultConverter:
@@ -440,13 +481,34 @@ class SnubaResultConverter:
         self,
         organization_id: int,
         query_definition: QueryDefinition,
+        fields_in_entities: dict,
         intervals: List[datetime],
         results,
     ):
         self._organization_id = organization_id
-        self._query_definition = query_definition
         self._intervals = intervals
         self._results = results
+
+        # This is a set of all the `(op, metric_name)` combinations passed in the query_definition
+        self._query_definition_fields_set = set(query_definition.fields.values())
+        # This is a set of all queryable `(op, metric_name)` combinations. Queryable can mean it
+        # includes one of the following: AggregatedRawMetric (op, metric_name), instance of
+        # SingularEntityDerivedMetric or the instances of SingularEntityDerivedMetric that are
+        # the constituents necessary to calculate instances of CompositeEntityDerivedMetric but
+        # are not necessarily requested in the query definition
+        self._fields_in_entities_set = {
+            elem for fields_in_entity in fields_in_entities.values() for elem in fields_in_entity
+        }
+        self._set_of_constituent_queries = self._fields_in_entities_set.union(
+            self._query_definition_fields_set
+        )
+
+        # This basically generate a dependency tree for all instances of `MetricFieldBase` so
+        # that in the case of a CompositeEntityDerivedMetric, we are able to calculate it but
+        # only after calculating its dependencies
+        self._bottom_up_dependency_tree = generate_bottom_up_dependency_tree_for_metrics(
+            self._query_definition_fields_set
+        )
 
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
@@ -470,7 +532,10 @@ class SnubaResultConverter:
         if bucketed_time is not None:
             bucketed_time = parse_snuba_datetime(bucketed_time)
 
-        for op, metric_name in self._query_definition.fields.values():
+        # We query the union of the query_definition fields, and the fields_in_entities from the
+        # QueryBuilder necessary as it contains the constituent instances of
+        # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
+        for op, metric_name in self._set_of_constituent_queries:
             key = f"{op}({metric_name})" if op else metric_name
 
             default_null_value = metric_object_factory(
@@ -485,7 +550,7 @@ class SnubaResultConverter:
                 # or also from raw_metrics that don't exist in clickhouse yet
                 cleaned_value = default_null_value
             else:
-                if op in _OPERATIONS_PERCENTILES:
+                if op in OPERATIONS_PERCENTILES:
                     value = value[0]
                 cleaned_value = finite_or_none(value)
 
@@ -527,4 +592,37 @@ class SnubaResultConverter:
             )
             for tags, data in groups.items()
         ]
+
+        # Applying post query operations for totals and series
+        for group in groups:
+            totals, series = group["totals"], group["series"]
+            for op, metric_name in self._bottom_up_dependency_tree:
+                metric_obj = metric_object_factory(op=op, metric_name=metric_name)
+                # Totals
+                totals[metric_name] = metric_obj.run_post_query_function(totals)
+                # Series
+                for idx in range(0, len(self._intervals)):
+                    series.setdefault(
+                        metric_name,
+                        [metric_obj.generate_default_null_values()] * len(self._intervals),
+                    )
+                    series[metric_name][idx] = metric_obj.run_post_query_function(series, idx)
+
+        # Remove the extra fields added due to the constituent metrics that were added
+        # from the generated dependency tree. These metrics that are to be removed were added to
+        # be able to generate fields that require further processing post query, but are not
+        # required nor expected in the response
+        for group in groups:
+            totals, series = group["totals"], group["series"]
+            for key in copy.deepcopy(list(totals.keys())):
+                matches = FIELD_REGEX.match(key)
+                if matches:
+                    operation = matches[1]
+                    metric_name = matches[2]
+                else:
+                    operation = None
+                    metric_name = key
+                if (operation, metric_name) not in self._query_definition_fields_set:
+                    del totals[key], series[key]
+
         return groups

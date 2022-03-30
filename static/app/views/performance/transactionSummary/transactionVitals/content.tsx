@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -69,7 +69,7 @@ function VitalsContent(props: Props) {
                 allVitals.some(vital => !results.vitalsData?.[vital]);
 
               return (
-                <React.Fragment>
+                <Fragment>
                   {isMissingVitalsData && (
                     <Alert type="info" showIcon>
                       {tct(
@@ -139,7 +139,7 @@ function VitalsContent(props: Props) {
                     dataFilter={activeFilter.value}
                     results={results}
                   />
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </VitalsCardsDiscoverQuery>

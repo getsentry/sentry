@@ -4027,13 +4027,6 @@
   resolved "https://registry.yarnpkg.com/@types/color-name/-/color-name-1.1.1.tgz#1c1261bbeaa10a8055bbc5d8ab84b7b2afc846a0"
   integrity sha512-rr+OQyAjxze7GgWrSaJwydHStIhHq2lvY3BOC2Mj7KnzI7XK0Uw1TOOdI9lDoajEbSWLiYgoo4f1R51erQfhPQ==
 
-"@types/compression-webpack-plugin@^6.0.5":
-  version "6.0.6"
-  resolved "https://registry.yarnpkg.com/@types/compression-webpack-plugin/-/compression-webpack-plugin-6.0.6.tgz#0af843e445b5b6531432a8f521cc2c34c4a82276"
-  integrity sha512-UuSUiWmgg4zfzTaGwyo4XCY4MBfgPuvvwAHujQZyu1beGDiJKXU3YMg0Pl6zcLMYV6tDqZJWyYG1QkT5yt28EA==
-  dependencies:
-    "@types/webpack" "^4"
-
 "@types/connect-history-api-fallback@*":
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/@types/connect-history-api-fallback/-/connect-history-api-fallback-1.3.5.tgz#d1f7a8a09d0ed5a57aee5ae9c18ab9b803205dae"
@@ -6455,13 +6448,13 @@ compressible@~2.0.16:
   dependencies:
     mime-db ">= 1.43.0 < 2"
 
-compression-webpack-plugin@7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/compression-webpack-plugin/-/compression-webpack-plugin-7.0.0.tgz#a48401e62f8b89a21fcf96928991e05de5fbd6cf"
-  integrity sha512-IBB47JDleWQ+ZElXQIi+225qj5NOPem0/u8tQuXA/R2R0UpnPlqtD6JDXNbjq3xYhEi8z/Hw3SvORWaafrxe0w==
+compression-webpack-plugin@9.2.0:
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/compression-webpack-plugin/-/compression-webpack-plugin-9.2.0.tgz#57fd539d17c5907eebdeb4e83dcfe2d7eceb9ef6"
+  integrity sha512-R/Oi+2+UHotGfu72fJiRoVpuRifZT0tTC6UqFD/DUo+mv8dbOow9rVOuTvDv5nPPm3GZhHL/fKkwxwIHnJ8Nyw==
   dependencies:
-    schema-utils "^3.0.0"
-    serialize-javascript "^5.0.1"
+    schema-utils "^4.0.0"
+    serialize-javascript "^6.0.0"
 
 compression@^1.7.4:
   version "1.7.4"
@@ -7313,10 +7306,10 @@ dot-case@^3.0.4:
     no-case "^3.0.4"
     tslib "^2.0.3"
 
-dotenv-defaults@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/dotenv-defaults/-/dotenv-defaults-2.0.1.tgz#ea6f9632b3b5cc55e48b736760def5561f1cb7c0"
-  integrity sha512-ugFCyBF7ILuwpmznduHPQZBMucHHJ8T4OBManTEVjemxCm2+nqifSuW2lD2SNKdiKSH1E324kZSdJ8M04b4I/A==
+dotenv-defaults@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/dotenv-defaults/-/dotenv-defaults-2.0.2.tgz#6b3ec2e4319aafb70940abda72d3856770ee77ac"
+  integrity sha512-iOIzovWfsUHU91L5i8bJce3NYK5JXeAwH50Jh6+ARUdLiiGlYWfGw6UkzsYqaXZH/hjE/eCd/PlfM/qqyK0AMg==
   dependencies:
     dotenv "^8.2.0"
 
@@ -7325,12 +7318,12 @@ dotenv-expand@^5.1.0:
   resolved "https://registry.yarnpkg.com/dotenv-expand/-/dotenv-expand-5.1.0.tgz#3fbaf020bfd794884072ea26b1e9791d45a629f0"
   integrity sha512-YXQl1DSa4/PQyRfgrv6aoNjhasp/p4qs9FjJ4q4cQk+8m4r6k4ZSiEyytKG8f8W9gi8WsQtIObNmKd+tMzNTmA==
 
-dotenv-webpack@^1.8.0, dotenv-webpack@^6.0.0, dotenv-webpack@^7.0.0:
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/dotenv-webpack/-/dotenv-webpack-6.0.4.tgz#4874045d408598e45a95519d3cc71017c91c9104"
-  integrity sha512-WiTPNLanDNJ1O8AvgkBpsbarw78a4PMYG2EfJcQoxTHFWy+ji213HR+3f4PhWB1RBumiD9cbiuC3SNxJXbBp9g==
+dotenv-webpack@^1.8.0, dotenv-webpack@^7.0.0, dotenv-webpack@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/dotenv-webpack/-/dotenv-webpack-7.1.0.tgz#211fefac6bf500bf3bb66b286e1b12a23a2a70c0"
+  integrity sha512-+aUOe+nqgLerA/n611oyC15fY79BIkGm2fOxJAcHDonMZ7AtDpnzv/Oe591eHAenIE0t6w03UyxDnLs/YUxx5Q==
   dependencies:
-    dotenv-defaults "^2.0.1"
+    dotenv-defaults "^2.0.2"
 
 dotenv@^8.0.0, dotenv@^8.2.0:
   version "8.2.0"
@@ -7675,16 +7668,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.78.0:
-  version "1.78.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.78.0.tgz#eff34165fdb5d5deaec9fa7eaffee89ffc505f07"
-  integrity sha512-Z7lrGijMKYhdwflLbYaKjYzPxEat2qDMZz3LMznk7L2Wsx/AYEMemefffq9AELfNNFi/4MSRe/goiaH59ylfgQ==
+eslint-config-sentry-app@1.79.0:
+  version "1.79.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.79.0.tgz#66182c9a22ae4b874f7245d69cff8e31bf0a86e6"
+  integrity sha512-YZzXeGrBDudyNNtVIz+daQpJzSqIyw935TiAtkZlP1DDh4UNfTJIq12dt+ZCn279Q+6YLqe3kJAsQZyKT/NJvA==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^5.14.0"
     "@typescript-eslint/parser" "^5.14.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.78.0"
-    eslint-config-sentry-react "^1.78.0"
+    eslint-config-sentry "^1.79.0"
+    eslint-config-sentry-react "^1.79.0"
     eslint-import-resolver-typescript "^2.5.0"
     eslint-import-resolver-webpack "^0.13.2"
     eslint-plugin-emotion "^10.0.27"
@@ -7692,23 +7685,23 @@ eslint-config-sentry-app@1.78.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.78.0"
+    eslint-plugin-sentry "^1.79.0"
     eslint-plugin-simple-import-sort "^7.0.0"
 
-eslint-config-sentry-react@^1.78.0:
-  version "1.78.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.78.0.tgz#549a1c5f8e812133c03f687a57e296c5e9abfe49"
-  integrity sha512-3ETLL89XrWfOXkHUnAhG33T3K5eaZi1cW1CS0BXL+j8YO6ItLMufOW/viAicvC+Xkps6ryrrEElUkJx2jofE0A==
+eslint-config-sentry-react@^1.79.0:
+  version "1.79.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.79.0.tgz#5cd56c6ffcfd03657a3a80f890edfbdf3fb3456d"
+  integrity sha512-N/P9DClA7bBLS8E8W2VOtucnhp0YOuU0iFmOtsZUzWxJt89UVB2+nzRGA5ATWWU+TEqkYuVHhvx52E0WYmqy0Q==
   dependencies:
-    eslint-config-sentry "^1.78.0"
+    eslint-config-sentry "^1.79.0"
     eslint-plugin-jest-dom "^4.0.1"
     eslint-plugin-testing-library "^5.0.3"
     eslint-plugin-typescript-sort-keys "^2.1.0"
 
-eslint-config-sentry@^1.78.0:
-  version "1.78.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.78.0.tgz#69b3dfeb5cf3e2e8b7e34b20212c3b8dc6943b8d"
-  integrity sha512-EG7bdeI6Ke68kvFANb6VfsruY2FCNuMhMSNy+Xm54UsDGXo6iRl/btXyQsScjQEpLZDGV8LyaiZj/w+/pufOlg==
+eslint-config-sentry@^1.79.0:
+  version "1.79.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.79.0.tgz#9086c2a06f1bbfb2a5ad6aaf130b875eb35b86c7"
+  integrity sha512-3r+0Nh2h5fl1ZlTpK1D8iKrsKUcVCN3u3yDfGu6fGGhp3Jr7TpgAw+cQwymR1wohF3oMl0Qhplf294v513GQLw==
 
 eslint-import-resolver-node@^0.3.4:
   version "0.3.4"
@@ -7818,10 +7811,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.78.0:
-  version "1.78.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.78.0.tgz#2edb508ad553fbbcf9b3bec2911bb51a6ceacc7e"
-  integrity sha512-OlNT2xzPhNhFfFbF8DfeFoITuqTsjaSp1DM+mintVVPxSCK+oO7CEDDo0I3TB3Qo5cVCtam387R9EOJdHmNuFg==
+eslint-plugin-sentry@^1.79.0:
+  version "1.79.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.79.0.tgz#525db7987a0956c00303dd2197d6a647f55d507d"
+  integrity sha512-NEFVAwGtZnb0aCc94X2UM6kE41we7LERGE3d+K0Mu96NjKKNpSlM6+gcEgewOKsoS/3pqBj7zyTkEaZG781ChA==
   dependencies:
     requireindex "~1.1.0"
 
@@ -10444,10 +10437,10 @@ jest-runtime@^27.5.1:
     slash "^3.0.0"
     strip-bom "^4.0.0"
 
-jest-sentry-environment@1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/jest-sentry-environment/-/jest-sentry-environment-1.4.0.tgz#3d553583b7e14df2b2eea25191a284aacda23a8e"
-  integrity sha512-NXh+ikXP0vs4RRREHdKANc1fcCYGIl78hgfBvpsW/mJCzDWr8J3CgI3IalzGp0eOOM+kQ6cvQX0yjFOiwJJ7Rg==
+jest-sentry-environment@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/jest-sentry-environment/-/jest-sentry-environment-1.5.0.tgz#b5838ad3225ed4991226ac4f953740031ac2b45e"
+  integrity sha512-jbpZWDEcdJyqYAZIy0fCn6vcLfhthmnD1Q+id19aRcTakruO2hNkXn083UDENH1qJ+pGCtAYKzMIk+6eagidSw==
 
 jest-serializer@^26.6.2:
   version "26.6.2"
@@ -14114,13 +14107,6 @@ send@0.17.1:
     range-parser "~1.2.1"
     statuses "~1.5.0"
 
-serialize-javascript@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-5.0.1.tgz#7886ec848049a462467a97d3d918ebb2aaf934f4"
-  integrity sha512-SaaNal9imEO737H2c05Og0/8LUXG7EnsZyMa8MzkmuHoELfT6txuj0cMqRj6zfPKnmQ1yasR4PCJc8x+M4JSPA==
-  dependencies:
-    randombytes "^2.1.0"
-
 serialize-javascript@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-6.0.0.tgz#efae5d88f45d7924141da8b5c3a7a7e663fefeb8"
@@ -14494,13 +14480,6 @@ specificity@^0.4.1:
   resolved "https://registry.yarnpkg.com/specificity/-/specificity-0.4.1.tgz#aab5e645012db08ba182e151165738d00887b019"
   integrity sha512-1klA3Gi5PD1Wv9Q0wUoOQN1IWAuPu0D1U03ThXTr0cJ20+/iq2tHSDnK7Kk/0LXJ1ztUB2/1Os0wKmfyNgUQfg==
 
-speed-measure-webpack-plugin@^1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/speed-measure-webpack-plugin/-/speed-measure-webpack-plugin-1.5.0.tgz#caf2c5bee24ab66c1c7c30e8daa7910497f7681a"
-  integrity sha512-Re0wX5CtM6gW7bZA64ONOfEPEhwbiSF/vz6e2GvadjuaPrQcHTQdRGsD8+BE7iUOysXH8tIenkPCQBEcspXsNg==
-  dependencies:
-    chalk "^4.1.0"
-
 split-on-first@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/split-on-first/-/split-on-first-1.1.0.tgz#f610afeee3b12bce1d0c30425e76398b78249a5f"
@@ -14808,10 +14787,10 @@ stylelint-config-prettier@^9.0.3:
   resolved "https://registry.yarnpkg.com/stylelint-config-prettier/-/stylelint-config-prettier-9.0.3.tgz#0dccebeff359dcc393c9229184408b08964d561c"
   integrity sha512-5n9gUDp/n5tTMCq1GLqSpA30w2sqWITSSEiAWQlpxkKGAUbjcemQ0nbkRvRUa0B1LgD3+hCvdL7B1eTxy1QHJg==
 
-stylelint-config-recommended@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/stylelint-config-recommended/-/stylelint-config-recommended-6.0.0.tgz#fd2523a322836005ad9bf473d3e5534719c09f9d"
-  integrity sha512-ZorSSdyMcxWpROYUvLEMm0vSZud2uB7tX1hzBZwvVY9SV/uly4AvvJPPhCcymZL3fcQhEQG5AELmrxWqtmzacw==
+stylelint-config-recommended@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/stylelint-config-recommended/-/stylelint-config-recommended-7.0.0.tgz#7497372ae83ab7a6fffc18d7d7b424c6480ae15e"
+  integrity sha512-yGn84Bf/q41J4luis1AZ95gj0EQwRX8lWmGmBwkwBNSkpGSpl66XcPTulxGa/Z91aPoNGuIGBmFkcM1MejMo9Q==
 
 stylelint@14.5.3:
   version "14.5.3"

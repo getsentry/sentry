@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -86,10 +86,10 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
                 {t('Unable to load profiles')}
               </Alert>
             ) : requestState === 'loading' ? (
-              <React.Fragment>
+              <Fragment>
                 <Flamegraph profiles={LoadingGroup} />
                 <LoadingIndicator />
-              </React.Fragment>
+              </Fragment>
             ) : requestState === 'resolved' && profiles ? (
               <Flamegraph profiles={profiles} />
             ) : null}
