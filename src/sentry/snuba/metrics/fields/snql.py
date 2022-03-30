@@ -1,5 +1,8 @@
+from typing import List
+
 from snuba_sdk import Column, Function
 
+from sentry.sentry_metrics.transactions import TransactionMetricsKey
 from sentry.sentry_metrics.utils import resolve_weak
 
 
@@ -43,6 +46,41 @@ def _set_uniq_aggregation_on_session_status_factory(
     return _aggregation_on_session_status_func_factory(aggregate="uniqIf")(
         org_id, session_status, metric_ids, alias
     )
+
+
+def _aggregation_on_tx_status_func_factory(aggregate):
+    def _snql_on_tx_status_factory(exclude_tx_statuses: List[str], metric_ids, alias=None):
+        resolved_tx_statuses = [resolve_weak(s) for s in exclude_tx_statuses]
+        return Function(
+            aggregate,
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "notIn",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(TransactionMetricsKey.TRANSACTION_STATUS.value)}]"
+                                ),
+                                resolved_tx_statuses,
+                            ],
+                        ),
+                        Function("in", [Column("metric_id"), list(metric_ids)]),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    return _snql_on_tx_status_factory
+
+
+def _dist_sum_aggregation_on_tx_status_factory(
+    exclude_tx_statuses: List[str], metric_ids, alias=None
+):
+    return _aggregation_on_tx_status_func_factory("countIf")(exclude_tx_statuses, metric_ids, alias)
 
 
 def all_sessions(org_id: int, metric_ids, alias=None):
@@ -107,6 +145,14 @@ def sessions_errored_set(metric_ids, alias=None):
             ),
         ],
         alias,
+    )
+
+
+def all_transactions(metric_ids, alias=None):
+    return _dist_sum_aggregation_on_tx_status_factory(
+        exclude_tx_statuses=[],
+        metric_ids=metric_ids,
+        alias=alias,
     )
 
 

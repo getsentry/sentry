@@ -26,6 +26,7 @@ from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.transactions import TransactionMetricsKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import rebucket_histogram
@@ -34,6 +35,7 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_users,
     addition,
     all_sessions,
+    all_transactions,
     all_users,
     crashed_sessions,
     crashed_users,
@@ -704,6 +706,8 @@ class DerivedMetricKey(Enum):
     SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
     SESSION_DURATION = "session.duration"
 
+    TRANSACTION_ALL = "transaction.all"
+
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
 #  values
@@ -849,6 +853,14 @@ DERIVED_METRICS = {
             unit="users",
             snql=lambda *args, org_id, metric_ids, alias=None: subtraction(*args, alias=alias),
             post_query_func=lambda *args: max(0, *args),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.TRANSACTION_ALL.value,
+            metrics=[TransactionMetricsKey.TRANSACTION.value],
+            unit="transactions",
+            snql=lambda *_, metric_ids, alias=None: all_transactions(
+                metric_ids=metric_ids, alias=alias
+            ),
         ),
     ]
 }
