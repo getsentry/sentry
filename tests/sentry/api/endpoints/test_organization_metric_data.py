@@ -1859,7 +1859,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_distributions",
         )
-        response = self.get_response(
+        response = self.get_success_response(
             self.organization.slug,
             field=["transaction.all"],
             statsPeriod="1m",
