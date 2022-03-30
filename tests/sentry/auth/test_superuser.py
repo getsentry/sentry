@@ -190,7 +190,7 @@ class SuperuserTestCase(TestCase):
         request = self.make_request(user=user, method="PUT")
         request._body = json.dumps(
             {
-                "superuserAccessCategory": "debugging",
+                "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Edit organization settings",
             }
         )
