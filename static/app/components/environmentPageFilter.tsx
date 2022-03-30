@@ -24,7 +24,6 @@ type Props = {
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
-
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
