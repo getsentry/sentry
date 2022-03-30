@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import {Client} from 'sentry/api';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
   HeaderTitleLegend,

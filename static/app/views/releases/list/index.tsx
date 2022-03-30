@@ -20,7 +20,6 @@ import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
@@ -378,7 +377,7 @@ class ReleasesList extends AsyncView<Props, State> {
           }
 
           return (
-            <Alert type="info" icon={<IconInfo size="md" />}>
+            <Alert type="info" showIcon>
               <AlertText>
                 <div>
                   {t(

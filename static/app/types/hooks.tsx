@@ -57,8 +57,6 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type GlobalNotificationProps = {className: string; organization?: Organization};
-
 type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
 
 type MemberListHeaderProps = {
@@ -100,7 +98,6 @@ export type ComponentHooks = {
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
-  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
@@ -196,7 +193,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
-  'onboarding:targeted-onboarding-header': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**

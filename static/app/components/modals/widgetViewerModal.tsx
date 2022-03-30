@@ -26,7 +26,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -82,7 +82,7 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 // causing unnecessary rerenders which can break persistent legends functionality.
 const MemoizedWidgetCardChartContainer = React.memo(
   WidgetCardChartContainer,
-  (props, prevProps) => {
+  (prevProps, props) => {
     return (
       props.selection === prevProps.selection &&
       props.location.query[WidgetViewerQueryField.QUERY] ===
@@ -133,21 +133,42 @@ function WidgetViewerModal(props: Props) {
     routes,
     params,
   } = props;
+  // Get widget zoom from location
+  // We use the start and end query params for just the initial state
+  const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
+  const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-  const [modalSelection, setModalSelection] = React.useState<PageFilters>(selection);
+  const locationPageFilter =
+    start && end
+      ? {
+          ...selection,
+          datetime: {start, end, period: null, utc: null},
+        }
+      : selection;
+  const [modalSelection, setModalSelection] =
+    React.useState<PageFilters>(locationPageFilter);
+
+  // Detect when a user clicks back and set the PageFilter state to match the location
+  // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
+  React.useEffect(() => {
+    if (location.action === 'POP') {
+      setModalSelection(locationPageFilter);
+    }
+  }, [location]);
+
+  // Get legends toggle settings from location
+  // We use the legend query params for just the initial state
+  const [disabledLegends, setDisabledLegends] = React.useState<{[key: string]: boolean}>(
+    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
+      acc[legend] = false;
+      return acc;
+    }, {})
+  );
   const [totalResults, setTotalResults] = React.useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-
-  // Get legends toggle settings from location
-  const disabledLegends = decodeList(
-    location.query[WidgetViewerQueryField.LEGEND]
-  ).reduce((acc, legend) => {
-    acc[legend] = false;
-    return acc;
-  }, {});
 
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
@@ -316,11 +337,24 @@ function WidgetViewerModal(props: Props) {
                 // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
                 const model = chart.getModel();
                 const {startValue, endValue} = model._payload.batch[0];
-                const start = getUtcDateString(moment.utc(startValue));
-                const end = getUtcDateString(moment.utc(endValue));
+                const newStart = getUtcDateString(moment.utc(startValue));
+                const newEnd = getUtcDateString(moment.utc(endValue));
                 setModalSelection({
                   ...modalSelection,
-                  datetime: {...modalSelection.datetime, start, end, period: null},
+                  datetime: {
+                    ...modalSelection.datetime,
+                    start: newStart,
+                    end: newEnd,
+                    period: null,
+                  },
+                });
+                router.push({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.START]: newStart,
+                    [WidgetViewerQueryField.END]: newEnd,
+                  },
                 });
                 trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.zoom', {
                   organization,
@@ -329,6 +363,7 @@ function WidgetViewerModal(props: Props) {
                 });
               }}
               onLegendSelectChanged={({selected}) => {
+                setDisabledLegends(selected);
                 router.replace({
                   pathname: location.pathname,
                   query: {
@@ -353,7 +388,7 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledAlert type="info" icon={<IconInfo />}>
+          <StyledAlert type="info" showIcon>
             {t(
               'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
             )}

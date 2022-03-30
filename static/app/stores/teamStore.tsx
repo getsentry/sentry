@@ -1,8 +1,13 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import TeamActions from 'sentry/actions/teamActions';
 import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -25,10 +30,11 @@ type TeamStoreInterface = CommonStoreInterface<State> & {
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
+
   state: State;
 };
 
-const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
+const teamStoreConfig: StoreDefinition & TeamStoreInterface & SafeStoreDefinition = {
   initialized: false,
   state: {
     teams: [],
@@ -38,15 +44,29 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
     cursor: null,
   },
 
+  unsubscribeListeners: [],
+
   init() {
     this.reset();
 
-    this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
-    this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
-    this.listenTo(TeamActions.loadTeams, this.loadInitialData);
-    this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams);
-    this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
-    this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.loadTeams, this.loadInitialData)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess)
+    );
   },
 
   reset() {
@@ -158,7 +178,8 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   },
 };
 
-const TeamStore = Reflux.createStore(teamStoreConfig) as Reflux.Store &
-  TeamStoreInterface;
+const TeamStore = createStore(
+  makeSafeRefluxStore(teamStoreConfig)
+) as unknown as SafeRefluxStore & TeamStoreInterface;
 
 export default TeamStore;

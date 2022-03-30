@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment, MouseEvent} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -9,18 +9,23 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {
+  ModalRenderProps,
+  openModal,
+  openReprocessEventModal,
+} from 'sentry/actionCreators/modal';
 import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import ActionButton from 'sentry/components/actions/button';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Button from 'sentry/components/button';
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
-import {IconStar} from 'sentry/icons';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -32,6 +37,7 @@ import {
   UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {analytics} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -42,7 +48,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
 import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
-import DeleteAction from './deleteAction';
 import SubscribeAction from './subscribeAction';
 
 type Props = {
@@ -59,7 +64,7 @@ type State = {
   shareBusy: boolean;
 };
 
-class Actions extends React.Component<Props, State> {
+class Actions extends Component<Props, State> {
   state: State = {
     shareBusy: false,
   };
@@ -234,6 +239,14 @@ class Actions extends React.Component<Props, State> {
     this.trackIssueAction('subscribed');
   };
 
+  onRedirectDiscover = () => {
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
+      organization,
+    });
+    browserHistory.push(this.getDiscoverUrl());
+  };
+
   onDiscard = () => {
     const {group, project, organization, api} = this.props;
     const id = uniqueId();
@@ -256,8 +269,64 @@ class Actions extends React.Component<Props, State> {
     this.trackIssueAction('discarded');
   };
 
-  handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
-    return function (event: React.MouseEvent) {
+  renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
+    const {organization, project} = this.props;
+
+    function renderDiscardDisabled({children, ...props}) {
+      return children({
+        ...props,
+        renderDisabled: ({features}: {features: string[]}) => (
+          <FeatureDisabled alert featureName="Discard and Delete" features={features} />
+        ),
+      });
+    }
+
+    return (
+      <Feature
+        features={['projects:discard-groups']}
+        hookName="feature-disabled:discard-groups"
+        organization={organization}
+        project={project}
+        renderDisabled={renderDiscardDisabled}
+      >
+        {({hasFeature, renderDisabled, ...props}) => (
+          <Fragment>
+            <Body>
+              {!hasFeature &&
+                typeof renderDisabled === 'function' &&
+                renderDisabled({...props, hasFeature, children: null})}
+              {t(
+                `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
+              )}
+            </Body>
+            <Footer>
+              <Button onClick={closeModal}>{t('Cancel')}</Button>
+              <Button
+                style={{marginLeft: space(1)}}
+                priority="primary"
+                onClick={this.onDiscard}
+                disabled={!hasFeature}
+              >
+                {t('Discard Future Events')}
+              </Button>
+            </Footer>
+          </Fragment>
+        )}
+      </Feature>
+    );
+  };
+
+  openDiscardModal = () => {
+    const {organization} = this.props;
+
+    openModal(this.renderDiscardModal);
+    analytics('feature.discard_group.modal_opened', {
+      org_id: parseInt(organization.id, 10),
+    });
+  };
+
+  handleClick(disabled: boolean, onClick: (event?: MouseEvent) => void) {
+    return function (event: MouseEvent) {
       if (disabled) {
         event.preventDefault();
         event.stopPropagation();
@@ -311,17 +380,6 @@ class Actions extends React.Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <Access organization={organization} access={['event:admin']}>
-          {({hasAccess}) => (
-            <DeleteAction
-              disabled={disabled || !hasAccess}
-              organization={organization}
-              project={project}
-              onDelete={this.onDelete}
-              onDiscard={this.onDiscard}
-            />
-          )}
-        </Access>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -332,69 +390,94 @@ class Actions extends React.Component<Props, State> {
             onReshare={() => this.onShare(true)}
           />
         )}
-
-        <Feature
-          hookName="feature-disabled:open-in-discover"
-          features={['discover-basic']}
-          organization={organization}
-        >
-          <ActionButton
-            disabled={disabled}
-            to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
-          >
-            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-          </ActionButton>
-        </Feature>
-
-        <BookmarkButton
-          disabled={disabled}
-          isActive={group.isBookmarked}
-          title={bookmarkTitle}
-          tooltipProps={{delay: 300}}
-          aria-label={bookmarkTitle}
-          onClick={this.handleClick(disabled, this.onToggleBookmark)}
-          icon={<IconStar isSolid size="xs" />}
-        />
-
         <SubscribeAction
           disabled={disabled}
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
 
-        {displayReprocessEventAction(organization.features, event) && (
-          <ReprocessAction
-            disabled={disabled}
-            icon={<IconRefresh size="xs" />}
-            title={t('Reprocess this issue')}
-            aria-label={t('Reprocess this issue')}
-            onClick={this.handleClick(disabled, this.onReprocessEvent)}
-          />
-        )}
+        <Access organization={organization} access={['event:admin']}>
+          {({hasAccess}) => (
+            <Feature
+              hookName="feature-disabled:open-in-discover"
+              features={['discover-basic']}
+              organization={organization}
+            >
+              {({hasFeature}) => (
+                <GuideAnchor target="open_in_discover">
+                  <DropdownMenuControlV2
+                    triggerProps={{
+                      'aria-label': t('More Actions'),
+                      icon: <IconEllipsis size="xs" />,
+                      showChevron: false,
+                      size: 'xsmall',
+                    }}
+                    items={[
+                      {
+                        key: 'bookmark',
+                        label: bookmarkTitle,
+                        hidden: false,
+                        onAction: this.onToggleBookmark,
+                      },
+                      {
+                        key: 'open-in-discover',
+                        label: t('Open in Discover'),
+                        hidden: !hasFeature,
+                        onAction: this.onRedirectDiscover,
+                      },
+                      {
+                        key: 'reprocess',
+                        label: t('Reprocess events'),
+                        hidden: !displayReprocessEventAction(
+                          organization.features,
+                          event
+                        ),
+                        onAction: this.onReprocessEvent,
+                      },
+                      {
+                        key: 'delete-issue',
+                        priority: 'danger',
+                        label: t('Delete'),
+                        hidden: !hasAccess,
+                        onAction: () =>
+                          openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+                            <Fragment>
+                              <Body>
+                                {t(
+                                  'Deleting this issue is permanent. Are you sure you wish to continue?'
+                                )}
+                              </Body>
+                              <Footer>
+                                <Button onClick={closeModal}>{t('Cancel')}</Button>
+                                <Button
+                                  style={{marginLeft: space(1)}}
+                                  priority="primary"
+                                  onClick={this.onDelete}
+                                >
+                                  {t('Delete')}
+                                </Button>
+                              </Footer>
+                            </Fragment>
+                          )),
+                      },
+                      {
+                        key: 'delete-and-discard',
+                        priority: 'danger',
+                        label: t('Delete and discard future events'),
+                        hidden: !hasAccess,
+                        onAction: () => this.openDiscardModal(),
+                      },
+                    ]}
+                  />
+                </GuideAnchor>
+              )}
+            </Feature>
+          )}
+        </Access>
       </Wrapper>
     );
   }
 }
-
-const ReprocessAction = styled(ActionButton)``;
-
-const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
-  ${p =>
-    p.isActive &&
-    `
-   && {
- background: ${p.theme.yellow100};
- color: ${p.theme.yellow300};
- border-color: ${p.theme.yellow300};
- text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-}
-  `}
-`;
 
 const Wrapper = styled('div')`
   display: grid;

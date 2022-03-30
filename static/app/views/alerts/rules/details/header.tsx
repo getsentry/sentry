@@ -21,6 +21,7 @@ type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
 function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
   const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
   const project = rule?.projects?.[0];
+  const ruleTitle = rule && !hasIncidentRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
     `/organizations/${params.orgId}/alerts/${
@@ -33,7 +34,7 @@ function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
         <AlertBreadcrumbs
           crumbs={[
             {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/rules/`},
-            {label: t('Alert Rule')},
+            {label: ruleTitle},
           ]}
         />
         <Controls>
@@ -44,7 +45,7 @@ function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
       </BreadCrumbBar>
       <Details>
         <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
-          {rule && !hasIncidentRuleDetailsError ? rule.name : t('Loading')}
+          {ruleTitle}
         </RuleTitle>
       </Details>
     </Header>
