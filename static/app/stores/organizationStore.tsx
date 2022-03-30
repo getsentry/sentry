@@ -1,8 +1,13 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 import RequestError from 'sentry/utils/requestError/requestError';
 
 import {CommonStoreInterface} from './types';
@@ -27,12 +32,18 @@ type OrganizationStoreInterface = CommonStoreInterface<State> & {
   reset(): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
+const storeConfig: StoreDefinition & OrganizationStoreInterface & SafeStoreDefinition = {
+  unsubscribeListeners: [],
+
   init() {
     this.reset();
-    this.listenTo(OrganizationActions.update, this.onUpdate);
-    this.listenTo(OrganizationActions.reset, this.reset);
-    this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationActions.update, this.onUpdate)
+    );
+    this.unsubscribeListeners.push(this.listenTo(OrganizationActions.reset, this.reset));
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError)
+    );
   },
 
   reset() {
@@ -87,7 +98,8 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
   },
 };
 
-const OrganizationStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  OrganizationStoreInterface;
+const OrganizationStore = createStore(
+  makeSafeRefluxStore(storeConfig)
+) as SafeRefluxStore & OrganizationStoreInterface;
 
 export default OrganizationStore;

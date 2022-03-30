@@ -43,7 +43,7 @@ async function latestEventAvailable(
     }
 
     await new Promise(resolve => window.setTimeout(resolve, EVENT_POLL_INTERVAL));
-
+    
     try {
       await api.requestPromise(`/issues/${groupID}/events/latest/`);
       return {eventCreated: true, retries};

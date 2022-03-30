@@ -34,7 +34,11 @@ export function SplitInstallationIdModal(props: Props) {
   const handleContinue = useCallback(() => {
     onCopy();
     addSuccessMessage('Copied to clipboard');
-
+    
+    if(openAdminIntegrationTimeoutRef.current){
+      window.clearTimeout(openAdminIntegrationTimeoutRef.current)
+    }
+    
     openAdminIntegrationTimeoutRef.current = window.setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');
     }, 2000);

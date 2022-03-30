@@ -27,6 +27,15 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         title: t('Number of Errors'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -37,13 +46,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count()',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Number of Issues'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -54,13 +70,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count_unique(issue)',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Events'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 4,
+          x: 2,
+          y: 0,
+        },
         queries: [
           {
             name: t('Events'),
@@ -71,13 +94,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count()',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Affected Users'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 1,
+          x: 1,
+          y: 2,
+        },
         queries: [
           {
             name: t('Known Users'),
@@ -96,13 +126,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count_unique(user)',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Handled vs. Unhandled'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 1,
+          x: 0,
+          y: 2,
+        },
         queries: [
           {
             name: t('Handled'),
@@ -121,13 +158,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count()',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Errors by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 6,
+        },
         queries: [
           {
             name: '',
@@ -138,13 +182,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'count()',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('High Throughput Transactions'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 6,
+        },
         queries: [
           {
             name: '',
@@ -155,13 +206,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Errors by Browser'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 1,
+          x: 5,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -172,13 +230,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall User Misery'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 1,
+        },
         queries: [
           {
             name: '',
@@ -189,13 +254,44 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
+      },
+      {
+        title: t('Overall Apdex'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 1,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['apdex(300)'],
+            aggregates: ['apdex(300)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
       },
       {
         title: t('High Throughput Transactions'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -206,13 +302,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.ISSUE,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 2,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -223,13 +326,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'priority',
           },
         ],
-        widgetType: WidgetType.ISSUE,
-        tempId: uniqueId(),
       },
       {
         title: t('Transactions Ordered by Misery'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          y: 6,
+          x: 2,
+        },
         queries: [
           {
             name: '',
@@ -240,8 +350,30 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-user_misery_300',
           },
         ],
+      },
+      {
+        title: t('Errors by Browser Over Time'),
+        displayType: DisplayType.TOP_N,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 1,
+          x: 4,
+          y: 2,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['browser.name', 'count()'],
+            aggregates: ['count()'],
+            columns: ['browser.name'],
+            conditions: 'event.type:error has:browser.name',
+            orderby: '-count',
+          },
+        ],
       },
     ],
   },
@@ -256,6 +388,15 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 4,
+          x: 0,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -266,13 +407,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Errors by Browser as Percentage'),
         displayType: DisplayType.AREA,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 9,
+        },
         queries: [
           {
             name: '',
@@ -291,13 +439,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.ISSUE,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -308,13 +463,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'priority',
           },
         ],
-        widgetType: WidgetType.ISSUE,
-        tempId: uniqueId(),
       },
       {
         title: t('Top 5 Issues by Unique Users'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 3,
+          minH: 2,
+          w: 4,
+          x: 0,
+          y: 6,
+        },
         queries: [
           {
             name: '',
@@ -325,13 +487,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('URLs grouped by Issue'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 5,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 8,
+        },
         queries: [
           {
             name: '',
@@ -342,13 +511,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Transactions 404ing'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 2,
+          y: 9,
+        },
         queries: [
           {
             name: '',
@@ -359,13 +535,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Layout Shift Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 1,
+          x: 2,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -376,13 +559,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('LCP by Country'),
         displayType: DisplayType.WORLD_MAP,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 2,
+          x: 2,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -393,13 +583,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Page Load Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 1,
+          x: 3,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -410,13 +607,18 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Slowest Pageloads'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -427,13 +629,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall LCP'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -444,13 +653,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Slow Page Navigations'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -461,13 +677,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall FCP'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -478,8 +701,54 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
+      },
+      {
+        title: t('Overall CLS'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 1,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['p75(measurements.cls)'],
+            aggregates: ['p75(measurements.cls)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      },
+      {
+        title: t('Overall FID'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 1,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['p75(measurements.fid)'],
+            aggregates: ['p75(measurements.fid)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
       },
     ],
   },
@@ -494,6 +763,15 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         title: t('Top 5 Issues by Unique Users Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 6,
+        },
         queries: [
           {
             name: '',
@@ -504,13 +782,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Transactions Erroring Over Time'),
         displayType: DisplayType.TOP_N,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 4,
+          x: 2,
+          y: 8,
+        },
         queries: [
           {
             name: '',
@@ -521,13 +806,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Erroring Transactions by Percentage'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 5,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 10,
+        },
         queries: [
           {
             name: '',
@@ -547,13 +839,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-equation[0]',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Top 5 Issues by Unique Users'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 5,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 10,
+        },
         queries: [
           {
             name: '',
@@ -564,13 +863,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Transactions Erroring'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 5,
+          minH: 2,
+          w: 2,
+          x: 2,
+          y: 10,
+        },
         queries: [
           {
             name: '',
@@ -581,13 +887,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Issues Assigned to Me or My Teams'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.ISSUE,
+        tempId: uniqueId(),
+        layout: {
+          h: 7,
+          minH: 2,
+          w: 6,
+          x: 0,
+          y: 15,
+        },
         queries: [
           {
             name: '',
@@ -598,30 +911,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: 'priority',
           },
         ],
-        widgetType: WidgetType.ISSUE,
-        tempId: uniqueId(),
-      },
-      {
-        title: t('p75 of Duration by Country'),
-        displayType: DisplayType.WORLD_MAP,
-        interval: '5m',
-        queries: [
-          {
-            name: '',
-            fields: ['p75(transaction.duration)'],
-            aggregates: ['p75(transaction.duration)'],
-            columns: [],
-            conditions: '',
-            orderby: '',
-          },
-        ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('p75 Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 4,
+          x: 2,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -632,13 +935,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Throughput (Events Per Minute)'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 4,
+          x: 2,
+          y: 0,
+        },
         queries: [
           {
             name: 'Transactions',
@@ -657,13 +967,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Tasks Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 2,
+        },
         queries: [
           {
             name: '',
@@ -674,13 +991,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('HTTP Transactions with Poor Apdex'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 4,
+          x: 2,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -692,13 +1016,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-epm',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall Apdex'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -709,13 +1040,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
-        title: t('Overall p75'),
+        title: t('Overall Duration'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -726,8 +1064,54 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
+      },
+      {
+        title: t('Overall HTTP Spans'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 1,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['p75(spans.http)'],
+            aggregates: ['p75(spans.http)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      },
+      {
+        title: t('Overall DB Spans'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 1,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['p75(spans.db)'],
+            aggregates: ['p75(spans.db)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
       },
     ],
   },
@@ -742,6 +1126,15 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         title: t('Total Crashes'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -752,13 +1145,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Unique Users Who Crashed'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -769,13 +1169,44 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
+      },
+      {
+        title: t('Unique Issues Causing Crashes'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 2,
+          y: 0,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['count_unique(issue)'],
+            aggregates: ['count_unique(issue)'],
+            columns: [],
+            conditions: 'error.handled:false event.type:error',
+            orderby: '',
+          },
+        ],
       },
       {
         title: t('Overall Number of Errors'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 3,
+          y: 0,
+        },
         queries: [
           {
             name: '',
@@ -786,13 +1217,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Issues Causing Crashes'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 3,
+          x: 0,
+          y: 1,
+        },
         queries: [
           {
             name: '',
@@ -803,13 +1241,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count_unique_user',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Crashes Over Time'),
         displayType: DisplayType.LINE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 3,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 0,
+        },
         queries: [
           {
             name: t('Crashes'),
@@ -820,13 +1265,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Crashes by OS'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 2,
+          minH: 2,
+          w: 1,
+          x: 3,
+          y: 1,
+        },
         queries: [
           {
             name: '',
@@ -837,13 +1289,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-count',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall Warm Startup Time'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 0,
+          y: 3,
+        },
         queries: [
           {
             name: '',
@@ -854,13 +1313,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Overall Cold Startup Time'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 2,
+          y: 3,
+        },
         queries: [
           {
             name: '',
@@ -871,30 +1337,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
-      },
-      {
-        title: t('Overall Throughput'),
-        displayType: DisplayType.BIG_NUMBER,
-        interval: '5m',
-        queries: [
-          {
-            name: '',
-            fields: ['epm()'],
-            aggregates: ['epm()'],
-            columns: [],
-            conditions: '',
-            orderby: '',
-          },
-        ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Warm Startup Times'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 0,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -905,13 +1361,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
         title: t('Cold Startup Times'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 2,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -922,30 +1385,20 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
       {
-        title: t('Throughput Over Time'),
-        displayType: DisplayType.LINE,
-        interval: '5m',
-        queries: [
-          {
-            name: '',
-            fields: ['epm()'],
-            aggregates: ['epm()'],
-            columns: [],
-            conditions: '',
-            orderby: '',
-          },
-        ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
-      },
-      {
-        title: t('Frozen Frames Over Time'),
+        title: t('Overall Frozen Frames'),
         displayType: DisplayType.BIG_NUMBER,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 4,
+          y: 3,
+        },
         queries: [
           {
             name: '',
@@ -956,13 +1409,68 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '',
           },
         ],
+      },
+      {
+        title: t('Max Warm Startup Time'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 1,
+          y: 3,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['max(measurements.app_start_warm)'],
+            aggregates: ['max(measurements.app_start_warm)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      },
+      {
+        title: t('Max Cold Startup Time'),
+        displayType: DisplayType.BIG_NUMBER,
+        interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 1,
+          minH: 1,
+          w: 1,
+          x: 3,
+          y: 3,
+        },
+        queries: [
+          {
+            name: '',
+            fields: ['max(measurements.app_start_cold)'],
+            aggregates: ['max(measurements.app_start_cold)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+          },
+        ],
       },
       {
         title: t('Frozen Frames Rate'),
         displayType: DisplayType.TABLE,
         interval: '5m',
+        widgetType: WidgetType.DISCOVER,
+        tempId: uniqueId(),
+        layout: {
+          h: 4,
+          minH: 2,
+          w: 2,
+          x: 4,
+          y: 4,
+        },
         queries: [
           {
             name: '',
@@ -973,8 +1481,6 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
             orderby: '-p75_measurements_frames_frozen_rate',
           },
         ],
-        widgetType: WidgetType.DISCOVER,
-        tempId: uniqueId(),
       },
     ],
   },

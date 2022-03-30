@@ -1,7 +1,7 @@
-import * as React from 'react';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,7 +12,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -57,7 +56,7 @@ type State = {
   event?: Event;
 };
 
-class GroupDetails extends React.Component<Props, State> {
+class GroupDetails extends Component<Props, State> {
   static childContextTypes = {
     group: SentryTypes.Group,
     location: PropTypes.object,
@@ -521,7 +520,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <GroupHeader
           groupReprocessingStatus={groupReprocessingStatus}
           project={project as Project}
@@ -530,10 +529,8 @@ class GroupDetails extends React.Component<Props, State> {
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
-        {React.isValidElement(children)
-          ? React.cloneElement(children, childProps)
-          : children}
-      </React.Fragment>
+        {isValidElement(children) ? cloneElement(children, childProps) : children}
+      </Fragment>
     );
   }
 
@@ -579,7 +576,7 @@ class GroupDetails extends React.Component<Props, State> {
     const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isSampleError && project && (
           <SampleEventAlert project={project} organization={organization} />
         )}
@@ -593,10 +590,10 @@ class GroupDetails extends React.Component<Props, State> {
             showIssueStreamLink
             showProjectSettingsLink
           >
-            <PageContent>{this.renderPageContent()}</PageContent>
+            {this.renderPageContent()}
           </PageFiltersContainer>
         </SentryDocumentTitle>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

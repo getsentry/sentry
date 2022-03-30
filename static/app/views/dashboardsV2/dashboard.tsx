@@ -20,7 +20,9 @@ import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metric
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -49,6 +51,7 @@ import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
+const DRAG_RESIZE_CLASS = 'widget-resize';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
 export const NUM_DESKTOP_COLS = 6;
@@ -356,10 +359,12 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       handleAddCustomWidget,
-      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
         organization,
       });
@@ -430,7 +435,7 @@ class Dashboard extends Component<Props, State> {
       const key = constructGridItemKey(widget);
       const dragId = key;
       return (
-        <GridItem key={key} data-grid={widget.layout}>
+        <div key={key} data-grid={widget.layout}>
           <SortableWidget
             {...widgetProps}
             dragId={dragId}
@@ -438,7 +443,7 @@ class Dashboard extends Component<Props, State> {
             windowWidth={windowWidth}
             index={String(index)}
           />
-        </GridItem>
+        </div>
       );
     }
 
@@ -572,6 +577,7 @@ class Dashboard extends Component<Props, State> {
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}
         draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        draggableCancel={`.${DRAG_RESIZE_CLASS}`}
         layouts={layouts}
         onLayoutChange={this.handleLayoutChange}
         onBreakpointChange={this.handleBreakpointChange}
@@ -579,11 +585,13 @@ class Dashboard extends Component<Props, State> {
         isResizable={canModifyLayout}
         resizeHandle={
           <ResizeHandle
-            className="react-resizable-handle"
+            aria-label={t('Resize Widget')}
             data-test-id="custom-resize-handle"
-          >
-            <IconResize />
-          </ResizeHandle>
+            className={DRAG_RESIZE_CLASS}
+            size="xsmall"
+            borderless
+            icon={<IconResize size="xs" />}
+          />
         }
         useCSSTransforms={false}
         isBounded
@@ -681,31 +689,24 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.background};
 `;
 
-const GridItem = styled('div')`
-  .react-resizable-handle {
-    z-index: 2;
-  }
-`;
-
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
-  .react-resizable-handle {
-    background-image: none;
-  }
-
-  .react-grid-item > .react-resizable-handle::after {
-    border: none;
-  }
-
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.purple200};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 
-const ResizeHandle = styled('div')`
+const ResizeHandle = styled(Button)`
   position: absolute;
-  bottom: 2px;
-  right: 2px;
+  z-index: 2;
+  bottom: ${space(0.5)};
+  right: ${space(0.5)};
+  color: ${p => p.theme.subText};
   cursor: nwse-resize;
+
+  .react-resizable-hide & {
+    display: none;
+  }
 `;

@@ -10,7 +10,7 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -58,6 +58,7 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -779,7 +780,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}

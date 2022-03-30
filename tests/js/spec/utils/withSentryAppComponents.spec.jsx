@@ -8,6 +8,10 @@ describe('withSentryAppComponents HoC', function () {
     SentryAppComponentsStore.init();
   });
 
+  afterEach(() => {
+    SentryAppComponentsStore.teardown();
+  });
+
   it('handles components without a type', function () {
     const MyComponent = () => null;
     const Container = withSentryAppComponents(MyComponent);

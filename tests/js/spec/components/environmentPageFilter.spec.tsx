@@ -26,10 +26,13 @@ const {organization, router, routerContext} = initializeOrg({
 });
 
 describe('EnvironmentPageFilter', function () {
-  OrganizationStore.onUpdate(organization, {replace: true});
-  ProjectsStore.loadInitialData(organization.projects);
-
   beforeEach(() => {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData(organization.projects);
+
     PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -39,6 +42,11 @@ describe('EnvironmentPageFilter', function () {
       },
       new Set()
     );
+  });
+
+  afterEach(() => {
+    OrganizationStore.teardown();
+    ProjectsStore.teardown();
   });
 
   it('can pick environment', function () {
