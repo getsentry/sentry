@@ -41,7 +41,7 @@ class DetailedError extends React.Component<Props> {
 
   componentDidMount() {
     // XXX(epurkhiser): Why is this here?
-    setTimeout(() => this.forceUpdate(), 100);
+    window.setTimeout(() => this.forceUpdate(), 100);
   }
 
   render() {
