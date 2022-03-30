@@ -15,6 +15,7 @@ export type Sort = {
 // Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
+  // When an alias is defined for a field, it will be shown as a column name in the table visualization.
   alias?: string;
   width?: number;
 };
@@ -71,6 +72,7 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
+// When an alias is defined for a field, it will be shown as a column name in the table visualization.
 export type QueryFieldValue =
   | {
       field: string;
