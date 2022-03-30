@@ -109,8 +109,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
-from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -150,6 +148,9 @@ from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
     OrganizationIntegrationDetailsEndpoint,
     OrganizationIntegrationRequestEndpoint,
     OrganizationIntegrationsEndpoint,
@@ -185,7 +186,6 @@ from .endpoints.organization_code_mapping_codeowners import (
 )
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
-from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,

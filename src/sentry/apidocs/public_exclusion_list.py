@@ -46,8 +46,6 @@ from sentry.api.endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from sentry.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
-from sentry.api.endpoints.doc_integrations import DocIntegrationsEndpoint
 from sentry.api.endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from sentry.api.endpoints.event_attachments import EventAttachmentsEndpoint
@@ -88,6 +86,9 @@ from sentry.api.endpoints.grouping_levels import GroupingLevelsEndpoint
 from sentry.api.endpoints.index import IndexEndpoint
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.api.endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
     OrganizationIntegrationDetailsEndpoint,
     OrganizationIntegrationRequestEndpoint,
     OrganizationIntegrationsEndpoint,
@@ -131,9 +132,6 @@ from sentry.api.endpoints.organization_code_mapping_details import (
 from sentry.api.endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
-)
-from sentry.api.endpoints.organization_config_integrations import (
-    OrganizationConfigIntegrationsEndpoint,
 )
 from sentry.api.endpoints.organization_config_repositories import (
     OrganizationConfigRepositoriesEndpoint,
