@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,6 +7,29 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus, OrganizationIntegration
+
+def query_param_to_bool(value: bool | int | str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+
+    if isinstance(value, int):
+        return value > 0
+
+    if isinstance(value, bool):
+        return value
+
+    try:
+        int_value = int(value)
+    except ValueError:
+        int_value = None
+
+    if int_value is not None:
+        return int_value > 0
+
+    if value == "":
+        return default
+
+    return value.lower() in {"on", "true"}
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):

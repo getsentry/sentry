@@ -1,5 +1,31 @@
+from unittest import TestCase
+
+from sentry.api.endpoints.organization_integrations import query_param_to_bool
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+
+
+class QueryParamToBoolTest(TestCase):
+    def test_empty(self):
+        assert not query_param_to_bool(None)
+        assert not query_param_to_bool("")
+
+    def test_int(self):
+        assert query_param_to_bool(1)
+        assert query_param_to_bool("1")
+
+        assert not query_param_to_bool(0)
+        assert not query_param_to_bool(-1)
+        assert not query_param_to_bool("0")
+        assert not query_param_to_bool("-1")
+
+    def test_bool(self):
+        assert query_param_to_bool(True)
+        assert query_param_to_bool("true")
+        assert query_param_to_bool("True")
+
+        assert not query_param_to_bool(False)
+        assert not query_param_to_bool("False")
 
 
 class OrganizationIntegrationsListTest(APITestCase):
