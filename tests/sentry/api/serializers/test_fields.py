@@ -1,3 +1,5 @@
+import unittest
+
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
@@ -16,7 +18,7 @@ class DummySerializer(serializers.Serializer):
     actor_field = ActorField(required=False)
 
 
-class TestListField(TestCase):
+class TestListField(unittest.TestCase):
     def test_simple(self):
         data = {"a_field": [{"b_field": "abcdefg", "d_field": "gfedcba"}]}
 

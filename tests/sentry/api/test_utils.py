@@ -1,13 +1,13 @@
 import datetime
+import unittest
 
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.utils import MAX_STATS_PERIOD, InvalidParams, get_date_range_from_params
-from sentry.testutils import TestCase
 
 
-class GetDateRangeFromParamsTest(TestCase):
+class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_stats_period(self):
         start, end = get_date_range_from_params({"statsPeriod": "14h"})
         assert end - datetime.timedelta(hours=14) == start

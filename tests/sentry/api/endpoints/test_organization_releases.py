@@ -1,3 +1,4 @@
+import unittest
 from base64 import b64encode
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -2167,7 +2168,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert not serializer.is_valid()
 
 
-class ReleaseHeadCommitSerializerTest(TestCase):
+class ReleaseHeadCommitSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.repo_name = "repo/name"
