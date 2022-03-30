@@ -2,7 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
 import {Event, Group} from 'sentry/types';
@@ -209,14 +209,12 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
     rerender(<TestComponent environments={[]} />);
 
-    await act(async () => {
-      await tick();
-    });
+    expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it('next/prev links', async function () {
+  it('next/prev links', function () {
     const props = makeDefaultMockData();
 
     mockGroupApis(
@@ -381,7 +379,7 @@ describe('EventCauseEmpty', () => {
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
 
-  it('renders suspect commit if `releasesCompletion` empty', async function () {
+  it('renders suspect commit if `releasesCompletion` empty', function () {
     const props = makeDefaultMockData(
       undefined,
       TestStubs.Project({firstEvent: TestStubs.Event()})

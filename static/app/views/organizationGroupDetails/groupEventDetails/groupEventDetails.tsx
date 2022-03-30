@@ -225,7 +225,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
     return (
-      <div className={className}>
+      <div className={className} data-test-id="group-event-details">
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
