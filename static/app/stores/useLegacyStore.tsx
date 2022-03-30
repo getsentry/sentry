@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import isEqual from 'lodash/isEqual';
 import {Store} from 'reflux';
 
 import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
@@ -19,8 +18,7 @@ type LegacyStoreShape =
  *
  * [0]: https://javascript.plainenglish.io/you-probably-dont-need-act-in-your-react-tests-2a0bcd2ad65c
  */
-window._legacyStoreHookUpdate = (update, hookState, storeState) =>
-  !isEqual(hookState, storeState) ? update() : null;
+window._legacyStoreHookUpdate = update => update();
 
 /**
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
@@ -35,12 +33,7 @@ export function useLegacyStore<T extends LegacyStoreShape>(
   const [state, setState] = useState(store.getState());
 
   // Not all stores emit the new state, call get on change
-  const callback = () =>
-    window._legacyStoreHookUpdate(
-      () => setState(store.getState()),
-      state,
-      store.getState()
-    );
+  const callback = () => window._legacyStoreHookUpdate(() => setState(store.getState()));
 
   useEffect(() => {
     const listener = store.listen(callback, undefined);

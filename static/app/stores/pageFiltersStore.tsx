@@ -134,10 +134,7 @@ const storeConfig: StoreDefinition &
   },
 
   updateDateTime(datetime) {
-    if (
-      isEqualWithDates(this.selection.datetime, datetime) &&
-      this.selection.datetime.utc === datetime.utc
-    ) {
+    if (isEqualWithDates(this.selection.datetime, datetime)) {
       return;
     }
 

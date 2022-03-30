@@ -84,11 +84,8 @@ class TrendsSummary extends Component<Props, State> {
   }
 }
 
-const TrendsIndex = withOrganization(
-  withProjects(withPageFilters(withApi(TrendsSummary)))
-);
+export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
 
-export default TrendsIndex;
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
