@@ -16,6 +16,9 @@ module.exports = {
     // Does not seem useful
     'no-descending-specificity': null,
 
+    // Breaks with interpolated template values
+    'function-no-unknown': null,
+
     'property-no-unknown': [
       true,
       {
