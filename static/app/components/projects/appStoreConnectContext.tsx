@@ -1,4 +1,4 @@
-import {createContext, useEffect, useState} from 'react';
+import {createContext, useEffect, useMemo, useState} from 'react';
 
 import {Organization, Project} from 'sentry/types';
 import {
@@ -27,63 +27,76 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   const [appStoreConnectStatusData, setAppStoreConnectStatusData] =
     useState<AppStoreConnectContextProps>(undefined);
 
-  const orgSlug = organization.slug;
-
-  const appStoreConnectSymbolSources = (
-    projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
-  ).reduce((acc, {type, id, ...symbolSource}) => {
-    if (type.toLowerCase() === 'appstoreconnect') {
-      acc[id] = {type, ...symbolSource};
-    }
-    return acc;
-  }, {});
-
-  useEffect(() => {
-    fetchProjectDetails();
-  }, [project]);
+  const appStoreConnectSymbolSources = useMemo(() => {
+    return (
+      projectDetails?.symbolSources ? JSON.parse(projectDetails.symbolSources) : []
+    ).reduce((acc, {type, id, ...symbolSource}) => {
+      if (type.toLowerCase() === 'appstoreconnect') {
+        acc[id] = {type, ...symbolSource};
+      }
+      return acc;
+    }, {});
+  }, [projectDetails?.symbolSources]);
 
   useEffect(() => {
-    fetchAppStoreConnectStatusData();
-  }, [projectDetails]);
-
-  async function fetchProjectDetails() {
     if (!project || projectDetails) {
-      return;
+      return undefined;
     }
 
     if (project.symbolSources) {
       setProjectDetails(project);
-      return;
+      return undefined;
     }
 
-    try {
-      const response = await api.requestPromise(`/projects/${orgSlug}/${project.slug}/`);
-      setProjectDetails(response);
-    } catch {
-      // do nothing
-    }
-  }
+    let unmounted = false;
 
-  async function fetchAppStoreConnectStatusData() {
+    api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/`)
+      .then(responseProjectDetails => {
+        if (unmounted) {
+          return;
+        }
+
+        setProjectDetails(responseProjectDetails);
+      })
+      .catch(() => {
+        // We do not care about the error
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [project, organization, api]);
+
+  useEffect(() => {
     if (!projectDetails) {
-      return;
+      return undefined;
     }
 
     if (!Object.keys(appStoreConnectSymbolSources).length) {
-      return;
+      return undefined;
     }
 
-    try {
-      const response: Record<string, AppStoreConnectStatusData> =
-        await api.requestPromise(
-          `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/status/`
-        );
+    let unmounted = false;
 
-      setAppStoreConnectStatusData(response);
-    } catch {
-      // do nothing
-    }
-  }
+    api
+      .requestPromise(
+        `/projects/${organization.slug}/${projectDetails.slug}/appstoreconnect/status/`
+      )
+      .then(appStoreConnectStatus => {
+        if (unmounted) {
+          return;
+        }
+        setAppStoreConnectStatusData(appStoreConnectStatus);
+      })
+      .catch(() => {
+        // We do not care about the error
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [projectDetails, organization, appStoreConnectSymbolSources]);
 
   function getUpdateAlertMessage(
     respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,

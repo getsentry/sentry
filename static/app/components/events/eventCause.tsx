@@ -37,10 +37,8 @@ class EventCause extends Component<Props, State> {
   };
 
   getUniqueCommitsWithAuthors() {
-    const {committers} = this.props;
-
     // Get a list of commits with author information attached
-    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+    const commitsWithAuthors = flatMap(this.props.committers, ({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,
@@ -48,16 +46,11 @@ class EventCause extends Component<Props, State> {
     );
 
     // Remove duplicate commits
-    const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
-
-    return uniqueCommitsWithAuthors;
+    return uniqBy(commitsWithAuthors, commit => commit.id);
   }
 
   render() {
-    const {committers} = this.props;
-    const {expanded} = this.state;
-
-    if (!committers?.length) {
+    if (!this.props.committers?.length) {
       return null;
     }
 
@@ -66,12 +59,12 @@ class EventCause extends Component<Props, State> {
     return (
       <DataSection>
         <CauseHeader>
-          <h3>
+          <h3 data-test-id="event-cause">
             {t('Suspect Commits')} ({commits.length})
           </h3>
           {commits.length > 1 && (
-            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
-              {expanded ? (
+            <ExpandButton onClick={() => this.setState({expanded: !this.state.expanded})}>
+              {this.state.expanded ? (
                 <Fragment>
                   {t('Show less')} <IconSubtract isCircled size="md" />
                 </Fragment>
@@ -84,7 +77,7 @@ class EventCause extends Component<Props, State> {
           )}
         </CauseHeader>
         <Panel>
-          {commits.slice(0, expanded ? 100 : 1).map(commit => (
+          {commits.slice(0, this.state.expanded ? 100 : 1).map(commit => (
             <CommitRow key={commit.id} commit={commit} />
           ))}
         </Panel>
