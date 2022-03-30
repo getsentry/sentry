@@ -18,6 +18,8 @@ STATE_CATEGORIES = {
 
 
 class ClientStateEndpoint(OrganizationEndpoint):
+    private = True
+
     def __init__(self, **options) -> None:
         cluster_key = getattr(settings, "SENTRY_CLIENT_STATE_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
