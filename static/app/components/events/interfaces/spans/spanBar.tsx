@@ -123,6 +123,7 @@ type SpanBarProps = {
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
+  groupOccurrence?: number;
   groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
@@ -428,8 +429,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth, toggleSpanGroup, toggleSiblingSpanGroup, groupType} =
-      this.props;
+    const {
+      span,
+      treeDepth,
+      groupOccurrence,
+      toggleSpanGroup,
+      toggleSiblingSpanGroup,
+      groupType,
+    } = this.props;
 
     let titleFragments: React.ReactNode[] = [];
 
@@ -443,7 +450,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             event.stopPropagation();
             event.preventDefault();
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
-              toggleSiblingSpanGroup?.(span);
+              toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
               toggleSpanGroup && toggleSpanGroup();
             }

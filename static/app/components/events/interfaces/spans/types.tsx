@@ -67,8 +67,8 @@ export type SpanGroupProps = {
 };
 
 export type SpanSiblingGroupProps = {
+  groupOccurrence: number;
   isLastSibling: boolean;
-  occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
   toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
 };
@@ -83,6 +83,7 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  groupOccurrence?: number;
   isFirstSiblingOfGroup?: boolean;
 };
 

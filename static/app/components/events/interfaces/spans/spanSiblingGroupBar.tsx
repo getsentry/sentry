@@ -26,6 +26,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   isLastSibling: boolean;
+  occurrence: number;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -42,6 +43,7 @@ export default function SpanSiblingGroupBar(props: Props) {
     span,
     spanGrouping,
     spanNumber,
+    occurrence,
     toggleSiblingSpanGroup,
   } = props;
 
@@ -133,7 +135,7 @@ export default function SpanSiblingGroupBar(props: Props) {
       treeDepth={props.treeDepth}
       spanNumber={spanNumber}
       generateBounds={generateBounds}
-      toggleSpanGroup={() => toggleSiblingSpanGroup?.(spanGrouping[0].span)}
+      toggleSpanGroup={() => toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence)}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}

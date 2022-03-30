@@ -457,6 +457,7 @@ class SpanTreeModel {
                     index === group.length - 1 &&
                     groupIndex === groupedDescendants.length - 1,
                   isFirstSiblingOfGroup: index === 0,
+                  groupOccurrence: occurrence,
                   continuingTreeDepths: descendantContinuingTreeDepths,
                   fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
                   showEmbeddedChildren: spanModel.showEmbeddedChildren,
@@ -516,6 +517,7 @@ class SpanTreeModel {
                 index === group.length - 1 &&
                 groupIndex === groupedDescendants.length - 1,
               isFirstSiblingOfGroup: index === 0,
+              groupOccurrence: occurrence,
               continuingTreeDepths: descendantContinuingTreeDepths,
               fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
               showEmbeddedChildren: spanModel.showEmbeddedChildren,
@@ -538,7 +540,7 @@ class SpanTreeModel {
             continuingTreeDepths,
             spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
-            occurrence: occurrence ?? 0,
+            groupOccurrence: occurrence ?? 0,
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
 
