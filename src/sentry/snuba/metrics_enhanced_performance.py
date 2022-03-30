@@ -80,18 +80,19 @@ def query(
                 )
                 results = resolve_tags(results, metrics_query)
                 results["meta"]["isMetricsData"] = True
+                sentry_sdk.set_tag("performance.dataset", "metrics")
                 return results
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.metrics_enhanced", False)
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
+        sentry_sdk.set_tag("performance.dataset", "discover")
         results = discover.query(
             selected_columns,
             query,
@@ -160,6 +161,7 @@ def timeseries_query(
                 if zerofill_results
                 else result["data"]
             )
+            sentry_sdk.set_tag("performance.dataset", "metrics")
             return SnubaTSResult(
                 {"data": result["data"], "isMetricsData": True},
                 params["start"],
@@ -171,12 +173,12 @@ def timeseries_query(
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.metrics_enhanced", False)
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
+        sentry_sdk.set_tag("performance.dataset", "discover")
         return discover.timeseries_query(
             selected_columns,
             query,
