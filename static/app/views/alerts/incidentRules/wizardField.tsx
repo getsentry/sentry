@@ -1,21 +1,21 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import {InjectedRouter, withRouter} from 'react-router';
 
-import Button from 'sentry/components/button';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {AlertWizardAlertNames, AlertWizardRuleTemplates, MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import space from 'sentry/styles/space';
 
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
-import {Location} from 'history';
 
 type Props = Omit<FormField['props'], 'children'> & {
   location: Location;
   router: InjectedRouter;
 };
 
-function MetricFieldV2 (props: Props) {
+function WizardField (props: Props) {
   const  {location, router, ...fieldProps} = props;
 
   return (
@@ -23,7 +23,7 @@ function MetricFieldV2 (props: Props) {
       {() => {
         const menuOptions = [
           {
-            label: t("ERRORS"),
+            label: t('ERRORS'),
             header: true,
             eventKey: 'errors_section_title',
           },
@@ -38,7 +38,7 @@ function MetricFieldV2 (props: Props) {
             template: AlertWizardRuleTemplates['users_experiencing_errors'],
           },
           {
-            label: t("SESSIONS"),
+            label: t('SESSIONS'),
             header: true,
             eventKey: 'sessions_section_title',
           },
@@ -53,7 +53,7 @@ function MetricFieldV2 (props: Props) {
             template: AlertWizardRuleTemplates['crash_free_users'],
           },
           {
-            label: t("PERFORMANCE"),
+            label: t('PERFORMANCE'),
             header: true,
             eventKey: 'performance_section_title',
           },
@@ -93,7 +93,7 @@ function MetricFieldV2 (props: Props) {
             template: AlertWizardRuleTemplates['cls'],
           },
           {
-            label: t("CUSTOM"),
+            label: t('CUSTOM'),
             header: true,
             eventKey: 'custom_section_title',
           },
@@ -107,27 +107,28 @@ function MetricFieldV2 (props: Props) {
         const selected = (menuOptions.find(op => op.template?.aggregate === location.query.aggregate) || menuOptions[1]);
 
         return (
-            <StyledDropdownControl
-              label={selected.label}
-            >
+            <StyledDropdownControl label={selected.label}>
               {
-                menuOptions.map(({label, eventKey, header}) => (<DropdownItem
-                  key={eventKey}
-                  onSelect={(eventKey: MetricAlertType) => router.replace({
-                    ...location,
-                    query: {
-                      ...location.query,
-                      aggregate: AlertWizardRuleTemplates[eventKey].aggregate,
-                      dataset: AlertWizardRuleTemplates[eventKey].dataset,
-                      eventTypes: AlertWizardRuleTemplates[eventKey].eventTypes,
-                    }
-                  })}
-                  isActive={eventKey === selected.eventKey}
-                  eventKey={eventKey}
-                  disabled={header}
-                >
-                  {label}
-                </DropdownItem>))
+                menuOptions.map(({label, eventKey, header}) => (
+                  <StyledDropdownItem
+                    key={eventKey}
+                    onSelect={(eventKey: MetricAlertType) => router.replace({
+                      ...location,
+                      query: {
+                        ...location.query,
+                        aggregate: AlertWizardRuleTemplates[eventKey].aggregate,
+                        dataset: AlertWizardRuleTemplates[eventKey].dataset,
+                        eventTypes: AlertWizardRuleTemplates[eventKey].eventTypes,
+                      }
+                    })}
+                    isActive={eventKey === selected.eventKey}
+                    eventKey={eventKey}
+                    disabled={header}
+                    header={header}
+                  >
+                    {label}
+                  </StyledDropdownItem>
+                ))
               }
             </StyledDropdownControl>
         );
@@ -136,24 +137,7 @@ function MetricFieldV2 (props: Props) {
   );
 }
 
-export default withRouter(MetricFieldV2);
-
-const PresetButton = styled(Button)<{disabled: boolean}>`
-  ${p =>
-  p.disabled &&
-  css`
-      color: ${p.theme.textColor};
-      &:hover,
-      &:focus {
-        color: ${p.theme.textColor};
-      }
-    `}
-`;
-
-PresetButton.defaultProps = {
-  priority: 'link',
-  borderless: true,
-};
+export default withRouter(WizardField);
 
 const StyledDropdownControl = styled(DropdownControl)`
   width: 100%;
@@ -163,4 +147,15 @@ const StyledDropdownControl = styled(DropdownControl)`
       justify-content: space-between;
     }
   }
+`;
+
+const StyledDropdownItem = styled(DropdownItem)<{header?: boolean}>`
+  line-height: ${p => p.theme.text.lineHeightBody};
+  white-space: nowrap;
+  ${p => p.header && css`
+    background-color: ${p.theme.backgroundSecondary};
+    color: ${p.theme.subText};
+    padding: ${space(0.75)} ${space(1.5)};
+  `}
+  border-top: 1px solid ${p => p.theme.border};
 `;

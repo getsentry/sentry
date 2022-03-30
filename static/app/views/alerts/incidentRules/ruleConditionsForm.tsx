@@ -19,7 +19,7 @@ import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import MetricFieldV2 from 'sentry/views/alerts/incidentRules/metricFieldV2';
+import WizardField from 'sentry/views/alerts/incidentRules/wizardField';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -146,11 +146,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
-  renderMetricFieldV2() {
+  renderWizardField() {
     const {disabled} = this.props;
 
     return (
-      <MetricFieldV2
+      <WizardField
         name="aggregate"
         help={null}
         disabled={disabled}
@@ -269,17 +269,17 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
-            <Tooltip
+            {!hasAlertWizardV3 && <Tooltip
               title={t(
                 'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
               )}
             >
               <IconQuestion size="sm" color="gray200" />
-            </Tooltip>
+            </Tooltip>}
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {hasAlertWizardV3 && this.renderMetricFieldV2()}
+          {hasAlertWizardV3 && this.renderWizardField()}
           {!hidePrimarySelectorSet.has(alertType) && timeWindowText && (
             <MetricField
               name="aggregate"
