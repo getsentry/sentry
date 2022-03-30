@@ -93,7 +93,7 @@ def errored_all_users(org_id: int, metric_ids, alias=None):
     )
 
 
-def sessions_errored_set(org_id: int, metric_ids, alias=None):
+def sessions_errored_set(metric_ids, alias=None):
     return Function(
         "uniqIf",
         [
@@ -110,15 +110,15 @@ def sessions_errored_set(org_id: int, metric_ids, alias=None):
     )
 
 
-def percentage(org_id: int, arg1_snql, arg2_snql, alias=None):
+def percentage(arg1_snql, arg2_snql, alias=None):
     return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
 
 
-def subtraction(org_id: int, arg1_snql, arg2_snql, alias=None):
+def subtraction(arg1_snql, arg2_snql, alias=None):
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
 
-def addition(org_id: int, arg1_snql, arg2_snql, alias=None):
+def addition(arg1_snql, arg2_snql, alias=None):
     return Function("plus", [arg1_snql, arg2_snql], alias)
 
 

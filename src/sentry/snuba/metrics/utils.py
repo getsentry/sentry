@@ -29,6 +29,7 @@ __all__ = (
     "TimeRange",
     "MetricEntity",
     "UNALLOWED_TAGS",
+    "combine_dictionary_of_list_values",
 )
 
 

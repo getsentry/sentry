@@ -12,6 +12,7 @@ from sentry.snuba.metrics import (
     errored_all_users,
     errored_preaggr_sessions,
     percentage,
+    session_duration_filters,
     sessions_errored_set,
     subtraction,
 )
@@ -81,9 +82,8 @@ class DerivedMetricSnQLTestCase(TestCase):
             )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
-        org_id = 666
         alias = "whatever"
-        assert sessions_errored_set(org_id, self.metric_ids, alias) == Function(
+        assert sessions_errored_set(self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -104,7 +104,7 @@ class DerivedMetricSnQLTestCase(TestCase):
         init_session_snql = all_sessions(org_id, self.metric_ids, "init_sessions")
         crashed_session_snql = crashed_sessions(org_id, self.metric_ids, "crashed_sessions")
 
-        assert percentage(org_id, crashed_session_snql, init_session_snql, alias=alias) == Function(
+        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
         )
 
@@ -115,7 +115,6 @@ class DerivedMetricSnQLTestCase(TestCase):
         arg2_snql = abnormal_users(org_id, self.metric_ids, alias="session.abnormal_user")
         assert (
             addition(
-                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias=alias,
@@ -130,10 +129,21 @@ class DerivedMetricSnQLTestCase(TestCase):
 
         assert (
             subtraction(
-                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias="session.healthy_user",
             )
             == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
         )
+
+    def test_session_duration_filters(self):
+        org_id = 666
+        assert session_duration_filters(org_id) == [
+            Function(
+                "equals",
+                (
+                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                    resolve_weak(org_id, "exited"),
+                ),
+            )
+        ]
