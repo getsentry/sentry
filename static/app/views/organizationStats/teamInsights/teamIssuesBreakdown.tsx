@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import BarChart, {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

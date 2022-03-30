@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -167,7 +167,7 @@ class ContextPickerModal extends Component<Props> {
     }
 
     // eslint-disable-next-line react/no-find-dom-node
-    const el = ReactDOM.findDOMNode(ref) as HTMLElement;
+    const el = findDOMNode(ref) as HTMLElement;
 
     if (el !== null) {
       const input = el.querySelector('input');

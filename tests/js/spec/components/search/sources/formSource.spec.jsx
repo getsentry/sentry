@@ -69,7 +69,7 @@ describe('FormSource', function () {
     );
   });
 
-  it('does not find any form field ', async function () {
+  it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
     wrapper = mountWithTheme(<FormSource query="invalid">{mock}</FormSource>);
 

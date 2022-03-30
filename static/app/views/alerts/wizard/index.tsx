@@ -178,7 +178,7 @@ class AlertWizard extends Component<Props, State> {
             <Layout.Title>{t('Select Alert')}</Layout.Title>
           </StyledHeaderContent>
         </Layout.Header>
-        <StyledLayoutBody>
+        <Layout.Body>
           <Layout.Main fullWidth>
             <WizardBody>
               <WizardOptions>
@@ -226,15 +226,11 @@ class AlertWizard extends Component<Props, State> {
               </WizardPanel>
             </WizardBody>
           </Layout.Main>
-        </StyledLayoutBody>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-`;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
