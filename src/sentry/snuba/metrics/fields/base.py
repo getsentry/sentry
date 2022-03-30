@@ -64,8 +64,8 @@ from sentry.utils.snuba import raw_snql_query
 __all__ = (
     "metric_object_factory",
     "run_metrics_query",
-    "MetricsExpression",
-    "MetricsExpressionBase",
+    "MetricExpression",
+    "MetricExpressionBase",
     "DerivedMetricExpression",
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
@@ -155,7 +155,7 @@ class DerivedMetricAlias(DerivedMetricAliasDefinition):
         return Function("and", conditions)
 
 
-class MetricsExpressionBase(ABC):
+class MetricExpressionBase(ABC):
     @abstractmethod
     def get_entity(
         self, projects: Sequence[Project]
@@ -261,12 +261,12 @@ class MetricsExpressionBase(ABC):
 
 
 @dataclass
-class MetricsExpressionDefinition:
+class MetricExpressionDefinition:
     op: str
     metric_name: str
 
 
-class MetricsExpression(MetricsExpressionDefinition, MetricsExpressionBase, ABC):
+class MetricExpression(MetricExpressionDefinition, MetricExpressionBase, ABC):
     """
     This class serves the purpose of representing any aggregate, raw metric combination for
     example `sum(sentry.sessions.session)`. It is created on the fly to abstract the field
@@ -316,8 +316,7 @@ class MetricsExpression(MetricsExpressionDefinition, MetricsExpressionBase, ABC)
         raise NotImplementedError
 
 
-
-class RawFieldMetricExpression(MetricsExpression):
+class RawFieldMetricExpression(MetricExpression):
     """
     Defines a type of MetricExpression that contains a metric_name that is just a string and an
     op that is just a string
@@ -342,7 +341,7 @@ class RawFieldMetricExpression(MetricsExpression):
         )
 
 
-class AliasedFieldMetricExpression(MetricsExpression):
+class AliasedFieldMetricExpression(MetricExpression):
     """
     Defines a type of MetricExpression that contains a metric_name that represents an instance of
     DerivedMetricAlias and an op that is just a string
@@ -411,7 +410,7 @@ class DerivedMetricExpressionDefinition:
     is_private: bool = False
 
 
-class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricsExpressionBase, ABC):
+class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressionBase, ABC):
     def _raise_entity_validation_exception(self, func_name: str):
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
@@ -838,7 +837,7 @@ DERIVED_METRICS = {
     ]
 }
 
-DERIVED_OPS: Mapping[str, Type[MetricsExpressionBase]] = {
+DERIVED_OPS: Mapping[str, Type[MetricExpressionBase]] = {
     "histogram": HistogramMetricField,
 }
 
@@ -855,7 +854,7 @@ DERIVED_ALIASES = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsExpressionBase:
+def metric_object_factory(op: Optional[str], metric_name: str) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     if op in DERIVED_OPS and metric_name in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")
@@ -872,7 +871,7 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricsExpress
     assert op is not None
     if op in DERIVED_OPS:
         return DERIVED_OPS[op](op=op, metric_name=metric_name)
-    return MetricsExpression.from_dict(op=op, metric_name=metric_name)
+    return MetricExpression.from_dict(op=op, metric_name=metric_name)
 
 
 def generate_bottom_up_dependency_tree_for_metrics(query_definition_fields_set):
