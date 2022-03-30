@@ -65,14 +65,14 @@ def get_entity_of_metric_mocked(_, metric_name):
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[17])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -81,7 +81,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -90,13 +90,13 @@ def get_entity_of_metric_mocked(_, metric_name):
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[18]"), Op.EQ, rhs=19)]),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
@@ -335,7 +335,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         alias="session.errored_preaggregated",
                     ),
                     percentage(
-                        org_id,
                         crashed_sessions(
                             org_id,
                             metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
@@ -381,7 +380,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 match=Entity("metrics_sets"),
                 select=[
                     sessions_errored_set(
-                        org_id,
                         metric_ids=[resolve_weak(org_id, "sentry.sessions.session.error")],
                         alias="session.errored_set",
                     ),
