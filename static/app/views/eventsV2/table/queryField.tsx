@@ -97,7 +97,7 @@ type Props = {
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
-  showAliasField?: boolean;
+  skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
 };
 
@@ -419,7 +419,7 @@ class QueryField extends React.Component<Props> {
       inFieldLabels,
       filterAggregateParameters,
       hideParameterSelector,
-      showAliasField,
+      skipParameterPlaceholder,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -507,7 +507,7 @@ class QueryField extends React.Component<Props> {
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
 
-    if (showAliasField) {
+    if (skipParameterPlaceholder) {
       return inputs;
     }
 
@@ -571,7 +571,7 @@ class QueryField extends React.Component<Props> {
       otherColumns,
       placeholder,
       noFieldsMessage,
-      showAliasField,
+      skipParameterPlaceholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -628,7 +628,7 @@ class QueryField extends React.Component<Props> {
 
     let gridColumnsQuantity: undefined | number = undefined;
 
-    if (showAliasField) {
+    if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
       if (

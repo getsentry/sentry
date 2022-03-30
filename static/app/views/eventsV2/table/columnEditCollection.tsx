@@ -472,7 +472,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
             noFieldsMessage={noFieldsMessage}
-            showAliasField={showAliasField}
+            skipParameterPlaceholder={showAliasField}
           />
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
