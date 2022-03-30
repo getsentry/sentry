@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
@@ -7,6 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Environment, Group, Organization, PageFilters, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
@@ -32,24 +33,12 @@ export interface GroupEventDetailsProps
 }
 
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
-  const [state, setState] = useState<typeof OrganizationEnvironmentsStore['state']>(
-    OrganizationEnvironmentsStore.get()
-  );
+  const state = useLegacyStore(OrganizationEnvironmentsStore);
 
   useEffect(() => {
-    const unsubscribe = OrganizationEnvironmentsStore.listen(data => {
-      setState(data);
-    }, undefined);
-
-    const {environments, error} = OrganizationEnvironmentsStore.get();
-
-    if (!environments && !error) {
+    if (!state.environments && !state.error) {
       fetchOrganizationEnvironments(props.api, props.organization.slug);
     }
-
-    return () => {
-      unsubscribe();
-    };
     // XXX: Missing dependencies, but it reflects the old of componentDidMount
   }, []);
 

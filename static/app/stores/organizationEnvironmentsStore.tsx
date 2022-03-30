@@ -20,7 +20,7 @@ type State = {
 };
 
 type OrganizationEnvironmentsStoreInterface = {
-  get(): State;
+  getState(): State;
   init(): void;
   onFetchEnvironments(): void;
   onFetchEnvironmentsError(error: Error): void;
@@ -86,7 +86,7 @@ const storeConfig: StoreDefinition &
     this.trigger(this.state);
   },
 
-  get() {
+  getState() {
     return this.state;
   },
 };
