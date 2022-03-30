@@ -8,7 +8,7 @@ import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import {Location} from 'history';
 import MockDate from 'mockdate';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/__mocks__/api';
