@@ -515,6 +515,7 @@ def timeseries_query(
                     json construction
     """
     sentry_sdk.set_tag("discover.use_snql", use_snql)
+    sentry_sdk.set_tag("discover.query", query)
     if use_snql:
         with sentry_sdk.start_span(
             op="discover.discover", description="timeseries.filter_transform"
