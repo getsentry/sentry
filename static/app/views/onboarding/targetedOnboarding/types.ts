@@ -15,6 +15,7 @@ export type StepProps = {
   organization: Organization;
   platforms: PlatformKey[];
   removePlatform: (platform: PlatformKey) => void;
+  clearPlatforms: () => void;
   search: string;
   stepIndex: number;
 };

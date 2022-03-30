@@ -93,7 +93,7 @@ export default function FirstEventFooter({
   };
 
   return (
-    <GenericFooter>
+    <GridFooter>
       <SkipOnboardingLink
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
@@ -129,7 +129,7 @@ export default function FirstEventFooter({
           </Fragment>
         )}
       </EventWaiter>
-    </GenericFooter>
+    </GridFooter>
   );
 }
 
@@ -168,6 +168,7 @@ const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
+  justify-content: center;
 `;
 
 StatusWrapper.defaultProps = {
@@ -187,4 +188,9 @@ StatusWrapper.defaultProps = {
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+`;
+
+const GridFooter = styled(GenericFooter)`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
 `;

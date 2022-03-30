@@ -87,6 +87,8 @@ function Onboarding(props: Props) {
     setPlatforms(platforms.filter(p => p !== platform));
   };
 
+  const clearPlatforms = () => setPlatforms([]);
+
   const goToStep = (step: StepDescriptor) => {
     browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
   };
@@ -128,15 +130,24 @@ function Onboarding(props: Props) {
       <Header>
         <LogoSvg />
         <AnimatePresence initial={false}>
-          {stepIndex !== 0 && (
+          {stepIndex !== 0 ? (
             <StyledStepper
               numSteps={ONBOARDING_STEPS.length - 1}
               currentStepIndex={stepIndex - 1}
               onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
             />
+          ) : (
+            <div />
           )}
         </AnimatePresence>
-        <Hook name="onboarding:targeted-onboarding-header" source="targeted-onboarding" />
+        <div>
+          <HookInnerWrapper>
+            <Hook
+              name="onboarding:targeted-onboarding-header"
+              source="targeted-onboarding"
+            />
+          </HookInnerWrapper>
+        </div>
       </Header>
       <Container hasFooter={!!stepObj.hasFooter}>
         <Back
@@ -157,10 +168,13 @@ function Onboarding(props: Props) {
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
-                platforms={platforms}
-                addPlatform={addPlatform}
-                removePlatform={removePlatform}
-                genSkipOnboardingLink={genSkipOnboardingLink}
+                {...{
+                  platforms,
+                  addPlatform,
+                  removePlatform,
+                  genSkipOnboardingLink,
+                  clearPlatforms,
+                }}
               />
             )}
           </OnboardingStep>
@@ -199,8 +213,8 @@ const Header = styled('header')`
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  justify-items: end;
+  grid-template-columns: 1fr 1fr 1fr;
+  justify-items: stretch;
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -256,6 +270,10 @@ const StyledStepper = styled(Stepper)`
   margin-left: auto;
   margin-right: auto;
   align-self: center;
+`;
+
+const HookInnerWrapper = styled('div')`
+  float: right;
 `;
 
 interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
