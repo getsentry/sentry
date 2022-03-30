@@ -382,32 +382,68 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, TestCase):
-    @pytest.fixture(autouse=True)
-    def _require_db_usage(self, monkeypatch):
+    @pytest.fixture(autouse=True, scope="class")
+    def _require_db_usage(self, request):
         # Ensure that testcases that ask for DB setup actually make use of the
         # DB. If they don't, they're wasting CI time.
+
+        class State:
+            used_db = {}
+            base = request.cls
+
+        state = State()
+
+        def finalizer():
+            did_not_use = set()
+            did_use = set()
+            for name, used in state.used_db.items():
+                if used:
+                    did_use.add(name)
+                else:
+                    did_not_use.add(name)
+
+            if did_not_use and not did_use:
+                pytest.fail(
+                    f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
+                    f"instead of `sentry.testutils.TestCase` for those kinds of tests."
+                )
+            elif did_not_use and did_use:
+                pytest.fail(
+                    f"Some of the test functions in {state.base} used the DB and some did not! "
+                    f"test functions using the db: {did_use}\n"
+                    f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
+                )
+
+        request.addfinalizer(finalizer)
+
+        yield state
+
+    @pytest.fixture(autouse=True, scope="function")
+    def _check_function_for_db(self, request, monkeypatch, _require_db_usage):
         from django.db.backends.base.base import BaseDatabaseWrapper
 
         real_ensure_connection = BaseDatabaseWrapper.ensure_connection
 
-        used_db = False
-
-        import inspect
+        state = _require_db_usage
 
         def ensure_connection(*args, **kwargs):
-            nonlocal used_db
-            if any(x.function.startswith("test_") for x in inspect.stack()):
-                used_db = True
+            for info in inspect.stack():
+                frame = info.frame
+                try:
+                    first_arg_name = frame.f_code.co_varnames[0]
+                    first_arg = frame.f_locals[first_arg_name]
+                except LookupError:
+                    continue
+
+                if isinstance(first_arg, state.base) and info.function in state.used_db:
+                    state.used_db[info.function] = True
+                    break
+
             return real_ensure_connection(*args, **kwargs)
 
         monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
-
+        state.used_db[request.function.__name__] = False
         yield
-
-        if not used_db:
-            pytest.fail(
-                "did not use DB! Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for those kinds of tests."
-            )
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
