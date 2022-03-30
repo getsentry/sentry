@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer, {
@@ -48,6 +48,9 @@ describe('groupEventDetailsContainer', () => {
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
     expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
