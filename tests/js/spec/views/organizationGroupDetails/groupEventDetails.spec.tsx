@@ -1,18 +1,17 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
-import {Organization} from 'static/app/types/organization';
-import {Project} from 'static/app/types/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
 import {Event, Group} from 'sentry/types';
+import {Organization} from 'sentry/types/organization';
+import {Project} from 'sentry/types/project';
 import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
-
-import {ReprocessingStatus} from '../../../../../static/app/views/organizationGroupDetails/utils';
+import {ReprocessingStatus} from 'sentry/views/organizationGroupDetails/utils';
 
 const makeDefaultMockData = (
   organization?: Organization,
