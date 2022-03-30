@@ -4,7 +4,7 @@ import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
 import * as PropTypes from 'prop-types';
-import Reflux from 'reflux';
+import * as Reflux from 'reflux';
 
 import plugins from 'sentry/plugins';
 

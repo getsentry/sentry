@@ -1,14 +1,12 @@
-import Reflux from 'reflux';
+import {createAction, createStore, Listenable} from 'reflux';
 
 import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 describe('makeSafeRefluxStore', () => {
   it('cleans up listeners on teardown', () => {
-    const safeStore = Reflux.createStore(
-      makeSafeRefluxStore({})
-    ) as unknown as SafeRefluxStore;
+    const safeStore = createStore(makeSafeRefluxStore({})) as unknown as SafeRefluxStore;
 
-    const statusUpdateAction = Reflux.createAction({'status update': ''});
+    const statusUpdateAction = createAction({'status update': ''});
     safeStore.unsubscribeListeners.push(
       safeStore.listenTo(statusUpdateAction, () => null)
     );
@@ -24,9 +22,9 @@ describe('makeSafeRefluxStore', () => {
 
   it('does not override unsubscribeListeners', () => {
     const stop = jest.fn();
-    const subscription = {stop, listenable: {} as unknown as Reflux.Listenable};
+    const subscription = {stop, listenable: {} as unknown as Listenable};
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
       })
@@ -37,9 +35,9 @@ describe('makeSafeRefluxStore', () => {
 
   it('tears down subscriptions', () => {
     const stop = jest.fn();
-    const subscription = {stop, listenable: {} as unknown as Reflux.Listenable};
+    const subscription = {stop, listenable: {} as unknown as Listenable};
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
       })
@@ -55,10 +53,10 @@ describe('makeSafeRefluxStore', () => {
     const teardown = jest.fn();
     const subscription = {
       stop: jest.fn(),
-      listenable: {} as unknown as Reflux.Listenable,
+      listenable: {} as unknown as Listenable,
     };
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
         teardown: function () {
