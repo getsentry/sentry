@@ -1,3 +1,5 @@
+from itertools import chain, combinations
+from typing import Iterable, List
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -38,13 +40,13 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         )
         return self.client.get(url, query, format="json")
 
-    def get_sessions_data(self, groupby, interval):
+    def get_sessions_data(self, groupby: List[str], interval):
         response = self.do_request(
             {
                 "organization_slug": [self.organization1],
                 "project": [self.project1.id],
                 "field": ["sum(session)"],
-                "groupBy": [groupby],
+                "groupBy": groupby,
                 "interval": interval,
             }
         )
@@ -60,10 +62,10 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         cache. Then, against the metrics implementation, and compares with
         cached results.
         """
-        empty_groupbyes = ["project", "release", "environment", "session.status"]
         interval_days = "1d"
+        groupbyes = _session_groupby_powerset()
 
-        for groupby in empty_groupbyes:
+        for groupby in groupbyes:
             with patch(
                 "sentry.api.endpoints.organization_sessions.release_health",
                 SessionsReleaseHealthBackend(),
@@ -84,3 +86,8 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
                 rollup=interval_days * 24 * 60 * 60,  # days to seconds
             )
             assert len(errors) == 0
+
+
+def _session_groupby_powerset() -> Iterable[str]:
+    keys = ["project", "release", "environment", "session.status"]
+    return chain.from_iterable((combinations(keys, size)) for size in range(len(keys) + 1))

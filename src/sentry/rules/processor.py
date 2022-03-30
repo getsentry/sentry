@@ -11,7 +11,8 @@ from django.utils import timezone
 from sentry import analytics
 from sentry.eventstore.models import Event
 from sentry.models import GroupRuleStatus, Rule
-from sentry.rules import EventState, RuleFuture, history, rules
+from sentry.rules import EventState, history, rules
+from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 

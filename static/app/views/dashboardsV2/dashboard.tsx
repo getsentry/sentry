@@ -70,7 +70,6 @@ type Props = {
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditing: boolean;
   location: Location;
-  onSetWidgetToBeUpdated: (widget: Widget) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -81,6 +80,7 @@ type Props = {
   widgetLimitReached: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
+  onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -138,7 +138,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api, selection} = this.props;
+    const {isEditing, organization, api, selection, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
@@ -152,7 +152,9 @@ class Dashboard extends Component<Props, State> {
       this.fetchTags();
     }
 
-    this.addNewWidget();
+    if (newWidget) {
+      this.addNewWidget();
+    }
 
     // Get member list data for issue widgets
     this.fetchMemberList();
@@ -166,7 +168,7 @@ class Dashboard extends Component<Props, State> {
     if (prevProps.isEditing !== isEditing && isEditing) {
       this.fetchTags();
     }
-    if (newWidget !== prevProps.newWidget) {
+    if (newWidget && newWidget !== prevProps.newWidget) {
       this.addNewWidget();
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
@@ -200,11 +202,13 @@ class Dashboard extends Component<Props, State> {
   }
 
   async addNewWidget() {
-    const {api, organization, newWidget, handleAddCustomWidget} = this.props;
+    const {api, organization, newWidget, handleAddCustomWidget, onSetNewWidget} =
+      this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
         handleAddCustomWidget(newWidget);
+        onSetNewWidget?.();
       } catch (error) {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
@@ -347,14 +351,13 @@ class Dashboard extends Component<Props, State> {
       router,
       location,
       paramDashboardId,
-      onSetWidgetToBeUpdated,
       handleAddCustomWidget,
-      isEditing,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience') && isEditing) {
-      onSetWidgetToBeUpdated(widget);
-
+    if (
+      organization.features.includes('new-widget-builder-experience') &&
+      !organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
       trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.opened', {
         organization,
       });

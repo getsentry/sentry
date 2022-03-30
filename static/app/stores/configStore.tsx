@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {Config} from 'sentry/types';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -17,7 +18,7 @@ type Internals = {
   config: Config;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
+const storeConfig: StoreDefinition & Internals & ConfigStoreInterface = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -77,7 +78,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   },
 };
 
-const ConfigStore = Reflux.createStore(storeConfig) as Reflux.Store &
+const ConfigStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
   ConfigStoreInterface;
 
 export default ConfigStore;

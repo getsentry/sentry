@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, MutableMapping, Optional, Set
 
 from sentry.utils.services import Service
 
@@ -13,10 +13,10 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Dict[str, int]:
         raise NotImplementedError()
 
-    def record(self, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -24,7 +24,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.

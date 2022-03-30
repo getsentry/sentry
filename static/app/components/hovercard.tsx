@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -127,10 +127,10 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   // If show is not set, then visibility state is uncontrolled
   const isVisible = props.show === undefined ? visible : props.show;
 
-  const hoverProps = useMemo((): Pick<
-    React.HTMLProps<HTMLDivElement>,
-    'onMouseEnter' | 'onMouseLeave'
-  > => {
+  const hoverProps = useMemo((): {
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  } => {
     // If show is not set, then visibility state is controlled by mouse events
     if (props.show === undefined) {
       return {
@@ -155,7 +155,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
           </span>
         )}
       </Reference>
-      {ReactDOM.createPortal(
+      {createPortal(
         <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
           {({ref, style, placement, arrowProps, scheduleUpdate}) => {
             scheduleUpdateRef.current = scheduleUpdate;

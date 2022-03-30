@@ -262,10 +262,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <PageFiltersContainer
           organization={organization}
           showDateSelector={false}
-          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+          hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
-          <StyledLayoutBody>
+          <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
@@ -273,18 +273,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
-                    organization={organization}
                     location={location}
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
                     hasStatusFilters
-                    hasEnvironmentFilter
                   />
                 </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
-          </StyledLayoutBody>
+          </Layout.Body>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     );
@@ -338,10 +336,6 @@ class IncidentsListContainer extends Component<Props> {
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
-`;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
 `;
 
 const EmptyStateAction = styled('p')`

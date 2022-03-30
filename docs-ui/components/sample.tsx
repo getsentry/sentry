@@ -11,16 +11,16 @@ type ThemeName = 'dark' | 'light';
 type Props = {
   children?: React.ReactChild;
   /**
+   * Remove the outer border and padding
+   */
+  noBorder?: boolean;
+  /**
    * Show the theme switcher, which allows for
    * switching the local theme context between
    * light and dark mode. Useful for previewing
    * components in both modes.
    */
   showThemeSwitcher?: boolean;
-  /**
-   * Remove the outer border and padding
-   */
-  noBorder?: boolean;
 };
 
 /**
@@ -73,7 +73,7 @@ const Wrap = styled('div')`
   position: relative;
 `;
 
-const InnerWrap = styled('div')<{noBorder: boolean; addTopMargin: boolean}>`
+const InnerWrap = styled('div')<{addTopMargin: boolean; noBorder: boolean}>`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
   margin: ${space(2)} 0;

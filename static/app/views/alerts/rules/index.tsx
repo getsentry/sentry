@@ -138,10 +138,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <FilterBar
-            organization={organization}
             location={location}
             onChangeFilter={this.handleChangeFilter}
             onChangeSearch={this.handleChangeSearch}
@@ -263,7 +262,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             }}
           />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -277,7 +276,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           organization={organization}
           showDateSelector={false}
           showEnvironmentSelector={false}
-          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+          hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
@@ -316,10 +315,6 @@ class AlertRulesListContainer extends Component<Props> {
 }
 
 export default withPageFilters(AlertRulesListContainer);
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledSortLink = styled(Link)`
   color: inherit;
