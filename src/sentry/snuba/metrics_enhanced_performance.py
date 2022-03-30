@@ -86,7 +86,7 @@ def query(
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.use_metrics", False)
+            sentry_sdk.set_tag("performance.metrics_enhanced", False)
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
@@ -170,7 +170,9 @@ def timeseries_query(
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery:
+        except IncompatibleMetricsQuery as error:
+            sentry_sdk.set_tag("performance.metrics_enhanced", False)
+            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics

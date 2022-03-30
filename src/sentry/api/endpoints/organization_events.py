@@ -57,7 +57,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             "organizations:performance-use-metrics", organization=organization, actor=request.user
         )
         metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
-        sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
+        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
