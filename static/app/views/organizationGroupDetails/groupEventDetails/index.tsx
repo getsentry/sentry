@@ -17,10 +17,8 @@ import {ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 
-type Props = RouteComponentProps<
-  {groupId: string; orgId: string; eventId?: string},
-  {}
-> & {
+export interface GroupEventDetailsProps
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   api: Client;
   event: Event;
   eventError: boolean;
@@ -31,11 +29,11 @@ type Props = RouteComponentProps<
   organization: Organization;
   project: Project;
   selection: PageFilters;
-};
+}
 
 type State = typeof OrganizationEnvironmentsStore['state'];
 
-export class GroupEventDetailsContainer extends Component<Props, State> {
+export class GroupEventDetailsContainer extends Component<GroupEventDetailsProps, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {
