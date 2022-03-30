@@ -20,7 +20,7 @@ export function cleanupActiveRefluxSubscriptions(
 
     if (unsubscribeListener !== undefined && 'stop' in unsubscribeListener) {
       unsubscribeListener.stop();
-      return;
+      continue;
     }
 
     const stringifiedListenerType = JSON.stringify(unsubscribeListener);
