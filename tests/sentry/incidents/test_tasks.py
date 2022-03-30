@@ -232,6 +232,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
                         "dataset": self.subscription.snuba_query.dataset,
                         "snuba_subscription_id": self.subscription.subscription_id,
                         "result": subscription_update,
+                        "aggregation_value": None,
                     },
                 )
             ]

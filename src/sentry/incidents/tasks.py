@@ -110,8 +110,14 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
     :param subscription: The `QuerySubscription` that this update is for
     """
+    from sentry.incidents.subscription_processor import SubscriptionProcessor
+
     try:
         if subscription.snuba_query.dataset == QueryDatasets.METRICS.value:
+            aggregation_value = SubscriptionProcessor(subscription).get_aggregation_value(
+                subscription_update
+            )
+
             logger.info(
                 "handle_subscription_metrics_logger.message",
                 extra={
@@ -119,6 +125,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
                     "dataset": subscription.snuba_query.dataset,
                     "snuba_subscription_id": subscription.subscription_id,
                     "result": subscription_update,
+                    "aggregation_value": aggregation_value,
                 },
             )
     except Exception:
