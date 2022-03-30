@@ -175,7 +175,7 @@
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.11.0",
     "react-test-renderer": "17.0.2",
-    "size-limit": "^5.0.5",
+    "size-limit": "^7.0.8",
     "storybook-dark-mode": "^1.0.9",
     "stylelint": "14.5.3",
     "stylelint-config-prettier": "^9.0.3",
