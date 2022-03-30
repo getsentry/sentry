@@ -74,8 +74,9 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     def get_form_initial(self, project=None):
         return {"alert_url": "https://api.opsgenie.com/v2/alerts"}
 
-    def build_payload(self, group, event, triggering_rules):
-        payload = {
+    @staticmethod
+    def build_payload(group, event, triggering_rules):
+        return {
             "message": event.message or event.title,
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
@@ -90,13 +91,11 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
                 "Triggering Rules": json.dumps(triggering_rules),
             },
             "entity": group.culprit,
+            "tags": [
+                "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", ""))
+                for x, y in event.tags
+            ],
         }
-
-        payload["tags"] = [
-            "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", "")) for x, y in event.tags
-        ]
-
-        return payload
 
     def notify_users(self, group, event, fail_silently=False, triggering_rules=None, **kwargs):
         if not self.is_configured(group.project):
