@@ -1,10 +1,10 @@
+import unittest
 from unittest.mock import patch
 
 from sentry.metrics.statsd import StatsdMetricsBackend
-from sentry.testutils import TestCase
 
 
-class StatsdMetricsBackendTest(TestCase):
+class StatsdMetricsBackendTest(unittest.TestCase):
     def setUp(self):
         self.backend = StatsdMetricsBackend(prefix="sentrytest.")
 
