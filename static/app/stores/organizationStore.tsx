@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
@@ -32,9 +32,7 @@ type OrganizationStoreInterface = CommonStoreInterface<State> & {
   reset(): void;
 };
 
-const storeConfig: Reflux.StoreDefinition &
-  OrganizationStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & OrganizationStoreInterface & SafeStoreDefinition = {
   unsubscribeListeners: [],
 
   init() {
@@ -100,7 +98,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const OrganizationStore = Reflux.createStore(
+const OrganizationStore = createStore(
   makeSafeRefluxStore(storeConfig)
 ) as SafeRefluxStore & OrganizationStoreInterface;
 

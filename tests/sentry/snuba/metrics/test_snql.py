@@ -23,13 +23,14 @@ class DerivedMetricSnQLTestCase(TestCase):
         self.metric_ids = [0, 1, 2]
 
     def test_counter_sum_aggregation_on_session_status(self):
+        org_id = 0
         for status, func in [
             ("init", all_sessions),
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
             ("abnormal", abnormal_sessions),
         ]:
-            assert func(self.metric_ids, alias=status) == Function(
+            assert func(org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
                 [
                     Column("value"),
@@ -39,8 +40,8 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak('session.status')}]"),
-                                    resolve_weak(status),
+                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                                    resolve_weak(org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -57,7 +58,8 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
         ]:
-            assert func(self.metric_ids, alias=status) == Function(
+            org_id = 666
+            assert func(org_id, self.metric_ids, alias=status) == Function(
                 "uniqIf",
                 [
                     Column("value"),
@@ -67,8 +69,8 @@ class DerivedMetricSnQLTestCase(TestCase):
                             Function(
                                 "equals",
                                 [
-                                    Column(f"tags[{resolve_weak('session.status')}]"),
-                                    resolve_weak(status),
+                                    Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                                    resolve_weak(org_id, status),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -79,8 +81,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
+        org_id = 666
         alias = "whatever"
-        assert sessions_errored_set(self.metric_ids, alias) == Function(
+        assert sessions_errored_set(org_id, self.metric_ids, alias) == Function(
             "uniqIf",
             [
                 Column("value"),
@@ -96,20 +99,23 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_percentage_in_snql(self):
+        org_id = 666
         alias = "foo.percentage"
-        init_session_snql = all_sessions(self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.metric_ids, "crashed_sessions")
+        init_session_snql = all_sessions(org_id, self.metric_ids, "init_sessions")
+        crashed_session_snql = crashed_sessions(org_id, self.metric_ids, "crashed_sessions")
 
-        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
+        assert percentage(org_id, crashed_session_snql, init_session_snql, alias=alias) == Function(
             "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
         )
 
     def test_addition_in_snql(self):
+        org_id = 666
         alias = "session.crashed_and_abnormal_user"
-        arg1_snql = crashed_users(self.metric_ids, alias="session.crashed_user")
-        arg2_snql = abnormal_users(self.metric_ids, alias="session.abnormal_user")
+        arg1_snql = crashed_users(org_id, self.metric_ids, alias="session.crashed_user")
+        arg2_snql = abnormal_users(org_id, self.metric_ids, alias="session.abnormal_user")
         assert (
             addition(
+                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias=alias,
@@ -118,11 +124,13 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_subtraction_in_snql(self):
-        arg1_snql = all_users(self.metric_ids, alias="session.all_user")
-        arg2_snql = errored_all_users(self.metric_ids, alias="session.errored_user_all")
+        org_id = 666
+        arg1_snql = all_users(org_id, self.metric_ids, alias="session.all_user")
+        arg2_snql = errored_all_users(org_id, self.metric_ids, alias="session.errored_user_all")
 
         assert (
             subtraction(
+                org_id,
                 arg1_snql,
                 arg2_snql,
                 alias="session.healthy_user",

@@ -515,7 +515,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
         assert paginator.get_result(5, count_hits=True).hits == n
 
 
-class GenericOffsetPaginatorTest(TestCase):
+class GenericOffsetPaginatorTest(SimpleTestCase):
     def test_simple(self):
         def data_fn(offset=None, limit=None):
             return [i for i in range(offset, limit)]
@@ -627,7 +627,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             )
 
 
-class TestChainPaginator(TestCase):
+class TestChainPaginator(SimpleTestCase):
     cls = ChainPaginator
 
     def test_simple(self):

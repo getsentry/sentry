@@ -4,7 +4,7 @@ import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
