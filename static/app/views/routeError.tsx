@@ -6,7 +6,6 @@ import * as Sentry from '@sentry/react';
 import Alert from 'sentry/components/alert';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -88,7 +87,7 @@ class RouteError extends Component<Props> {
   render() {
     // TODO(dcramer): show additional resource links
     return (
-      <Alert icon={<IconWarning size="md" />} type="error">
+      <Alert type="error">
         <Heading>
           <span>{t('Oops! Something went wrong')}</span>
         </Heading>
