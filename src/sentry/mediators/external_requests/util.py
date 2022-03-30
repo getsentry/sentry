@@ -80,7 +80,7 @@ def send_and_save_sentry_app_request(
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
-        raise e
+        raise
 
     track_response_code(resp.status_code, slug, event)
     buffer.add_request(
