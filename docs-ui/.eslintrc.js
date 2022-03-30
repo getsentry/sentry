@@ -1,4 +1,7 @@
-var path = require('path');
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
+
+const path = require('path');
 
 module.exports = {
   parserOptions: {
