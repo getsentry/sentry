@@ -1,4 +1,8 @@
-from sentry.models import GroupAssignee, SentryAppInstallation
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+from sentry.models import Group, GroupAssignee, Organization, SentryAppInstallation, User
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -73,7 +77,13 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
         )
 
 
-def send_workflow_webhooks(organization, issue, user, event, data=None):
+def send_workflow_webhooks(
+    organization: Organization,
+    issue: Group,
+    user: User,
+    event: str,
+    data: Mapping[str, Any] | None = None,
+) -> None:
     data = data or {}
 
     for install in installations_to_notify(organization, event):
