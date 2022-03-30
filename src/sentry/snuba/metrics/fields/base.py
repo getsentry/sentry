@@ -1,23 +1,12 @@
 from __future__ import annotations
 
 import copy
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 from snuba_sdk.orderby import Direction, OrderBy
@@ -153,6 +142,18 @@ class DerivedMetricAlias(DerivedMetricAliasDefinition):
         for filter_ in self.filters(org_id=org_id):
             conditions.append(filter_)
         return Function("and", conditions)
+
+
+@dataclass
+class DerivedOpDefinition:
+    op_name: str
+    can_orderby: bool
+    query_definition_args: Optional[List[str]] = None
+    post_query_func: Any = lambda *args: args
+
+
+class DerivedOp(DerivedOpDefinition):
+    ...
 
 
 class MetricExpressionBase(ABC):
@@ -370,11 +371,20 @@ class AliasedFieldMetricExpression(MetricExpression):
         )
 
 
-class HistogramMetricField(RawFieldMetricExpression):
+class DerivedOpMetricExpression(RawFieldMetricExpression):
+    def __init__(self, op_object: DerivedOp, metric_name: str):
+        super().__init__(op_object.op_name, metric_name)
+        self.op_object = op_object
+        self.metric_name = metric_name
+
     def generate_orderby_clause(
-        self, projects: Sequence[Project], direction: Direction
+        self,
+        direction: Direction,
+        projects: Sequence[Project],
     ) -> List[OrderBy]:
-        raise DerivedMetricParseException("histograms cannot be ordered")
+        if not self.op_object.can_orderby:
+            raise DerivedMetricParseException("histograms cannot be ordered")
+        return super().generate_orderby_clause(direction=direction, projects=projects)
 
     def run_post_query_function(self, data, query_definition: QueryDefinition, idx=None):
         key = f"{self.op}({self.metric_name})"
@@ -383,12 +393,13 @@ class HistogramMetricField(RawFieldMetricExpression):
         else:
             subdata = data[key][idx]
 
-        subdata = rebucket_histogram(
-            subdata,
-            histogram_from=query_definition.histogram_from,
-            histogram_to=query_definition.histogram_to,
-            histogram_buckets=query_definition.histogram_buckets,
-        )
+        compute_func_args = [subdata]
+        if self.op_object.query_definition_args is not None:
+            for field_name in list(inspect.signature(self.op_object.post_query_func).parameters):
+                if field_name in self.op_object.query_definition_args:
+                    compute_func_args.append(getattr(query_definition, field_name))
+
+        subdata = self.op_object.post_query_func(*compute_func_args)
 
         if idx is None:
             data[key] = subdata
@@ -832,8 +843,17 @@ DERIVED_METRICS = {
     ]
 }
 
-DERIVED_OPS: Mapping[str, Type[MetricExpressionBase]] = {
-    "histogram": HistogramMetricField,
+
+DERIVED_OPS: Mapping[str, DerivedOp] = {
+    derived_op.op_name: derived_op
+    for derived_op in [
+        DerivedOp(
+            op_name="histogram",
+            can_orderby=False,
+            query_definition_args=["histogram_from", "histogram_to", "histogram_buckets"],
+            post_query_func=rebucket_histogram,
+        )
+    ]
 }
 
 
@@ -865,7 +885,8 @@ def metric_object_factory(op: Optional[str], metric_name: str) -> MetricExpressi
     # at this point we know we have an op. Add assertion to appease mypy
     assert op is not None
     if op in DERIVED_OPS:
-        return DERIVED_OPS[op](op=op, metric_name=metric_name)
+        op_obj = DERIVED_OPS[op]
+        return DerivedOpMetricExpression(op_object=op_obj, metric_name=metric_name)
     return MetricExpression.from_dict(op=op, metric_name=metric_name)
 
 
