@@ -15,6 +15,8 @@ import {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
+
 type ProviderOptions = {
   context?: Record<string, any>;
   organization?: Organization;
@@ -79,6 +81,13 @@ const fireEvent = reactRtlFireEvent;
 function renderGlobalModal(options?: Options) {
   return render(<GlobalModal />, options);
 }
+
+/**
+ * This cannot be implemented as a Sentry Integration because Jest creates an
+ * isolated environment for each test suite. This means that if we were to apply
+ * the monkey patching ahead of time, it would be shadowed by Jest.
+ */
+instrumentUserEvent(global.Sentry?.getCurrentHub.bind(global.Sentry));
 
 export * from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};
