@@ -88,7 +88,7 @@ describe('DatePageFilter', function () {
     );
 
     // Open time period dropdown
-    userEvent.click(screen.getByText('30D'));
+    userEvent.click(screen.getByText('7D'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
