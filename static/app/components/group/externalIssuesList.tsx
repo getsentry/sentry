@@ -230,7 +230,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           <AlertLink
             priority="muted"
             size="small"
-            to={`/settings/${this.props.organization.slug}/integrations/issue-tracking`}
+            to={`/settings/${this.props.organization.slug}/integrations/?category=issue%20tracking`}
           >
             {t('Track this issue in Jira, GitHub, etc.')}
           </AlertLink>

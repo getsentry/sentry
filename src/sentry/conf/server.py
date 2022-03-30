@@ -928,8 +928,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -994,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
     "organizations:new-widget-builder-experience-design": False,
+    # Enable access to the Add to Dashboard modal for metrics work
+    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1006,6 +1010,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -2519,5 +2525,7 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
 
+# This is useful for testing SSO expiry flows
+SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
