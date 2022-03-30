@@ -11,6 +11,7 @@ export type SettingsEventParameters = {
 
 export type SettingsEventKey = keyof SettingsEventParameters;
 
+// if value is null, send to Reload only
 export const settingsEventMap: Record<SettingsEventKey, string | null> = {
   'notification_settings.index_page_viewed': 'Notification Settings: Index Page Viewed',
   'notification_settings.tuning_page_viewed': 'Notification Settings: Tuning Page Viewed',

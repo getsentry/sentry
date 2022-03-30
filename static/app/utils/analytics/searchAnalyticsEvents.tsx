@@ -42,6 +42,7 @@ export type SearchEventParameters = {
 
 export type SearchEventKey = keyof SearchEventParameters;
 
+// if value is null, send to Reload only
 export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.display_changed': 'Search: Changed Display',
   'search.searched': 'Search: Performed search',

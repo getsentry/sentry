@@ -5,6 +5,7 @@ export type DiscoverEventParameters = {
 
 export type DiscoverEventKey = keyof DiscoverEventParameters;
 
+// if value is null, send to Reload only
 export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_views.add_to_dashboard.modal_open':
     'Discover2: Add to Dashboard modal opened',

@@ -18,6 +18,7 @@ type DashboardsEventParametersAddWidgetModal = {
   'dashboards_views.edit_widget_modal.opened': {};
 };
 
+// if value is null, send to Reload only
 const dashboardsEventMapAddWidgetModal: Record<
   keyof DashboardsEventParametersAddWidgetModal,
   string | null
@@ -54,6 +55,7 @@ type DashboardsEventParametersAddWidgetInBuilder = {
   'dashboards_views.edit_widget_in_builder.opened': {};
 };
 
+// if value is null, send to Reload only
 const dashboardsEventMapAddWidgetInBuilder: Record<
   keyof DashboardsEventParametersAddWidgetInBuilder,
   string | null
@@ -147,6 +149,7 @@ export type DashboardsEventParameters = {
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
+// if value is null, send to Reload only
 export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',

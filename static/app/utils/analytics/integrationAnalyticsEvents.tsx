@@ -104,7 +104,8 @@ export type IntegrationEventParameters = {
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 // define the event key to event name mappings
-export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
+// if value is null, send to Reload only
+export const integrationEventMap: Record<IntegrationAnalyticsKey, string | null> = {
   'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',

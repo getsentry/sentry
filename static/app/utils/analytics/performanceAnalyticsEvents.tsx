@@ -53,6 +53,7 @@ export type PerformanceEventParameters = {
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
 
+// if value is null, send to Reload only
 export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.create_sample_transaction': 'Growth: Performance Sample Transaction',
   'performance_views.tour.start': 'Performance Views: Tour Start',

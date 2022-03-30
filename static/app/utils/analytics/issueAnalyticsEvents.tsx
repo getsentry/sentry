@@ -46,6 +46,7 @@ export type IssueEventParameters = {
 
 export type IssueEventKey = keyof IssueEventParameters;
 
+// if value is null, send to Reload only
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.viewed': null, // send to main event store only due to high event volume
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',

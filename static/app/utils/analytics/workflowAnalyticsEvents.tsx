@@ -51,6 +51,7 @@ export type TeamInsightsEventParameters = {
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
+// if value is null, send to Reload only
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_builder.filter': 'Alert Builder: Filter',
   'alert_details.viewed': 'Alert Details: Viewed',
