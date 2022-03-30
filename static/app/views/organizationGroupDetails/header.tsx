@@ -259,6 +259,7 @@ class GroupHeader extends React.Component<Props, State> {
           project={project}
           disabled={disableActions}
           event={event}
+          query={location.query}
         />
         <NavTabs>
           <ListLink

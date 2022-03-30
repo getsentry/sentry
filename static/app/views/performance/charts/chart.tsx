@@ -3,9 +3,9 @@ import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import AreaChart from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateString} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -23,7 +23,7 @@ type Props = {
   definedAxisTicks?: number;
   disableMultiAxis?: boolean;
   disableXAxis?: boolean;
-  grid?: AreaChart['props']['grid'];
+  grid?: AreaChartProps['grid'];
   height?: number;
   isLineChart?: boolean;
   previousData?: Series[];
@@ -223,6 +223,8 @@ function Chart({
               series={series}
               previousPeriod={previousData}
               xAxis={xAxis}
+              yAxis={areaChartProps.yAxes[0]}
+              tooltip={areaChartProps.tooltip}
             />
           );
         }

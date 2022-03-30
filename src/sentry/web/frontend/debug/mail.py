@@ -39,8 +39,9 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_rules
+from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -288,7 +289,9 @@ def alert(request):
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
-            "link": "http://example.com/link",
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
@@ -355,12 +358,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in range(random.randint(1, 10)):
+        for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -398,16 +401,8 @@ def digest(request):
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
-    context = {
-        "project": project,
-        "counts": counts,
-        "digest": digest,
-        "start": start,
-        "end": end,
-        "referrer": "digest_email",
-        "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
-        "rules_details": {rule.id: rule for rule in get_rules(rules.values(), org, project)},
-    }
+    rule_details = get_rules(list(rules.values()), org, project)
+    context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
     add_unsubscribe_link(context)
 
     return MailPreview(

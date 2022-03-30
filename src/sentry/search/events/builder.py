@@ -43,6 +43,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
+    TREND_FUNCTION_TYPE_MAP,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
@@ -104,6 +105,7 @@ class QueryBuilder:
     ):
         self.dataset = dataset
         self.params = params
+        self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -531,6 +533,35 @@ class QueryBuilder:
 
         return snql_function.snql_column(arguments, alias)
 
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        if function in TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, resolve_only=True)
+
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type: Optional[str] = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
+
     def resolve_snql_function(
         self,
         snql_function: SnQLFunction,
@@ -764,7 +795,7 @@ class QueryBuilder:
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
-        resolved = self.resolve_column_name(name)
+        resolved = self.resolve_column_name(name, self.organization_id)
         column = Column(resolved)
 
         # If the expected alias is identical to the resolved snuba column,
@@ -785,7 +816,7 @@ class QueryBuilder:
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name)
+        resolved_column = self.resolve_column_name(name, self.organization_id)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -799,7 +830,7 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params, builder=self)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1029,10 +1060,6 @@ class QueryBuilder:
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-        # TODO: This is no longer true, can order by fields that aren't selected, keeping
-        # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -1447,17 +1474,22 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, allow_metric_aggregates: Optional[bool] = False, **kwargs: Any):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
-        self.metric_ids: List[int] = []
+        self.metric_ids: Set[int] = set()
+        self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
             *args,
             **kwargs,
         )
+        if "organization_id" in self.params:
+            self.organization_id = self.params["organization_id"]
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.granularity = self.resolve_granularity()
 
     def column(self, name: str) -> Column:
@@ -1508,9 +1540,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
-        conditions.append(
-            Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
-        )
+        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
 
     def resolve_query(self, *args: Any, **kwargs: Any) -> None:
@@ -1521,6 +1551,24 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
+
+    def resolve_having(
+        self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
+    ) -> List[WhereType]:
+        if not self.allow_metric_aggregates:
+            # Regardless of use_aggregate_conditions, check if any having_conditions exist
+            having_conditions = super().resolve_having(parsed_terms, True)
+            if len(having_conditions) > 0:
+                raise IncompatibleMetricsQuery(
+                    "Aggregate conditions were disabled, but included in filter"
+                )
+
+            # Don't resolve having conditions again if we don't have to
+            if use_aggregate_conditions:
+                return having_conditions
+            else:
+                return []
+        return super().resolve_having(parsed_terms, use_aggregate_conditions)
 
     def resolve_limit(self, limit: Optional[int]) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
@@ -1562,9 +1610,8 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
-    @staticmethod
-    def _resolve_tag_value(value: str) -> int:
-        result = indexer.resolve(value)
+    def _resolve_tag_value(self, value: str) -> int:
+        result = indexer.resolve(self.organization_id, value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
         return cast(int, result)
@@ -1800,12 +1847,14 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         interval: int,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
     ):
         super().__init__(
             params=params,
             query=query,
             selected_columns=selected_columns,
+            allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
         )

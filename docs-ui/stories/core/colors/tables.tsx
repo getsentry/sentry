@@ -9,8 +9,8 @@ import {lightColors} from 'sentry/utils/theme';
 import ColorSwatch from './colorSwatch';
 
 type ColorGroup = {
-  id: string;
   colors: Array<keyof typeof lightColors>;
+  id: string;
 };
 
 const Wrap = styled('div')`

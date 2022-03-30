@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -140,7 +140,7 @@ class OperationSort extends Component<Props, State> {
       },
     };
 
-    return ReactDOM.createPortal(
+    return createPortal(
       <Popper placement="top" modifiers={modifiers}>
         {({ref: popperRef, style, placement}) => (
           <DropdownWrapper

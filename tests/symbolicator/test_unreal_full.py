@@ -9,7 +9,8 @@ from django.urls import reverse
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
-from tests.symbolicator import get_fixture_path
+from sentry.utils.safe import get_path
+from tests.symbolicator import get_fixture_path, normalize_exception
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -82,7 +83,12 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         self.insta_snapshot(
             {
                 "contexts": event.data.get("contexts"),
-                "exception": event.data.get("exception"),
+                "exception": {
+                    "values": [
+                        normalize_exception(x)
+                        for x in get_path(event.data, "exception", "values") or ()
+                    ]
+                },
                 "stacktrace": event.data.get("stacktrace"),
                 "threads": event.data.get("threads"),
                 "extra": event.data.get("extra"),
