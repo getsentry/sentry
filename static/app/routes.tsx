@@ -1146,7 +1146,7 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
-        path=":eventSlug/"
+        path=":replayId/"
         componentPromise={() => import('sentry/views/replays/details')}
         component={SafeLazyLoad}
       />

@@ -79,10 +79,7 @@ class Replays extends AsyncView<Props, State> {
               {replayList?.map(replay => (
                 <PanelItemCentered key={replay.id}>
                   <Link
-                    to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                      project: replay['project.name'],
-                      id: replay.id,
-                    })}/`}
+                    to={`/organizations/${organization.slug}/replays/${replay.replayId}/`}
                   >
                     {replay.timestamp}
                   </Link>
