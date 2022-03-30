@@ -24,7 +24,7 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import formGroups from 'sentry/data/forms/processingIssues';
-import {IconQuestion, IconSettings} from 'sentry/icons';
+import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {inputStyles} from 'sentry/styles/input';
 import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
@@ -367,7 +367,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     let processingRow: React.ReactNode = null;
     if (processingIssues && processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <StyledPanelAlert type="info" icon={<IconSettings size="sm" />}>
+        <StyledPanelAlert type="info" showIcon>
           {tn(
             'Reprocessing %s event …',
             'Reprocessing %s events …',
