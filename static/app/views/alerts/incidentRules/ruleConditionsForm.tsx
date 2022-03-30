@@ -267,7 +267,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     environmentOptions.unshift({
       value: null,
-      label: <React.Fragment>{t('All')} </React.Fragment>,
+      label: t('All'),
     });
 
     const dataSourceOptions = [
