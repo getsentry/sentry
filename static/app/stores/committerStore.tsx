@@ -90,7 +90,7 @@ export const storeConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
       },
     };
 
-    // this.trigger(this.state);
+    this.trigger(this.state);
   },
 
   get(orgSlug: string, projectSlug: string, eventId: string) {
