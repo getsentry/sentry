@@ -44,7 +44,7 @@ type Props = WithRouterProps & {
   customDropdownButton?: (config: {
     getActorProps: GetActorPropsFn;
     isOpen: boolean;
-    summary: string;
+    value: string[];
   }) => React.ReactElement;
   customLoadingIndicator?: React.ReactNode;
   detached?: boolean;
@@ -278,7 +278,7 @@ function MultipleEnvironmentSelector({
         >
           {({isOpen, getActorProps}) =>
             customDropdownButton ? (
-              customDropdownButton({isOpen, getActorProps, summary})
+              customDropdownButton({isOpen, getActorProps, value: validatedValue})
             ) : (
               <StyledHeaderItem
                 data-test-id="global-header-environment-selector"
