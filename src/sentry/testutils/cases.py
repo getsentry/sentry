@@ -1425,6 +1425,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()"],
             "aggregates": ["count()"],
             "columns": [],
+            "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
@@ -1432,6 +1433,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
             "columns": [],
+            "fieldAliases": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
@@ -1439,6 +1441,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
             "columns": ["geo.country_code"],
+            "fieldAliases": [],
             "conditions": "has:geo.country_code",
         }
 
@@ -1487,6 +1490,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["aggregates"] == widget_data_source.aggregates
         if "columns" in data:
             assert data["columns"] == widget_data_source.columns
+        if "fieldAliases" in data:
+            assert data["fieldAliases"] == widget_data_source.field_aliases
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

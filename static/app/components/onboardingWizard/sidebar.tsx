@@ -40,7 +40,7 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
 const COMPLETION_SEEN_TIMEOUT = 800;
 
 const doTimeout = (timeout: number) =>
-  new Promise(resolve => setTimeout(resolve, timeout));
+  new Promise(resolve => window.setTimeout(resolve, timeout));
 
 const Heading = styled(motion.div)`
   display: flex;

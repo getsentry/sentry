@@ -14,12 +14,11 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import theme from 'sentry/utils/theme';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -267,20 +266,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         label: getDisplayName(env),
       })) ?? [];
 
-    const anyEnvironmentLabel = (
-      <React.Fragment>
-        {t('All')}
-        <div className="all-environment-note">
-          {tct(
-            `This will count events across every environment. For example,
-             having 50 [code1:production] events and 50 [code2:development]
-             events would trigger an alert with a critical threshold of 100.`,
-            {code1: <code />, code2: <code />}
-          )}
-        </div>
-      </React.Fragment>
-    );
-    environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
+    environmentOptions.unshift({
+      value: null,
+      label: t('All'),
+    });
 
     const dataSourceOptions = [
       {
@@ -342,22 +331,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             placeholder={t('All')}
             style={{
               ...formElemBaseStyle,
-              minWidth: 180,
+              minWidth: 230,
               flex: 1,
             }}
             styles={{
               singleValue: (base: any) => ({
                 ...base,
-                '.all-environment-note': {display: 'none'},
               }),
-              option: (base: any, state: any) => ({
+              option: (base: any) => ({
                 ...base,
-                '.all-environment-note': {
-                  ...(!state.isSelected && !state.isFocused
-                    ? {color: theme.gray400}
-                    : {}),
-                  fontSize: theme.fontSizeSmall,
-                },
               }),
             }}
             options={environmentOptions}
@@ -365,7 +347,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
             inline={false}
             flexibleControlStateSize
-            inFieldLabel={t('Env: ')}
+            inFieldLabel={t('Environment: ')}
           />
           {allowChangeEventTypes && (
             <FormField

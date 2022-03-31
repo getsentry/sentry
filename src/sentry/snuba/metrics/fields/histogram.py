@@ -11,8 +11,8 @@ def rebucket_histogram(
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,
 ) -> ClickhouseHistogram:
-    if not data:
-        return data
+    if not data or not histogram_buckets:
+        return []
 
     # Get lower and upper bound of data. If the user defined custom ranges,
     # honor them.
@@ -20,9 +20,12 @@ def rebucket_histogram(
     min_val = data[0][0]
     max_val = data[-1][1]
     if histogram_from is not None:
-        min_val = max(min_val, histogram_from)
+        min_val = histogram_from
     if histogram_to is not None:
-        max_val = min(max_val, histogram_to)
+        max_val = histogram_to
+
+    if min_val > max_val:
+        return []
 
     target_bucket_width = (max_val - min_val) / histogram_buckets
 

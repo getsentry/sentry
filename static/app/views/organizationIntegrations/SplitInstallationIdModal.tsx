@@ -24,7 +24,7 @@ export default class SplitInstallationIdModal extends Component<Props> {
     const delay = 2000;
     this.onCopy();
     addSuccessMessage('Copied to clipboard');
-    setTimeout(() => {
+    window.setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');
     }, delay);
   };

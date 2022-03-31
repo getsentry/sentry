@@ -4,7 +4,6 @@ import partition from 'lodash/partition';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -124,7 +123,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
       )}
     >
       {!!deprecatedRavenSdkUpdates.length && (
-        <StyledAlert type="warning" icon={<IconWarning />}>
+        <StyledAlert type="warning" showIcon>
           {tct(
             `[first-sentence]. Any SDK that has the package name ‘raven’ may be missing data. Migrate to the latest SDK version.`,
             {
