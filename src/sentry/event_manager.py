@@ -9,7 +9,7 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
@@ -948,23 +948,25 @@ def _get_event_user_impl(project, data, metrics_tags):
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
-        try:
-            with transaction.atomic(using=router.db_for_write(EventUser)):
-                euser.save()
-            metrics_tags["created"] = "true"
-        except IntegrityError:
-            metrics_tags["created"] = "false"
-            try:
-                euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
-            except EventUser.DoesNotExist:
-                metrics_tags["created"] = "lol"
-                # why???
-                e_userid = -1
-            else:
-                if euser.name != (user_data.get("name") or euser.name):
-                    euser.update(name=user_data["name"])
-                e_userid = euser.id
-            cache.set(cache_key, e_userid, 3600)
+
+        euser, created = EventUser.objects.get_or_create(
+            project_id=euser.project_id,
+            hash=euser.hash,
+            defaults={
+                "ident": euser.ident,
+                "email": euser.email,
+                "username": euser.username,
+                "ip_address": euser.ip_address,
+                "name": euser.name,
+            },
+        )
+
+        metrics_tags["created"] = str(created).lower()
+
+        if not created and user_data.get("name") and euser.name != user_data.get("name"):
+            euser.update(name=user_data["name"])
+
+        cache.set(cache_key, euser.id, 3600)
     else:
         metrics_tags["cache_hit"] = "true"
 
