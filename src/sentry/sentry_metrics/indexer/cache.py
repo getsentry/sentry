@@ -71,7 +71,11 @@ class StringIndexerCache:
 
     def delete(self, key: str) -> None:
         cache_key = self.make_cache_key(key)
-        cache.delete(cache_key)
+        cache.delete(cache_key, version=self.version)
+
+    def delete_many(self, keys: Sequence[str]) -> None:
+        cache_keys = [self.make_cache_key(key) for key in keys]
+        cache.delete_many(cache_keys, version=self.version)
 
 
 # todo: dont hard code 1 as the version
