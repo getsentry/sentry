@@ -237,6 +237,7 @@ function WidgetBuilder({
       dataSet: DataSet.EVENTS,
     };
   });
+
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
@@ -246,6 +247,11 @@ function WidgetBuilder({
   }, [source]);
 
   useEffect(() => {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
+      organization,
+      new_widget: !isEditing,
+    });
+
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
       const visualization =
@@ -408,12 +414,13 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
       from: source,
       field,
       value,
       widget_type: widgetType,
       organization,
+      new_widget: !isEditing,
     });
 
     setState(prevState => {
@@ -683,8 +690,10 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
         organization,
+        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+        new_widget: false,
       });
       return;
     }
@@ -692,9 +701,10 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+      new_widget: true,
     });
   }
 

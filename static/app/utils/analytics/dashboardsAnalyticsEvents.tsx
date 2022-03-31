@@ -34,42 +34,31 @@ const dashboardsEventMapAddWidgetModal: Record<
     'Dashboards2: Widget saved directly to Dashboard from Add Widget to Dashboard modal',
 };
 
-// Used in the widget builder full-page
-type DashboardsEventParametersAddWidgetInBuilder = {
-  'dashboards_views.add_widget_in_builder.change': {
+// Used in the full-page widget builder
+type DashboardsEventParametersWidgetBuilder = {
+  'dashboards_views.widget_builder.change': {
     field: string;
     from: string;
+    new_widget: boolean;
     value: string;
     widget_type: string;
   };
-  'dashboards_views.add_widget_in_builder.confirm': {
-    data_set: string;
+  'dashboards_views.widget_builder.opened': {
+    new_widget: boolean;
   };
-  'dashboards_views.add_widget_in_builder.opened': {};
-  // TODO(widget-builder-experience): Port the analytics code as soon as we can persist a widget from the widget library
-  'dashboards_views.add_widget_in_builder.save': {
+  'dashboards_views.widget_builder.save': {
     data_set: string;
+    new_widget: boolean;
   };
-  'dashboards_views.edit_widget_in_builder.confirm': {};
-  'dashboards_views.edit_widget_in_builder.opened': {};
 };
 
-const dashboardsEventMapAddWidgetInBuilder: Record<
-  keyof DashboardsEventParametersAddWidgetInBuilder,
+const dashboardsEventMapWidgetBuilder: Record<
+  keyof DashboardsEventParametersWidgetBuilder,
   string | null
 > = {
-  'dashboards_views.edit_widget_in_builder.confirm':
-    'Dashboards2: Edit dashboard widget builder form submitted',
-  'dashboards_views.edit_widget_in_builder.opened':
-    'Dashboards2: Edit widget in builder opened',
-  'dashboards_views.add_widget_in_builder.opened':
-    'Dashboards2: Add widget in builder opened',
-  'dashboards_views.add_widget_in_builder.change':
-    'Dashboards2: Field changed in builder',
-  'dashboards_views.add_widget_in_builder.confirm':
-    'Dashboards2: Add widget to dashboard widget builder form submitted',
-  'dashboards_views.add_widget_in_builder.save':
-    'Dashboards2: Widget saved directly to dashboard from add widget to dashboard widget builder',
+  'dashboards_views.widget_builder.change': 'Widget Builder: Field changed',
+  'dashboards_views.widget_builder.save': 'Widget Builder: Form submitted',
+  'dashboards_views.widget_builder.opened': 'Widget Builder: Page opened',
 };
 
 export type DashboardsEventParameters = {
@@ -143,7 +132,7 @@ export type DashboardsEventParameters = {
     widget_type: string;
   };
 } & DashboardsEventParametersAddWidgetModal &
-  DashboardsEventParametersAddWidgetInBuilder;
+  DashboardsEventParametersWidgetBuilder;
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
@@ -175,5 +164,5 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
   'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
   ...dashboardsEventMapAddWidgetModal,
-  ...dashboardsEventMapAddWidgetInBuilder,
+  ...dashboardsEventMapWidgetBuilder,
 };
