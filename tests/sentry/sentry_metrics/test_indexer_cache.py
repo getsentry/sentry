@@ -1,23 +1,10 @@
-from functools import wraps
-
 from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
-TEST_KEYS = ["blah", "hello", "bye"]
 
-
-def clear_cache(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        indexer_cache.delete_many(TEST_KEYS)
-        result = func(*args, **kwargs)
-        return result
-
-    return wrapper
-
-
-@clear_cache
 def test_cache() -> None:
+    cache.clear()
     assert indexer_cache.get("blah") is None
     indexer_cache.set("blah", 1)
     assert indexer_cache.get("blah") == 1
@@ -26,8 +13,8 @@ def test_cache() -> None:
     assert indexer_cache.get("blah") is None
 
 
-@clear_cache
 def test_cache_many() -> None:
+    cache.clear()
     values = {"hello": 2, "bye": 3}
     assert indexer_cache.get_many(list(values.keys())) == {"hello": None, "bye": None}
     indexer_cache.set_many(values)
