@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {animate, HTMLMotionProps, motion, useMotionValue} from 'framer-motion';
 
-const StepperWrapper = styled(motion.div)`
+const StepperWrapper = styled('div')`
   border-radius: 4px;
   position: relative;
   overflow: hidden;
