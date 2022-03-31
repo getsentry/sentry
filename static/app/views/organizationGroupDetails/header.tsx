@@ -348,8 +348,6 @@ class GroupHeader extends React.Component<Props, State> {
   }
 }
 
-export {GroupHeader};
-
 export default withApi(withRouter(withOrganization(GroupHeader)));
 
 const TitleWrapper = styled('div')`

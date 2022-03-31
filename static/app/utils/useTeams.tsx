@@ -42,7 +42,7 @@ type State = {
   nextCursor?: null | string;
 };
 
-export type Result = {
+type Result = {
   /**
    * This is an action provided to consumers for them to request more teams
    * to be loaded. Additional teams will be fetched and loaded into the store.

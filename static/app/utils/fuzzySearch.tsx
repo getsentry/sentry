@@ -1,7 +1,7 @@
 import type Fuse from 'fuse.js';
 
 // See http://fusejs.io/ for more information
-export const DEFAULT_FUSE_OPTIONS: Fuse.IFuseOptions<any> = {
+const DEFAULT_FUSE_OPTIONS: Fuse.IFuseOptions<any> = {
   includeScore: true,
   includeMatches: true,
   threshold: 0.4,

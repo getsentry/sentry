@@ -35,8 +35,6 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users';
 
-export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
-
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
   num_errors: t('Number of Errors'),

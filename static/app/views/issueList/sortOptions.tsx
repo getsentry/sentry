@@ -15,7 +15,7 @@ type Props = {
   hasPageFilters?: boolean;
 };
 
-export function getSortTooltip(key: IssueSortOptions) {
+function getSortTooltip(key: IssueSortOptions) {
   switch (key) {
     case IssueSortOptions.INBOX:
       return t('When the issue was flagged for review.');

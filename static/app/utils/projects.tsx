@@ -56,7 +56,7 @@ type State = {
   nextCursor?: null | string;
 };
 
-export type RenderProps = {
+type RenderProps = {
   /**
    * Calls API and searches for project, accepts a callback function with signature:
    * fn(searchTerm, {append: bool})
