@@ -41,6 +41,9 @@ export function ColumnFields({
           fieldOptions={fieldOptions}
           organization={organization}
           source={widgetType}
+          showAliasField={organization.features.includes(
+            'new-widget-builder-experience-design'
+          )}
         />
       ) : (
         // The only other display type this component

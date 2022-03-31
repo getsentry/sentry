@@ -43,6 +43,7 @@ type Props = {
   className?: string;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
+  showAliasField?: boolean;
   source?: Sources;
 };
 
@@ -363,15 +364,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     });
   };
 
-  renderGhost({
-    gridColumns,
-    widgetBuilderNewDesign,
-    singleColumn,
-  }: {
-    gridColumns: number;
-    singleColumn: boolean;
-    widgetBuilderNewDesign: boolean;
-  }) {
+  renderGhost({gridColumns, singleColumn}: {gridColumns: number; singleColumn: boolean}) {
     const {isDragging, draggingIndex, draggingGrabbedOffset} = this.state;
 
     const index = draggingIndex;
@@ -392,7 +385,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
         {this.renderItem(col, index, {
-          widgetBuilderNewDesign,
           singleColumn,
           isGhost: true,
           gridColumns,
@@ -407,7 +399,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     col: Column,
     i: number,
     {
-      widgetBuilderNewDesign = false,
       singleColumn = false,
       canDelete = true,
       canDrag = true,
@@ -417,14 +408,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
     }: {
       gridColumns: number;
       singleColumn: boolean;
-      widgetBuilderNewDesign: boolean;
       canDelete?: boolean;
       canDrag?: boolean;
       disabled?: boolean;
       isGhost?: boolean;
     }
   ) {
-    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage} = this.props;
+    const {columns, fieldOptions, filterPrimaryOptions, noFieldsMessage, showAliasField} =
+      this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -453,7 +444,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer
-          widgetBuilderNewDesign={widgetBuilderNewDesign}
+          showAliasField={showAliasField}
           singleColumn={singleColumn}
           className={isGhost ? '' : DRAG_CLASS}
         >
@@ -466,7 +457,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               size="zero"
               borderless
             />
-          ) : singleColumn && widgetBuilderNewDesign ? null : (
+          ) : singleColumn && showAliasField ? null : (
             <span />
           )}
           <QueryField
@@ -481,9 +472,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
             disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
             noFieldsMessage={noFieldsMessage}
-            widgetBuilderNewDesign={widgetBuilderNewDesign}
+            skipParameterPlaceholder={showAliasField}
           />
-          {widgetBuilderNewDesign && (
+          {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
                 name="alias"
@@ -499,7 +490,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             </AliasField>
           )}
           {canDelete || col.kind === 'equation' ? (
-            widgetBuilderNewDesign ? (
+            showAliasField ? (
               <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
@@ -517,7 +508,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 borderless
               />
             )
-          ) : singleColumn && widgetBuilderNewDesign ? null : (
+          ) : singleColumn && showAliasField ? null : (
             <span />
           )}
         </RowContainer>
@@ -527,7 +518,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns, organization, source} = this.props;
+    const {className, columns, showAliasField, source} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -538,10 +529,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
         );
 
     const singleColumn = columns.length === 1;
-
-    const widgetBuilderNewDesign = organization.features.includes(
-      'new-widget-builder-experience-design'
-    );
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
@@ -559,12 +546,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     return (
       <div className={className}>
-        {this.renderGhost({gridColumns, widgetBuilderNewDesign, singleColumn})}
-        {!widgetBuilderNewDesign && source !== WidgetType.ISSUE && (
-          <RowContainer
-            widgetBuilderNewDesign={widgetBuilderNewDesign}
-            singleColumn={singleColumn}
-          >
+        {this.renderGhost({gridColumns, singleColumn})}
+        {!showAliasField && source !== WidgetType.ISSUE && (
+          <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
             <Heading gridColumns={gridColumns}>
               <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
               <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
@@ -575,7 +559,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
           // Issue column in Issue widgets are fixed (cannot be changed or deleted)
           if (this.isFixedIssueColumn(i)) {
             return this.renderItem(col, i, {
-              widgetBuilderNewDesign,
               singleColumn,
               canDelete: false,
               canDrag,
@@ -584,18 +567,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
             });
           }
           return this.renderItem(col, i, {
-            widgetBuilderNewDesign,
             singleColumn,
             canDelete,
             canDrag,
             gridColumns,
           });
         })}
-        <RowContainer
-          widgetBuilderNewDesign={widgetBuilderNewDesign}
-          singleColumn={singleColumn}
-        >
-          <Actions widgetBuilderNewDesign={widgetBuilderNewDesign}>
+        <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="small"
               aria-label={t('Add a Column')}
@@ -625,7 +604,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 }
 
-const Actions = styled('div')<{widgetBuilderNewDesign: boolean}>`
+const Actions = styled('div')<{showAliasField?: boolean}>`
   grid-column: 2 / 3;
 
   & button {
@@ -633,7 +612,7 @@ const Actions = styled('div')<{widgetBuilderNewDesign: boolean}>`
   }
 
   ${p =>
-    p.widgetBuilderNewDesign &&
+    p.showAliasField &&
     css`
       grid-column: 1/-1;
     `};
@@ -641,7 +620,7 @@ const Actions = styled('div')<{widgetBuilderNewDesign: boolean}>`
 
 const RowContainer = styled('div')<{
   singleColumn: boolean;
-  widgetBuilderNewDesign: boolean;
+  showAliasField?: boolean;
 }>`
   display: grid;
   grid-template-columns: ${space(3)} 1fr 40px;
@@ -652,7 +631,7 @@ const RowContainer = styled('div')<{
   padding-bottom: ${space(1)};
 
   ${p =>
-    p.widgetBuilderNewDesign &&
+    p.showAliasField &&
     css`
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
