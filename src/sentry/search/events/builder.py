@@ -1720,11 +1720,17 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return primary, query_framework
 
+    def validate_orderby_clause(self) -> None:
+        """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
+        transform it"""
+        for orderby in self.orderby:
+            if isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags":
+                raise IncompatibleMetricsQuery("Can't orderby tags")
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         self.validate_having_clause()
+        self.validate_orderby_clause()
         # Need to split orderby between the 3 possible tables
-        # TODO: need to validate orderby, ordering by tag values is impossible unless the values have low cardinality
-        # and we can transform them (eg. project)
         primary, query_framework = self._create_query_framework()
 
         groupby_aliases = [

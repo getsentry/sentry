@@ -1225,6 +1225,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         metric: str = "transaction.duration",
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
@@ -1243,6 +1244,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         else:
             metric_timestamp = timestamp.timestamp()
 
+        if project is None:
+            project = self.project.id
+
         if not isinstance(value, list):
             value = [value]
 
@@ -1250,7 +1254,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             [
                 {
                     "org_id": self.organization.id,
-                    "project_id": self.project.id,
+                    "project_id": project,
                     "metric_id": indexer.resolve(self.organization.id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
