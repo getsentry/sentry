@@ -29,7 +29,7 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 
-const MIN_SIBLING_GROUP_SIZE = 5;
+export const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;

@@ -550,7 +550,10 @@ class ActualMinimap extends React.PureComponent<{
           const {spanSiblingGrouping} = payload;
 
           return (
-            <MinimapSiblingGroupBar key={`${payload.type}-${i}`}>
+            <MinimapSiblingGroupBar
+              data-test-id="minimap-sibling-group-bar"
+              key={`${payload.type}-${i}`}
+            >
               {spanSiblingGrouping?.map(({span}, index) => {
                 const bounds = generateBounds({
                   startTimestamp: span.start_timestamp,
