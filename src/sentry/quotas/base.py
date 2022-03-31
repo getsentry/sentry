@@ -370,10 +370,10 @@ class Quota(Service):
                 "project_abuse_sessions_limit",
             ),
         ):
-            limit = org.get_option(option, None)
+            limit = org.get_option(option)
             if limit is not None:
                 yield QuotaConfig(
-                    id="s_pae",
+                    id=id,
                     limit=limit * abuse_window,
                     scope=QuotaScope.PROJECT,
                     categories=(category,),
