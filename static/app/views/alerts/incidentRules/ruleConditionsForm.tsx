@@ -25,7 +25,11 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getFunctionHelpText, hidePrimarySelectorSet} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertType,
+  getFunctionHelpText,
+  hidePrimarySelectorSet,
+} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {
@@ -74,14 +78,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
-  formElemBaseStyle = {
-    padding: `${space(0.5)}`,
-    border: 'none',
-  };
 
   componentDidMount() {
     this.fetchData();
   }
+
+  formElemBaseStyle = {
+    padding: `${space(0.5)}`,
+    border: 'none',
+  };
 
   async fetchData() {
     const {api, organization, projectSlug} = this.props;
@@ -269,13 +274,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
-            {!hasAlertWizardV3 && <Tooltip
-              title={t(
-                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
-              )}
-            >
-              <IconQuestion size="sm" color="gray200" />
-            </Tooltip>}
+            {!hasAlertWizardV3 && (
+              <Tooltip
+                title={t(
+                  'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
+                )}
+              >
+                <IconQuestion size="sm" color="gray200" />
+              </Tooltip>
+            )}
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
