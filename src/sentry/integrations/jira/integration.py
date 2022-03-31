@@ -771,10 +771,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         cleaned_data[field] = v
                         continue
                     if schema["type"] == "user" or schema.get("items") == "user":
-                        v = {user_id_field: v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                        # custom multi-picker
-                        v = [{user_id_field: v}]
+                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
+                            # custom multi-picker
+                            v = [{user_id_field: user_id} for user_id in v]
+                        else:
+                            v = {user_id_field: v}
                     elif schema["type"] == "issuelink":  # used by Parent field
                         v = {"key": v}
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
