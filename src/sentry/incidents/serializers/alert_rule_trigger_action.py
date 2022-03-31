@@ -121,20 +121,20 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
 
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+            sentry_app_installation_uuid = attrs.pop("sentry_app_installation_uuid", None)
+
             if not attrs.get("sentry_app"):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
             if attrs.get("sentry_app_config"):
-                if attrs.get("sentry_app_installation_uuid") is None:
+                if sentry_app_installation_uuid is None:
                     raise serializers.ValidationError(
                         {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
                 try:
-                    install = SentryAppInstallation.objects.get(
-                        uuid=attrs.get("sentry_app_installation_uuid")
-                    )
+                    install = SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
                 except SentryAppInstallation.DoesNotExist:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
@@ -147,8 +147,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
                 if not result["success"]:
                     raise serializers.ValidationError({"sentry_app": result["message"]})
-
-                del attrs["sentry_app_installation_uuid"]
 
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
