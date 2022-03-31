@@ -17,6 +17,7 @@ import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
@@ -36,6 +37,9 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 function App({children}: Props) {
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
+
+  // XXX(epurkhiser): Soemthing weird is going on
+  const {organization: _unused} = useLegacyStore(OrganizationStore);
 
   // Command palette global-shortcut
   useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
