@@ -371,6 +371,12 @@ class SpanTreeModel {
 
         const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
 
+        if (!siblingGroupOccurrenceMap[groupKey]) {
+          siblingGroupOccurrenceMap[groupKey] = 1;
+        } else {
+          siblingGroupOccurrenceMap[groupKey] += 1;
+        }
+
         groupedDescendants.push({
           group: currentGroup,
           occurrence: siblingGroupOccurrenceMap[groupKey],
