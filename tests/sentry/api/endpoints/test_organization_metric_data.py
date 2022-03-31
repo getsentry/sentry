@@ -9,7 +9,7 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import TransactionMetricsKey
+from sentry.sentry_metrics.transactions import TransactionMetricsKey, TransactionTagsKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -964,7 +964,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
         self.tx_metric = indexer.record(org_id, TransactionMetricsKey.TRANSACTION_DURATION.value)
-        self.tx_status = indexer.record(org_id, TransactionMetricsKey.TRANSACTION_STATUS.value)
+        self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")

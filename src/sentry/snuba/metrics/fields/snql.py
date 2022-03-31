@@ -2,7 +2,7 @@ from typing import List
 
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.transactions import TransactionMetricsKey
+from sentry.sentry_metrics.transactions import TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 
 
@@ -62,7 +62,7 @@ def _aggregation_on_tx_status_func_factory(aggregate):
                             "notIn",
                             [
                                 Column(
-                                    f"tags[{resolve_weak(org_id, TransactionMetricsKey.TRANSACTION_STATUS.value)}]"
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
                                 ),
                                 resolved_tx_statuses,
                             ],

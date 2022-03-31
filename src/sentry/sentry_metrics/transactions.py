@@ -10,4 +10,9 @@ class TransactionMetricsKey(Enum):
     """
 
     TRANSACTION_DURATION = "sentry.transactions.transaction.duration"
+
+
+class TransactionTagsKey(Enum):
+    """Identifier for a transaction-related tag."""
+
     TRANSACTION_STATUS = "transaction.status"
