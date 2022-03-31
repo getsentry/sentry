@@ -3,36 +3,32 @@ from uuid import UUID
 
 from django.utils import timezone
 from freezegun import freeze_time
+from rest_framework import status
 
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
 from sentry.testutils import APITestCase
 
 
-@freeze_time("2019-01-01")
+@freeze_time()
 class CreateMonitorCheckInTest(APITestCase):
+    endpoint = "sentry-api-0-monitor-check-in-index"
+    method = "post"
+
     def test_passing(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+        self.login_as(self.user)
 
         monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "ok"}
-            )
+        with self.feature("organizations:monitors"):
+            response = self.get_success_response(monitor.guid, status="ok")
 
-        assert resp.status_code == 201, resp.content
-
-        checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+        checkin = MonitorCheckIn.objects.get(guid=response.data["id"])
         assert checkin.status == CheckInStatus.OK
 
         monitor = Monitor.objects.get(id=monitor.id)
@@ -41,28 +37,20 @@ class CreateMonitorCheckInTest(APITestCase):
         assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_failing(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+        self.login_as(self.user)
 
         monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
-            )
+        with self.feature("organizations:monitors"):
+            response = self.get_success_response(monitor.guid, status="error")
 
-        assert resp.status_code == 201, resp.content
-
-        checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+        checkin = MonitorCheckIn.objects.get(guid=response.data["id"])
         assert checkin.status == CheckInStatus.ERROR
 
         monitor = Monitor.objects.get(id=monitor.id)
@@ -71,29 +59,23 @@ class CreateMonitorCheckInTest(APITestCase):
         assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_disabled(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+        self.login_as(self.user)
 
         monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             status=MonitorStatus.DISABLED,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
-            )
+        with self.feature("organizations:monitors"):
+            response = self.get_success_response(monitor.guid, status="error")
 
-        assert resp.status_code == 201, resp.content
+        assert response.status_code == 201, response.content
 
-        checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+        checkin = MonitorCheckIn.objects.get(guid=response.data["id"])
         assert checkin.status == CheckInStatus.ERROR
 
         monitor = Monitor.objects.get(id=monitor.id)
@@ -102,79 +84,68 @@ class CreateMonitorCheckInTest(APITestCase):
         assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
     def test_pending_deletion(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+        self.login_as(self.user)
 
         monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             status=MonitorStatus.PENDING_DELETION,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
+        with self.feature("organizations:monitors"):
+            self.get_error_response(
+                monitor.guid,
+                status="error",
+                status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        assert resp.status_code == 404, resp.content
-
     def test_deletion_in_progress(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org, members=[user])
-        project = self.create_project(teams=[team])
+        self.login_as(self.user)
 
         monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             status=MonitorStatus.DELETION_IN_PROGRESS,
             config={"schedule": "* * * * *"},
         )
 
-        self.login_as(user=user)
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/", data={"status": "error"}
+        with self.feature("organizations:monitors"):
+            self.get_error_response(
+                monitor.guid,
+                status="error",
+                status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        assert resp.status_code == 404, resp.content
-
     def test_with_dsn_auth(self):
-        project = self.create_project()
-        project_key = self.create_project_key(project=project)
+        project_key = self.create_project_key(project=self.project)
 
         monitor = Monitor.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
 
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/",
-                HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
-                data={"status": "ok"},
+        with self.feature("organizations:monitors"):
+            response = self.get_success_response(
+                monitor.guid,
+                status="ok",
+                extra_headers={"HTTP_AUTHORIZATION": f"DSN {project_key.dsn_public}"},
             )
 
-        assert resp.status_code == 201, resp.content
         # DSN auth should only return id
-        assert list(resp.data.keys()) == ["id"]
-        assert UUID(resp.data["id"])
+        assert list(response.data.keys()) == ["id"]
+        assert UUID(response.data["id"])
 
     def test_with_dsn_auth_invalid_project(self):
-        project = self.create_project()
         project2 = self.create_project()
-        project_key = self.create_project_key(project=project)
+        project_key = self.create_project_key(project=self.project)
 
         monitor = Monitor.objects.create(
             organization_id=project2.organization_id,
@@ -184,11 +155,10 @@ class CreateMonitorCheckInTest(APITestCase):
             config={"schedule": "* * * * *"},
         )
 
-        with self.feature({"organizations:monitors": True}):
-            resp = self.client.post(
-                f"/api/0/monitors/{monitor.guid}/checkins/",
-                HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
-                data={"status": "ok"},
+        with self.feature("organizations:monitors"):
+            self.get_error_response(
+                monitor.guid,
+                status="ok",
+                extra_headers={"HTTP_AUTHORIZATION": f"DSN {project_key.dsn_public}"},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
-
-        assert resp.status_code == 400, resp.content
