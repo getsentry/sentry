@@ -7,16 +7,16 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import AreaChart from 'sentry/components/charts/areaChart';
-import BarChart from 'sentry/components/charts/barChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
-import WorldMapChart from 'sentry/components/charts/worldMapChart';
+import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
@@ -128,10 +128,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
+      const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
 
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
+          fieldAliases={fieldAliases}
           location={location}
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}

@@ -30,7 +30,7 @@ type Props = {
 };
 
 type State = {
-  blurTimeout?: ReturnType<typeof setTimeout>;
+  blurTimeout?: number | null;
 };
 
 /**
@@ -60,7 +60,6 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
     const explodedFields = (query.fields ?? [...query.columns, ...query.aggregates]).map(
       field => explodeField({field})
     );
-    const {blurTimeout} = this.state;
 
     return (
       <QueryWrapper>
@@ -85,14 +84,14 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
                 // handler from firing if it is within 200ms, ie from clicking an
                 // autocomplete value.
                 this.setState({
-                  blurTimeout: setTimeout(() => {
+                  blurTimeout: window.setTimeout(() => {
                     this.setState({blurTimeout: undefined});
                   }, 200),
                 });
                 return this.handleFieldChange('conditions')(field);
               }}
               onBlur={field => {
-                if (!blurTimeout) {
+                if (!this.state.blurTimeout) {
                   this.handleFieldChange('conditions')(field);
                 }
               }}

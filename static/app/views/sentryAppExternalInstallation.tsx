@@ -9,7 +9,6 @@ import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -167,7 +166,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   renderInternalAppError() {
     const {sentryApp} = this.state;
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <Alert type="error" showIcon>
         {tct(
           'Integration [sentryAppName] is an internal integration. Internal integrations are automatically installed',
           {
@@ -182,7 +181,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     const {organization, selectedOrgSlug, isInstalled, sentryApp} = this.state;
     if (selectedOrgSlug && organization && !this.hasAccess(organization)) {
       return (
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           <p>
             {tct(
               `You do not have permission to install integrations in
@@ -197,7 +196,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     }
     if (isInstalled && organization) {
       return (
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {tct('Integration [sentryAppName] already installed for [organization]', {
             organization: <strong>{organization.name}</strong>,
             sentryAppName: <strong>{sentryApp.name}</strong>,
@@ -210,7 +209,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       // use the slug of the owner if we have it, otherwise use 'another organization'
       const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
       return (
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {tct(
             'Integration [sentryAppName] is an unpublished integration for [otherOrg]. An unpublished integration can only be installed on the organization which created it.',
             {

@@ -13,7 +13,6 @@ import {
   PanelHeader,
   PanelItem,
 } from 'sentry/components/panels';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
@@ -119,7 +118,7 @@ class AccountClose extends AsyncView<Props, State> {
       });
 
       // Redirect after 10 seconds
-      setTimeout(leaveRedirect, 10000);
+      window.setTimeout(leaveRedirect, 10000);
     } catch {
       addErrorMessage('Error closing account');
     }
@@ -136,7 +135,7 @@ class AccountClose extends AsyncView<Props, State> {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>
