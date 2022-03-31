@@ -22,7 +22,7 @@ import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils
 
 const COLLAPSE_COUNT = 3;
 
-export function getTriggerName(value: string | null) {
+function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {
     return t('Warning');
   }
