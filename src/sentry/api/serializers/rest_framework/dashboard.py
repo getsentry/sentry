@@ -116,7 +116,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     )
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     field_aliases = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True
+        child=serializers.CharField(allow_blank=True), required=False, allow_null=True
     )
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
