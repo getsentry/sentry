@@ -1,45 +1,52 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('EnvironmentPageFilter', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views', 'selection-filters-v2']},
-    project: undefined,
-    projects: [
-      {
-        id: 2,
-        slug: 'project-2',
-        environments: ['prod', 'staging'],
-      },
-    ],
-    router: {
-      location: {
-        pathname: '/organizations/org-slug/issues/',
-        query: {},
-      },
-      params: {orgId: 'org-slug'},
+const {organization, router, routerContext} = initializeOrg({
+  organization: {features: ['global-views', 'selection-filters-v2']},
+  project: undefined,
+  projects: [
+    {
+      id: 2,
+      slug: 'project-2',
+      environments: ['prod', 'staging'],
     },
-  });
-  OrganizationStore.onUpdate(organization, {replace: true});
-  ProjectsStore.loadInitialData(organization.projects);
+  ],
+  router: {
+    location: {
+      pathname: '/organizations/org-slug/issues/',
+      query: {},
+    },
+    params: {orgId: 'org-slug'},
+  },
+});
 
+describe('EnvironmentPageFilter', function () {
   beforeEach(() => {
-    act(() => {
-      PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [2],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
-    });
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData(organization.projects);
+
+    PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [2],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set()
+    );
+  });
+
+  afterEach(() => {
+    OrganizationStore.teardown();
+    ProjectsStore.teardown();
   });
 
   it('can pick environment', function () {
@@ -83,7 +90,7 @@ describe('EnvironmentPageFilter', function () {
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton);
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 

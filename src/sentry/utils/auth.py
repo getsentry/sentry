@@ -22,7 +22,14 @@ from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
 
-SSO_EXPIRY_TIME = timedelta(hours=20)
+
+def _sso_expiry_from_env(seconds):
+    if seconds is None:
+        return None
+    return timedelta(seconds=int(seconds))
+
+
+SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS) or timedelta(hours=20)
 
 
 class SsoSession:

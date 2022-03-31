@@ -18,12 +18,12 @@ from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
-from rest_framework import serializers
+from rest_framework import serializers, status
 
+from sentry.api.exceptions import SentryAPIException
 from sentry.auth.system import is_system_auth
 from sentry.utils import json
 from sentry.utils.auth import has_completed_sso
-from sentry.utils.settings import is_self_hosted
 
 logger = logging.getLogger("sentry.superuser")
 
@@ -56,7 +56,7 @@ ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTE
 
 ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
-SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [])
+SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
 UNSET = object()
 
@@ -71,6 +71,12 @@ def is_active_superuser(request):
 class SuperuserAccessSerializer(serializers.Serializer):
     superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
+
+
+class SuperuserAccessFormInvalidJson(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid-superuser-access-json"
+    message = "The request contains invalid json"
 
 
 class Superuser:
@@ -102,11 +108,8 @@ class Superuser:
         self._populate(current_datetime=current_datetime)
 
     @staticmethod
-    def _need_validation():
-        try:
-            return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
-        except AttributeError:
-            return False
+    def _needs_validation():
+        return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
     def is_active(self):
@@ -316,7 +319,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if is_self_hosted() or not self._need_validation():
+        if not self._needs_validation():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -333,8 +336,10 @@ class Superuser:
         try:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
+        except json.JSONDecodeError:
+            raise SuperuserAccessFormInvalidJson()
         except AttributeError:
-            su_access_json = []
+            su_access_json = {}
 
         if "superuserAccessCategory" in su_access_json:
 

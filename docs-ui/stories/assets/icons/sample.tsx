@@ -2,12 +2,12 @@ import * as Icons from 'app/icons';
 import {Aliases, Color, IconSize} from 'app/utils/theme';
 
 type Props = {
+  color: Color | Aliases;
   name: string;
   size: IconSize;
-  color: Color | Aliases;
+  direction?: 'left' | 'right' | 'up' | 'down';
   isCircled?: boolean;
   isSolid?: boolean;
-  direction?: 'left' | 'right' | 'up' | 'down';
   type?: 'line' | 'circle' | 'bar';
 };
 

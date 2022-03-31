@@ -18,14 +18,22 @@ __all__ = (
     "MetricMeta",
     "MetricMetaWithTagKeys",
     "OPERATIONS",
+    "OPERATIONS_PERCENTILES",
     "DEFAULT_AGGREGATES",
     "UNIT_TO_TYPE",
+    "DerivedMetricException",
     "DerivedMetricParseException",
+    "MetricDoesNotExistException",
+    "MetricDoesNotExistInIndexer",
+    "NotSupportedOverCompositeEntityException",
     "TimeRange",
+    "MetricEntity",
+    "UNALLOWED_TAGS",
 )
 
 
 import re
+from abc import ABC
 from datetime import datetime
 from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
 
@@ -104,7 +112,7 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-_OPERATIONS_PERCENTILES = (
+OPERATIONS_PERCENTILES = (
     "p50",
     "p75",
     "p90",
@@ -119,7 +127,7 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
-) + _OPERATIONS_PERCENTILES
+) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
     "avg": None,
@@ -134,11 +142,25 @@ DEFAULT_AGGREGATES = {
     "sum": 0,
     "percentage": None,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage"}
+UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNALLOWED_TAGS = {"session.status"}
 
 
-class DerivedMetricParseException(Exception):
-    ...
+def combine_dictionary_of_list_values(main_dict, other_dict):
+    """
+    Function that combines dictionary of lists. For instance, let's say we have
+    Dict A -> {"a": [1,2], "b": [3]} and Dict B -> {"a": [6], "c": [4]}
+    Calling this function would result in {"a": [1, 2, 6], "b": [3], "c": [4]}
+    """
+    if not isinstance(main_dict, dict) or not isinstance(other_dict, dict):
+        raise TypeError()
+    for key, value in other_dict.items():
+        main_dict.setdefault(key, [])
+        if not isinstance(value, list) or not isinstance(main_dict[key], list):
+            raise TypeError()
+        main_dict[key] += value
+        main_dict[key] = list(set(main_dict[key]))
+    return main_dict
 
 
 class MetricDoesNotExistException(Exception):
@@ -146,6 +168,18 @@ class MetricDoesNotExistException(Exception):
 
 
 class MetricDoesNotExistInIndexer(Exception):
+    ...
+
+
+class DerivedMetricException(Exception, ABC):
+    ...
+
+
+class DerivedMetricParseException(DerivedMetricException):
+    ...
+
+
+class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
 
 

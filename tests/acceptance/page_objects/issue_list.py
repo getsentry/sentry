@@ -28,14 +28,35 @@ class IssueListPage(BasePage):
         self.browser.click('[aria-label="Resolve"]')
         self.browser.click('[data-test-id="confirm-button"]')
 
+    # TODO(Kelly): update once issue-list-removal-action feature is stable
+    def resolve_issues_removal(self):
+        self.browser.click('[aria-label="Resolve"]')
+
     def wait_for_resolved_issue(self):
         self.browser.wait_until('[data-test-id="resolved-issue"]')
+
+    def wait_for_issue_removal(self):
+        self.browser.click_when_visible('[data-test-id="toast-success"]')
+        self.browser.wait_until_not('[data-test-id="toast-success"]')
 
     def wait_for_issue(self):
         self.browser.wait_until('[data-test-id="group"]')
 
     def find_resolved_issues(self):
         return self.browser.elements('[data-test-id="resolved-issue"]')
+
+    def ignore_issues(self):
+        self.browser.click('[aria-label="Ignore"]')
+
+    def delete_issues(self):
+        self.browser.click('[aria-label="More issue actions"]')
+        self.browser.wait_until('[data-test-id="delete"]')
+        self.browser.click('[data-test-id="delete"]')
+        self.browser.click('[data-test-id="confirm-button"]')
+
+    def merge_issues(self):
+        self.browser.click('[aria-label="Merge Selected Issues"]')
+        self.browser.click('[data-test-id="confirm-button"]')
 
     def mark_reviewed_issues(self):
         self.browser.click('[aria-label="Mark Reviewed"]')

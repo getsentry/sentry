@@ -8,7 +8,7 @@ import set from 'lodash/set';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import BarChart, {BarChartSeries} from './barChart';
+import {BarChart, BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
 

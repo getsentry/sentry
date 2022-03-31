@@ -1,25 +1,21 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
-import OnboardingPreview from 'sentry-images/spot/onboarding-preview.svg';
 import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import DemoSandboxButton from 'sentry/components/demoSandboxButton';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
-import withOrganization from 'sentry/utils/withOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 
 import WelcomeBackground from './components/welcomeBackground';
+import {StepProps} from './types';
 
 const fadeAway: MotionProps = {
   variants: {
@@ -50,11 +46,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-type Props = {
-  organization: Organization;
-};
-
-function TargetedOnboardingWelcome({organization}: Props) {
+function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
   const source = 'targeted_onboarding';
   React.useEffect(() => {
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
@@ -69,7 +61,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
       source,
     });
 
-    browserHistory.push(`/onboarding/${organization.slug}/select-platform/`);
+    props.onComplete();
   };
   return (
     <FallingError>
@@ -129,38 +121,6 @@ function TargetedOnboardingWelcome({organization}: Props) {
               }
             />
           </ActionItem>
-          {!organization.features.includes('sandbox-kill-switch') && (
-            <ActionItem>
-              <InnerAction
-                title={t('Preview before you (git) commit')}
-                subText={t(
-                  'Check out sample issue reports, transactions, and tour all of Sentry '
-                )}
-                src={OnboardingPreview}
-                cta={
-                  <SandboxBtnWithFill
-                    scenario="oneIssue"
-                    priority="primary"
-                    clientData={{
-                      cta: {
-                        id: 'onboarding',
-                        shortTitle: t('Continue'),
-                        title: t('Continue Onboarding'),
-                        url: new URL(
-                          `/onboarding/${organization.slug}/welcome/`,
-                          window.location.origin
-                        ).toString(),
-                      },
-                      skipEmail: true,
-                    }}
-                    {...{source}}
-                  >
-                    {t('Explore')}
-                  </SandboxBtnWithFill>
-                }
-              />
-            </ActionItem>
-          )}
           <motion.p style={{margin: 0}}>
             {t("Gee, I've used Sentry before.")}
             <br />
@@ -182,7 +142,7 @@ function TargetedOnboardingWelcome({organization}: Props) {
   );
 }
 
-export default withOrganization(TargetedOnboardingWelcome);
+export default TargetedOnboardingWelcome;
 
 const PositionedFallingError = styled('span')`
   display: block;
@@ -266,8 +226,4 @@ const ButtonWithFill = styled(Button)`
   width: 100%;
   position: relative;
   z-index: 1;
-`;
-
-const SandboxBtnWithFill = styled(DemoSandboxButton)`
-  width: 100%;
 `;

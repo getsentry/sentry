@@ -37,11 +37,11 @@ class Replays extends AsyncView<Props, State> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp'],
-      orderby: '',
-      projects: [2],
+      fields: ['eventID', 'timestamp', 'replayId'],
+      orderby: '-timestamp',
+      projects: [],
       range: statsPeriod,
-      query: 'event.type:error', // future: change to replay event
+      query: 'transaction:sentry-replay', // future: change to replay event
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
     return [
@@ -50,6 +50,10 @@ class Replays extends AsyncView<Props, State> {
   }
   getTitle() {
     return `Replays - ${this.props.params.orgId}`;
+  }
+
+  renderLoading() {
+    return <PageContent>{super.renderLoading()}</PageContent>;
   }
 
   renderBody() {
@@ -74,14 +78,15 @@ class Replays extends AsyncView<Props, State> {
             <PanelBody>
               {replayList?.map(replay => (
                 <PanelItemCentered key={replay.id}>
-                  <StyledLink
+                  <Link
                     to={`/organizations/${organization.slug}/replays/${generateEventSlug({
                       project: replay['project.name'],
                       id: replay.id,
                     })}/`}
                   >
                     {replay.timestamp}
-                  </StyledLink>
+                  </Link>
+                  {replay.replayId}
                 </PanelItemCentered>
               ))}
             </PanelBody>
@@ -103,14 +108,9 @@ const HeaderTitle = styled(PageHeading)`
 `;
 
 const PanelItemCentered = styled(PanelItem)`
-  align-items: center;
-  padding: 0;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const StyledLink = styled(Link)`
-  flex: 1;
+  display: grid;
+  grid-template-columns: auto max-content;
+  gap: ${space(2)};
   padding: ${space(2)};
 `;
 
