@@ -151,25 +151,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
-  renderWizardField() {
-    const {disabled} = this.props;
-
-    return (
-      <WizardField
-        name="aggregate"
-        help={null}
-        disabled={disabled}
-        style={{
-          ...this.formElemBaseStyle,
-          flex: 1,
-        }}
-        inline={false}
-        flexibleControlStateSize
-        required
-      />
-    );
-  }
-
   renderEventTypeFilter() {
     const {organization, disabled, alertType} = this.props;
 
@@ -286,7 +267,20 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {hasAlertWizardV3 && this.renderWizardField()}
+          {hasAlertWizardV3 && (
+            <WizardField
+              name="aggregate"
+              help={null}
+              disabled={disabled}
+              style={{
+                ...this.formElemBaseStyle,
+                flex: 1,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              required
+            />
+          )}
           {!hidePrimarySelectorSet.has(alertType) && timeWindowText && (
             <MetricField
               name="aggregate"
