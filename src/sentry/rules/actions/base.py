@@ -223,6 +223,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     """Shared ticket actions"""
 
     form_cls = IntegrationNotifyServiceForm
+    integration_key = "integration"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(IntegrationEventAction, self).__init__(*args, **kwargs)

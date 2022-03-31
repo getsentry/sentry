@@ -12,7 +12,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync"
     provider = "vsts"
-    integration_key = "integration"
 
     def generate_footer(self, rule_url: str) -> str:
         return "\nThis work item was automatically created by Sentry via [{}]({})".format(

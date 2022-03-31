@@ -19,7 +19,6 @@ class JiraCreateTicketAction(TicketEventAction):
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
     provider = "jira"
-    integration_key = "integration"
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
