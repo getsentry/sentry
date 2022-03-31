@@ -962,18 +962,16 @@ def _get_event_user_impl(project, data, metrics_tags):
                 },
             )
         except IntegrityError:
-            euser = EventUser.objects.get(
-                project_id=euser.project_id,
-                ident=euser.ident,
-            )
+            # TODO(michal): This is result of project_id, ident duplicate and
+            # should not be possible since we prioritize ident for hash
             created = False
+            cache.set(cache_key, -1, 3600)
+        else:
+            if not created and user_data.get("name") and euser.name != user_data.get("name"):
+                euser.update(name=user_data["name"])
+            cache.set(cache_key, euser.id, 3600)
 
         metrics_tags["created"] = str(created).lower()
-
-        if not created and user_data.get("name") and euser.name != user_data.get("name"):
-            euser.update(name=user_data["name"])
-
-        cache.set(cache_key, euser.id, 3600)
     else:
         metrics_tags["cache_hit"] = "true"
 
