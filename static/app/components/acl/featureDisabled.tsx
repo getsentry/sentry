@@ -2,11 +2,11 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import Button, {ButtonLabel} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
-import {IconChevron, IconCopy, IconInfo} from 'sentry/icons';
+import {IconChevron, IconCopy, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
@@ -70,30 +70,20 @@ class FeatureDisabled extends React.Component<Props, State> {
     this.setState(state => ({showHelp: !state.showHelp}));
   };
 
-  renderFeatureDisabled() {
+  renderContent() {
     const {showHelp} = this.state;
-    const {message, features, featureName, hideHelpToggle} = this.props;
+    const {message, hideHelpToggle, alert} = this.props;
     const showDescription = hideHelpToggle || showHelp;
 
     return (
       <React.Fragment>
         <FeatureDisabledMessage>
           {message}
-          {!hideHelpToggle && (
-            <HelpButton
-              icon={
-                showHelp ? (
-                  <IconChevron direction="down" size="xs" />
-                ) : (
-                  <IconInfo size="xs" />
-                )
-              }
-              priority="link"
-              size="xsmall"
-              onClick={this.toggleHelp}
-            >
+          {!hideHelpToggle && !alert && (
+            <ToggleButton priority="link" size="xsmall" onClick={this.toggleHelp}>
               {t('Help')}
-            </HelpButton>
+              <IconChevron direction={showDescription ? 'up' : 'down'} />
+            </ToggleButton>
           )}
         </FeatureDisabledMessage>
         {showDescription && (
@@ -103,52 +93,71 @@ class FeatureDisabled extends React.Component<Props, State> {
               e.preventDefault();
             }}
           >
-            <p>
-              {tct(
-                `Enable this feature on your sentry installation by adding the
-              following configuration into your [configFile:sentry.conf.py].
-              See [configLink:the configuration documentation] for more
-              details.`,
-                {
-                  configFile: <code />,
-                  configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
-                }
-              )}
-            </p>
-            <Clipboard hideUnsupported value={installText(features, featureName)}>
-              <Button
-                borderless
-                size="xsmall"
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-                icon={<IconCopy size="xs" />}
-              >
-                {t('Copy to Clipboard')}
-              </Button>
-            </Clipboard>
-            <pre onClick={e => selectText(e.target as HTMLElement)}>
-              <code>{installText(features, featureName)}</code>
-            </pre>
+            {this.renderHelp()}
           </HelpDescription>
         )}
       </React.Fragment>
     );
   }
 
+  renderHelp() {
+    const {features, featureName, alert} = this.props;
+
+    return [
+      <HelpText>
+        {tct(
+          `Enable this feature on your sentry installation by adding the
+              following configuration into your [configFile:sentry.conf.py].
+              See [configLink:the configuration documentation] for more
+              details.`,
+          {
+            configFile: <code />,
+            configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
+          }
+        )}
+      </HelpText>,
+      <Clipboard hideUnsupported value={installText(features, featureName)}>
+        <Button
+          borderless
+          size="xsmall"
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          icon={<IconCopy size="xs" />}
+        >
+          {t('Copy to Clipboard')}
+        </Button>
+      </Clipboard>,
+      <Pre
+        insideAlert={!!alert}
+        onClick={e => {
+          e.stopPropagation();
+          e.preventDefault();
+          selectText(e.target as HTMLElement);
+        }}
+      >
+        <code>{installText(features, featureName)}</code>
+      </Pre>,
+    ];
+  }
+
   render() {
     const {alert} = this.props;
 
     if (!alert) {
-      return this.renderFeatureDisabled();
+      return this.renderContent();
     }
 
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning">
-        <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
+      <AlertComponent
+        type="warning"
+        expand={this.renderHelp()}
+        trailingItems={<StyledIconQuestion />}
+      >
+        {this.renderContent()}
       </AlertComponent>
     );
   }
@@ -157,19 +166,12 @@ class FeatureDisabled extends React.Component<Props, State> {
 const FeatureDisabledMessage = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const HelpButton = styled(Button)`
-  font-size: 0.8em;
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 const HelpDescription = styled('div')`
-  font-size: 0.9em;
   margin-top: ${space(1)};
-
-  p {
-    line-height: 1.5em;
-  }
+  line-height: ${p => p.theme.text.lineHeightBody};
 
   pre,
   code {
@@ -182,18 +184,34 @@ const HelpDescription = styled('div')`
   }
 `;
 
-const AlertWrapper = styled('div')`
-  ${HelpButton} {
-    color: #6d6319;
-    &:hover {
-      color: #88750b;
-    }
+const HelpText = styled('p')`
+  margin-bottom: ${space(1)};
+`;
+
+const StyledIconQuestion = styled(IconQuestion)`
+  color: ${p => p.theme.yellow300};
+`;
+
+const ToggleButton = styled(Button)`
+  color: ${p => p.theme.active};
+  height: ${p => p.theme.text.lineHeightBody}em;
+  min-height: ${p => p.theme.text.lineHeightBody}em;
+
+  &:hover {
+    color: ${p => p.theme.activeHover};
   }
 
-  pre,
-  code {
-    background: #fbf7e0;
+  ${ButtonLabel} {
+    display: grid;
+    grid-auto-flow: column;
+    gap: ${space(1)};
   }
+`;
+
+const Pre = styled('pre')<{insideAlert?: boolean}>`
+  margin-bottom: 0;
+
+  ${p => p.insideAlert && `background: ${p.theme.yellow100};`}
 `;
 
 export default FeatureDisabled;
