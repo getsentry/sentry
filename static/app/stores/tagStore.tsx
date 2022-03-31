@@ -1,15 +1,11 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -57,16 +53,16 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-type TagStoreInterface = CommonStoreInterface<TagCollection> & {
+interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
   onLoadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
-};
+}
 
-const storeConfig: StoreDefinition & TagStoreInterface & SafeStoreDefinition = {
+const storeConfig: TagStoreDefinition = {
   state: {},
   unsubscribeListeners: [],
 
@@ -190,6 +186,6 @@ const storeConfig: StoreDefinition & TagStoreInterface & SafeStoreDefinition = {
 };
 
 const TagStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  TagStoreInterface;
+  TagStoreDefinition;
 
 export default TagStore;

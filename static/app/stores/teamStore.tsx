@@ -1,15 +1,11 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import TeamActions from 'sentry/actions/teamActions';
 import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;
@@ -19,11 +15,10 @@ type State = {
   teams: Team[];
 };
 
-type TeamStoreInterface = CommonStoreInterface<State> & {
+interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   getAll(): Team[];
   getById(id: string): Team | null;
   getBySlug(slug: string): Team | null;
-  init(): void;
   initialized: boolean;
   loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
   onCreateSuccess(team: Team): void;
@@ -32,9 +27,9 @@ type TeamStoreInterface = CommonStoreInterface<State> & {
   reset(): void;
 
   state: State;
-};
+}
 
-const teamStoreConfig: StoreDefinition & TeamStoreInterface & SafeStoreDefinition = {
+const teamStoreConfig: TeamStoreDefinition = {
   initialized: false,
   state: {
     teams: [],
@@ -180,6 +175,6 @@ const teamStoreConfig: StoreDefinition & TeamStoreInterface & SafeStoreDefinitio
 
 const TeamStore = createStore(
   makeSafeRefluxStore(teamStoreConfig)
-) as unknown as SafeRefluxStore & TeamStoreInterface;
+) as unknown as SafeRefluxStore & TeamStoreDefinition;
 
 export default TeamStore;

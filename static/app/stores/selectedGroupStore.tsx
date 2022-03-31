@@ -1,9 +1,13 @@
 import {createStore, Store, StoreDefinition} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type SelectedGroupStoreInterface = {
+interface InternalDefinition {
+  records: Record<string, boolean>;
+}
+
+interface SelectedGroupStoreDefinition extends StoreDefinition, InternalDefinition {
   add(ids: string[]): void;
   allSelected(): boolean;
   anySelected(): boolean;
@@ -17,16 +21,9 @@ type SelectedGroupStoreInterface = {
   prune(): void;
   toggleSelect(itemId: string): void;
   toggleSelectAll(): void;
-};
+}
 
-type Internals = {
-  records: Record<string, boolean>;
-};
-
-const storeConfig: StoreDefinition &
-  Internals &
-  SelectedGroupStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: SelectedGroupStoreDefinition = {
   records: {},
   unsubscribeListeners: [],
 
@@ -126,6 +123,6 @@ const storeConfig: StoreDefinition &
 };
 
 const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SelectedGroupStoreInterface;
+  SelectedGroupStoreDefinition;
 
 export default SelectedGroupStore;
