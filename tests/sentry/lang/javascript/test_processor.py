@@ -647,6 +647,7 @@ class FetchFileTest(TestCase):
         assert len(relevant_calls(cache_set, "releasefile")) == 1
         cache_get.reset_mock()
         cache_set.reset_mock()
+        result.close()
 
         # Second time, get it from cache
         result = fetch_release_archive_for_url(release2, dist=None, url="foo")
@@ -657,6 +658,7 @@ class FetchFileTest(TestCase):
         assert len(relevant_calls(cache_set, "releasefile")) == 0
         cache_get.reset_mock()
         cache_set.reset_mock()
+        result.close()
 
         # For other file, get cached manifest but no release file
         result = fetch_release_archive_for_url(release2, dist=None, url="bar")
@@ -688,6 +690,7 @@ class FetchFileTest(TestCase):
         result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
         assert len(relevant_calls(cache_set, "releasefile")) == 0
+        result.close()
 
     @patch(
         "sentry.lang.javascript.processor.ReleaseFile.cache.getfile",
@@ -704,6 +707,7 @@ class FetchFileTest(TestCase):
             result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
         assert len(cache_getfile.mock_calls) == 1
+        result.close()
 
     @patch(
         "sentry.lang.javascript.processor.ReleaseFile.cache.getfile",
@@ -719,6 +723,7 @@ class FetchFileTest(TestCase):
         result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
         assert len(cache_getfile.mock_calls) == 2
+        result.close()
 
     @responses.activate
     def test_unicode_body(self):

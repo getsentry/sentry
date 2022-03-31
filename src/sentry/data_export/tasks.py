@@ -343,9 +343,10 @@ def merge_export_blobs(data_export_id, **kwargs):
                     size += blob.size
                     blob_checksum = sha1(b"")
 
-                    for chunk in blob.getfile().chunks():
-                        blob_checksum.update(chunk)
-                        file_checksum.update(chunk)
+                    with blob.getfile() as f:
+                        for chunk in f.chunks():
+                            blob_checksum.update(chunk)
+                            file_checksum.update(chunk)
 
                     if blob.checksum != blob_checksum.hexdigest():
                         raise AssembleChecksumMismatch("Checksum mismatch")
