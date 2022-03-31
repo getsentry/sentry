@@ -9,6 +9,7 @@ from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
+from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.models import (
     Activity,
@@ -20,6 +21,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.plugins.base.v2 import Plugin2
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
@@ -440,7 +442,7 @@ def test_nodestore_missing(
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_apply_new_grouping_config(
+def test_apply_new_fingerprinting_rules(
     default_project,
     reset_snuba,
     register_event_preprocessor,
@@ -497,3 +499,96 @@ def test_apply_new_grouping_config(
     assert event1.group.id != event2.group.id
     assert event1.group.message == "hello world 1 HW1"
     assert event2.group.message == "hello world 2"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_apply_new_stack_trace_rules(
+    default_project,
+    reset_snuba,
+    register_event_preprocessor,
+    process_and_save,
+    burst_task_runner,
+):
+    """
+    Assert that both unmodified and concurrently inserted events go into "the
+    new group", i.e. the successor of the reprocessed (old) group that
+    inherited the group hashes.
+    """
+
+    @register_event_preprocessor
+    def event_preprocessor(data):
+        extra = data.setdefault("extra", {})
+        extra.setdefault("processing_counter", 0)
+        extra["processing_counter"] += 1
+        return data
+
+    event_id1 = process_and_save(
+        {
+            "platform": "native",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "a",
+                    },
+                    {
+                        "function": "b",
+                    },
+                ]
+            },
+        }
+    )
+    event_id2 = process_and_save(
+        {
+            "platform": "native",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "a",
+                    },
+                    {
+                        "function": "b",
+                    },
+                    {
+                        "function": "c",
+                    },
+                ]
+            },
+        }
+    )
+
+    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+
+    original_grouping_config = event1.data["grouping_config"]
+
+    # Different group, because different stack trace
+    assert event1.group.id != event2.group.id
+    original_issue_id = event1.group.id
+
+    with mock.patch(
+        "sentry.event_manager.get_grouping_config_dict_for_project",
+        return_value={
+            "id": DEFAULT_GROUPING_CONFIG,
+            "enhancements": Enhancements.from_config_string(
+                "function:c -group",
+                bases=[],
+            ).dumps(),
+        },
+    ):
+        # Reprocess
+        with burst_task_runner() as burst_reprocess:
+            reprocess_group(default_project.id, event1.group_id)
+            reprocess_group(default_project.id, event2.group_id)
+        burst_reprocess(max_jobs=100)
+
+    assert is_group_finished(event1.group_id)
+    assert is_group_finished(event2.group_id)
+
+    # Events should now be in same group because of stack trace rule
+    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    assert event1.group.id != original_issue_id
+    assert event1.group.id == event2.group.id
+
+    assert event1.data["grouping_config"] != original_grouping_config
