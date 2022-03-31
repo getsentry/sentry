@@ -163,8 +163,13 @@ class QueryField extends React.Component<Props> {
       case FieldValueKind.MEASUREMENT:
       case FieldValueKind.BREAKDOWN:
       case FieldValueKind.FIELD:
-      case FieldValueKind.NUMERIC_METRICS:
         fieldValue = {kind: 'field', field: value.meta.name};
+        break;
+      case FieldValueKind.NUMERIC_METRICS:
+        fieldValue = {
+          kind: 'calculatedField',
+          field: value.meta.name,
+        };
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'field') {
@@ -331,7 +336,7 @@ class QueryField extends React.Component<Props> {
       }
     }
 
-    if (fieldValue?.kind === 'field') {
+    if (fieldValue?.kind === 'field' || fieldValue.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }

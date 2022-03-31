@@ -32,6 +32,7 @@ import {
   getMeasurementSlug,
   isEquation,
   maybeEquationAlias,
+  stripDerivedMetricPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -127,7 +128,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     }
 
     return tableResults.map((result, i) => {
-      const fields = widget.queries[i]?.fields ?? [];
+      const fields = widget.queries[i]?.fields?.map(stripDerivedMetricPrefix) ?? [];
 
       return (
         <StyledSimpleTableChart
