@@ -388,7 +388,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
   // XXX(epurkhiser): Since this is called immediately after updating the
   // store, wait for a tick since stores are not updated fully synchronously.
   // A bit goofy, but it works fine.
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => window.setTimeout(resolve, 0));
 
   const {organization} = OrganizationStore.getState();
   const orgSlug = organization?.slug ?? null;
@@ -419,7 +419,7 @@ async function updateDesyncedUrlState(router?: Router) {
   // This function *should* be called only after persistPageFilters has been
   // called as well This function *should* be called only after
   // persistPageFilters has been called as well
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => window.setTimeout(resolve, 0));
 
   const {organization} = OrganizationStore.getState();
 

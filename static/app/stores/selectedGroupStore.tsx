@@ -1,6 +1,7 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type SelectedGroupStoreInterface = {
   add(ids: string[]): void;
@@ -22,13 +23,19 @@ type Internals = {
   records: Record<string, boolean>;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & SelectedGroupStoreInterface = {
+const storeConfig: StoreDefinition &
+  Internals &
+  SelectedGroupStoreInterface &
+  SafeStoreDefinition = {
   records: {},
+  unsubscribeListeners: [],
 
   init() {
     this.records = {};
 
-    this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange);
+    this.unsubscribeListeners.push(
+      this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
+    );
   },
 
   onGroupChange(itemIds) {
@@ -118,7 +125,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & SelectedGroupStoreInterf
   },
 };
 
-const SelectedGroupStore = Reflux.createStore(storeConfig) as Reflux.Store &
+const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
   SelectedGroupStoreInterface;
 
 export default SelectedGroupStore;

@@ -19,7 +19,6 @@ const NewProject = () => (
 const Container = styled('div')`
   flex: 1;
   background: ${p => p.theme.background};
-  margin-bottom: -${space(3)}; /* cleans up a bg gap at bottom */
 `;
 
 const Content = styled('div')`

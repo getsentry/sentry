@@ -37,6 +37,27 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         assert response.data == []
 
+    def test_session_metric_tags(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
+
     def test_metric_tags_metric_does_not_exist_in_indexer(self):
         assert (
             self.get_response(
@@ -57,15 +78,14 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
 
     def test_derived_metric_tags(self):
-        for minute in range(4):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
-                    status="ok",
-                    release="foobar@2.0",
-                )
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
             )
+        )
         response = self.get_success_response(
             self.organization.slug,
             metric=["session.crash_free_rate"],
@@ -73,7 +93,6 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         assert response.data == [
             {"key": "environment"},
             {"key": "release"},
-            {"key": "session.status"},
         ]
 
         response = self.get_success_response(
@@ -83,12 +102,54 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         assert response.data == [
             {"key": "environment"},
             {"key": "release"},
-            {"key": "session.status"},
         ]
 
+    def test_composite_derived_metrics(self):
+        for minute in range(4):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                    release="foobar@2.0",
+                    errors=2,
+                )
+            )
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["session.healthy"],
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+        ]
+
+    def test_private_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        for private_name in [
+            "session.crashed_and_abnormal_user",
+            "session.errored_preaggregated",
+            "session.errored_set",
+            "session.errored_user_all",
+        ]:
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=[private_name],
+            )
+            assert response.data == []
+
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_incorrectly_setup_derived_metric(self):
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         self.store_session(
             self.build_session(
                 project_id=self.project.id,

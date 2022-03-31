@@ -11,7 +11,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -111,7 +110,7 @@ function SetupDocs({organization, projects, search}: Props) {
     }
 
     return (
-      <Alert type="warning" icon={<IconInfo size="md" />}>
+      <Alert type="warning" showIcon>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
@@ -263,5 +262,5 @@ const Wrapper = styled('div')`
 `;
 
 const MainContent = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;

@@ -1,7 +1,8 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'sentry/types';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 type SentryAppComponentsStoreInterface = {
   get: (uuid: string) => SentryAppComponent | undefined;
@@ -11,10 +12,16 @@ type SentryAppComponentsStoreInterface = {
   onLoadComponents: (items: SentryAppComponent[]) => void;
 };
 
-const storeConfig: Reflux.StoreDefinition & SentryAppComponentsStoreInterface = {
+const storeConfig: StoreDefinition &
+  SentryAppComponentsStoreInterface &
+  SafeStoreDefinition = {
+  unsubscribeListeners: [],
+
   init() {
     this.items = [];
-    this.listenTo(SentryAppComponentsActions.loadComponents, this.onLoadComponents);
+    this.unsubscribeListeners.push(
+      this.listenTo(SentryAppComponentsActions.loadComponents, this.onLoadComponents)
+    );
   },
 
   getInitialState() {
@@ -44,7 +51,7 @@ const storeConfig: Reflux.StoreDefinition & SentryAppComponentsStoreInterface = 
   },
 };
 
-const SentryAppComponentsStore = Reflux.createStore(storeConfig) as Reflux.Store &
+const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
   SentryAppComponentsStoreInterface;
 
 export default SentryAppComponentsStore;

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -70,9 +69,9 @@ function VitalsContent(props: Props) {
                 allVitals.some(vital => !results.vitalsData?.[vital]);
 
               return (
-                <React.Fragment>
+                <Fragment>
                   {isMissingVitalsData && (
-                    <Alert type="info" icon={<IconInfo size="md" />}>
+                    <Alert type="info" showIcon>
                       {tct(
                         'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
                         {
@@ -140,7 +139,7 @@ function VitalsContent(props: Props) {
                     dataFilter={activeFilter.value}
                     results={results}
                   />
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </VitalsCardsDiscoverQuery>

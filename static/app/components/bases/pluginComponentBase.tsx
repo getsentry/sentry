@@ -112,7 +112,7 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    setTimeout(() => {
+    window.setTimeout(() => {
       addSuccessMessage(t('Success!'));
     }, 0);
   }
@@ -125,7 +125,7 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    setTimeout(() => {
+    window.setTimeout(() => {
       addErrorMessage(t('Unable to save changes. Please try again.'));
     }, 0);
   }

@@ -1,18 +1,20 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {User} from 'sentry/types';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type MemberListStoreInterface = {
   getAll(): User[];
   getByEmail(email: string): User | undefined;
   getById(id: string): User | undefined;
+  init(): void;
   isLoaded(): boolean;
   loadInitialData(items: User[]): void;
   loaded: boolean;
   state: User[];
 };
 
-const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
+const storeConfig: StoreDefinition & MemberListStoreInterface = {
   // listenables: MemberActions,
 
   loaded: false,
@@ -67,7 +69,7 @@ const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
   },
 };
 
-const MemberListStore = Reflux.createStore(storeConfig) as Reflux.Store &
+const MemberListStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
   MemberListStoreInterface;
 
 export default MemberListStore;

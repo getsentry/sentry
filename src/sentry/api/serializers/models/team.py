@@ -149,7 +149,7 @@ class TeamSerializer(Serializer):  # type: ignore
         org_roles = get_org_roles(org_ids, user)
 
         member_totals = get_member_totals(item_list, user)
-        memberships = _get_team_memberships(item_list, user)
+        team_memberships = _get_team_memberships(item_list, user)
         access_requests = get_access_requests(item_list, user)
 
         avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
@@ -158,13 +158,13 @@ class TeamSerializer(Serializer):  # type: ignore
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
 
         for team in item_list:
-            membership: OrganizationMemberTeam = memberships.get(team.id)
-            if membership is None:
+            team_membership: OrganizationMemberTeam = team_memberships.get(team.id)
+            if team_membership is None:
                 is_member = False
                 role = None
             else:
                 is_member = True
-                role = membership.get_team_role().id
+                role = team_membership.get_team_role().id
 
             org_role = org_roles.get(team.organization_id)
             if is_member:
