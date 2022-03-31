@@ -192,6 +192,7 @@ const ProjectSelector = ({
       busyItemsStillVisible={searching}
       onScroll={onScroll}
       maxHeight={500}
+      minWidth={350}
       inputProps={{style: {padding: 8, paddingLeft: 10}}}
       rootClassName={rootClassName}
       className={className}
