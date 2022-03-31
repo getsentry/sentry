@@ -375,6 +375,9 @@ const IssueDescription = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     max-width: 70%;
   }
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    max-width: 85%;
+  }
 `;
 
 const TitleWrapper = styled('div')`
@@ -403,12 +406,16 @@ const SummaryStats = styled('div')`
     margin-top: ${space(1)};
     justify-items: flex-end;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    margin-top: ${space(3)};
+  }
 `;
 
 const CountWrapper = styled('div')`
   span:not(.help-link) {
     font-size: ${p => p.theme.headerFontSize};
-    line-height: 1.45;
+    line-height: 1;
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;

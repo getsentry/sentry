@@ -15,7 +15,7 @@ function EventTitleTreeLabel({treeLabel}: Props) {
   const remainingParts = treeLabel.slice(firstFourParts.length);
 
   return (
-    <Wrapper>
+    <div>
       <FirstFourParts>
         {firstFourParts.map((part, index) => {
           const label = getTreeLabelPartDetails(part);
@@ -43,22 +43,14 @@ function EventTitleTreeLabel({treeLabel}: Props) {
           })}
         </RemainingLabels>
       )}
-    </Wrapper>
+    </div>
   );
 }
 
 export default EventTitleTreeLabel;
 
-const Wrapper = styled('div')`
-  display: inline-grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-`;
-
 const FirstFourParts = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  align-items: center;
+  display: flex;
 `;
 
 const Label = styled('div')`
