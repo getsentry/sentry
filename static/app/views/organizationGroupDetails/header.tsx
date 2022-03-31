@@ -158,7 +158,7 @@ class GroupHeader extends React.Component<Props, State> {
                         <Tooltip
                           className="help-link"
                           title={t(
-                            'This is the issue ID which can be used in various places to reference this issue, such as commit messages.'
+                            'This is the issue ID which can be referenced in various places, like commit messages.'
                           )}
                           position="bottom"
                         >
@@ -413,9 +413,11 @@ const CountWrapper = styled('div')`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    direction: rtl;
     width: 100%;
-    text-align: right;
+
+    @media (min-width: ${p => p.theme.breakpoints[1]}) {
+      text-align: right;
+    }
   }
 `;
 
