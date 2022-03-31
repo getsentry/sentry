@@ -290,8 +290,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
-        # TODO(mgaeta): Bug: Inheriting functions all _yield_ not return.
-        return self.future(  # type: ignore
+        yield self.future(
             create_issue,
             key=key,
             data=self.data,

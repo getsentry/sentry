@@ -1,12 +1,7 @@
 import logging
-from typing import Generator
 
-from sentry.eventstore.models import Event
-from sentry.rules import EventState
 from sentry.rules.actions.base import TicketEventAction
-from sentry.rules.base import CallbackFuture
 from sentry.utils.http import absolute_uri
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -25,7 +20,3 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
             self.rule.label,  # type: ignore
             absolute_uri(rule_url),
         )
-
-    @transaction_start("AzureDevopsCreateTicketAction.after")
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
-        yield super().after(event, state)  # type: ignore

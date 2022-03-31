@@ -9,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.models import Integration
 from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -52,8 +51,3 @@ class JiraCreateTicketAction(TicketEventAction):
     def translate_integration(self, integration):
         name = integration.metadata.get("domain_name", integration.name)
         return name.replace(".atlassian.net", "")
-
-    @transaction_start("JiraCreateTicketAction.after")
-    def after(self, event, state):
-        self.fix_data_for_issue()
-        yield super().after(event, state)  # type: ignore
