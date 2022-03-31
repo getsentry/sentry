@@ -596,11 +596,12 @@ export default AssigneeSelector;
 
 const AssigneeWrapper = styled('div')`
   display: flex;
-  justify-content: flex-end;
-
   /* manually align menu underneath dropdown caret */
   ${DropdownBubble} {
     right: -14px;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: flex-end;
   }
 `;
 
