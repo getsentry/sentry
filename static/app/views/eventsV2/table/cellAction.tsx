@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -377,7 +377,7 @@ class CellAction extends React.Component<Props, State> {
     let menu: React.ReactPortal | null = null;
 
     if (isOpen) {
-      menu = ReactDOM.createPortal(
+      menu = createPortal(
         <Popper placement="top" modifiers={modifiers}>
           {({ref: popperRef, style, placement, arrowProps}) => (
             <Menu

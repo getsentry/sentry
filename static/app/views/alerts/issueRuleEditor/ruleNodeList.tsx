@@ -106,7 +106,7 @@ class RuleNodeList extends React.Component<Props> {
           // is undefined even if initial value is defined
           // can't directly call onPropertyChange, because
           // getNode is called during render
-          setTimeout(() => onPropertyChange(itemIdx, 'comparisonInterval', '1w'));
+          window.setTimeout(() => onPropertyChange(itemIdx, 'comparisonInterval', '1w'));
         }
         changeAlertNode = {
           ...changeAlertNode,

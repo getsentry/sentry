@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
@@ -26,7 +26,7 @@ const defaultState = {
   pageLinks: null,
 };
 
-const storeConfig: Reflux.StoreDefinition & PluginStoreInterface & SafeStoreDefinition = {
+const storeConfig: StoreDefinition & PluginStoreInterface & SafeStoreDefinition = {
   plugins: null,
   state: {...defaultState},
   updating: new Map(),
@@ -137,8 +137,7 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface & SafeStoreDefi
   },
 };
 
-const PluginStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & PluginStoreInterface;
+const PluginStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
+  PluginStoreInterface;
 
 export default PluginStore;

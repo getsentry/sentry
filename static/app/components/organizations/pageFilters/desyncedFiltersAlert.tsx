@@ -1,12 +1,11 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {revertToPinnedFilters} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {IconClose, IconInfo} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -31,14 +30,12 @@ export default function DesyncedFilterAlert({router}: Props) {
   }
 
   return (
-    <Alert type="info" icon={<IconInfo size="md" />} system>
-      <AlertWrapper>
-        <AlertText>
-          {t(
-            "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."
-          )}
-        </AlertText>
-        <ButtonBar gap={1.5}>
+    <Alert
+      type="info"
+      showIcon
+      system
+      trailingItems={
+        <Fragment>
           <RevertButton priority="link" size="zero" onClick={onRevertClick} borderless>
             {t('Revert')}
           </RevertButton>
@@ -49,20 +46,15 @@ export default function DesyncedFilterAlert({router}: Props) {
             aria-label={t('Close Alert')}
             onClick={() => setHideAlert(true)}
           />
-        </ButtonBar>
-      </AlertWrapper>
+        </Fragment>
+      }
+    >
+      {t(
+        "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."
+      )}
     </Alert>
   );
 }
-
-const AlertWrapper = styled('div')`
-  display: flex;
-`;
-
-const AlertText = styled('div')`
-  flex: 1;
-  line-height: 22px;
-`;
 
 const RevertButton = styled(Button)`
   display: flex;

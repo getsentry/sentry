@@ -2,7 +2,7 @@ import {InjectedRouter, withRouter} from 'react-router';
 import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
