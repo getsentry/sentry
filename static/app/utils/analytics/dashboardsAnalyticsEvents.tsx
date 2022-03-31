@@ -36,25 +36,19 @@ const dashboardsEventMapAddWidgetModal: Record<
 
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
-  'dashboards_views.widget_builder.add_widget_change': {
+  'dashboards_views.widget_builder.change': {
     field: string;
     from: string;
+    new_widget: boolean;
     value: string;
     widget_type: string;
   };
-  'dashboards_views.widget_builder.add_widget_opened': {};
-  'dashboards_views.widget_builder.add_widget_save': {
-    data_set: string;
+  'dashboards_views.widget_builder.opened': {
+    new_widget: boolean;
   };
-  'dashboards_views.widget_builder.edit_widget_change': {
-    field: string;
-    from: string;
-    value: string;
-    widget_type: string;
-  };
-  'dashboards_views.widget_builder.edit_widget_opened': {};
-  'dashboards_views.widget_builder.edit_widget_save': {
+  'dashboards_views.widget_builder.save': {
     data_set: string;
+    new_widget: boolean;
   };
 };
 
@@ -62,18 +56,9 @@ const dashboardsEventMapWidgetBuilder: Record<
   keyof DashboardsEventParametersWidgetBuilder,
   string | null
 > = {
-  'dashboards_views.widget_builder.add_widget_change':
-    'Widget Builder: Add Widget - Field changed',
-  'dashboards_views.widget_builder.add_widget_opened':
-    'Widget Builder: Add Widget - Page opened',
-  'dashboards_views.widget_builder.add_widget_save':
-    'Widget Builder: Add Widget - Form submitted',
-  'dashboards_views.widget_builder.edit_widget_change':
-    'Widget Builder: Edit Widget - Field changed',
-  'dashboards_views.widget_builder.edit_widget_save':
-    'Widget Builder: Edit Widget - Form submitted',
-  'dashboards_views.widget_builder.edit_widget_opened':
-    'Widget Builder: Edit Widget - Page opened',
+  'dashboards_views.widget_builder.change': 'Widget Builder: Field changed',
+  'dashboards_views.widget_builder.save': 'Widget Builder: Form submitted',
+  'dashboards_views.widget_builder.opened': 'Widget Builder: Page opened',
 };
 
 export type DashboardsEventParameters = {
