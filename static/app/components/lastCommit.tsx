@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -45,19 +47,47 @@ function LastCommit({commit, headerClass}: Props) {
   return (
     <div>
       <h6 className={headerClass}>Last commit</h6>
-      <div className="commit">
-        <div className="commit-avatar">
+      <CommitWrapper>
+        <CommitAvatar>
           <UserAvatar user={commitAuthor || unknownUser} />
-        </div>
-        <div className="commit-message truncate">{renderMessage(commit.message)}</div>
+        </CommitAvatar>
+        <CommitMessage className="truncate">
+          {renderMessage(commit.message)}
+        </CommitMessage>
         <div className="commit-meta">
           <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
           &nbsp;
           <TimeSince date={commit.dateCreated} />
         </div>
-      </div>
+      </CommitWrapper>
     </div>
   );
 }
+
+const CommitWrapper = styled('div')`
+  margin-top: 5px;
+  margin-bottom: 20px;
+  position: relative;
+  padding: 1px 0 0 25px;
+  font-size: 13px;
+`;
+
+const CommitAvatar = styled('div')`
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  top: 2px;
+  left: 0;
+
+  .avatar {
+    width: 19px;
+    height: 19px;
+  }
+`;
+
+const CommitMessage = styled('div')`
+  line-height: 1.4;
+  margin: 2px 0 5px;
+`;
 
 export default LastCommit;
