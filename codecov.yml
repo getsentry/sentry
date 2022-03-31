@@ -14,19 +14,19 @@ coverage:
         flags:
           - backend
   ignore:
-  - src/.*?/migrations/.*
-  - src/bitfield/.*
-  - src/sentry/debug/.*
-  - src/sentry/lint/.*
-  - src/sentry/runner/.*
-  - src/social_auth/.*
+  - src/*/migrations/
+  - src/bitfield/
+  - src/sentry/debug/
+  - src/sentry/lint/
+  - src/sentry/runner/
+  - src/social_auth/
   - static/app/routes.tsx
   - tests/
 
 flags:
   frontend:
     paths:
-    - "static/app"
+    - "static/app/"
     carryforward: true
   backend:
     paths:
