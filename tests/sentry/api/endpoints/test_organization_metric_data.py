@@ -919,6 +919,80 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    def test_include_series(self):
+        indexer.record(self.organization.id, "session.status")
+        self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == [
+            {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == []
+
+    def test_histogram(self):
+        # Record some strings
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field="histogram(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramFrom="2",
+        )
+
+        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"histogram(sentry.transactions.measurements.lcp)": hist},
+            }
+        ]
+
 
 @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
@@ -928,7 +1002,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.login_as(user=self.user)
         org_id = self.organization.id
-        indexer.record(org_id, SessionMetricKey.SESSION_DURATION.value)
+        self.session_duration_metric = indexer.record(
+            org_id, SessionMetricKey.SESSION_DURATION.value
+        )
         self.session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
         self.session_user_metric = indexer.record(org_id, SessionMetricKey.USER.value)
         self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
@@ -1786,3 +1862,45 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
                 "or a supported aggregate derived metric like `session.crash_free_rate"
             )
+
+    def test_session_duration_derived_alias(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [2, 6, 8],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [11, 13, 15],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "crashed")},
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["p50(session.duration)"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"p50(session.duration)": 6.0},
+            "series": {"p50(session.duration)": [6.0]},
+        }
