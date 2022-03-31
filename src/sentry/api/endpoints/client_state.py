@@ -1,6 +1,7 @@
 # This endpoint helps managing persisted client state with a TTL for a member, organization or user
 
 from django.conf import settings
+from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,10 +37,11 @@ class ClientStateEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, category) -> Response:
         key = self.get_key(organization.slug, category, request.user)
-        res = self.client.get(key)
-        if res:
-            self.client.expire(key, STATE_CATEGORIES[category]["ttl"])
-            return Response(json.loads(res))
+        value = self.client.get(key)
+        if value:
+            response = HttpResponse(value)
+            response["Content-Type"] = "application/json"
+            return response
         else:
             return Response({})
 
