@@ -24,5 +24,6 @@ HistogramParams = namedtuple(
 @dataclass
 class QueryFramework:
     orderby: List[OrderBy]
+    having: List[WhereType]
     functions: List[CurriedFunction]
     entity: Entity
