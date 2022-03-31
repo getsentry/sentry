@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from types import LambdaType
 from typing import Any, Dict, Optional, Sequence
 
+from django.http.response import HttpResponseBase
 from django.views import View
 
 from sentry import analytics
@@ -295,17 +296,21 @@ class Pipeline:
         """
         return step.dispatch(request=self.request, pipeline=self)
 
-    def error(self, message):
-        context = {"error": message}
-        extra = {
-            "organization_id": self.organization.id if self.organization else None,
-            "provider": self.provider.key,
-            "error": message,
-        }
-        logger = self.get_logger()
-        # log error
-        logger.error("pipeline error", extra=extra)
-        return render_to_response("sentry/pipeline-error.html", context, self.request)
+    def error(self, message: str) -> HttpResponseBase:
+        self.get_logger().error(
+            f"PipelineError: {message}",
+            extra={
+                "organization_id": self.organization.id if self.organization else None,
+                "provider": self.provider.key,
+                "error": message,
+            },
+        )
+
+        return render_to_response(
+            template="sentry/pipeline-error.html",
+            context={"error": message},
+            request=self.request,
+        )
 
     def render_warning(self, message):
         """For situations when we want to display an error without triggering an issue"""

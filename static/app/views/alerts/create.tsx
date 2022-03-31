@@ -6,7 +6,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -126,7 +125,7 @@ class Create extends Component<Props, State> {
             </Layout.Title>
           </StyledHeaderContent>
         </Layout.Header>
-        <AlertConditionsBody>
+        <Layout.Body>
           <StyledLayoutMain fullWidth>
             <Teams provideUserTeams>
               {({teams, initiallyLoaded}) =>
@@ -158,15 +157,11 @@ class Create extends Component<Props, State> {
               }
             </Teams>
           </StyledLayoutMain>
-        </AlertConditionsBody>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const AlertConditionsBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-`;
 
 const StyledLayoutMain = styled(Layout.Main)`
   max-width: 1000px;

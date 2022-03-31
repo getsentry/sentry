@@ -138,7 +138,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <FilterBar
             location={location}
@@ -262,7 +262,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             }}
           />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -315,10 +315,6 @@ class AlertRulesListContainer extends Component<Props> {
 }
 
 export default withPageFilters(AlertRulesListContainer);
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledSortLink = styled(Link)`
   color: inherit;

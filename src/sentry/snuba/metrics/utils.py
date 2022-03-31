@@ -29,6 +29,7 @@ __all__ = (
     "TimeRange",
     "MetricEntity",
     "UNALLOWED_TAGS",
+    "combine_dictionary_of_list_values",
 )
 
 
@@ -55,7 +56,7 @@ MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distribution"]
+MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -70,6 +71,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
+        "histogram": "histogramIf(250)",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -127,6 +129,7 @@ OPERATIONS = (
     "count",
     "max",
     "sum",
+    "histogram",
 ) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES = {
@@ -141,6 +144,7 @@ DEFAULT_AGGREGATES = {
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "histogram": [],
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
