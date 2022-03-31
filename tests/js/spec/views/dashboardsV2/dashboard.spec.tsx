@@ -142,6 +142,6 @@ describe('Dashboards > Dashboard', () => {
       />,
       initialData.routerContext
     );
-    expect(wrapper.find('StyledIconGrabbable')).toHaveLength(1);
+    expect(wrapper.find('GrabbableButton')).toHaveLength(1);
   });
 });

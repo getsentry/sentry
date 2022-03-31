@@ -1,9 +1,13 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 type EnhancedEnvironment = Environment & {
   displayName: string;
@@ -89,6 +93,6 @@ const storeConfig: StoreDefinition &
 
 const OrganizationEnvironmentsStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as Store & OrganizationEnvironmentsStoreInterface;
+) as SafeRefluxStore & OrganizationEnvironmentsStoreInterface;
 
 export default OrganizationEnvironmentsStore;

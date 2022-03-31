@@ -27,7 +27,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body) {
         this._submitInProgress = true;
-        setTimeout(() => {
+        window.setTimeout(() => {
           this._submitInProgress = false;
           this.onSuccess();
         }, 500);
