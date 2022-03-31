@@ -586,8 +586,7 @@ class SnubaResultConverter:
         for entity, subresults in self._results.items():
             for k in "totals", "series":
                 if k in subresults:
-                    totals = subresults[k]["data"]
-                    for data in totals:
+                    for data in subresults[k]["data"]:
                         self._extract_data(data, groups)
 
         groups = [
