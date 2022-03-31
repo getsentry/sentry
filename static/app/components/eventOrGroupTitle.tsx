@@ -109,7 +109,6 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
     `
       display: flex;
       align-items: baseline;
-      line-height: 100%;
 
       ${Subtitle} {
         ${overflowEllipsis};
