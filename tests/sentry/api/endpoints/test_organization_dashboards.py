@@ -578,7 +578,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
-    def test_add_widget_with_fieldAliases_succeeds(self):
+    def test_add_widget_with_field_aliases_succeeds(self):
         data = {
             "title": "Dashboard with fieldAliases in the query",
             "widgets": [
