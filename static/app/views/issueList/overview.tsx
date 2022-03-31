@@ -101,6 +101,7 @@ type Props = {
 
 type State = {
   actionTaken: boolean;
+  actionTakenIds: string[];
   error: string | null;
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
@@ -163,8 +164,9 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds: [],
       // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
-      forReview: false,
       actionTaken: false,
+      actionTakenIds: [],
+      forReview: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -690,7 +692,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.setState({actionTaken: false});
+          this.setState({actionTaken: false, actionTakenIds: []});
         } else {
           this.setState({forReview: false});
         }
@@ -757,37 +759,72 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onGroupChange() {
     const {organization} = this.props;
+    const {actionTakenIds} = this.state;
     const query = this.getQuery();
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
     );
 
     // TODO(Kelly): update once issue-list-removal-action feature is stable
-    if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-      const resolvedIds = this._streamManager
-        .getAllItems()
-        .filter(id => id.status === 'resolved')
-        .map(item => item.id);
-      const ignoredIds = this._streamManager
-        .getAllItems()
-        .filter(id => id.status === 'ignored')
-        .map(item => item.id);
-      const reviewedIds = this._streamManager
-        .getAllItems()
-        .filter(id => !id.inbox && id.status !== 'resolved' && id.status !== 'ignored')
-        .map(item => item.id);
-      // Remove Ignored and Resolved group ids from the issue stream, but if you have a query
-      // that includes these statuses or there's no query/you want to see ALL issues,
-      // don't trigger these group ids to be removed from the issue stream.
-      if (resolvedIds.length > 0 && !query.includes('is:resolved') && !!query) {
+    if (
+      hasIssueListRemovalAction &&
+      !this.state.realtimeActive &&
+      actionTakenIds.length > 0
+    ) {
+      const resolvedIds = actionTakenIds
+        .map(id =>
+          this._streamManager
+            .getAllItems()
+            .filter(item => item.id === id && item.status === 'resolved')
+        )
+        .reduce((acc, curr) => acc.concat(curr), [])
+        .map(i => i.id);
+      const ignoredIds = actionTakenIds
+        .map(id =>
+          this._streamManager
+            .getAllItems()
+            .filter(item => item.id === id && item.status === 'ignored')
+        )
+        .reduce((acc, curr) => acc.concat(curr), [])
+        .map(i => i.id);
+      // need to include resolve and ignored statuses because marking as resolved/ignored also
+      // counts as reviewed
+      const reviewedIds = actionTakenIds
+        .map(id =>
+          this._streamManager
+            .getAllItems()
+            .filter(
+              item =>
+                item.id === id &&
+                !item.inbox &&
+                item.status !== 'resolved' &&
+                item.status !== 'ignored'
+            )
+        )
+        .reduce((acc, curr) => acc.concat(curr), [])
+        .map(i => i.id);
+      // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
+      // For Review, or Ignored tab. Still include on the saved/custom search tab.
+      if (
+        resolvedIds.length > 0 &&
+        (query.includes('is:unresolved') ||
+          query.includes('is:ignored') ||
+          isForReviewQuery(query))
+      ) {
         this.onIssueAction(resolvedIds, t('Resolved'));
       }
-      if (ignoredIds.length > 0 && !query.includes('is:ignored') && !!query) {
+      if (
+        ignoredIds.length > 0 &&
+        (query.includes('is:unresolved') || isForReviewQuery(query))
+      ) {
         this.onIssueAction(ignoredIds, t('Ignored'));
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
-      // issues if not on the For Review tab, or no query for ALL issues.
-      if (reviewedIds.length > 0 && isForReviewQuery(query) && !!query) {
+      // issues if on the All Unresolved tab or saved/custom searches.
+      if (
+        reviewedIds.length > 0 &&
+        (isForReviewQuery(query) || query.includes('is:ignored'))
+      ) {
         this.onIssueAction(reviewedIds, t('Reviewed'));
       }
     }
@@ -1080,6 +1117,12 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
+  onActionTaken = (itemIds: string[]) => {
+    this.setState({
+      actionTakenIds: itemIds,
+    });
+  };
+
   onIssueAction = (itemIds: string[], actionType: string) => {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
@@ -1091,9 +1134,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     GroupStore.remove(itemIds);
-    this.setState({
-      actionTaken: true,
-    });
+    this.setState({actionTaken: true});
     this.fetchData(true);
   };
 
@@ -1219,6 +1260,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   displayCount={displayCount}
                   onSelectStatsPeriod={this.onSelectStatsPeriod}
                   onMarkReviewed={this.onMarkReviewed}
+                  onActionTaken={this.onActionTaken}
                   onDelete={this.onDelete}
                   statsPeriod={this.getGroupStatsPeriod()}
                   groupIds={groupIds}
