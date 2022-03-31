@@ -49,28 +49,35 @@ def _set_uniq_aggregation_on_session_status_factory(
 
 
 def _aggregation_on_tx_status_func_factory(aggregate):
+    def _get_query_functions(org_id, metric_ids, exclude_tx_statuses):
+        metric_match = Function("in", [Column("metric_id"), list(metric_ids)])
+        if len(exclude_tx_statuses) == 0:
+            return metric_match
+
+        tx_col = Column(
+            f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+        )
+        statuses = [resolve_weak(org_id, s) for s in exclude_tx_statuses]
+        exclude_txs = Function(
+            "notIn",
+            [
+                tx_col,
+                statuses,
+            ],
+        )
+
+        return Function(
+            "and",
+            [
+                metric_match,
+                exclude_txs,
+            ],
+        )
+
     def _snql_on_tx_status_factory(org_id, exclude_tx_statuses: List[str], metric_ids, alias=None):
-        resolved_tx_statuses = [resolve_weak(org_id, s) for s in exclude_tx_statuses]
         return Function(
             aggregate,
-            [
-                Column("value"),
-                Function(
-                    "and",
-                    [
-                        Function(
-                            "notIn",
-                            [
-                                Column(
-                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
-                                ),
-                                resolved_tx_statuses,
-                            ],
-                        ),
-                        Function("in", [Column("metric_id"), list(metric_ids)]),
-                    ],
-                ),
-            ],
+            [Column("value"), _get_query_functions(org_id, metric_ids, exclude_tx_statuses)],
             alias,
         )
 
