@@ -4,7 +4,7 @@ import {Client} from 'sentry/api';
 import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
-  it('provides an api client ', function () {
+  it('provides an api client', function () {
     const {result} = reactHooks.renderHook(() => useApi());
 
     expect(result.current).toBeInstanceOf(Client);

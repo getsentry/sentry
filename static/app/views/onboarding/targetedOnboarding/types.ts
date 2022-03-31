@@ -5,12 +5,19 @@ export type StepData = {
   platform?: PlatformKey | null;
 };
 
+// Not sure if we need platform info to be passed down
 export type StepProps = {
   active: boolean;
+  addPlatform: (platform: PlatformKey) => void;
+  clearPlatforms: () => void;
+  genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   orgId: string;
   organization: Organization;
+  platforms: PlatformKey[];
+  removePlatform: (platform: PlatformKey) => void;
   search: string;
+  stepIndex: number;
 };
 
 export type StepDescriptor = {

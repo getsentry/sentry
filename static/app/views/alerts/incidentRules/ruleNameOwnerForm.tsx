@@ -25,8 +25,11 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
       name="name"
       label={hasAlertWizardV3 ? null : t('Rule Name')}
       help={hasAlertWizardV3 ? null : t('Add a name so it’s easy to find later.')}
-      placeholder={t('Something really bad happened')}
+      placeholder={
+        hasAlertWizardV3 ? t('Enter Alert Name') : t('Something really bad happened')
+      }
       required
+      hideControlState
     />
   );
 
@@ -37,6 +40,7 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
       label={hasAlertWizardV3 ? null : t('Team')}
       help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
       disabled={disabled}
+      hideControlState
     >
       {({model}) => {
         const owner = model.getValue('owner');
@@ -61,9 +65,8 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
 
   return hasAlertWizardV3 ? (
     <Fragment>
-      <StyledListItem>{t('Add a name')}</StyledListItem>
+      <StyledListItem>{t('Establish ownership')}</StyledListItem>
       {renderRuleName()}
-      <StyledListItem>{t('Assign this alert')}</StyledListItem>
       {renderTeamSelect()}
     </Fragment>
   ) : (
@@ -93,9 +96,10 @@ const StyledTextField = styled(TextField)<{hasAlertWizardV3: boolean}>`
 
     & > div {
       padding: 0;
+      width: 100%;
     }
 
-    margin-bottom: ${space(2)};
+    margin-bottom: ${space(1)};
   `}
 `;
 
@@ -107,8 +111,9 @@ const StyledFormField = styled(FormField)<{hasAlertWizardV3: boolean}>`
 
     & > div {
       padding: 0;
+      width: 100%;
     }
 
-    margin-bottom: ${space(2)};
+    margin-bottom: ${space(1)};
   `}
 `;

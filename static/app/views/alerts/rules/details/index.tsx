@@ -9,7 +9,6 @@ import Alert from 'sentry/components/alert';
 import DateTime from 'sentry/components/dateTime';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
@@ -166,7 +165,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
     return (
       <PageContent>
-        <Alert type="error" icon={<IconWarning />}>
+        <Alert type="error" showIcon>
           {error?.status === 404
             ? t('This alert rule could not be found.')
             : t('An error occurred while fetching the alert rule.')}

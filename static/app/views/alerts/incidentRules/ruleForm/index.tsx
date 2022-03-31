@@ -54,6 +54,7 @@ import {
   Trigger,
   UnsavedIncidentRule,
 } from '../types';
+import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
@@ -172,7 +173,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
@@ -204,7 +205,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const {status, alertRule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.setTimeout(() => {
           this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;
@@ -669,7 +670,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
+      query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
@@ -686,7 +687,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            {dataset !== Dataset.SESSIONS && (
+            {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>

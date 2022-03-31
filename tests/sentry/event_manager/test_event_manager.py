@@ -5,6 +5,7 @@ from time import time
 from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import nodestore
@@ -1067,6 +1068,10 @@ class EventManagerTest(TestCase):
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value
+
+        # clear the cache otherwise the cached EventUser from prev
+        # manager.save() will be used instead of jane
+        cache.clear()
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(make_event(event_id="b", **{"user": {"id": "1", "name": "jane"}}))

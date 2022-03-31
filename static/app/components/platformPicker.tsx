@@ -224,6 +224,7 @@ const ClearButton = styled(Button)`
   position: absolute;
   top: -6px;
   right: -6px;
+  min-height: 0;
   height: 22px;
   width: 22px;
   display: flex;

@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -8,10 +10,13 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconFlag} from 'sentry/icons';
+import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
+import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +33,23 @@ interface ProfilingContentProps {
 function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
-  const [requestState, traces, pageLinks] = useProfiles({cursor, selection});
+  const profileFilters = useProfileFilters();
+  const query = decodeScalar(location.query.query, '');
+  const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
+
+  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+    (searchQuery: string) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: searchQuery || undefined,
+        },
+      });
+    },
+    [location]
+  );
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -42,8 +63,19 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
+                <SearchContainer>
+                  <SmartSearchBar
+                    organization={organization}
+                    hasRecentSearches
+                    searchSource="profile_landing"
+                    supportedTags={profileFilters}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                </SearchContainer>
                 {requestState === 'errored' && (
-                  <Alert type="error" icon={<IconFlag size="md" />}>
+                  <Alert type="error" showIcon>
                     {t('Unable to load profiles')}
                   </Alert>
                 )}
@@ -81,6 +113,10 @@ const StyledPageContent = styled(PageContent)`
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
+`;
+
+const SearchContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default withPageFilters(ProfilingContent);

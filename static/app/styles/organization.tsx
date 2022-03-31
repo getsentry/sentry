@@ -7,13 +7,7 @@ export const PageContent = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-
-  /* No footer at smallest breakpoint */
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-bottom: 0;
-  }
+  padding: ${space(3)} ${space(4)};
 `;
 
 export const PageHeader = styled('div')`
