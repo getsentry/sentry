@@ -83,6 +83,10 @@ class Superuser:
             session_start_time = self.expires - MAX_AGE
             current_datetime = timezone.now()
             if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
+                logger.warning(
+                    "superuser.privileged_org_access_expired",
+                    extra={"superuser_token": self.token},
+                )
                 self.set_logged_out()
                 return False
         return self._is_active

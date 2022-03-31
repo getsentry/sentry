@@ -220,12 +220,20 @@ class SuperuserTestCase(TestCase):
         assert superuser.is_active is True
 
     @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
-    def test_max_time_org_change_time_expired(self):
+    @mock.patch("sentry.auth.superuser.logger")
+    def test_max_time_org_change_time_expired(self, logger):
         request = self.build_request()
+        request.session[SESSION_KEY]["idl"] = (
+            self.current_datetime + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME + timedelta(minutes=15)
+        ).strftime("%s")
         request.organization = self.create_organization(name="not_our_org")
         superuser = Superuser(request, allowed_ips=())
 
         assert superuser.is_active is False
+        logger.warning.assert_any_call(
+            "superuser.privileged_org_access_expired",
+            extra={"superuser_token": "abcdefghjiklmnog"},
+        )
 
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com", is_superuser=True)
