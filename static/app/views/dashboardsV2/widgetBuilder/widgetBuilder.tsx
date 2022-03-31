@@ -237,6 +237,7 @@ function WidgetBuilder({
       dataSet: DataSet.EVENTS,
     };
   });
+
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
@@ -246,6 +247,15 @@ function WidgetBuilder({
   }, [source]);
 
   useEffect(() => {
+    trackAdvancedAnalyticsEvent(
+      isEditing
+        ? 'dashboards_views.widget_builder.edit_widget_opened'
+        : 'dashboards_views.widget_builder.add_widget_opened',
+      {
+        organization,
+      }
+    );
+
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
       const visualization =
@@ -408,13 +418,18 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
-      from: source,
-      field,
-      value,
-      widget_type: widgetType,
-      organization,
-    });
+    trackAdvancedAnalyticsEvent(
+      isEditing
+        ? 'dashboards_views.widget_builder.edit_widget_change'
+        : 'dashboards_views.widget_builder.add_widget_change',
+      {
+        from: source,
+        field,
+        value,
+        widget_type: widgetType,
+        organization,
+      }
+    );
 
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -683,8 +698,9 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.edit_widget_save', {
         organization,
+        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
       });
       return;
     }
@@ -692,7 +708,7 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.add_widget_save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
     });
