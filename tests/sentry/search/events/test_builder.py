@@ -1108,6 +1108,75 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_run_query_with_project_orderby(self):
+        project_1 = self.create_project(slug="aaaaaa")
+        project_2 = self.create_project(slug="zzzzzz")
+        for project in [project_1, project_2]:
+            self.store_metric(
+                100,
+                tags={"transaction": "foo_transaction"},
+                project=project.id,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        self.params["project_id"] = [project_1.id, project_2.id]
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="project",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_1.slug,
+            "p95_transaction_duration": 100,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_2.slug,
+            "p95_transaction_duration": 100,
+        }
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="-project",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_2.slug,
+            "p95_transaction_duration": 100,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_1.slug,
+            "p95_transaction_duration": 100,
+        }
+
+    def test_run_query_with_tag_orderby(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                ],
+                orderby="transaction",
+            )
+            query.run_query("test_query")
+
     # TODO: multiple groupby with counter
 
     def test_run_query_with_events_per_aggregates(self):
