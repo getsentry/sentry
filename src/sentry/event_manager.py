@@ -854,12 +854,12 @@ def _nodestore_save_many(jobs):
 
         if job["group"]:
             event = job["event"]
-            data = event_processing_store.get(
+            unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
             )
-            if data is not None:
-                subkeys["unprocessed"] = data
+            if unprocessed is not None:
+                subkeys["unprocessed"] = unprocessed
 
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
