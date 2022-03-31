@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
 import pytz
@@ -21,13 +22,15 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
+    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -198,14 +201,16 @@ class HandleTriggerActionTest(TestCase):
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
     @fixture
-    def rule(self):
-        return self.create_alert_rule()
-
-    @fixture
     def subscription(self):
-        snuba_query = self.rule.snuba_query
-        snuba_query.update(dataset=Dataset.Metrics.value)
-        return snuba_query.subscriptions.get()
+        snuba_query = create_snuba_query(
+            QueryDatasets.METRICS,
+            "hello",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
+        )
+        return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
