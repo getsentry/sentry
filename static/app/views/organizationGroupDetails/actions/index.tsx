@@ -345,6 +345,7 @@ class Actions extends Component<Props, State> {
 
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
+    const hasDiscoverBasic = organization.features.includes('discover-basic');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
@@ -398,80 +399,69 @@ class Actions extends Component<Props, State> {
 
         <Access organization={organization} access={['event:admin']}>
           {({hasAccess}) => (
-            <Feature
-              hookName="feature-disabled:open-in-discover"
-              features={['discover-basic']}
-              organization={organization}
-            >
-              {({hasFeature}) => (
-                <GuideAnchor target="open_in_discover">
-                  <DropdownMenuControlV2
-                    triggerProps={{
-                      'aria-label': t('More Actions'),
-                      icon: <IconEllipsis size="xs" />,
-                      showChevron: false,
-                      size: 'xsmall',
-                    }}
-                    items={[
-                      {
-                        key: 'bookmark',
-                        label: bookmarkTitle,
-                        hidden: false,
-                        onAction: this.onToggleBookmark,
-                      },
-                      {
-                        key: 'open-in-discover',
-                        label: t('Open in Discover'),
-                        hidden: !hasFeature,
-                        onAction: this.onRedirectDiscover,
-                      },
-                      {
-                        key: 'reprocess',
-                        label: t('Reprocess events'),
-                        hidden: !displayReprocessEventAction(
-                          organization.features,
-                          event
-                        ),
-                        onAction: this.onReprocessEvent,
-                      },
-                      {
-                        key: 'delete-issue',
-                        priority: 'danger',
-                        label: t('Delete'),
-                        hidden: !hasAccess,
-                        onAction: () =>
-                          openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-                            <Fragment>
-                              <Body>
-                                {t(
-                                  'Deleting this issue is permanent. Are you sure you wish to continue?'
-                                )}
-                              </Body>
-                              <Footer>
-                                <Button onClick={closeModal}>{t('Cancel')}</Button>
-                                <Button
-                                  style={{marginLeft: space(1)}}
-                                  priority="primary"
-                                  onClick={this.onDelete}
-                                >
-                                  {t('Delete')}
-                                </Button>
-                              </Footer>
-                            </Fragment>
-                          )),
-                      },
-                      {
-                        key: 'delete-and-discard',
-                        priority: 'danger',
-                        label: t('Delete and discard future events'),
-                        hidden: !hasAccess,
-                        onAction: () => this.openDiscardModal(),
-                      },
-                    ]}
-                  />
-                </GuideAnchor>
-              )}
-            </Feature>
+            <GuideAnchor target="open_in_discover">
+              <DropdownMenuControlV2
+                triggerProps={{
+                  'aria-label': t('More Actions'),
+                  icon: <IconEllipsis size="xs" />,
+                  showChevron: false,
+                  size: 'xsmall',
+                }}
+                items={[
+                  {
+                    key: 'bookmark',
+                    label: bookmarkTitle,
+                    hidden: false,
+                    onAction: this.onToggleBookmark,
+                  },
+                  {
+                    key: 'open-in-discover',
+                    label: t('Open in Discover'),
+                    hidden: !hasDiscoverBasic,
+                    onAction: this.onRedirectDiscover,
+                  },
+                  {
+                    key: 'reprocess',
+                    label: t('Reprocess events'),
+                    hidden: !displayReprocessEventAction(organization.features, event),
+                    onAction: this.onReprocessEvent,
+                  },
+                  {
+                    key: 'delete-issue',
+                    priority: 'danger',
+                    label: t('Delete'),
+                    hidden: !hasAccess,
+                    onAction: () =>
+                      openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+                        <Fragment>
+                          <Body>
+                            {t(
+                              'Deleting this issue is permanent. Are you sure you wish to continue?'
+                            )}
+                          </Body>
+                          <Footer>
+                            <Button onClick={closeModal}>{t('Cancel')}</Button>
+                            <Button
+                              style={{marginLeft: space(1)}}
+                              priority="primary"
+                              onClick={this.onDelete}
+                            >
+                              {t('Delete')}
+                            </Button>
+                          </Footer>
+                        </Fragment>
+                      )),
+                  },
+                  {
+                    key: 'delete-and-discard',
+                    priority: 'danger',
+                    label: t('Delete and discard future events'),
+                    hidden: !hasAccess,
+                    onAction: () => this.openDiscardModal(),
+                  },
+                ]}
+              />
+            </GuideAnchor>
           )}
         </Access>
       </Wrapper>
