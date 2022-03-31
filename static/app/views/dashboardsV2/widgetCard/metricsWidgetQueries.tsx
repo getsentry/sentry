@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {stripDerivedMetricPrefix} from 'sentry/utils/discover/fields';
+import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
@@ -164,7 +164,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     const interval = getWidgetInterval(widget, {start, end, period});
 
     const promises = widget.queries.map(query => {
-      const aggregates = query.aggregates.map(stripDerivedMetricPrefix);
+      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
       const requestData = {
         field: aggregates,
         orgSlug: organization.slug,

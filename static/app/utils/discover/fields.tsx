@@ -936,16 +936,8 @@ export function isDerivedMetric(field: string): boolean {
   return field.startsWith(CALCULATED_FIELD_PREFIX);
 }
 
-export function maybeDerivedMetricAlias(field: string): boolean {
-  return field.includes(CALCULATED_FIELD_PREFIX);
-}
-
-export function stripDerivedMetricPrefix(field: string): string {
+export function stripDerivedMetricsPrefix(field: string): string {
   return field.replace(CALCULATED_FIELD_PREFIX, '');
-}
-
-export function getDerivedMetric(field: string): string {
-  return field.slice(CALCULATED_FIELD_PREFIX.length);
 }
 
 export function explodeFieldString(field: string): Column {
@@ -954,7 +946,7 @@ export function explodeFieldString(field: string): Column {
   }
 
   if (isDerivedMetric(field)) {
-    return {kind: 'calculatedField', field: getDerivedMetric(field)};
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field)};
   }
 
   const results = parseFunction(field);
