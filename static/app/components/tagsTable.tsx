@@ -10,6 +10,7 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
+import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {MetaError} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
@@ -70,7 +71,7 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
                     <i>{`<${t('invalid')}>`}</i>
                   </Tooltip>
                 ) : (
-                  tag.key
+                  <StyledTooltip title={tag.key}>{tag.key}</StyledTooltip>
                 )
               }
               value={
@@ -85,7 +86,9 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
                     <span>{renderTagValue()}</span>
                   </Tooltip>
                 ) : (
-                  <Link to={target || ''}>{renderTagValue()}</Link>
+                  <StyledTooltip title={renderTagValue()}>
+                    <Link to={target || ''}>{renderTagValue()}</Link>
+                  </StyledTooltip>
                 )
               }
             />
@@ -97,6 +100,10 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
 };
 
 export default TagsTable;
+
+const StyledTooltip = styled(Tooltip)`
+  ${overflowEllipsis};
+`;
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};
