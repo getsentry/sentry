@@ -640,7 +640,6 @@ const Wrapper = styled(PanelItem)<{
 `;
 
 const GroupSummary = styled('div')<{canSelect: boolean}>`
-  overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
   margin-right: ${space(1)};
   flex: 1;

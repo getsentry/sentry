@@ -368,7 +368,7 @@ export {GroupHeader};
 export default withApi(withRouter(withOrganization(GroupHeader)));
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 `;
 
 const IssueDescription = styled('div')`
