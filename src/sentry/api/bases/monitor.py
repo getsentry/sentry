@@ -26,8 +26,7 @@ class MonitorEndpoint(Endpoint):
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
-        auth_project_id = getattr(request.auth, "project_id", None)
-        if project.id != auth_project_id:
+        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             raise InvalidAuthProject
 
         if not features.has("organizations:monitors", project.organization, actor=request.user):
