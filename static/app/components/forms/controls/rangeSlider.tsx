@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export type Props = {
+type Props = {
   name: string;
 
   /**
@@ -361,7 +361,7 @@ export const Slider = styled('input')<{hasLabel: boolean}>`
   }
 `;
 
-export const Label = styled('label')`
+const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
   color: ${p => p.theme.subText};
@@ -374,3 +374,7 @@ export const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`
   grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
   gap: ${space(1)};
 `;
+
+export {Label as RangeSliderLabel};
+
+export type {Props as RangeSliderProps};
