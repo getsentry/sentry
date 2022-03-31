@@ -448,12 +448,10 @@ def test_apply_new_fingerprinting_rules(
     register_event_preprocessor,
     process_and_save,
     burst_task_runner,
-    default_user,
 ):
     """
-    Assert that both unmodified and concurrently inserted events go into "the
-    new group", i.e. the successor of the reprocessed (old) group that
-    inherited the group hashes.
+    Assert that after changing fingerprinting rules, the new fingerprinting config
+    is respected by reprocessing.
     """
 
     @register_event_preprocessor
@@ -511,9 +509,8 @@ def test_apply_new_stack_trace_rules(
     burst_task_runner,
 ):
     """
-    Assert that both unmodified and concurrently inserted events go into "the
-    new group", i.e. the successor of the reprocessed (old) group that
-    inherited the group hashes.
+    Assert that after changing stack trace rules, the new grouping config
+    is respected by reprocessing.
     """
 
     @register_event_preprocessor
