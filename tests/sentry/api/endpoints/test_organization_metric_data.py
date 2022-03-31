@@ -963,7 +963,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
-        self.tx_metric = indexer.record(org_id, TransactionMetricsKey.TRANSACTION.value)
+        self.tx_metric = indexer.record(org_id, TransactionMetricsKey.TRANSACTION_DURATION.value)
         self.tx_status = indexer.record(org_id, TransactionMetricsKey.TRANSACTION_STATUS.value)
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)

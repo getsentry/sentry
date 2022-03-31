@@ -856,7 +856,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.TRANSACTION_ALL.value,
-            metrics=[TransactionMetricsKey.TRANSACTION.value],
+            metrics=[TransactionMetricsKey.TRANSACTION_DURATION.value],
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias

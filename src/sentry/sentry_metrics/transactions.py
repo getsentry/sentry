@@ -9,5 +9,5 @@ class TransactionMetricsKey(Enum):
     The values are the metric names sumbitted by Relay.
     """
 
-    TRANSACTION = "transaction"
+    TRANSACTION_DURATION = "sentry.transactions.transaction.duration"
     TRANSACTION_STATUS = "transaction.status"
