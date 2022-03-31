@@ -34,7 +34,13 @@ describe('MultipleEnvironmentSelector', function () {
   ]);
 
   beforeEach(function () {
+    ConfigStore.init();
+    ConfigStore.loadInitialData(TestStubs.Config());
     onUpdate.mockReset();
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
   });
 
   const selectorProps = {
