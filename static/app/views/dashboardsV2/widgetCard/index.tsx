@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels';
@@ -74,24 +75,39 @@ class WidgetCard extends React.Component<Props> {
       <ToolbarPanel>
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           {!isMobile && (
-            <IconClick>
-              <StyledIconGrabbable
-                color="textColor"
-                className={DRAG_HANDLE_CLASS}
-                {...draggableProps?.listeners}
-                {...draggableProps?.attributes}
-              />
-            </IconClick>
+            <GrabbableButton
+              size="xsmall"
+              aria-label={t('Drag Widget')}
+              icon={<IconGrabbable />}
+              borderless
+              className={DRAG_HANDLE_CLASS}
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
+            />
           )}
-          <IconClick data-test-id="widget-edit" onClick={onEdit}>
-            <IconEdit color="textColor" />
-          </IconClick>
-          <IconClick aria-label={t('Duplicate Widget')} onClick={onDuplicate}>
-            <IconCopy color="textColor" />
-          </IconClick>
-          <IconClick data-test-id="widget-delete" onClick={onDelete}>
-            <IconDelete color="textColor" />
-          </IconClick>
+          <Button
+            data-test-id="widget-edit"
+            aria-label={t('Edit Widget')}
+            size="xsmall"
+            borderless
+            onClick={onEdit}
+            icon={<IconEdit />}
+          />
+          <Button
+            aria-label={t('Duplicate Widget')}
+            size="xsmall"
+            borderless
+            onClick={onDuplicate}
+            icon={<IconCopy />}
+          />
+          <Button
+            data-test-id="widget-delete"
+            aria-label={t('Delete Widget')}
+            borderless
+            size="xsmall"
+            onClick={onDelete}
+            icon={<IconDelete />}
+          />
         </IconContainer>
       </ToolbarPanel>
     );
@@ -239,22 +255,12 @@ const ToolbarPanel = styled('div')`
 
 const IconContainer = styled('div')`
   display: flex;
-  margin: 10px ${space(2)};
+  margin: ${space(1)};
   touch-action: none;
 `;
 
-const IconClick = styled('div')`
-  padding: ${space(1)};
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-const StyledIconGrabbable = styled(IconGrabbable)`
-  &:hover {
-    cursor: grab;
-  }
+const GrabbableButton = styled(Button)`
+  cursor: grab;
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
@@ -263,7 +269,8 @@ const WidgetTitle = styled(HeaderTitle)`
 `;
 
 const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(1)} 0 ${space(3)};
+  min-height: 36px;
   width: 100%;
   display: flex;
   align-items: center;

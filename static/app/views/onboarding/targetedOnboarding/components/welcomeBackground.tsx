@@ -60,7 +60,7 @@ StarGroup.defaultProps = {
     };
 
     style.animation = 'none';
-    setTimeout(restart, delay);
+    window.setTimeout(restart, delay);
   },
 };
 

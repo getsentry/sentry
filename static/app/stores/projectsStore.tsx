@@ -1,8 +1,13 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Project, Team} from 'sentry/types';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreInterface} from './types';
 
@@ -39,23 +44,43 @@ type ProjectsStoreInterface = CommonStoreInterface<State> & {
   reset(): void;
 };
 
-const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {
+const storeConfig: StoreDefinition &
+  Internals &
+  ProjectsStoreInterface &
+  SafeStoreDefinition = {
   itemsById: {},
   loading: true,
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
 
-    this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam);
-    this.listenTo(ProjectActions.changeSlug, this.onChangeSlug);
-    this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess);
-    this.listenTo(ProjectActions.loadProjects, this.loadInitialData);
-    this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam);
-    this.listenTo(ProjectActions.reset, this.reset);
-    this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.changeSlug, this.onChangeSlug)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadProjects, this.loadInitialData)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam)
+    );
+    this.unsubscribeListeners.push(this.listenTo(ProjectActions.reset, this.reset));
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess)
+    );
 
-    this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam);
+    this.unsubscribeListeners.push(
+      this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam)
+    );
   },
 
   reset() {
@@ -191,7 +216,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
   },
 };
 
-const ProjectsStore = Reflux.createStore(storeConfig) as Reflux.Store &
+const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
   ProjectsStoreInterface;
 
 export default ProjectsStore;

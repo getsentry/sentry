@@ -42,6 +42,46 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 200
 
+    def test_groupby_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            groupBy="session.status",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == (
+            "Tag name session.status cannot be used to groupBy query"
+        )
+
+    def test_filter_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            query="session.status:crashed",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
+
     def test_invalid_filter(self):
         query = "release:foo or "
         response = self.get_response(
@@ -768,15 +808,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
             field="sum(sentry.sessions.session)",
-            groupBy=["project_id", "session.status"],
+            groupBy=["project_id"],
         )
 
         assert response.status_code == 200
 
         groups = response.data["groups"]
-        assert len(groups) >= 2 and all(
-            group["by"].keys() == {"project_id", "session.status"} for group in groups
-        )
+        assert len(groups) >= 2 and all(group["by"].keys() == {"project_id"} for group in groups)
 
         expected = {
             self.project2.id: 1,
@@ -800,19 +838,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "foo"],
+            groupBy=["foo"],
         )
 
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+        assert groups[0]["by"] == {"foo": None}
 
         response = self.get_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "bar"],
+            groupBy=["bar"],
         )
         assert response.status_code == 400
 
@@ -880,6 +918,80 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "51 elements. Increase your interval, decrease your statsPeriod, or decrease your "
             "per_page parameter."
         )
+
+    def test_include_series(self):
+        indexer.record(self.organization.id, "session.status")
+        self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == [
+            {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field="sum(sentry.sessions.session)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == []
+
+    def test_histogram(self):
+        # Record some strings
+        org_id = self.organization.id
+        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": metric_id,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field="histogram(sentry.transactions.measurements.lcp)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramFrom="2",
+        )
+
+        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"histogram(sentry.transactions.measurements.lcp)": hist},
+            }
+        ]
 
 
 @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))

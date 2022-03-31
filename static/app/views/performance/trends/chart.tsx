@@ -3,7 +3,11 @@ import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {
+  LineChart,
+  LineChartProps,
+  LineChartSeries,
+} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -43,7 +47,7 @@ type Props = WithRouterProps &
     trendChangeType: TrendChangeType;
     disableLegend?: boolean;
     disableXAxis?: boolean;
-    grid?: React.ComponentProps<typeof LineChart>['grid'];
+    grid?: LineChartProps['grid'];
     height?: number;
     transaction?: NormalizedTrendsTransaction;
     trendFunctionField?: TrendFunctionField;
@@ -92,8 +96,8 @@ function getIntervalLine(
     return [];
   }
 
-  const seriesStart = parseInt(series[0].data[0].name as string, 0);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 0);
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
 
   if (seriesEnd < seriesStart) {
     return [];

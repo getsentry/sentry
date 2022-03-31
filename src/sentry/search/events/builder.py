@@ -43,6 +43,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
+    TREND_FUNCTION_TYPE_MAP,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
@@ -104,6 +105,7 @@ class QueryBuilder:
     ):
         self.dataset = dataset
         self.params = params
+        self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -152,14 +154,19 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
-        self.where, self.having = self.resolve_conditions(
-            query, use_aggregate_conditions=use_aggregate_conditions
-        )
-        # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-        self.where += self.resolve_params()
-        self.columns = self.resolve_select(selected_columns, equations)
-        self.orderby = self.resolve_orderby(orderby)
-        self.groupby = self.resolve_groupby()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            self.where, self.having = self.resolve_conditions(
+                query, use_aggregate_conditions=use_aggregate_conditions
+            )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+            self.where += self.resolve_params()
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            self.columns = self.resolve_select(selected_columns, equations)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            self.orderby = self.resolve_orderby(orderby)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            self.groupby = self.resolve_groupby()
 
     def load_config(
         self,
@@ -240,9 +247,13 @@ class QueryBuilder:
         query: Optional[str],
         use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
+        sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
+        sentry_sdk.set_tag("query.use_aggregate_conditions", use_aggregate_conditions)
         parsed_terms = self.parse_query(query)
 
         self.has_or_condition = any(SearchBoolean.is_or_operator(term) for term in parsed_terms)
+        sentry_sdk.set_tag("query.has_or_condition", self.has_or_condition)
+
         if any(
             isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
             for term in parsed_terms
@@ -251,6 +262,10 @@ class QueryBuilder:
         else:
             where = self.resolve_where(parsed_terms)
             having = self.resolve_having(parsed_terms, use_aggregate_conditions)
+
+        sentry_sdk.set_tag("query.has_having_conditions", len(having) > 0)
+        sentry_sdk.set_tag("query.has_where_conditions", len(where) > 0)
+
         return where, having
 
     def resolve_boolean_conditions(
@@ -397,6 +412,7 @@ class QueryBuilder:
         resolved_columns = []
         stripped_columns = [column.strip() for column in set(selected_columns)]
 
+        sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
             _, _, parsed_equations = resolve_equation_list(
                 equations, stripped_columns, use_snql=True, **self.equation_config
@@ -530,6 +546,35 @@ class QueryBuilder:
             return resolved_function
 
         return snql_function.snql_column(arguments, alias)
+
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        if function in TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, resolve_only=True)
+
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type: Optional[str] = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
 
     def resolve_snql_function(
         self,
@@ -764,7 +809,7 @@ class QueryBuilder:
         # TODO: This method should use an aliased column from the SDK once
         # that is available to skip these hacks that we currently have to
         # do aliasing.
-        resolved = self.resolve_column_name(name)
+        resolved = self.resolve_column_name(name, self.organization_id)
         column = Column(resolved)
 
         # If the expected alias is identical to the resolved snuba column,
@@ -785,7 +830,7 @@ class QueryBuilder:
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name)
+        resolved_column = self.resolve_column_name(name, self.organization_id)
         return Column(resolved_column)
 
     # Query filter helper methods
@@ -799,7 +844,7 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params, builder=self)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1029,10 +1074,6 @@ class QueryBuilder:
 
     def is_column_function(self, column: SelectType) -> bool:
         return isinstance(column, CurriedFunction) and column not in self.aggregates
-
-        # TODO: This is no longer true, can order by fields that aren't selected, keeping
-        # for now so we're consistent with the existing functionality
-        raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
     def is_field_alias(self, field: str) -> bool:
         """Given a public field, check if it's a field alias"""
@@ -1451,7 +1492,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
-        self.metric_ids: List[int] = []
+        self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         super().__init__(
             # Dataset is always Metrics
@@ -1459,6 +1500,10 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
+        if "organization_id" in self.params:
+            self.organization_id = self.params["organization_id"]
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.granularity = self.resolve_granularity()
 
     def column(self, name: str) -> Column:
@@ -1509,9 +1554,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
-        conditions.append(
-            Condition(self.column("organization_id"), Op.EQ, self.params["organization_id"])
-        )
+        conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
 
     def resolve_query(self, *args: Any, **kwargs: Any) -> None:
@@ -1581,9 +1624,8 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
-    @staticmethod
-    def _resolve_tag_value(value: str) -> int:
-        result = indexer.resolve(value)
+    def _resolve_tag_value(self, value: str) -> int:
+        result = indexer.resolve(self.organization_id, value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
         return cast(int, result)

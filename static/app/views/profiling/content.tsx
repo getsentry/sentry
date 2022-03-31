@@ -12,7 +12,6 @@ import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -76,7 +75,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   />
                 </SearchContainer>
                 {requestState === 'errored' && (
-                  <Alert type="error" icon={<IconFlag size="md" />}>
+                  <Alert type="error" showIcon>
                     {t('Unable to load profiles')}
                   </Alert>
                 )}

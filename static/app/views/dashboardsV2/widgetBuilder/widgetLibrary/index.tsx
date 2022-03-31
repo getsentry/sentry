@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -48,7 +48,7 @@ export function WidgetLibrary({
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {DEFAULT_WIDGETS.map((widget, index) => {
@@ -84,7 +84,7 @@ export function WidgetLibrary({
           );
         })}
       </WidgetLibraryWrapper>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

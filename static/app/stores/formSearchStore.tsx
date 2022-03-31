@@ -1,7 +1,8 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
 import {FieldObject} from 'sentry/components/forms/type';
+import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 /**
  * Processed form field metadata.
@@ -26,12 +27,15 @@ type Internals = {
 /**
  * Store for "form" searches, but probably will include more
  */
-const storeConfig: Reflux.StoreDefinition & Internals & StoreInterface = {
+const storeConfig: StoreDefinition & Internals & StoreInterface & SafeStoreDefinition = {
   searchMap: null,
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap);
+    this.unsubscribeListeners.push(
+      this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap)
+    );
   },
 
   get() {
@@ -57,6 +61,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & StoreInterface = {
   },
 };
 
-const FormSearchStore = Reflux.createStore(storeConfig) as Reflux.Store & StoreInterface;
+const FormSearchStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  StoreInterface;
 
 export default FormSearchStore;

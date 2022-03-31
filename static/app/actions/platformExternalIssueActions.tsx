@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const PlatformExternalIssueActions = Reflux.createActions([
+const PlatformExternalIssueActions = createActions([
   'delete',
   'deleteSuccess',
   'deleteError',
