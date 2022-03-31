@@ -201,14 +201,13 @@ class SuperuserTestCase(TestCase):
                 "superuser.logged-in", extra={"ip_address": "127.0.0.1", "user_id": 10}
             )
 
-    @freeze_time(BASETIME + INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME, as_arg=True)
-    def test_not_expired_check_org_in_request(frozen_time, self):
+    @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
+    def test_not_expired_check_org_in_request(self):
         request = self.build_request()
+        request.session[SESSION_KEY]["idl"] = (
+            self.current_datetime + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME + timedelta(minutes=15)
+        ).strftime("%s")
         superuser = Superuser(request, allowed_ips=())
-        assert superuser.is_active is True
-
-        frozen_time.move_to(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
-
         assert superuser.is_active is True
         assert not getattr(request, "organization", None)
 
