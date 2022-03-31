@@ -14,7 +14,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
@@ -25,11 +25,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  getFunctionHelpText,
-  hidePrimarySelectorSet,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {
@@ -121,7 +117,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     return Object.entries(options).map(([value, label]) => ({
       value: parseInt(value, 10),
-      label,
+      label: this.props.hasAlertWizardV3
+        ? tct('[timeWindow] interval', {
+            timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
+          })
+        : label,
     }));
   }
 
@@ -267,21 +267,25 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          {hasAlertWizardV3 && (
+          {hasAlertWizardV3 ? (
             <WizardField
               name="aggregate"
               help={null}
+              organization={organization}
               disabled={disabled}
               style={{
                 ...this.formElemBaseStyle,
+                padding: 0,
+                marginRight: space(1),
                 flex: 1,
               }}
               inline={false}
               flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
               required
             />
-          )}
-          {!hidePrimarySelectorSet.has(alertType) && timeWindowText && (
+          ) : (
             <MetricField
               name="aggregate"
               help={null}
@@ -297,13 +301,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               required
             />
           )}
-          {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
+          {!hasAlertWizardV3 && timeWindowText && (
+            <FormRowText>{timeWindowText}</FormRowText>
+          )}
           <SelectControl
             name="timeWindow"
             styles={{
               control: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
-                minWidth: 130,
+                minWidth: hasAlertWizardV3 ? 200 : 130,
                 maxWidth: 300,
               }),
             }}
@@ -390,11 +396,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {hasAlertWizardV3 && this.renderInterval()}
-        {hasAlertWizardV3 ? (
-          <StyledListItem>{t('Filter environments')}</StyledListItem>
-        ) : (
-          <StyledListItem>{t('Filter events')}</StyledListItem>
-        )}
+        <StyledListItem>{t('Filter environments')}</StyledListItem>
         <FormRow noMargin>
           <SelectField
             name="environment"

@@ -3,139 +3,213 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {Dataset} from 'sentry/views/alerts/incidentRules/types';
 import {
+  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
+
+import {getFieldOptionConfig} from './metricField';
 
 type Props = Omit<FormField['props'], 'children'> & {
   location: Location;
+  organization: Organization;
   router: InjectedRouter;
+  alertType?: AlertType;
+  /**
+   * Optionally set a width for each column of selector
+   */
+  columnWidth?: number;
+  inFieldLabels?: boolean;
 };
 
-function WizardField(props: Props) {
-  const {location, router, ...fieldProps} = props;
+const menuOptions = [
+  {
+    label: t('ERRORS'),
+    header: true,
+    key: 'errors_section_title',
+  },
+  {
+    label: AlertWizardAlertNames.num_errors,
+    key: 'num_errors',
+    template: AlertWizardRuleTemplates.num_errors,
+  },
+  {
+    label: AlertWizardAlertNames.users_experiencing_errors,
+    key: 'users_experiencing_errors',
+    template: AlertWizardRuleTemplates.users_experiencing_errors,
+  },
+  {
+    label: t('SESSIONS'),
+    header: true,
+    key: 'sessions_section_title',
+  },
+  {
+    label: AlertWizardAlertNames.crash_free_sessions,
+    key: 'crash_free_sessions',
+    template: AlertWizardRuleTemplates.crash_free_sessions,
+  },
+  {
+    label: AlertWizardAlertNames.crash_free_users,
+    key: 'crash_free_users',
+    template: AlertWizardRuleTemplates.crash_free_users,
+  },
+  {
+    label: t('PERFORMANCE'),
+    header: true,
+    key: 'performance_section_title',
+  },
+  {
+    label: AlertWizardAlertNames.throughput,
+    key: 'throughput',
+    template: AlertWizardRuleTemplates.throughput,
+  },
+  {
+    label: AlertWizardAlertNames.trans_duration,
+    key: 'trans_duration',
+    template: AlertWizardRuleTemplates.trans_duration,
+  },
+  {
+    label: AlertWizardAlertNames.apdex,
+    key: 'apdex',
+    template: AlertWizardRuleTemplates.apdex,
+  },
+  {
+    label: AlertWizardAlertNames.failure_rate,
+    key: 'failure_rate',
+    template: AlertWizardRuleTemplates.failure_rate,
+  },
+  {
+    label: AlertWizardAlertNames.lcp,
+    key: 'lcp',
+    template: AlertWizardRuleTemplates.lcp,
+  },
+  {
+    label: AlertWizardAlertNames.fid,
+    key: 'fid',
+    template: AlertWizardRuleTemplates.fid,
+  },
+  {
+    label: AlertWizardAlertNames.cls,
+    key: 'cls',
+    template: AlertWizardRuleTemplates.cls,
+  },
+  {
+    label: t('CUSTOM'),
+    header: true,
+    key: 'custom_section_title',
+  },
+  {
+    label: AlertWizardAlertNames.custom,
+    key: 'custom',
+    template: AlertWizardRuleTemplates.custom,
+  },
+];
+
+function WizardField({
+  location,
+  router,
+  organization,
+  columnWidth,
+  inFieldLabels,
+  alertType,
+  ...fieldProps
+}: Props) {
+  const selected =
+    menuOptions.find(
+      op =>
+        op.template?.aggregate === location.query.aggregate &&
+        op.template?.dataset === location.query.dataset &&
+        op.template?.dataset === location.query.dataset
+    ) || menuOptions[1];
 
   return (
     <FormField {...fieldProps}>
-      {() => {
-        const menuOptions = [
-          {
-            label: t('ERRORS'),
-            header: true,
-            key: 'errors_section_title',
-          },
-          {
-            label: AlertWizardAlertNames.num_errors,
-            key: 'num_errors',
-            template: AlertWizardRuleTemplates.num_errors,
-          },
-          {
-            label: AlertWizardAlertNames.users_experiencing_errors,
-            key: 'users_experiencing_errors',
-            template: AlertWizardRuleTemplates.users_experiencing_errors,
-          },
-          {
-            label: t('SESSIONS'),
-            header: true,
-            key: 'sessions_section_title',
-          },
-          {
-            label: AlertWizardAlertNames.crash_free_sessions,
-            key: 'crash_free_sessions',
-            template: AlertWizardRuleTemplates.crash_free_sessions,
-          },
-          {
-            label: AlertWizardAlertNames.crash_free_users,
-            key: 'crash_free_users',
-            template: AlertWizardRuleTemplates.crash_free_users,
-          },
-          {
-            label: t('PERFORMANCE'),
-            header: true,
-            key: 'performance_section_title',
-          },
-          {
-            label: AlertWizardAlertNames.throughput,
-            key: 'throughput',
-            template: AlertWizardRuleTemplates.throughput,
-          },
-          {
-            label: AlertWizardAlertNames.trans_duration,
-            key: 'trans_duration',
-            template: AlertWizardRuleTemplates.trans_duration,
-          },
-          {
-            label: AlertWizardAlertNames.apdex,
-            key: 'apdex',
-            template: AlertWizardRuleTemplates.apdex,
-          },
-          {
-            label: AlertWizardAlertNames.failure_rate,
-            key: 'failure_rate',
-            template: AlertWizardRuleTemplates.failure_rate,
-          },
-          {
-            label: AlertWizardAlertNames.lcp,
-            key: 'lcp',
-            template: AlertWizardRuleTemplates.lcp,
-          },
-          {
-            label: AlertWizardAlertNames.fid,
-            key: 'fid',
-            template: AlertWizardRuleTemplates.fid,
-          },
-          {
-            label: AlertWizardAlertNames.cls,
-            key: 'cls',
-            template: AlertWizardRuleTemplates.cls,
-          },
-          {
-            label: t('CUSTOM'),
-            header: true,
-            key: 'custom_section_title',
-          },
-          {
-            label: AlertWizardAlertNames.custom,
-            key: 'custom',
-            template: AlertWizardRuleTemplates.custom,
-          },
-        ];
+      {({onChange, value, model, disabled}) => {
+        const dataset = model.getValue('dataset');
 
-        const selected =
-          menuOptions.find(op => op.template?.aggregate === location.query.aggregate) ||
-          menuOptions[1];
+        const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
+          getFieldOptionConfig({
+            dataset: dataset as Dataset,
+            alertType,
+          });
+        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
+        const fieldValue = explodeFieldString(value ?? '');
+
+        const fieldKey =
+          fieldValue?.kind === FieldValueKind.FUNCTION
+            ? `function:${fieldValue.function[0]}`
+            : '';
+
+        const selectedField = fieldOptions[fieldKey]?.value;
+        const numParameters: number =
+          selectedField?.kind === FieldValueKind.FUNCTION
+            ? selectedField.meta.parameters.length
+            : 0;
+
+        const gridColumns =
+          1 +
+          numParameters -
+          (hideParameterSelector ? 1 : 0) -
+          (hidePrimarySelector ? 1 : 0);
 
         return (
-          <StyledDropdownControl label={selected.label}>
-            {menuOptions.map(({label, key, header}) => (
-              <StyledDropdownItem
-                key={key}
-                eventKey={key}
-                onSelect={(eventKey: MetricAlertType) =>
-                  router.replace({
-                    ...location,
-                    query: {
-                      ...location.query,
-                      aggregate: AlertWizardRuleTemplates[eventKey].aggregate,
-                      dataset: AlertWizardRuleTemplates[eventKey].dataset,
-                      eventTypes: AlertWizardRuleTemplates[eventKey].eventTypes,
-                    },
-                  })
-                }
-                isActive={key === selected.key}
-                disabled={header}
-                header={header}
-              >
-                {label}
-              </StyledDropdownItem>
-            ))}
-          </StyledDropdownControl>
+          <Container hideGap={gridColumns < 1}>
+            <StyledDropdownControl label={selected.label}>
+              {menuOptions.map(({label, key, header}) => (
+                <StyledDropdownItem
+                  key={key}
+                  eventKey={key}
+                  onSelect={(eventKey: MetricAlertType) => {
+                    const template = AlertWizardRuleTemplates[eventKey];
+
+                    model.setValue('aggregate', template.aggregate);
+                    model.setValue('dataset', template.dataset);
+                    model.setValue('eventTypes', [template.eventTypes]);
+                    router.replace({
+                      ...location,
+                      query: {
+                        ...location.query,
+                        ...template,
+                      },
+                    });
+                  }}
+                  isActive={key === selected.key}
+                  disabled={header}
+                  header={header}
+                >
+                  {label}
+                </StyledDropdownItem>
+              ))}
+            </StyledDropdownControl>
+            <StyledQueryField
+              filterPrimaryOptions={option =>
+                option.value.kind === FieldValueKind.FUNCTION
+              }
+              fieldOptions={fieldOptions}
+              fieldValue={fieldValue}
+              onChange={v => onChange(generateFieldAsString(v), {})}
+              columnWidth={columnWidth}
+              gridColumns={gridColumns}
+              inFieldLabels={inFieldLabels}
+              shouldRenderTag={false}
+              disabled={disabled}
+              hideParameterSelector={hideParameterSelector}
+              hidePrimarySelector={hidePrimarySelector}
+            />
+          </Container>
         );
       }}
     </FormField>
@@ -143,6 +217,12 @@ function WizardField(props: Props) {
 }
 
 export default withRouter(WizardField);
+
+const Container = styled('div')<{hideGap: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: ${p => (p.hideGap ? space(0) : space(1))};
+`;
 
 const StyledDropdownControl = styled(DropdownControl)`
   width: 100%;
@@ -166,3 +246,28 @@ const StyledDropdownItem = styled(DropdownItem)<{header?: boolean}>`
     `}
   border-top: 1px solid ${p => p.theme.border};
 `;
+
+const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`
+  ${p =>
+    p.columnWidth &&
+    css`
+      width: ${p.gridColumns * p.columnWidth}px;
+    `}
+`;
+
+const PresetButton = styled(Button)<{disabled: boolean}>`
+  ${p =>
+    p.disabled &&
+    css`
+      color: ${p.theme.textColor};
+      &:hover,
+      &:focus {
+        color: ${p.theme.textColor};
+      }
+    `}
+`;
+
+PresetButton.defaultProps = {
+  priority: 'link',
+  borderless: true,
+};
