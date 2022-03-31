@@ -964,7 +964,7 @@ def _get_event_user_impl(project, data, metrics_tags):
         except IntegrityError:
             euser = EventUser.objects.get(
                 project_id=euser.project_id,
-                hash=euser.hash,
+                ident=euser.ident,
             )
             created = False
 
