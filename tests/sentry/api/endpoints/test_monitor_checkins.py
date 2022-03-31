@@ -1,7 +1,6 @@
 from datetime import timedelta
 from uuid import UUID
 
-import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -172,9 +171,6 @@ class CreateMonitorCheckInTest(APITestCase):
         assert list(resp.data.keys()) == ["id"]
         assert UUID(resp.data["id"])
 
-    @pytest.mark.xfail(
-        reason="There's a bug in sentry/api/bases/monitor that needs fixed, until then, this returns 500"
-    )
     def test_with_dsn_auth_invalid_project(self):
         project = self.create_project()
         project2 = self.create_project()
