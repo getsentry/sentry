@@ -115,6 +115,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         child=serializers.CharField(), required=False, allow_null=True
     )
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
+    field_aliases = serializers.ListField(
+        child=serializers.CharField(allow_blank=True), required=False, allow_null=True
+    )
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
@@ -381,6 +384,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     fields=query["fields"],
                     aggregates=query.get("aggregates"),
                     columns=query.get("columns"),
+                    field_aliases=query.get("field_aliases"),
                     conditions=query["conditions"],
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
@@ -425,6 +429,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         fields=query_data["fields"],
                         aggregates=query_data.get("aggregates"),
                         columns=query_data.get("columns"),
+                        field_aliases=query_data.get("field_aliases"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
                         orderby=query_data.get("orderby", ""),
@@ -442,6 +447,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.orderby = data.get("orderby", query.orderby)
         query.aggregates = data.get("aggregates", query.aggregates)
         query.columns = data.get("columns", query.columns)
+        query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.order = order
         query.save()
 
