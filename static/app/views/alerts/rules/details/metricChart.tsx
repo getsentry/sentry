@@ -71,7 +71,7 @@ import {
   shouldScaleAlertChart,
 } from '../../utils';
 
-import {TIME_WINDOWS, TimePeriodType} from './constants';
+import {TimePeriodType} from './constants';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -768,13 +768,16 @@ class MetricChart extends React.PureComponent<Props, State> {
     const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
+    // Fix for 7 days * 1m interval being over the max number of results from events api
+    // 10k events is the current max
     if (
-      interval === '1m' &&
-      moment.utc(timePeriod.end).diff(moment.utc(timePeriod.start)) ===
-        TIME_WINDOWS[TimePeriod.SEVEN_DAYS]
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.SEVEN_DAYS &&
+      interval === '1m'
     ) {
       timePeriod.start = getUtcDateString(
-        moment(moment.utc(timePeriod.end).subtract(10000 - 10, 'minutes'))
+        // -5 minutes provides a small cushion for rounding up minutes. This might be able to be smaller
+        moment(moment.utc(timePeriod.end).subtract(10000 - 5, 'minutes'))
       );
     }
 
