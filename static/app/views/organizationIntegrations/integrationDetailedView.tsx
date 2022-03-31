@@ -7,8 +7,9 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import Link from 'sentry/components/links/link';
 import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
 import {getAlertText} from 'sentry/utils/integrationUtil';
@@ -31,6 +32,7 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
 type State = {
   configurations: Integration[];
   information: {providers: IntegrationProvider[]};
+  integrationNotFound: boolean;
 };
 
 class IntegrationDetailedView extends AbstractIntegrationDetailedView<
@@ -43,6 +45,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       [
         'information',
         `/organizations/${orgId}/config/integrations/?provider_key=${integrationSlug}`,
+        {},
+        {allowError: err => err && err.status === 404},
       ],
       [
         'configurations',
@@ -167,9 +171,33 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     window.open(url, '_blank');
   };
 
+  handleError = (error, args) => {
+    this.setState({integrationNotFound: true});
+    return super.handleError(error, args);
+  };
+
   handleExternalInstall = () => {
     this.trackIntegrationAnalytics('integrations.installation_start');
   };
+
+  renderBody() {
+    const {params} = this.props;
+    const {integrationNotFound} = this.state;
+    if (integrationNotFound) {
+      const sentryAppLink = (
+        <Link to={`/settings/${params.orgId}/developer-settings/new-public/`} />
+      );
+      return (
+        <Alert type="info">
+          {tct(
+            'Could not find an integration with that name. Want to [sentryAppLink:create one]?',
+            {sentryAppLink}
+          )}
+        </Alert>
+      );
+    }
+    return super.renderBody();
+  }
 
   renderAlert() {
     return (
