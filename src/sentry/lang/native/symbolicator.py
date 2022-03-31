@@ -152,6 +152,9 @@ class Symbolicator:
             options=get_options_for_project(project),
         )
 
+        # pre-close the session.  it will be re-opened next time it's used in `_process`
+        self.sess.close()
+
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
     def _process(self, create_task, task_name):

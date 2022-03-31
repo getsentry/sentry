@@ -79,6 +79,23 @@ def has_download_permission(request, project):
     return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
+class Stream:
+    def __init__(self, fp):
+        self.fp = fp
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        chunk = self.fp.read(4096)
+        if not chunk:
+            raise StopIteration()
+        return chunk
+
+    def close(self):
+        self.fp.close()
+
+
 class DebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -100,11 +117,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
+        fp = None
         try:
             fp = debug_file.file.getfile()
-            response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
-            )
+            response = StreamingHttpResponse(Stream(fp), content_type="application/octet-stream")
             response["Content-Length"] = debug_file.file.size
             response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
                 posixpath.basename(debug_file.debug_id),
@@ -112,6 +128,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             )
             return response
         except OSError:
+            if fp is not None:
+                fp.close()
             raise Http404
 
     def get(self, request: Request, project) -> Response:
