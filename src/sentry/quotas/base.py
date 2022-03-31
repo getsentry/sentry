@@ -325,12 +325,12 @@ class Quota(Service):
         return _limit_from_settings(limit), window
 
     def get_project_abuse_quotas(self, project):
-        # Per-project abuse quotas for errors, transactions, and attachments.
-        # Not sessions. (why?)
+        # Per-project abuse quotas for errors, transactions, attachments, sessions.
 
-        # Relay isn't effective at enforcing 1s windows.
         abuse_window = options.get("sentry:project-abuse-quota.window")
         if not abuse_window:
+            # Relay isn't effective at enforcing 1s windows.
+            # 10 seconds has worked well.
             abuse_window = 10
 
         from sentry.models import Organization

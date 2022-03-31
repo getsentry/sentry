@@ -87,7 +87,10 @@ class RedisQuotaTest(TestCase):
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
 
-        self.organization.update_option("sentry:project-abuse-quota.window", 10)
+        # 10 seconds is the default window.
+        # Relay can't reasonably do 1 second, 10 has worked well though.
+        # self.organization.update_option("sentry:project-abuse-quota.window", 10)
+
         self.organization.update_option("sentry:project-abuse-errors-limit", 42)
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == "s_pae"
