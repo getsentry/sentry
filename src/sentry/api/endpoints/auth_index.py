@@ -113,7 +113,8 @@ class AuthIndexEndpoint(Endpoint):
         Verify a User
         `````````````
 
-        This endpoint verifies the currently authenticated user (for example, to gain superuser).
+        This endpoint verifies the currently authenticated user (for example, to gain superuser) through 3 methods (password and u2f device (provided in the request data)
+        and valid sso session if the user is a superuser). If the request is from the superuser modal and the current superuser is verified, superuser access is granted.
 
         :auth: required
         """
@@ -121,8 +122,6 @@ class AuthIndexEndpoint(Endpoint):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         validator = AuthVerifyValidator(data=request.data)
-
-        from_superuser_modal = request.data.get("isSuperuserModal")
 
         has_valid_sso_session = (
             False if not request.user.is_superuser else has_completed_sso(request, Superuser.org_id)
@@ -133,6 +132,7 @@ class AuthIndexEndpoint(Endpoint):
                 return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
             self._reauthenticate_with_sso(request, Superuser.org_id)
 
+        from_superuser_modal = validator.validated_data.get("isSuperuserModal")
         authenticated = False
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:

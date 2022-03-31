@@ -137,7 +137,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "isSuperuserModal": True,
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -160,7 +160,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 data={
                     "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -181,7 +181,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 data={
                     "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -203,7 +203,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 data={
                     "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
