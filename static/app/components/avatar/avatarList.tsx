@@ -8,7 +8,7 @@ import {AvatarUser} from 'sentry/types';
 
 const defaultProps = {
   avatarSize: 28,
-  maxVisibleAvatars: 5,
+  maxVisibleAvatars: 3,
   typeMembers: 'users',
   tooltipOptions: {},
 };
