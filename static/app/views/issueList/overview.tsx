@@ -771,37 +771,22 @@ class IssueListOverview extends React.Component<Props, State> {
       !this.state.realtimeActive &&
       actionTakenIds.length > 0
     ) {
-      const resolvedIds = actionTakenIds
-        .map(id =>
-          this._streamManager
-            .getAllItems()
-            .filter(item => item.id === id && item.status === 'resolved')
-        )
-        .reduce((acc, curr) => acc.concat(curr), [])
-        .map(i => i.id);
-      const ignoredIds = actionTakenIds
-        .map(id =>
-          this._streamManager
-            .getAllItems()
-            .filter(item => item.id === id && item.status === 'ignored')
-        )
-        .reduce((acc, curr) => acc.concat(curr), [])
+      const filteredItems = this._streamManager.getAllItems().filter(item => {
+        return actionTakenIds.indexOf(item.id) !== -1;
+      });
+
+      const resolvedIds = filteredItems
+        .filter(item => item.status === 'resolved')
+        .map(id => id.id);
+      const ignoredIds = filteredItems
+        .filter(item => item.status === 'ignored')
         .map(i => i.id);
       // need to include resolve and ignored statuses because marking as resolved/ignored also
       // counts as reviewed
-      const reviewedIds = actionTakenIds
-        .map(id =>
-          this._streamManager
-            .getAllItems()
-            .filter(
-              item =>
-                item.id === id &&
-                !item.inbox &&
-                item.status !== 'resolved' &&
-                item.status !== 'ignored'
-            )
+      const reviewedIds = filteredItems
+        .filter(
+          item => !item.inbox && item.status !== 'resolved' && item.status !== 'ignored'
         )
-        .reduce((acc, curr) => acc.concat(curr), [])
         .map(i => i.id);
       // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
       // For Review, or Ignored tab. Still include on the saved/custom search tab.
