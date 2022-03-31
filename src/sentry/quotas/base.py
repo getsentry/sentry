@@ -335,27 +335,51 @@ class Quota(Service):
 
         from sentry.models import Organization
 
-        # TODO: I think there's a new and less verbose way to do ths?
         if not project.is_field_cached("organization"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
         org = project.organization
 
-        project_limit = org.get_option("sentry:project-abuse-errors-limit", None)
-        if project_limit is not None:
-            yield QuotaConfig(
-                # project abuse error limit
-                # s_ prefix is to prevent clashing with what currently exists
-                # in getsentry as pae. TODO not sure how Relay will handle
-                # a "pae" quota and a "s_pae" quota with a more specific category.
-                id="s_pae",
-                limit=project_limit * abuse_window,
-                scope=QuotaScope.PROJECT,
-                categories=(DataCategory.ERROR,),
-                window=abuse_window,
-                reason_code="project_abuse_errors_limit",
-            )
+        for option, id, category, reason in (
+            # s_ prefix is to prevent clashing with what currently exists
+            # in getsentry. TODO not sure how Relay will handle
+            # a "pae" quota and a "s_pae" quota with a more specific category
+            (
+                "sentry:project-abuse-errors-limit",
+                "s_pae",
+                DataCategory.ERROR,
+                "project_abuse_errors_limit",
+            ),
+            (
+                "sentry:project-abuse-transactions-limit",
+                "s_pat",
+                DataCategory.TRANSACTION,
+                "project_abuse_transactions_limit",
+            ),
+            (
+                "sentry:project-abuse-attachments-limit",
+                "s_paa",
+                DataCategory.ATTACHMENT,
+                "project_abuse_attachments_limit",
+            ),
+            (
+                "sentry:project-abuse-sessions-limit",
+                "s_pas",
+                DataCategory.SESSION,
+                "project_abuse_sessions_limit",
+            ),
+        ):
+            limit = org.get_option(option, None)
+            if limit is not None:
+                yield QuotaConfig(
+                    id="s_pae",
+                    limit=limit * abuse_window,
+                    scope=QuotaScope.PROJECT,
+                    categories=(category,),
+                    window=abuse_window,
+                    reason_code=reason,
+                )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
