@@ -116,7 +116,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     )
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     field_aliases = serializers.ListField(
-        child=serializers.CharField(allow_blank=True), required=False, allow_null=True
+        child=serializers.CharField(allow_null=True), required=False, allow_null=True
     )
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
@@ -155,7 +155,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # TODO(dam): In the future we would like the field aliases to be always a list
         # but for now we need to support it being None until we full migrate to the new full-page widget builder
-        if fieldAliases is not None and len(fieldAliases) > 0 and len(fieldAliases) != len(fields):
+        if fieldAliases is not None and len(fieldAliases) != len(fields):
             raise serializers.ValidationError(
                 "fieldAliases must have the same number of items as fields"
             )

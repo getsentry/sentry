@@ -311,7 +311,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "fields": ["count(project)", "p75(transaction.duration)"],
                             "aggregates": ["count()", "p75()"],
                             "columns": ["project", "transaction.duration"],
-                            "fieldAliases": ["Errors quantity", ""],
+                            "fieldAliases": ["Errors quantity", None],
                             "conditions": "event.type:error",
                         }
                     ],
