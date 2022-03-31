@@ -52,7 +52,7 @@ class RedisQuota(Quota):
         if key:
             key.project = project
 
-        results = []
+        results = [*self.get_project_abuse_quotas(project)]
 
         pquota = self.get_project_quota(project)
         if pquota[0] is not None:

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import options
+from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -202,8 +203,9 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_organization_quota",
+        "get_project_abuse_quotas",
         "get_project_quota",
+        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -321,6 +323,39 @@ class Quota(Service):
 
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
+
+    def get_project_abuse_quotas(self, project):
+        # Per-project abuse quotas for errors, transactions, and attachments.
+        # Not sessions. (why?)
+
+        # Relay isn't effective at enforcing 1s windows.
+        abuse_window = options.get("sentry:project-abuse-quota.window")
+        if not abuse_window:
+            abuse_window = 10
+
+        from sentry.models import Organization
+
+        # TODO: I think there's a new and less verbose way to do ths?
+        if not project.is_field_cached("organization"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+        org = project.organization
+
+        project_limit = org.get_option("sentry:project-abuse-errors-limit", None)
+        if project_limit is not None:
+            yield QuotaConfig(
+                # project abuse error limit
+                # s_ prefix is to prevent clashing with what currently exists
+                # in getsentry as pae. TODO not sure how Relay will handle
+                # a "pae" quota and a "s_pae" quota with a more specific category.
+                id="s_pae",
+                limit=project_limit * abuse_window,
+                scope=QuotaScope.PROJECT,
+                categories=(DataCategory.ERROR,),
+                window=abuse_window,
+                reason_code="project_abuse_errors_limit",
+            )
 
     def get_project_quota(self, project):
         from sentry.models import Organization, OrganizationOption
