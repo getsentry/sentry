@@ -389,9 +389,18 @@ class EventManager:
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
+            if is_reprocessed:
+                # The customer might have changed grouping enhancements since
+                # the event was ingested -> make sure we get the fresh one for reprocessing.
+                grouping_config = get_grouping_config_dict_for_project(project)
+                # Write back grouping config because it might have changed since the
+                # event was ingested.
+                # NOTE: We could do this unconditionally (regardless of `is_processed`).
+                job["data"]["grouping_config"] = grouping_config
+            else:
+                grouping_config = get_grouping_config_dict_for_event_data(
+                    job["event"].data.data, project
+                )
 
         with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
             "event_manager.calculate_event_grouping"
