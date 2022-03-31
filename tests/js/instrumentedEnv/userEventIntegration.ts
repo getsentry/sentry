@@ -1,10 +1,8 @@
 import {Hub} from '@sentry/hub';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
-const moduleName = '@testing-library/user-event';
-
 export function instrumentUserEvent(getCurrentHub: () => Hub): void {
-  const pkg = loadModule(moduleName) as any;
+  const pkg = loadModule('@testing-library/user-event') as any;
   ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action, getCurrentHub));
 }
 
@@ -25,10 +23,10 @@ const ACTIONS = [
   'keyboard',
 ];
 
-function _patchAction(userEvent: any, action: Action, getCurrentHub: () => Hub): void {
+function _patchAction(userEvent: any, action: Action, getCurrentHub?: () => Hub): void {
   fill(userEvent, action, function (orig: () => void | Promise<unknown>) {
     return function patchedAction(this: unknown, ...args: unknown[]) {
-      const scope = getCurrentHub().getScope();
+      const scope = getCurrentHub?.().getScope();
       const parentSpan = scope?.getSpan();
       const span = parentSpan?.startChild({
         op: 'user event',
