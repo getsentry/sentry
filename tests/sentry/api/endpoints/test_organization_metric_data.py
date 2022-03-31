@@ -9,7 +9,11 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import TransactionMetricsKey, TransactionTagsKey
+from sentry.sentry_metrics.transactions import (
+    TransactionMetricsKey,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -1811,7 +1815,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.release_tag: indexer.record(self.organization.id, "foo"),
-                        self.tx_status: indexer.record(self.organization.id, "ok"),
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
                     },
                     "type": "d",
                     "value": [3.4],
@@ -1824,7 +1830,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.release_tag: indexer.record(self.organization.id, "foo"),
-                        self.tx_status: indexer.record(self.organization.id, "cancelled"),
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
                     },
                     "type": "d",
                     "value": [0.3],
@@ -1837,7 +1845,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.release_tag: indexer.record(self.organization.id, "foo"),
-                        self.tx_status: indexer.record(self.organization.id, "unknown"),
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
                     },
                     "type": "d",
                     "value": [2.3],
@@ -1850,7 +1860,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "tags": {
                         self.release_tag: indexer.record(self.organization.id, "foo"),
-                        self.tx_status: indexer.record(self.organization.id, "aborted"),
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
                     },
                     "type": "d",
                     "value": [0.5],
