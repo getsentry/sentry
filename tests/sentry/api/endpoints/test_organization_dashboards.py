@@ -615,6 +615,31 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
+    def test_add_widget_with_field_aliases_fails(self):
+        data = {
+            "title": "Dashboard with fieldAliases in the query",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count(transaction.duration)"],
+                            "columns": ["transaction"],
+                            "aggregates": ["count()"],
+                            "fieldAliases": ["First Alias", "Second Alias"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400
+        assert b"fieldAliases must have the same number of elements as fields" in response.content
+
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
         data = {
             "title": "Dashboard with null agg and cols",

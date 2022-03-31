@@ -308,10 +308,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "queries": [
                         {
                             "name": "Errors",
-                            "fields": [],
-                            "aggregates": ["count()"],
-                            "columns": ["project"],
-                            "fieldAliases": ["Errors quantity"],
+                            "fields": ["count(project)", "p75(transaction.duration)"],
+                            "aggregates": ["count()", "p75()"],
+                            "columns": ["project", "transaction.duration"],
+                            "fieldAliases": ["Errors quantity", ""],
                             "conditions": "event.type:error",
                         }
                     ],
@@ -330,6 +330,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
+
+    def test_add_widget_with_invalid_field_aliases_size(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "columns": ["project"],
+                            "fieldAliases": ["Errors quantity"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"fieldAliases must have the same number of items as fields" in response.content
 
     def test_add_widget_with_aggregates_and_columns(self):
         data = {
