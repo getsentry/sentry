@@ -138,7 +138,7 @@ class UsersField:
 
 
 def finite_or_none(val):
-    if not math.isfinite(val):
+    if isinstance(val, (int, float)) and not math.isfinite(val):
         return None
     return val
 

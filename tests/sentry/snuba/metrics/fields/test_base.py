@@ -297,6 +297,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
 
     def test_run_post_query_function(self):
+        query_definition = object()
         totals = {
             "session.crashed": 7,
         }
@@ -304,9 +305,21 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.crashed": [4, 0, 0, 0, 3, 0],
         }
         crashed_sessions = MOCKED_DERIVED_METRICS["session.crashed"]
-        assert crashed_sessions.run_post_query_function(totals) == 7
-        assert crashed_sessions.run_post_query_function(series, idx=0) == 4
-        assert crashed_sessions.run_post_query_function(series, idx=4) == 3
+        assert (
+            crashed_sessions.run_post_query_function(totals, query_definition=query_definition) == 7
+        )
+        assert (
+            crashed_sessions.run_post_query_function(
+                series, query_definition=query_definition, idx=0
+            )
+            == 4
+        )
+        assert (
+            crashed_sessions.run_post_query_function(
+                series, query_definition=query_definition, idx=4
+            )
+            == 3
+        )
 
 
 class CompositeEntityDerivedMetricTestCase(TestCase):
@@ -374,6 +387,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ]
 
     def test_run_post_query_function(self):
+        query_definition = object()
         totals = {
             "session.errored_set": 3,
             "session.errored_preaggregated": 4.0,
@@ -384,6 +398,19 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "session.errored": [0, 0, 0, 0, 0, 0],
             "session.errored_preaggregated": [4.0, 0, 0, 0, 0, 0],
         }
-        assert self.sessions_errored.run_post_query_function(totals) == 7
-        assert self.sessions_errored.run_post_query_function(series, idx=0) == 4
-        assert self.sessions_errored.run_post_query_function(series, idx=4) == 3
+        assert (
+            self.sessions_errored.run_post_query_function(totals, query_definition=query_definition)
+            == 7
+        )
+        assert (
+            self.sessions_errored.run_post_query_function(
+                series, query_definition=query_definition, idx=0
+            )
+            == 4
+        )
+        assert (
+            self.sessions_errored.run_post_query_function(
+                series, query_definition=query_definition, idx=4
+            )
+            == 3
+        )
