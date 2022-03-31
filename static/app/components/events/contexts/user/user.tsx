@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
@@ -32,7 +34,7 @@ const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
 function User({data}: Props) {
   return (
-    <div className="user-widget">
+    <UserWidget>
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
@@ -53,8 +55,28 @@ function User({data}: Props) {
           />
         </ErrorBoundary>
       )}
-    </div>
+    </UserWidget>
   );
 }
+
+const UserWidget = styled('div')`
+  position: relative;
+  margin-bottom: 20px;
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    box-shadow: 0 0 0 5px #fff;
+    background: #fff;
+    border-radius: 50% 0 50% 50%;
+  }
+
+  .table {
+    margin-bottom: 0;
+  }
+`;
 
 export default User;

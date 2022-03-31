@@ -67,7 +67,6 @@ function EventOrGroupTitle({
         <Fragment>
           <Spacer />
           <Subtitle title={subtitle}>{subtitle}</Subtitle>
-          <br />
         </Fragment>
       )}
     </Wrapper>
@@ -86,6 +85,8 @@ const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</
 const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
   font-style: normal;
+  font-weight: 400;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const StyledStacktracePreview = styled(StackTracePreview)<{
@@ -106,9 +107,8 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-      display: inline-grid;
-      grid-template-columns: auto max-content 1fr max-content;
-      align-items: flex-end;
+      display: flex;
+      align-items: baseline;
       line-height: 100%;
 
       ${Subtitle} {

@@ -137,6 +137,8 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   color: ${p.theme.gray300};
   ${overflowEllipsis};
   width: auto;
+  display: flex;
+  max-width: 400px;
 
   &:last-child {
     color: ${p.theme.textColor};
@@ -167,7 +169,6 @@ const BreadcrumbLink = styled(
 
 const BreadcrumbItem = styled('span')`
   ${getBreadcrumbListItemStyles}
-  max-width: 400px;
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
