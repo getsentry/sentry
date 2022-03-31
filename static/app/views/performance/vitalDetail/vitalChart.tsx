@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -183,7 +183,7 @@ export default withRouter(VitalChart);
 
 export type _VitalChartProps = {
   field: string;
-  grid: React.ComponentProps<typeof LineChart>['grid'];
+  grid: LineChartProps['grid'];
   loading: boolean;
   reloading: boolean;
   data?: Series[];

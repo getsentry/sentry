@@ -1,37 +1,29 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import AreaChart from 'sentry/components/charts/areaChart';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
-
-jest.mock('sentry/components/charts/areaChart');
+import {
+  AlertRuleComparisonType,
+  AlertRuleThresholdType,
+} from 'sentry/views/alerts/incidentRules/types';
 
 describe('Incident Rules Create', () => {
-  let eventStatsMock;
-  let eventCountsMock;
-  let api;
-
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-    AreaChart.default = jest.fn(() => null);
-    api = new Client();
-    eventStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
-    });
-    eventCountsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-meta/',
-      body: {count: 5},
-    });
+  const eventStatsMock = MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events-stats/',
+    body: TestStubs.EventsStats(),
   });
 
-  afterEach(() => {
-    jest.resetAllMocks();
+  const eventCountsMock = MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events-meta/',
+    body: {count: 5},
   });
+
+  const api = new Client();
 
   it('renders a metric', async () => {
     const {organization, project} = initializeOrg();
+
     render(
       <TriggersChart
         api={api}
@@ -41,10 +33,14 @@ describe('Incident Rules Create', () => {
         timeWindow={1}
         aggregate="count()"
         triggers={[]}
+        environment={null}
+        comparisonType={AlertRuleComparisonType.COUNT}
+        resolveThreshold={null}
+        thresholdType={AlertRuleThresholdType.BELOW}
       />
     );
 
-    await tick();
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -70,13 +66,6 @@ describe('Incident Rules Create', () => {
           environment: [],
         },
       })
-    );
-
-    expect(AreaChart).toHaveBeenCalledWith(
-      expect.objectContaining({
-        series: [{data: expect.objectContaining({length: 1}), seriesName: 'count()'}],
-      }),
-      expect.anything()
     );
   });
 });

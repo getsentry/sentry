@@ -1,9 +1,13 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {
+  makeSafeRefluxStore,
+  SafeRefluxStore,
+  SafeStoreDefinition,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 type EnhancedEnvironment = Environment & {
   displayName: string;
@@ -24,7 +28,7 @@ type OrganizationEnvironmentsStoreInterface = {
   state: State;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   OrganizationEnvironmentsStoreInterface &
   SafeStoreDefinition = {
   unsubscribeListeners: [],
@@ -87,8 +91,8 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const OrganizationEnvironmentsStore = Reflux.createStore(
+const OrganizationEnvironmentsStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & OrganizationEnvironmentsStoreInterface;
+) as SafeRefluxStore & OrganizationEnvironmentsStoreInterface;
 
 export default OrganizationEnvironmentsStore;

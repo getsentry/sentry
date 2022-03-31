@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
@@ -22,9 +22,7 @@ type ProjectsStatsStoreInterface = {
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const storeConfig: Reflux.StoreDefinition &
-  ProjectsStatsStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & ProjectsStatsStoreInterface & SafeStoreDefinition = {
   itemsBySlug: {},
   unsubscribeListeners: [],
 
@@ -114,7 +112,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const ProjectsStatsStore = Reflux.createStore(
+const ProjectsStatsStore = createStore(
   makeSafeRefluxStore(storeConfig)
 ) as SafeRefluxStore & ProjectsStatsStoreInterface;
 

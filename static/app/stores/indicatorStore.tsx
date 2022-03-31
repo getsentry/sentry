@@ -1,4 +1,4 @@
-import Reflux from 'reflux';
+import {createStore, Store, StoreDefinition} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
 import IndicatorActions from 'sentry/actions/indicatorActions';
@@ -59,7 +59,7 @@ type Internals = {
   lastId: number;
 };
 
-const storeConfig: Reflux.StoreDefinition &
+const storeConfig: StoreDefinition &
   Internals &
   IndicatorStoreInterface &
   SafeStoreDefinition = {
@@ -146,8 +146,7 @@ const storeConfig: Reflux.StoreDefinition &
   },
 };
 
-const IndicatorStore = Reflux.createStore(
-  makeSafeRefluxStore(storeConfig)
-) as Reflux.Store & IndicatorStoreInterface;
+const IndicatorStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
+  IndicatorStoreInterface;
 
 export default IndicatorStore;

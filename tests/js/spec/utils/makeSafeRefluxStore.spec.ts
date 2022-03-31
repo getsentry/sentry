@@ -1,17 +1,16 @@
-import Reflux from 'reflux';
+import {createAction, createStore, Listenable} from 'reflux';
 
 import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 describe('makeSafeRefluxStore', () => {
-  it('cleans up listeners on teardown', () => {
-    const safeStore = Reflux.createStore(
-      makeSafeRefluxStore({})
-    ) as unknown as SafeRefluxStore;
+  it('cleans up all listeners on teardown', () => {
+    const safeStore = createStore(makeSafeRefluxStore({})) as unknown as SafeRefluxStore;
 
-    const statusUpdateAction = Reflux.createAction({'status update': ''});
-    safeStore.unsubscribeListeners.push(
-      safeStore.listenTo(statusUpdateAction, () => null)
-    );
+    const fakeAction = createAction({'status update': ''});
+    const anotherAction = createAction({'other status update': ''});
+
+    safeStore.unsubscribeListeners.push(safeStore.listenTo(fakeAction, () => null));
+    safeStore.unsubscribeListeners.push(safeStore.listenTo(anotherAction, () => null));
 
     // @ts-ignore idk why this thinks it's a never type
     const stopListenerSpy = jest.spyOn(safeStore.unsubscribeListeners[0], 'stop');
@@ -24,9 +23,9 @@ describe('makeSafeRefluxStore', () => {
 
   it('does not override unsubscribeListeners', () => {
     const stop = jest.fn();
-    const subscription = {stop, listenable: {} as unknown as Reflux.Listenable};
+    const subscription = {stop, listenable: {} as unknown as Listenable};
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
       })
@@ -37,9 +36,9 @@ describe('makeSafeRefluxStore', () => {
 
   it('tears down subscriptions', () => {
     const stop = jest.fn();
-    const subscription = {stop, listenable: {} as unknown as Reflux.Listenable};
+    const subscription = {stop, listenable: {} as unknown as Listenable};
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
       })
@@ -55,10 +54,10 @@ describe('makeSafeRefluxStore', () => {
     const teardown = jest.fn();
     const subscription = {
       stop: jest.fn(),
-      listenable: {} as unknown as Reflux.Listenable,
+      listenable: {} as unknown as Listenable,
     };
 
-    const safeStore = Reflux.createStore(
+    const safeStore = createStore(
       makeSafeRefluxStore({
         unsubscribeListeners: [subscription],
         teardown: function () {

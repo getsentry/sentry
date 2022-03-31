@@ -12,7 +12,6 @@ import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -151,14 +150,14 @@ export default class DetailsBody extends React.Component<Props> {
         {selectedIncident &&
           selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
             <StyledLayoutBody>
-              <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+              <StyledAlert type="warning" showIcon>
                 {t(
                   'Alert Rule settings have been updated since this alert was triggered.'
                 )}
               </StyledAlert>
             </StyledLayoutBody>
           )}
-        <StyledLayoutBodyWrapper>
+        <Layout.Body>
           <Layout.Main>
             <DateContainer>
               <StyledDropdownControl
@@ -240,7 +239,7 @@ export default class DetailsBody extends React.Component<Props> {
           <Layout.Side>
             <Sidebar incidents={incidents} rule={rule} />
           </Layout.Side>
-        </StyledLayoutBodyWrapper>
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -280,10 +279,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledLayoutBodyWrapper = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`

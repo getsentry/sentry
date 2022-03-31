@@ -134,7 +134,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
     const errActors = errorJSON?.raw?.[0].split('\n').map((el, i) => <p key={i}>{el}</p>);
     return (
-      <Alert type="error" icon={<IconNot size="md" />}>
+      <Alert type="error" showIcon>
         {errActors}
         {codeMapping && (
           <p>
