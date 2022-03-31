@@ -44,12 +44,10 @@ const menuOptions = [
   {
     label: AlertWizardAlertNames.num_errors,
     key: 'num_errors',
-    template: AlertWizardRuleTemplates.num_errors,
   },
   {
     label: AlertWizardAlertNames.users_experiencing_errors,
     key: 'users_experiencing_errors',
-    template: AlertWizardRuleTemplates.users_experiencing_errors,
   },
   {
     label: t('SESSIONS'),
@@ -59,12 +57,10 @@ const menuOptions = [
   {
     label: AlertWizardAlertNames.crash_free_sessions,
     key: 'crash_free_sessions',
-    template: AlertWizardRuleTemplates.crash_free_sessions,
   },
   {
     label: AlertWizardAlertNames.crash_free_users,
     key: 'crash_free_users',
-    template: AlertWizardRuleTemplates.crash_free_users,
   },
   {
     label: t('PERFORMANCE'),
@@ -74,37 +70,30 @@ const menuOptions = [
   {
     label: AlertWizardAlertNames.throughput,
     key: 'throughput',
-    template: AlertWizardRuleTemplates.throughput,
   },
   {
     label: AlertWizardAlertNames.trans_duration,
     key: 'trans_duration',
-    template: AlertWizardRuleTemplates.trans_duration,
   },
   {
     label: AlertWizardAlertNames.apdex,
     key: 'apdex',
-    template: AlertWizardRuleTemplates.apdex,
   },
   {
     label: AlertWizardAlertNames.failure_rate,
     key: 'failure_rate',
-    template: AlertWizardRuleTemplates.failure_rate,
   },
   {
     label: AlertWizardAlertNames.lcp,
     key: 'lcp',
-    template: AlertWizardRuleTemplates.lcp,
   },
   {
     label: AlertWizardAlertNames.fid,
     key: 'fid',
-    template: AlertWizardRuleTemplates.fid,
   },
   {
     label: AlertWizardAlertNames.cls,
     key: 'cls',
-    template: AlertWizardRuleTemplates.cls,
   },
   {
     label: t('CUSTOM'),
@@ -114,7 +103,6 @@ const menuOptions = [
   {
     label: AlertWizardAlertNames.custom,
     key: 'custom',
-    template: AlertWizardRuleTemplates.custom,
   },
 ];
 
@@ -130,9 +118,9 @@ function WizardField({
   const selected =
     menuOptions.find(
       op =>
-        op.template?.aggregate === location.query.aggregate &&
-        op.template?.dataset === location.query.dataset &&
-        op.template?.dataset === location.query.dataset
+        AlertWizardRuleTemplates[op.key]?.aggregate === location.query.aggregate &&
+        AlertWizardRuleTemplates[op.key]?.dataset === location.query.dataset &&
+        AlertWizardRuleTemplates[op.key]?.dataset === location.query.dataset
     ) || menuOptions[1];
 
   return (
