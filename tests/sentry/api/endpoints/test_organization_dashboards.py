@@ -638,7 +638,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400
-        assert b"fieldAliases must have the same number of elements as fields" in response.content
+        assert b"fieldAliases must have the same number of items as fields" in response.content
 
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
         data = {

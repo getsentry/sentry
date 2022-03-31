@@ -157,7 +157,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         # but for now we need to support it being None until we full migrate to the new full-page widget builder
         if fieldAliases is not None and len(fieldAliases) > 0 and len(fieldAliases) != len(fields):
             raise serializers.ValidationError(
-                "fieldAliases must have the same number of elements as fields"
+                "fieldAliases must have the same number of items as fields"
             )
 
         if not columns and not aggregates:
