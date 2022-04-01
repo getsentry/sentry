@@ -18,9 +18,9 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
-import FullIntroduction from 'sentry/views/onboarding/components/fullIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
+import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
 import {StepProps} from './types';
 
