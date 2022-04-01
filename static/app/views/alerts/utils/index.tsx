@@ -35,6 +35,7 @@ export function fetchIncidentsForRule(
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {
+      project: '-1',
       alertRule,
       includeSnapshots: true,
       start,

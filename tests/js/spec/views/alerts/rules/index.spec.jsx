@@ -11,7 +11,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe('OrganizationRuleList', () => {
+describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg();
   TeamStore.loadInitialData([], false, null);
   let rulesMock;

@@ -26,25 +26,25 @@ import DetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
 
-type Props = {
+interface Props extends RouteComponentProps<{orgId: string; ruleId: string}, {}> {
   api: Client;
   location: Location;
   organization: Organization;
   projects: Project[];
   loadingProjects?: boolean;
-} & RouteComponentProps<{orgId: string; ruleId: string}, {}>;
+}
 
-type State = {
+interface State {
   error: ResponseMeta | null;
   hasError: boolean;
   isLoading: boolean;
+  selectedIncident: Incident | null;
   incidents?: Incident[];
   rule?: IncidentRule;
-  selectedIncident?: Incident | null;
-};
+}
 
-class AlertRuleDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null};
+class MetricAlertDetails extends Component<Props, State> {
+  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -71,18 +71,18 @@ class AlertRuleDetails extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
-      alert: location.query.alert ?? '',
+      alert: (location.query.alert as string) ?? '',
     });
   }
 
-  getTimePeriod(): TimePeriodType {
+  getTimePeriod(selectedIncident: Incident | null): TimePeriodType {
     const {location} = this.props;
-    const period = location.query.period ?? TimePeriod.SEVEN_DAYS;
+    const period = (location.query.period as string) ?? TimePeriod.SEVEN_DAYS;
 
     if (location.query.start && location.query.end) {
       return {
-        start: location.query.start,
-        end: location.query.end,
+        start: location.query.start as string,
+        end: location.query.end as string,
         period,
         label: t('Custom time'),
         display: (
@@ -96,8 +96,8 @@ class AlertRuleDetails extends Component<Props, State> {
       };
     }
 
-    if (location.query.alert && this.state.selectedIncident) {
-      const {start, end} = makeRuleDetailsQuery(this.state.selectedIncident);
+    if (location.query.alert && selectedIncident) {
+      const {start, end} = makeRuleDetailsQuery(selectedIncident);
       return {
         start,
         end,
@@ -139,24 +139,42 @@ class AlertRuleDetails extends Component<Props, State> {
 
     this.setState({isLoading: true, hasError: false});
 
+    // Skip loading existing rule
+    const rulePromise =
+      ruleId === this.state.rule?.id
+        ? Promise.resolve(this.state.rule)
+        : fetchAlertRule(orgId, ruleId);
+
+    // Fetch selected incident, if it exists. We need this to set the selected date range
+    let selectedIncident: Incident | null = null;
     if (location.query.alert) {
-      await fetchIncident(api, orgId, location.query.alert)
-        .then(incident => this.setState({selectedIncident: incident}))
-        .catch(() => this.setState({selectedIncident: null}));
-    } else {
-      this.setState({selectedIncident: null});
+      try {
+        selectedIncident = await fetchIncident(
+          api,
+          orgId,
+          location.query.alert as string
+        );
+      } catch {
+        // TODO: selectedIncident specific error
+      }
     }
 
-    const timePeriod = this.getTimePeriod();
+    const timePeriod = this.getTimePeriod(selectedIncident);
     const {start, end} = timePeriod;
     try {
       const [incidents, rule] = await Promise.all([
         fetchIncidentsForRule(orgId, ruleId, start, end),
-        fetchAlertRule(orgId, ruleId),
+        rulePromise,
       ]);
-      this.setState({incidents, rule, isLoading: false, hasError: false});
+      this.setState({
+        incidents,
+        rule,
+        selectedIncident,
+        isLoading: false,
+        hasError: false,
+      });
     } catch (error) {
-      this.setState({isLoading: false, hasError: true, error});
+      this.setState({selectedIncident, isLoading: false, hasError: true, error});
     }
   };
 
@@ -177,7 +195,7 @@ class AlertRuleDetails extends Component<Props, State> {
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
     const {params, projects, loadingProjects} = this.props;
-    const timePeriod = this.getTimePeriod();
+    const timePeriod = this.getTimePeriod(selectedIncident);
 
     if (hasError) {
       return this.renderError();
@@ -219,4 +237,4 @@ class AlertRuleDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(withProjects(AlertRuleDetails));
+export default withApi(withProjects(MetricAlertDetails));
