@@ -23,6 +23,7 @@ from snuba_sdk import (
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -64,14 +65,14 @@ def get_entity_of_metric_mocked(_, metric_name):
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[17])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -80,7 +81,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -89,13 +90,13 @@ def get_entity_of_metric_mocked(_, metric_name):
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[18]"), Op.EQ, rhs=19)]),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
@@ -334,7 +335,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         alias="session.errored_preaggregated",
                     ),
                     percentage(
-                        org_id,
                         crashed_sessions(
                             org_id,
                             metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
@@ -380,7 +380,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 match=Entity("metrics_sets"),
                 select=[
                     sessions_errored_set(
-                        org_id,
                         metric_ids=[resolve_weak(org_id, "sentry.sessions.session.error")],
                         alias="session.errored_set",
                     ),
@@ -483,6 +482,92 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(6480),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
+    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
+    query_params = MultiValueDict(
+        {
+            "query": ["release:staging"],
+            "groupBy": ["environment"],
+            "field": [
+                "p95(session.duration)",
+            ],
+        }
+    )
+    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    snuba_queries, _ = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition
+    ).get_snuba_queries()
+
+    org_id = 666  # mock indexer does not require a real organization ID
+
+    distribution_queries = snuba_queries.pop("metrics_distributions")
+    assert not snuba_queries
+
+    op = "p95"
+    metric_name = SessionMetricKey.SESSION_DURATION.value
+
+    conditions = [
+        Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+        Function(
+            "equals",
+            (
+                Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                resolve_weak(org_id, "exited"),
+            ),
+        ),
+    ]
+
+    select = Function(
+        OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+        [
+            Column("value"),
+            Function("and", conditions),
+        ],
+        alias=f"{op}(session.duration)",
+    )
+    assert distribution_queries["totals"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_distributions"),
+        select=[select],
+        groupby=[
+            Column("tags[2]"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [7]),
+        ],
+        limit=Limit(MAX_POINTS),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+    assert distribution_queries["series"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_distributions"),
+        select=[select],
+        groupby=[
+            Column("tags[2]"),
+            Column("bucketed_time"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [7]),
+        ],
+        limit=Limit(MAX_POINTS),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )

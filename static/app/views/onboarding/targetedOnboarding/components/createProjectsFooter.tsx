@@ -4,7 +4,11 @@ import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
 import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
@@ -20,6 +24,7 @@ import useTeams from 'sentry/utils/useTeams';
 import GenericFooter from './genericFooter';
 
 type Props = {
+  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   organization: Organization;
@@ -31,6 +36,7 @@ export default function CreateProjectsFooter({
   platforms,
   onComplete,
   genSkipOnboardingLink,
+  clearPlatforms,
 }: Props) {
   const api = useApi();
   const {teams} = useTeams();
@@ -49,6 +55,7 @@ export default function CreateProjectsFooter({
         platforms: platforms.join(','),
         organization,
       });
+      clearIndicators();
       onComplete();
     } catch (err) {
       addErrorMessage(t('Failed to create projects'));
@@ -70,12 +77,19 @@ export default function CreateProjectsFooter({
             <div>{platforms.map(renderPlatform)}</div>
             <PlatformSelected>
               {tn('%s platform selected', '%s platforms selected', platforms.length)}
+              <ClearButton priority="link" onClick={clearPlatforms} size="zero">
+                {t('Clear')}
+              </ClearButton>
             </PlatformSelected>
           </Fragment>
         ) : null}
       </SelectionWrapper>
       <ButtonWrapper>
-        <Button priority="primary" onClick={createProjects}>
+        <Button
+          priority="primary"
+          onClick={createProjects}
+          disabled={platforms.length === 0}
+        >
           {tn('Create Project', 'Create Projects', platforms.length)}
         </Button>
       </ButtonWrapper>
@@ -88,7 +102,6 @@ const SelectionWrapper = styled(motion.div)`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin-right: ${space(4)};
 `;
 
 SelectionWrapper.defaultProps = {
@@ -116,4 +129,8 @@ const SelectedPlatformIcon = styled(PlatformIcon)`
 
 const PlatformSelected = styled('div')`
   margin-top: ${space(1)};
+`;
+
+const ClearButton = styled(Button)`
+  margin-left: ${space(2)};
 `;

@@ -39,6 +39,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.anon_users_query["fields"],
             columns=self.anon_users_query["columns"],
             aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
@@ -48,6 +49,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.known_users_query["fields"],
             columns=self.known_users_query["columns"],
             aggregates=self.known_users_query["aggregates"],
+            field_aliases=self.known_users_query["fieldAliases"],
             conditions=self.known_users_query["conditions"],
             order=1,
         )
@@ -58,6 +60,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             columns=self.geo_errors_query["columns"],
             aggregates=self.geo_errors_query["aggregates"],
             conditions=self.geo_errors_query["conditions"],
+            field_aliases=self.geo_errors_query["fieldAliases"],
             order=0,
         )
 
@@ -123,6 +126,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["limit"] is None
         assert response.data["widgets"][1]["limit"] == 5
+
+    def test_dashboard_widget_query_returns_field_aliases(self):
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["queries"][0]["fieldAliases"][0] == "Count Alias"
+        assert response.data["widgets"][1]["queries"][0]["fieldAliases"] == []
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -287,6 +296,40 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+
+    def test_add_widget_with_field_aliases(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": [],
+                            "aggregates": ["count()"],
+                            "columns": ["project"],
+                            "fieldAliases": ["Errors quantity"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        for expected_widget, actual_widget in zip(data["widgets"], widgets):
+            self.assert_serialized_widget(expected_widget, actual_widget)
+            queries = actual_widget.dashboardwidgetquery_set.all()
+
+            for expected_query, actual_query in zip(expected_widget["queries"], queries):
+                self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_aggregates_and_columns(self):
         data = {

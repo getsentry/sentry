@@ -21,6 +21,7 @@ _STRINGS = (
     "init",
     SessionMetricKey.SESSION_ERROR.value,
     "abnormal",
+    "exited",
 )
 
 

@@ -121,7 +121,7 @@ class SubscriptionProcessor:
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
-    def __reset_trigger_counts(self):
+    def reset_trigger_counts(self):
         """
         Helper method that clears both the trigger alert and the trigger resolve counts
         """
@@ -232,7 +232,7 @@ class SubscriptionProcessor:
             CRASH_RATE_ALERT_AGGREGATE_ALIAS
         ]
         if aggregation_value is None:
-            self.__reset_trigger_counts()
+            self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
@@ -243,7 +243,7 @@ class SubscriptionProcessor:
             if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
                 min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
                 if total_count < min_threshold:
-                    self.__reset_trigger_counts()
+                    self.reset_trigger_counts()
                     metrics.incr(
                         "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
                     )
@@ -294,14 +294,14 @@ class SubscriptionProcessor:
         )
 
         if total_session_count == 0:
-            self.__reset_trigger_counts()
+            self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
         if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
             min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
             if total_session_count < min_threshold:
-                self.__reset_trigger_counts()
+                self.reset_trigger_counts()
                 metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
                 return
 
