@@ -156,8 +156,9 @@ const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
-  align-self: center;
   text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 
   h1 {
     font-size: 42px;

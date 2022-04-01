@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,9 +18,9 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
-import FullIntroduction from 'sentry/views/onboarding/components/fullIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
+import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
 import {StepProps} from './types';
 
@@ -146,18 +146,21 @@ function SetupDocs({organization, projects, search}: Props) {
   );
 
   return (
-    <Wrapper>
-      <TargetedOnboardingSidebar
-        activeProject={project}
-        {...{checkProjectHasFirstEvent, setNewProject}}
-      />
-      <MainContent>
-        <FullIntroduction currentPlatform={currentPlatform} />
-        {getDynamicText({
-          value: !hasError ? docs : loadingError,
-          fixed: testOnlyAlert,
-        })}
-      </MainContent>
+    <React.Fragment>
+      <Wrapper>
+        <TargetedOnboardingSidebar
+          activeProject={project}
+          {...{checkProjectHasFirstEvent, setNewProject}}
+        />
+        <MainContent>
+          <FullIntroduction currentPlatform={currentPlatform} />
+          {getDynamicText({
+            value: !hasError ? docs : loadingError,
+            fixed: testOnlyAlert,
+          })}
+        </MainContent>
+      </Wrapper>
+
       {project && (
         <FirstEventFooter
           project={project}
@@ -182,7 +185,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </Wrapper>
+    </React.Fragment>
   );
 }
 
@@ -255,12 +258,14 @@ DocsWrapper.defaultProps = {
 };
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: fit-content(100%) fit-content(100%);
-  width: max-content;
+  display: flex;
+  flex-direction: row;
   margin: ${space(2)};
+  justify-content: center;
 `;
 
 const MainContent = styled('div')`
   max-width: 850px;
+  min-width: 0;
+  flex-grow: 1;
 `;

@@ -43,4 +43,6 @@ export default OnboardingPlatform;
 
 const Wrapper = styled('div')`
   max-width: 850px;
+  margin-left: auto;
+  margin-right: auto;
 `;
