@@ -78,6 +78,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 
 
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
-    invite_link: str
+    invite_link: Optional[str]
     isOnlyOwner: bool
     roles: List[RoleSerializerResponse]
