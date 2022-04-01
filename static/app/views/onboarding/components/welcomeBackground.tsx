@@ -1,7 +1,7 @@
-import * as React from 'react';
-import {keyframes} from '@emotion/react';
+import {useCallback, useEffect, useRef} from 'react';
+import {keyframes, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {motion, SVGMotionProps} from 'framer-motion';
 import random from 'lodash/random';
 
 import testableTransition from 'sentry/utils/testableTransition';
@@ -42,28 +42,60 @@ const fallingKeyframes = keyframes`
   }
 `;
 
-const StarGroup = styled(motion.g)`
+const StarGroupInternal = styled(motion.g)`
   > g {
     animation-name: ${fallingKeyframes};
   }
 `;
 
-StarGroup.defaultProps = {
-  onAnimationEnd: (e: React.AnimationEvent) => {
-    if (!(e.target instanceof SVGGElement)) {
-      return;
-    }
-    const style = e.target.style;
-    const delay = random(3000, 10000);
+interface StarGroupProps extends SVGMotionProps<SVGGElement> {
+  css?: JSX.IntrinsicAttributes['css'];
+  onAnimationEnd?: React.AnimationEventHandler<SVGGElement>;
+  theme?: Theme;
+}
 
-    const restart = () => {
-      style.animation = `${fallingKeyframes.name} ${random(3000, 8000)}ms`;
+function StarGroup(props: StarGroupProps): React.ReactElement {
+  const animationRestartTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (animationRestartTimeoutRef.current) {
+        window.clearTimeout(animationRestartTimeoutRef.current);
+      }
     };
+  }, []);
 
-    style.animation = 'none';
-    window.setTimeout(restart, delay);
-  },
-};
+  const onAnimationEnd: React.AnimationEventHandler<SVGGElement> = useCallback(
+    e => {
+      if (props.onAnimationEnd) {
+        props.onAnimationEnd(e);
+        return undefined;
+      }
+
+      if (!(e.target instanceof SVGGElement)) {
+        return undefined;
+      }
+
+      const style = e.target.style;
+      const delay = random(3000, 10000);
+
+      const restart = () => {
+        style.animation = `${fallingKeyframes.name} ${random(3000, 8000)}ms`;
+      };
+
+      style.animation = 'none';
+      if (animationRestartTimeoutRef.current) {
+        window.clearTimeout(animationRestartTimeoutRef.current);
+      }
+      animationRestartTimeoutRef.current = window.setTimeout(restart, delay);
+
+      return undefined;
+    },
+    [props.onAnimationEnd]
+  );
+
+  return <StarGroupInternal {...props} css={props.css} onAnimationEnd={onAnimationEnd} />;
+}
 
 const WelcomeBackground = () => (
   <Container>

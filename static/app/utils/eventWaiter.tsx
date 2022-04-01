@@ -60,7 +60,7 @@ class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
     this.stopPolling();
   }
 
-  intervalId: number | null = null;
+  pollingInterval: number | null = null;
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
@@ -139,15 +139,20 @@ class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
       return;
     }
 
-    this.intervalId = window.setInterval(
+    // Proactively clear interval just in case stopPolling was not called
+    if (this.pollingInterval) {
+      window.clearInterval(this.pollingInterval);
+    }
+
+    this.pollingInterval = window.setInterval(
       this.pollHandler,
       this.props.pollInterval || DEFAULT_POLL_INTERVAL
     );
   }
 
   stopPolling() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
     }
   }
 

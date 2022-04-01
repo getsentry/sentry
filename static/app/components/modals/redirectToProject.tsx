@@ -23,7 +23,7 @@ class RedirectToProjectModal extends Component<Props, State> {
   };
 
   componentDidMount() {
-    setInterval(() => {
+    this.redirectInterval = window.setInterval(() => {
       if (this.state.timer <= 1) {
         window.location.assign(this.newPath);
         return;
@@ -34,6 +34,14 @@ class RedirectToProjectModal extends Component<Props, State> {
       }));
     }, 1000);
   }
+
+  componentWillUnmount() {
+    if (this.redirectInterval) {
+      window.clearInterval(this.redirectInterval);
+    }
+  }
+
+  redirectInterval: number | null = null;
 
   get newPath() {
     const {params, slug} = this.props;

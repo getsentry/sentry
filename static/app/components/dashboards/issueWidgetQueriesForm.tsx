@@ -44,6 +44,13 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
       blurTimeout: undefined,
     };
   }
+
+  componentWillUnmount() {
+    if (this.state.blurTimeout) {
+      window.clearTimeout(this.state.blurTimeout);
+    }
+  }
+
   // Handle scalar field values changing.
   handleFieldChange = (field: string) => {
     const {query, onChange} = this.props;
@@ -83,6 +90,9 @@ class IssueWidgetQueriesForm extends React.Component<Props, State> {
                 // this, we set a timer in our onSearch handler to block our onBlur
                 // handler from firing if it is within 200ms, ie from clicking an
                 // autocomplete value.
+                if (this.state.blurTimeout) {
+                  window.clearTimeout(this.state.blurTimeout);
+                }
                 this.setState({
                   blurTimeout: window.setTimeout(() => {
                     this.setState({blurTimeout: undefined});

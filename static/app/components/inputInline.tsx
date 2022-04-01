@@ -65,6 +65,13 @@ class InputInline extends React.Component<Props, State> {
     isHovering: false,
   };
 
+  componentWillUnmount() {
+    if (this.onFocusSelectAllTimeout) {
+      window.clearTimeout(this.onFocusSelectAllTimeout);
+    }
+  }
+
+  onFocusSelectAllTimeout: number | null = null;
   private refInput = React.createRef<HTMLDivElement>();
 
   /**
@@ -98,7 +105,10 @@ class InputInline extends React.Component<Props, State> {
     this.setState({isFocused: true});
     callIfFunction(this.props.onFocus, InputInline.setValueOnEvent(event));
     // Wait for the next event loop so that the content region has focus.
-    window.setTimeout(() => document.execCommand('selectAll', false, undefined), 1);
+    this.onFocusSelectAllTimeout = window.setTimeout(
+      () => document.execCommand('selectAll', false, undefined),
+      1
+    );
   };
 
   /**

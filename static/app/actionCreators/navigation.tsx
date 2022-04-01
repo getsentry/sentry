@@ -33,7 +33,7 @@ export function navigateTo(
           }
           onFinish={path => {
             modalProps.closeModal();
-            setTimeout(() => router.push(path), 0);
+            return window.setTimeout(() => router.push(path), 0);
           }}
         />
       ),

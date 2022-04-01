@@ -119,15 +119,21 @@ class DropdownMenu extends React.Component<Props, State> {
     isOpen: false,
   };
 
-  componentWillUnmount() {
-    document.removeEventListener('click', this.checkClickOutside, true);
-  }
-
   dropdownMenu: Element | null = null;
   dropdownActor: Element | null = null;
 
-  mouseLeaveId: number | null = null;
-  mouseEnterId: number | null = null;
+  mouseLeaveTimeout: number | null = null;
+  mouseEnterTimeout: number | null = null;
+
+  componentWillUnmount() {
+    if (this.mouseLeaveTimeout) {
+      window.clearTimeout(this.mouseLeaveTimeout);
+    }
+    if (this.mouseEnterTimeout) {
+      window.clearTimeout(this.mouseEnterTimeout);
+    }
+    document.removeEventListener('click', this.checkClickOutside, true);
+  }
 
   // Gets open state from props or local state when appropriate
   isOpen = () => {
@@ -194,8 +200,8 @@ class DropdownMenu extends React.Component<Props, State> {
       });
     }
 
-    if (this.mouseLeaveId) {
-      window.clearTimeout(this.mouseLeaveId);
+    if (this.mouseLeaveTimeout) {
+      window.clearTimeout(this.mouseLeaveTimeout);
     }
 
     // If we always render menu (e.g. DropdownLink), then add the check click outside handlers when we open the menu
@@ -212,8 +218,7 @@ class DropdownMenu extends React.Component<Props, State> {
   // Decide whether dropdown should be closed when mouse leaves element
   // Only for nested dropdowns
   handleMouseLeave = (e: React.MouseEvent<Element>) => {
-    const {isNestedDropdown} = this.props;
-    if (!isNestedDropdown) {
+    if (!this.props.isNestedDropdown) {
       return;
     }
 
@@ -224,7 +229,7 @@ class DropdownMenu extends React.Component<Props, State> {
         this.dropdownMenu &&
         (!(toElement instanceof Element) || !this.dropdownMenu.contains(toElement))
       ) {
-        this.mouseLeaveId = window.setTimeout(() => {
+        this.mouseLeaveTimeout = window.setTimeout(() => {
           this.handleClose(e);
         }, MENU_CLOSE_DELAY);
       }
@@ -349,11 +354,11 @@ class DropdownMenu extends React.Component<Props, State> {
           return;
         }
 
-        if (this.mouseLeaveId) {
-          window.clearTimeout(this.mouseLeaveId);
+        if (this.mouseLeaveTimeout) {
+          window.clearTimeout(this.mouseLeaveTimeout);
         }
 
-        this.mouseEnterId = window.setTimeout(() => {
+        this.mouseEnterTimeout = window.setTimeout(() => {
           this.handleOpen(e);
         }, MENU_CLOSE_DELAY);
       },
@@ -363,8 +368,8 @@ class DropdownMenu extends React.Component<Props, State> {
           onMouseLeave(e);
         }
 
-        if (this.mouseEnterId) {
-          window.clearTimeout(this.mouseEnterId);
+        if (this.mouseEnterTimeout) {
+          window.clearTimeout(this.mouseEnterTimeout);
         }
         this.handleMouseLeave(e);
       },
@@ -406,8 +411,8 @@ class DropdownMenu extends React.Component<Props, State> {
         }
 
         // There is a delay before closing a menu on mouse leave, cancel this action if mouse enters menu again
-        if (this.mouseLeaveId) {
-          window.clearTimeout(this.mouseLeaveId);
+        if (this.mouseLeaveTimeout) {
+          window.clearTimeout(this.mouseLeaveTimeout);
         }
       },
       onMouseLeave: (e: React.MouseEvent<E>) => {

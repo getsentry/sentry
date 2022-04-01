@@ -133,28 +133,34 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     this.items.clear();
   }
 
+  componentWillUnmount() {
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
+    }
+  }
+
   items = new Map();
-  blurTimer: any;
+  blurTimeout: number | null = null;
   itemCount?: number;
 
-  isControlled = () => typeof this.props.isOpen !== 'undefined';
+  isControlled() {
+    return typeof this.props.isOpen !== 'undefined';
+  }
 
-  getOpenState = () => {
-    const {isOpen} = this.props;
-
-    return this.isControlled() ? isOpen : this.state.isOpen;
-  };
+  getOpenState() {
+    return this.isControlled() ? this.props.isOpen : this.state.isOpen;
+  }
 
   /**
    * Resets `this.items` and `this.state.highlightedIndex`.
    * Should be called whenever `inputValue` changes.
    */
-  resetHighlightState = () => {
+  resetHighlightState() {
     // reset items and expect `getInputProps` in child to give us a list of new items
     this.setState({
       highlightedIndex: this.props.defaultHighlightedIndex || 0,
     });
-  };
+  }
 
   handleInputChange =
     <E extends HTMLInputElement>({onChange}: Pick<GetInputArgs<E>, 'onChange'>) =>
@@ -188,22 +194,25 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
    * Clicks outside should close the dropdown immediately via <DropdownMenu />,
    * however blur via keyboard will have a 200ms delay
    */
-  handleInputBlur =
-    <E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) =>
-    (e: React.FocusEvent<E>) => {
-      this.blurTimer = window.setTimeout(() => {
+  handleInputBlur<E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) {
+    return (e: React.FocusEvent<E>) => {
+      if (this.blurTimeout) {
+        window.clearTimeout(this.blurTimeout);
+      }
+      this.blurTimeout = window.setTimeout(() => {
         this.closeMenu();
         onBlur?.(e);
       }, 200);
     };
+  }
 
   // Dropdown detected click outside, we should close
-  handleClickOutside = async () => {
+  async handleClickOutside() {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
-    if (this.blurTimer) {
-      clearTimeout(this.blurTimer);
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
     }
 
     // Wait until the current macrotask completes, in the case that the click
@@ -213,7 +222,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     await new Promise(resolve => window.setTimeout(resolve));
 
     this.closeMenu();
-  };
+  }
 
   handleInputKeyDown =
     <E extends HTMLInputElement>({onKeyDown}: Pick<GetInputArgs<E>, 'onKeyDown'>) =>
@@ -250,20 +259,20 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       onKeyDown?.(e);
     };
 
-  handleItemClick =
-    ({item, index}: GetItemArgs<T>) =>
-    (e: React.MouseEvent) => {
+  handleItemClick({item, index}: GetItemArgs<T>) {
+    return (e: React.MouseEvent) => {
       if (item.disabled) {
         return;
       }
 
-      if (this.blurTimer) {
-        clearTimeout(this.blurTimer);
+      if (this.blurTimeout) {
+        window.clearTimeout(this.blurTimeout);
       }
 
       this.setState({highlightedIndex: index});
       this.handleSelect(item, e);
     };
+  }
 
   handleItemMouseEnter =
     ({item, index}: GetItemArgs<T>) =>
@@ -274,19 +283,22 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       this.setState({highlightedIndex: index});
     };
 
-  handleMenuMouseDown = () => {
+  handleMenuMouseDown() {
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
+    }
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    window.setTimeout(() => {
-      if (this.blurTimer) {
-        clearTimeout(this.blurTimer);
+    this.blurTimeout = window.setTimeout(() => {
+      if (this.blurTimeout) {
+        window.clearTimeout(this.blurTimeout);
       }
     });
-  };
+  }
 
   /**
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
-  handleSelect = (item: T, e: React.MouseEvent | React.KeyboardEvent) => {
+  handleSelect(item: T, e: React.MouseEvent | React.KeyboardEvent) {
     const {onSelect, itemToString, closeOnSelect} = this.props;
 
     onSelect?.(item, this.state, e);
@@ -302,7 +314,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     }
 
     this.setState({selectedItem: item});
-  };
+  }
 
   moveHighlightedIndex(step: number) {
     let newIndex = this.state.highlightedIndex + step;
@@ -342,7 +354,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
    *
    * This is exposed to render function
    */
-  closeMenu = (...args: Array<any>) => {
+  closeMenu(...args: Array<any>) {
     const {onClose, resetInputOnClose} = this.props;
 
     onClose?.(...args);
@@ -355,11 +367,11 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       isOpen: false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
-  };
+  }
 
-  getInputProps = <E extends HTMLInputElement>(
+  getInputProps<E extends HTMLInputElement>(
     inputProps?: GetInputArgs<E>
-  ): GetInputOutput<E> => {
+  ): GetInputOutput<E> {
     const {onChange, onKeyDown, onFocus, onBlur, ...rest} = inputProps ?? {};
     return {
       ...rest,
@@ -369,7 +381,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       onFocus: this.handleInputFocus<E>({onFocus}),
       onBlur: this.handleInputBlur<E>({onBlur}),
     };
-  };
+  }
 
   getItemProps = (itemProps: GetItemArgs<T>) => {
     const {item, index, ...props} = itemProps ?? {};
@@ -390,14 +402,14 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     };
   };
 
-  getMenuProps = <E extends Element>(props?: GetMenuArgs<E>): GetMenuArgs<E> => {
+  getMenuProps<E extends Element>(props?: GetMenuArgs<E>): GetMenuArgs<E> {
     this.itemCount = props?.itemCount;
 
     return {
       ...(props ?? {}),
-      onMouseDown: this.handleMenuMouseDown,
+      onMouseDown: this.handleMenuMouseDown.bind(this),
     };
-  };
+  }
 
   render() {
     const {children, onMenuOpen, inputIsActor} = this.props;
@@ -407,7 +419,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     return (
       <DropdownMenu
         isOpen={isOpen}
-        onClickOutside={this.handleClickOutside}
+        onClickOutside={this.handleClickOutside.bind(this)}
         onOpen={onMenuOpen}
       >
         {dropdownMenuProps =>
@@ -431,8 +443,8 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
             selectedItem,
             highlightedIndex,
             actions: {
-              open: this.openMenu,
-              close: this.closeMenu,
+              open: this.openMenu.bind(this),
+              close: this.closeMenu.bind(this),
             },
           })
         }

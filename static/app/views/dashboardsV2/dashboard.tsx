@@ -110,6 +110,8 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
+  forceCheckTimeout: number | null = null;
+
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
       if (state.isMobile) {
@@ -182,9 +184,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
+    if (this.props.organization.features.includes('dashboard-grid-layout')) {
       window.removeEventListener('resize', this.debouncedHandleResize);
+    }
+    if (this.forceCheckTimeout) {
+      window.clearTimeout(this.forceCheckTimeout);
     }
   }
 
@@ -502,7 +506,7 @@ class Dashboard extends Component<Props, State> {
     // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
     // Unfortunately need to use window.setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
-    window.setTimeout(forceCheck, 400);
+    this.forceCheckTimeout = window.setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {
