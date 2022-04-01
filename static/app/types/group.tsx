@@ -176,7 +176,7 @@ type GroupActivityBase = {
   user?: null | User;
 };
 
-export type GroupActivityNote = GroupActivityBase & {
+type GroupActivityNote = GroupActivityBase & {
   data: {
     text: string;
   };
