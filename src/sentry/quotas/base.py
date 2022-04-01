@@ -343,22 +343,22 @@ class Quota(Service):
 
         for option, id, categories in (
             (
-                "sentry:project-abuse-errors-limit",
+                "sentry:project-error-limit",
                 "pae",
                 DataCategory.error_categories(),
             ),
             (
-                "sentry:project-abuse-transactions-limit",
+                "sentry:project-transaction-limit",
                 "pat",
                 (DataCategory.TRANSACTION,),
             ),
             (
-                "sentry:project-abuse-attachments-limit",
+                "sentry:project-attachment-limit",
                 "paa",
                 (DataCategory.ATTACHMENT,),
             ),
             (
-                "sentry:project-abuse-sessions-limit",
+                "sentry:project-session-limit",
                 "pas",
                 (DataCategory.SESSION,),
             ),
