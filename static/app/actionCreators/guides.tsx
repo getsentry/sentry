@@ -26,6 +26,10 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
+export function setForceHide(forceHide: boolean) {
+  GuideActions.setForceHide(forceHide);
+}
+
 export function toStep(step: number) {
   GuideActions.toStep(step);
 }

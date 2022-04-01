@@ -39,6 +39,10 @@ export type GuideStoreState = {
    */
   currentStep: number;
   /**
+   * Hides guides that normally would be shown
+   */
+  forceHide: boolean;
+  /**
    * We force show a guide if the URL contains #assistant
    */
   forceShow: boolean;
@@ -61,6 +65,7 @@ export type GuideStoreState = {
 };
 
 const defaultState: GuideStoreState = {
+  forceHide: false,
   guides: [],
   anchors: new Set(),
   currentGuide: null,
@@ -76,6 +81,7 @@ type GuideStoreInterface = {
 
   onFetchSucceeded(data: GuidesServerData): void;
   onRegisterAnchor(target: string): void;
+  onSetForceHide(forceHide: boolean): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
   state: GuideStoreState;
@@ -105,6 +111,9 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
     );
     this.unsubscribeListeners.push(
       this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.setForceHide, this.onSetForceHide)
     );
     this.unsubscribeListeners.push(
       this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
@@ -192,6 +201,11 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
   onUnregisterAnchor(target) {
     this.state.anchors.delete(target);
     this.updateCurrentGuide();
+  },
+
+  onSetForceHide(forceHide) {
+    this.state.forceHide = forceHide;
+    this.trigger(this.state);
   },
 
   recordCue(guide) {
