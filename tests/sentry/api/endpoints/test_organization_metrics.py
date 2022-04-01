@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
+from sentry.snuba.metrics.fields.base import DerivedMetricKey
 from sentry.snuba.metrics.fields.snql import percentage
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -16,7 +17,10 @@ MOCKED_DERIVED_METRICS.update(
     {
         "crash_free_fake": SingularEntityDerivedMetric(
             metric_name="crash_free_fake",
-            metrics=["session.crashed", "session.errored_set"],
+            metrics=[
+                DerivedMetricKey.SESSION_CRASHED.value,
+                DerivedMetricKey.SESSION_ERRORED_SET.value,
+            ],
             unit="percentage",
             snql=lambda *args, entity, metric_ids, alias=None: percentage(
                 *args, entity, metric_ids, alias="crash_free_fake"
