@@ -9,7 +9,11 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import TransactionMetricKey
+from sentry.sentry_metrics.transactions import (
+    TransactionMetricKey,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -982,6 +986,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
+        self.tx_metric = indexer.record(org_id, TransactionMetricKey.DURATION.value)
+        self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
         self.transaction_lcp_metric = indexer.record(
             self.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
         )
@@ -1819,6 +1825,82 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy_user"] == 0
         assert group["series"]["session.healthy_user"] == [0]
+
+    def test_all_transactions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.all"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.all": 4}
+        assert group["series"] == {"transaction.all": [4]}
 
     def test_request_private_derived_metric(self):
         for private_name in [
