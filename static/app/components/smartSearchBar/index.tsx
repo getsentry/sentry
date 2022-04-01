@@ -39,6 +39,7 @@ import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -338,7 +339,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Tracks the dropdown blur
    */
-  blurTimeout?: number;
+  blurTimeout: number | null = null;
 
   /**
    * Ref to the search element itself
@@ -444,11 +445,10 @@ class SmartSearchBar extends React.Component<Props, State> {
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
     // menu option
-    const value = e.target.value;
     const blurHandler = () => {
-      this.blurTimeout = undefined;
+      this.blurTimeout = null;
       this.setState({inputHasFocus: false});
-      callIfFunction(this.props.onBlur, value);
+      callIfFunction(this.props.onBlur, e.target.value);
     };
 
     this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
@@ -1095,8 +1095,8 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   updateAutoCompleteItems = async () => {
     if (this.blurTimeout) {
-      clearTimeout(this.blurTimeout);
-      this.blurTimeout = undefined;
+      window.clearTimeout(this.blurTimeout);
+      this.blurTimeout = null;
     }
 
     this.updateAutoCompleteFromAst();
@@ -1324,6 +1324,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         type="text"
         placeholder={placeholder}
         id="smart-search-input"
+        data-test-id="smart-search-input"
         name="query"
         ref={this.searchInput}
         autoComplete="off"
@@ -1504,9 +1505,15 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(TextareaAutosize, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-})`
+const SearchInput = styled(
+  getDynamicComponent<typeof TextareaAutosize>({
+    value: TextareaAutosize,
+    fixed: 'textarea',
+  }),
+  {
+    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  }
+)`
   position: relative;
   display: flex;
   resize: none;

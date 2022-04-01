@@ -1,22 +1,22 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, Store} from 'reflux';
 
 import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type ActivePanelType = SidebarPanelKey | '';
 
-type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
+interface SidebarPanelStoreDefinition extends CommonStoreDefinition<ActivePanelType> {
   activePanel: ActivePanelType;
 
   onActivatePanel(panel: SidebarPanelKey): void;
   onHidePanel(): void;
   onTogglePanel(panel: SidebarPanelKey): void;
-};
+}
 
-const storeConfig: StoreDefinition & SidebarPanelStoreInterface & SafeStoreDefinition = {
+const storeConfig: SidebarPanelStoreDefinition = {
   activePanel: '',
   unsubscribeListeners: [],
 
@@ -60,6 +60,6 @@ const storeConfig: StoreDefinition & SidebarPanelStoreInterface & SafeStoreDefin
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
 const SidebarPanelStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SidebarPanelStoreInterface;
+  SidebarPanelStoreDefinition;
 
 export default SidebarPanelStore;

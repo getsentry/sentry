@@ -3,7 +3,6 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
-import {Client} from 'sentry/api';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
@@ -12,7 +11,6 @@ import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
   SafeRefluxStore,
-  SafeStoreDefinition,
 } from 'sentry/utils/makeSafeRefluxStore';
 
 function guidePrioritySort(a: Guide, b: Guide) {
@@ -71,7 +69,7 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-type GuideStoreInterface = {
+interface GuideStoreDefinition extends StoreDefinition {
   browserHistoryListener: null | (() => void);
 
   onFetchSucceeded(data: GuidesServerData): void;
@@ -80,17 +78,15 @@ type GuideStoreInterface = {
   recordCue(guide: string): void;
   state: GuideStoreState;
   updatePrevGuide(nextGuide: Guide | null): void;
-};
+}
 
-const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition = {
+const storeConfig: GuideStoreDefinition = {
   state: defaultState,
   unsubscribeListeners: [],
   browserHistoryListener: null,
 
   init() {
     this.state = defaultState;
-
-    this.api = new Client();
 
     this.unsubscribeListeners.push(
       this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded)
@@ -280,6 +276,6 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
 };
 
 const GuideStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  GuideStoreInterface;
+  GuideStoreDefinition;
 
 export default GuideStore;
