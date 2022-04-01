@@ -25,9 +25,7 @@ function SetupWizard({hash = false}: Props) {
 
   useEffect(() => {
     return () => {
-      if (closeTimeoutRef.current) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
+      window.clearTimeout(closeTimeoutRef.current);
     };
   });
 
