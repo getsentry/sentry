@@ -341,33 +341,26 @@ class Quota(Service):
             )
         org = project.organization
 
-        for option, id, category, reason in (
-            # s_ prefix is to prevent clashing with what currently exists
-            # in getsentry. TODO not sure how Relay will handle
-            # a "pae" quota and a "s_pae" quota with a more specific category
+        for option, id, categories in (
             (
                 "sentry:project-abuse-errors-limit",
-                "s_pae",
-                DataCategory.ERROR,
-                "project_abuse_errors_limit",
+                "pae",
+                DataCategory.error_categories(),
             ),
             (
                 "sentry:project-abuse-transactions-limit",
-                "s_pat",
-                DataCategory.TRANSACTION,
-                "project_abuse_transactions_limit",
+                "pat",
+                (DataCategory.TRANSACTION,),
             ),
             (
                 "sentry:project-abuse-attachments-limit",
-                "s_paa",
-                DataCategory.ATTACHMENT,
-                "project_abuse_attachments_limit",
+                "paa",
+                (DataCategory.ATTACHMENT,),
             ),
             (
                 "sentry:project-abuse-sessions-limit",
-                "s_pas",
-                DataCategory.SESSION,
-                "project_abuse_sessions_limit",
+                "pas",
+                (DataCategory.SESSION,),
             ),
         ):
             limit = org.get_option(option)
@@ -376,9 +369,11 @@ class Quota(Service):
                     id=id,
                     limit=limit * abuse_window,
                     scope=QuotaScope.PROJECT,
-                    categories=(category,),
+                    categories=categories,
                     window=abuse_window,
-                    reason_code=reason,
+                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
+                    #      from getsentry. Could move it over in the future.
+                    reason_code="project_abuse_limit",
                 )
 
     def get_project_quota(self, project):

@@ -93,36 +93,47 @@ class RedisQuotaTest(TestCase):
 
         self.organization.update_option("sentry:project-abuse-errors-limit", 42)
         quotas = self.quota.get_quotas(self.project)
-        assert quotas[0].id == "s_pae"
+        assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id is None
-        assert quotas[0].categories == {DataCategory.ERROR}
+        # DataCategory.error_categories()
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
         assert quotas[0].limit == 420
         assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
 
         self.organization.update_option("sentry:project-abuse-transactions-limit", 600)
         self.organization.update_option("sentry:project-abuse-attachments-limit", 601)
         self.organization.update_option("sentry:project-abuse-sessions-limit", 602)
         quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[1].id == "s_pat"
+        assert quotas[1].id == "pat"
         assert quotas[1].scope == QuotaScope.PROJECT
         assert quotas[1].scope_id is None
         assert quotas[1].categories == {DataCategory.TRANSACTION}
         assert quotas[1].limit == 6000
         assert quotas[1].window == 10
-        assert quotas[2].id == "s_paa"
+        assert quotas[1].reason_code == "project_abuse_limit"
+
+        assert quotas[2].id == "paa"
         assert quotas[2].scope == QuotaScope.PROJECT
         assert quotas[2].scope_id is None
         assert quotas[2].categories == {DataCategory.ATTACHMENT}
         assert quotas[2].limit == 6010
         assert quotas[2].window == 10
-        assert quotas[3].id == "s_pas"
+        assert quotas[2].reason_code == "project_abuse_limit"
+
+        assert quotas[3].id == "pas"
         assert quotas[3].scope == QuotaScope.PROJECT
         assert quotas[3].scope_id is None
         assert quotas[3].categories == {DataCategory.SESSION}
         assert quotas[3].limit == 6020
         assert quotas[3].window == 10
+        assert quotas[3].reason_code == "project_abuse_limit"
 
     @patcher.object(RedisQuota, "get_project_quota")
     def get_project_quota(self):
