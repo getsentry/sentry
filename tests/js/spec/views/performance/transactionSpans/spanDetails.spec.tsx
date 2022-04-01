@@ -4,7 +4,7 @@ import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
@@ -300,21 +300,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       ).toBeInTheDocument();
     });
 
-    it("doesn't render a search bar", function () {
-      const data = initializeData({
-        features: ['performance-view', 'performance-suspect-spans-view'],
-        query: {project: '1', transaction: 'transaction'},
-      });
-
-      render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
-        organization: data.organization,
-      });
-
-      const searchBarNode = screen.queryByPlaceholderText('Filter Transactions');
-      expect(searchBarNode).not.toBeInTheDocument();
-    });
-
     it('renders timeseries chart', async function () {
       const data = initializeData({
         features: ['performance-view', 'performance-suspect-spans-view'],
@@ -354,6 +339,14 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         'performance-span-histogram-view',
       ];
 
+      beforeEach(function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'GET',
+          body: [],
+        });
+      });
+
       it('renders a search bar', async function () {
         const data = initializeData({
           features: FEATURES,
@@ -367,6 +360,23 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
         expect(searchBarNode).toBeInTheDocument();
+      });
+
+      it('does not add aggregate filters to the query', async function () {
+        const data = initializeData({
+          features: FEATURES,
+          query: {project: '1', transaction: 'transaction'},
+        });
+
+        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
+          context: data.routerContext,
+          organization: data.organization,
+        });
+
+        const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
+        userEvent.type(searchBarNode, 'count():>3');
+        expect(searchBarNode).toHaveTextContent('count():>3');
+        expect(browserHistory.push).not.toHaveBeenCalled();
       });
 
       it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
