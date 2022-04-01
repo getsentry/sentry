@@ -2,6 +2,7 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields.base import DerivedMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -97,7 +98,10 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
 
         response = self.get_success_response(
             self.organization.slug,
-            metric=["session.crash_free_rate", "session.all"],
+            metric=[
+                DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+                DerivedMetricKey.SESSION_ALL.value,
+            ],
         )
         assert response.data == [
             {"key": "environment"},
@@ -117,7 +121,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             )
         response = self.get_success_response(
             self.organization.slug,
-            metric=["session.healthy"],
+            metric=[DerivedMetricKey.SESSION_HEALTHY.value],
         )
         assert response.data == [
             {"key": "environment"},
@@ -135,10 +139,10 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             )
         )
         for private_name in [
-            "session.crashed_and_abnormal_user",
-            "session.errored_preaggregated",
-            "session.errored_set",
-            "session.errored_user_all",
+            DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+            DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
+            DerivedMetricKey.SESSION_ERRORED_SET.value,
+            DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
         ]:
             response = self.get_success_response(
                 self.organization.slug,
