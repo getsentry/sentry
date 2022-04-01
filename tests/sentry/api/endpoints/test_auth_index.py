@@ -127,6 +127,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
+        user.update(password="")
+
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
@@ -136,8 +138,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
-                    "isSuperuserModal": True,
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -158,9 +159,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
-                    "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -179,9 +179,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 HTTP_REFERER="http://testserver/bar",
                 data={
-                    "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
@@ -201,9 +200,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 HTTP_REFERER="http://hacktheplanet/bar",
                 data={
-                    "isSuperuserModal": True,
                     "password": "admin",
-                    "superuserAccessCategory": "debugging",
+                    "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
             )
