@@ -31,7 +31,7 @@ type Props = {
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
   treeDepth: number;
-  toggleSiblingSpanGroup?: (span: SpanType, occurrence: number) => void;
+  toggleSiblingSpanGroup?: (span: SpanType, occurrence?: number) => void;
 };
 
 export default function SpanSiblingGroupBar(props: Props) {

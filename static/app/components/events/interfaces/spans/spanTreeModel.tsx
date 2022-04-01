@@ -791,7 +791,7 @@ class SpanTreeModel {
     this.isNestedSpanGroupExpanded = !this.isNestedSpanGroupExpanded;
   };
 
-  toggleSiblingSpanGroup = (span: SpanType, occurrence: number) => {
+  toggleSiblingSpanGroup = (span: SpanType, occurrence?: number) => {
     const key = getSiblingGroupKey(span, occurrence);
 
     if (this.expandedSiblingGroups.has(key)) {
