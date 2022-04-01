@@ -1,4 +1,4 @@
-from sentry.utils.session_store import redis_property, RedisSessionStore
+from sentry.utils.session_store import RedisSessionStore, redis_property
 
 
 class PipelineSessionStore(RedisSessionStore):
