@@ -148,10 +148,10 @@ build-utils/        @getsentry/owners-js-build
 
 
 ### Discover/Dashboards ###
-/src/sentry/api/bases/organization_events.py                    @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_dashboards.py            @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_dashboard_details.py                     @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_dashboard_widget_details.py              @getsentry/discover-n-dashboards
+/src/sentry/api/bases/organization_events.py                    @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_event_details.py         @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events.py                @getsentry/discover-n-dashboards
 /src/sentry/api/endpoints/organization_events_facets.py         @getsentry/discover-n-dashboards
