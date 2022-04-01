@@ -84,6 +84,7 @@ class MetricAlertDetails extends Component<Props, State> {
         start: location.query.start as string,
         end: location.query.end as string,
         period,
+        usingPeriod: false,
         label: t('Custom time'),
         display: (
           <Fragment>
@@ -102,6 +103,7 @@ class MetricAlertDetails extends Component<Props, State> {
         start,
         end,
         period,
+        usingPeriod: false,
         label: t('Custom time'),
         display: (
           <Fragment>
@@ -125,6 +127,7 @@ class MetricAlertDetails extends Component<Props, State> {
       start,
       end,
       period,
+      usingPeriod: true,
       label: timeOption.label as string,
       display: timeOption.label as string,
     };

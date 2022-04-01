@@ -16,14 +16,19 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
 import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  TIME_OPTIONS,
+  TIME_WINDOWS,
+  TimePeriodType,
+} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -63,10 +68,13 @@ export default class DetailsBody extends React.Component<Props> {
     const startDate = moment.utc(start);
     const endDate = moment.utc(end);
     const timeWindow = rule?.timeWindow;
+    const startEndDifferenceMs = endDate.diff(startDate);
 
     if (
       timeWindow &&
-      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
+        // Special case 7 days * 1m interval over the api limit
+        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
     ) {
       return `${timeWindow}m`;
     }
