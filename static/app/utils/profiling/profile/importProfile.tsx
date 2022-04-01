@@ -1,11 +1,14 @@
 import {
+  isChromeTraceArrayFormat,
+  isChromeTraceFormat,
+  isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
   isSchema,
 } from '../guards/profile';
 
-import {importChromeTrace, isChromeTraceFormat} from './chromeTraceProfile';
+import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -17,6 +20,65 @@ export interface ProfileGroup {
   name: string;
   profiles: Profile[];
   traceID: string;
+}
+
+export function importProfile(
+  input: Profiling.Schema | JSSelfProfiling.Trace,
+  traceID: string
+): ProfileGroup {
+  if (isJSProfile(input)) {
+    return importJSSelfProfile(input, traceID);
+  }
+
+  if (isChromeTraceFormat(input)) {
+    return importChromeTrace(input, traceID);
+  }
+
+  if (isSchema(input)) {
+    return importSchema(input, traceID);
+  }
+
+  throw new Error('Unsupported trace format');
+}
+
+function importJSSelfProfile(
+  input: JSSelfProfiling.Trace,
+  traceID: string
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.frames);
+
+  return {
+    traceID,
+    name: traceID,
+    activeProfileIndex: 0,
+    profiles: [importSingleProfile(input, frameIndex)],
+  };
+}
+
+function importChromeTrace(
+  input: string | ChromeTrace.ProfileType,
+  traceID: string
+): ProfileGroup {
+  if (isChromeTraceObjectFormat(input)) {
+    throw new Error('Chrometrace object format is not yet supported');
+  }
+
+  if (isChromeTraceArrayFormat(input)) {
+    return parseChromeTraceArrayFormat(input, traceID);
+  }
+
+  throw new Error('Failed to parse trace input format');
+}
+
+function importSchema(input: Profiling.Schema, traceID: string): ProfileGroup {
+  const frameIndex = createFrameIndex(input.shared.frames);
+
+  return {
+    traceID,
+    name: input.name,
+    activeProfileIndex: input.activeProfileIndex ?? 0,
+    profiles: input.profiles.map(profile => importSingleProfile(profile, frameIndex)),
+  };
 }
 
 function importSingleProfile(
@@ -45,50 +107,10 @@ const tryParseInputString: JSONParser = input => {
 
 type JSONParser = (input: string) => [any, null] | [null, Error];
 
-export const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
+const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
   (input: string) => tryParseInputString(input),
   (input: string) => tryParseInputString(input + ']'),
 ];
-
-function importJSSelfProfile(
-  input: JSSelfProfiling.Trace,
-  traceID: string
-): ProfileGroup {
-  const frameIndex = createFrameIndex(input.frames);
-
-  return {
-    traceID,
-    name: traceID,
-    activeProfileIndex: 0,
-    profiles: [importSingleProfile(input, frameIndex)],
-  };
-}
-
-export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace,
-  traceID: string
-): ProfileGroup {
-  if (isJSProfile(input)) {
-    return importJSSelfProfile(input, traceID);
-  }
-
-  if (isChromeTraceFormat(input)) {
-    return importChromeTrace(input);
-  }
-
-  if (isSchema(input)) {
-    const frameIndex = createFrameIndex(input.shared.frames);
-
-    return {
-      traceID,
-      name: input.name,
-      activeProfileIndex: input.activeProfileIndex ?? 0,
-      profiles: input.profiles.map(profile => importSingleProfile(profile, frameIndex)),
-    };
-  }
-
-  throw new Error('Unsupported trace format');
-}
 
 function readFileAsString(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -115,39 +137,31 @@ export async function importDroppedProfile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
 ): Promise<ProfileGroup> {
-  try {
-    return await readFileAsString(file)
-      .then(fileContents => {
-        for (const parser of parsers) {
-          const [result] = parser(fileContents);
+  const fileContents = await readFileAsString(file);
 
-          if (result) {
-            return result;
-          }
-        }
+  for (const parser of parsers) {
+    const [json] = parser(fileContents);
 
-        throw new Error('Failed to parse input JSON');
-      })
-      .then(json => {
-        if (typeof json !== 'object' || json === null) {
-          throw new TypeError('Input JSON is not an object');
-        }
+    if (json) {
+      if (typeof json !== 'object' || json === null) {
+        throw new TypeError('Input JSON is not an object');
+      }
 
-        if (isSchema(json)) {
-          return importProfile(json, file.name);
-        }
+      if (isSchema(json)) {
+        return importProfile(json, file.name);
+      }
 
-        if (isJSProfile(json)) {
-          return importJSSelfProfile(json, file.name);
-        }
+      if (isJSProfile(json)) {
+        return importJSSelfProfile(json, file.name);
+      }
 
-        if (isChromeTraceFormat(json)) {
-          return importChromeTrace(json);
-        }
+      if (isChromeTraceFormat(json)) {
+        return importChromeTrace(json, file.name);
+      }
 
-        throw new Error('Unsupported JSON format');
-      });
-  } catch (e) {
-    throw e;
+      throw new Error('Unsupported JSON format');
+    }
   }
+
+  throw new Error('Failed to parse input JSON');
 }

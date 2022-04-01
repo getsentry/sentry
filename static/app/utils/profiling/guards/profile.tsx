@@ -18,3 +18,16 @@ export function isSampledProfile(profile: any): profile is Profiling.SampledProf
 export function isJSProfile(profile: any): profile is JSSelfProfiling.Trace {
   return !('type' in profile) && Array.isArray(profile.resources);
 }
+
+export function isChromeTraceFormat(input: any): input is ChromeTrace.ProfileType {
+  return isChromeTraceArrayFormat(input) || isChromeTraceObjectFormat(input);
+}
+
+export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectFormat {
+  return typeof input === 'object' && 'traceEvents' in input;
+}
+
+export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ArrayFormat {
+  // @TODO we need to check if the profile actually includes the v8 profile nodes.
+  return Array.isArray(input);
+}
