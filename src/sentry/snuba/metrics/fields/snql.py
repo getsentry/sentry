@@ -51,6 +51,7 @@ def _set_uniq_aggregation_on_session_status_factory(
 def _aggregation_on_tx_status_func_factory(aggregate):
     def _get_snql_conditions(org_id, metric_ids, exclude_tx_statuses):
         metric_match = Function("in", [Column("metric_id"), list(metric_ids)])
+        assert exclude_tx_statuses is not None
         if len(exclude_tx_statuses) == 0:
             return metric_match
 
