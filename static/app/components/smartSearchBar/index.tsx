@@ -39,6 +39,7 @@ import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
+import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -1323,6 +1324,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         type="text"
         placeholder={placeholder}
         id="smart-search-input"
+        data-test-id="smart-search-input"
         name="query"
         ref={this.searchInput}
         autoComplete="off"
@@ -1503,9 +1505,15 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(TextareaAutosize, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-})`
+const SearchInput = styled(
+  getDynamicComponent<typeof TextareaAutosize>({
+    value: TextareaAutosize,
+    fixed: 'textarea',
+  }),
+  {
+    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  }
+)`
   position: relative;
   display: flex;
   resize: none;

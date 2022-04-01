@@ -49,6 +49,13 @@ type State = {
   previousTrendFunction?: TrendFunctionField;
 };
 
+export const defaultTrendsSelectionDate = {
+  start: null,
+  end: null,
+  utc: false,
+  period: DEFAULT_TRENDS_STATS_PERIOD,
+};
+
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
 
@@ -202,12 +209,7 @@ class TrendsContent extends React.Component<Props, State> {
     return (
       <PageFiltersContainer
         defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_TRENDS_STATS_PERIOD,
-          },
+          datetime: defaultTrendsSelectionDate,
         }}
       >
         <Layout.Header>
@@ -239,7 +241,7 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <TrendsDropdown>
+                <TrendsDropdown data-test-id="trends-dropdown">
                   <DropdownControl
                     buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}

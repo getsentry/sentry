@@ -116,7 +116,11 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
         return (
           <React.Fragment key={mapKey}>
             {to ? (
-              <BreadcrumbLink to={to} preservePageFilters={preservePageFilters}>
+              <BreadcrumbLink
+                to={to}
+                preservePageFilters={preservePageFilters}
+                data-test-id="breadcrumb-link"
+              >
                 {label}
               </BreadcrumbLink>
             ) : (
