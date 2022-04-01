@@ -304,10 +304,9 @@ function WidgetBuilder({
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
-    pathname:
-      currentDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${orgId}/dashboards/new/`
-        : `/organizations/${orgId}/dashboard/${currentDashboardId}/`,
+    pathname: defined(currentDashboardId)
+      ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
+      : `/organizations/${orgId}/dashboards/new/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
