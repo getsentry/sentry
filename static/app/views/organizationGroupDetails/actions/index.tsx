@@ -23,6 +23,7 @@ import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
+import DiscoverButton from 'sentry/components/discoverButton';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -381,6 +382,13 @@ class Actions extends Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
+        <DiscoverButton
+          disabled={!hasDiscoverBasic}
+          onClick={this.onRedirectDiscover}
+          size="xsmall"
+        >
+          {t('Open in Discover')}
+        </DiscoverButton>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -396,7 +404,6 @@ class Actions extends Component<Props, State> {
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
-
         <Access organization={organization} access={['event:admin']}>
           {({hasAccess}) => (
             <GuideAnchor target="open_in_discover">
@@ -413,12 +420,6 @@ class Actions extends Component<Props, State> {
                     label: bookmarkTitle,
                     hidden: false,
                     onAction: this.onToggleBookmark,
-                  },
-                  {
-                    key: 'open-in-discover',
-                    label: t('Open in Discover'),
-                    hidden: !hasDiscoverBasic,
-                    onAction: this.onRedirectDiscover,
                   },
                   {
                     key: 'reprocess',

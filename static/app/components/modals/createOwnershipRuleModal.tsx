@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -12,10 +12,20 @@ type Props = ModalRenderProps &
   };
 
 const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) => {
-  const handleSuccess = () => {
+  const closeModalTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeModalTimeoutRef.current) {
+        window.clearInterval(closeModalTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSuccess = useCallback(() => {
     props.onClose?.();
-    window.setTimeout(closeModal, 2000);
-  };
+    closeModalTimeoutRef.current = window.setTimeout(closeModal, 2000);
+  }, [props.onClose]);
 
   return (
     <Fragment>

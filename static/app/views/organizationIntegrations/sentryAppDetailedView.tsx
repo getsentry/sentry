@@ -22,7 +22,7 @@ import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import SplitInstallationIdModal from './SplitInstallationIdModal';
+import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 
 type State = {
   appInstalls: SentryAppInstallation[];

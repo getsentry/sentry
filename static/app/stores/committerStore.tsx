@@ -1,4 +1,4 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import CommitterActions from 'sentry/actions/committerActions';
 import {Committer} from 'sentry/types';
@@ -13,7 +13,7 @@ type State = {
   };
 };
 
-type CommitterStoreInterface = {
+interface CommitterStoreDefinition extends Reflux.StoreDefinition {
   get(
     orgSlug: string,
     projectSlug: string,
@@ -36,9 +36,9 @@ type CommitterStoreInterface = {
   ): void;
 
   state: State;
-};
+}
 
-export const storeConfig: StoreDefinition & CommitterStoreInterface = {
+export const storeConfig: CommitterStoreDefinition = {
   listenables: CommitterActions,
   state: {},
 
@@ -108,6 +108,6 @@ export function getCommitterStoreKey(
 }
 
 const CommitterStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  CommitterStoreInterface;
+  CommitterStoreDefinition;
 
 export default CommitterStore;

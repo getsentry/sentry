@@ -142,7 +142,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       body.style.removeProperty('overflow');
       root.removeAttribute('aria-hidden');
       focusTrap.current?.deactivate();
-      portal.removeEventListener('keydown', handleEscapeClose);
+      document.removeEventListener('keydown', handleEscapeClose);
     };
 
     if (visible) {
@@ -150,7 +150,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       root.setAttribute('aria-hidden', 'true');
       focusTrap.current?.activate();
 
-      portal.addEventListener('keydown', handleEscapeClose);
+      document.addEventListener('keydown', handleEscapeClose);
     } else {
       reset();
     }

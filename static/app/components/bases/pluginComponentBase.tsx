@@ -51,7 +51,16 @@ class PluginComponentBase<
 
   componentWillUnmount() {
     this.api.clear();
+    if (this.successMessageTimeout) {
+      window.clearTimeout(this.successMessageTimeout);
+    }
+    if (this.errorMessageTimeout) {
+      window.clearTimeout(this.errorMessageTimeout);
+    }
   }
+
+  successMessageTimeout: number | null = null;
+  errorMessageTimeout: number | null = null;
 
   api = new Client();
 
@@ -112,7 +121,7 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    window.setTimeout(() => {
+    this.successMessageTimeout = window.setTimeout(() => {
       addSuccessMessage(t('Success!'));
     }, 0);
   }
@@ -125,7 +134,7 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    window.setTimeout(() => {
+    this.errorMessageTimeout = window.setTimeout(() => {
       addErrorMessage(t('Unable to save changes. Please try again.'));
     }, 0);
   }
