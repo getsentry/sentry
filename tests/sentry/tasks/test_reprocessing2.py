@@ -482,7 +482,6 @@ def test_apply_new_fingerprinting_rules(
     with mock.patch(
         "sentry.event_manager.get_fingerprinting_config_for_project", return_value=new_rules
     ):
-        # TODO: test stack trace rules as well
         # Reprocess
         with burst_task_runner() as burst_reprocess:
             reprocess_group(default_project.id, event1.group_id)
