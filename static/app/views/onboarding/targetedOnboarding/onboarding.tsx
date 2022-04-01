@@ -97,14 +97,13 @@ function Onboarding(props: Props) {
   useEffect(updateCornerVariant, []);
   const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
 
-  const [containerHasFooter, setContainerHasFooter] = React.useState<boolean>(false);
+  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  React.useEffect(updateAnimationState, []);
-  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+  useEffect(updateAnimationState, []);
 
   const addPlatform = (platform: PlatformKey) => {
     setPlatforms([...platforms, platform]);
