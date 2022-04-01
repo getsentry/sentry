@@ -106,6 +106,8 @@ class AuthIndexEndpoint(Endpoint):
             if not has_completed_sso(request, Superuser.org_id):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
             authenticated = True if authenticated is None else authenticated
+        elif authenticated is None:
+            return False
 
         return authenticated
 
