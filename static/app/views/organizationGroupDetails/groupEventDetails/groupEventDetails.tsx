@@ -35,10 +35,8 @@ import {
   ReprocessingStatus,
 } from '../utils';
 
-type Props = RouteComponentProps<
-  {groupId: string; orgId: string; eventId?: string},
-  {}
-> & {
+export interface GroupEventDetailsProps
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   api: Client;
   environments: Environment[];
   eventError: boolean;
@@ -50,14 +48,14 @@ type Props = RouteComponentProps<
   project: Project;
   className?: string;
   event?: Event;
-};
+}
 
 type State = {
   eventNavLinks: string;
   releasesCompletion: any;
 };
 
-class GroupEventDetails extends Component<Props, State> {
+class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   state: State = {
     eventNavLinks: '',
     releasesCompletion: null,
@@ -67,7 +65,7 @@ class GroupEventDetails extends Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: GroupEventDetailsProps) {
     const {environments, params, location, organization, project} = this.props;
 
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
@@ -104,8 +102,7 @@ class GroupEventDetails extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const {api} = this.props;
-    api.clear();
+    this.props.api.clear();
   }
 
   fetchData = async () => {
@@ -138,12 +135,12 @@ class GroupEventDetails extends Component<Props, State> {
   };
 
   get showExampleCommit() {
-    const {project} = this.props;
-    const {releasesCompletion} = this.state;
     return (
-      project?.isMember &&
-      project?.firstEvent &&
-      releasesCompletion?.some(({step, complete}) => step === 'commit' && !complete)
+      this.props.project?.isMember &&
+      this.props.project?.firstEvent &&
+      this.state.releasesCompletion?.some(
+        ({step, complete}) => step === 'commit' && !complete
+      )
     );
   }
 
@@ -230,7 +227,7 @@ class GroupEventDetails extends Component<Props, State> {
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
     return (
-      <div className={className}>
+      <div className={className} data-test-id="group-event-details">
         <StyledLayoutBody>
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (

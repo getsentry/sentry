@@ -24,6 +24,8 @@ interface CommitterStoreDefinition extends Reflux.StoreDefinition {
     committersLoading?: boolean;
   };
 
+  init(): void;
+
   load(orgSlug: string, projectSlug: string, eventId: string): void;
   loadError(orgSlug: string, projectSlug: string, eventId: string, error: Error): void;
   loadSuccess(
