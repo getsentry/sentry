@@ -607,15 +607,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 },
             )
             raise IntegrationError(
-                "Could not fetch project list from Jira"
-                "Ensure that jira is available and your account is still active."
+                "Could not fetch project list from Jira. Ensure that Jira is"
+                " available and your account is still active."
             )
 
         meta = self.get_issue_create_meta(client, project_id, jira_projects)
         if not meta:
             raise IntegrationError(
-                "Could not fetch issue create metadata from Jira. "
-                "Ensure that the integration user has access to the requested project."
+                "Could not fetch issue create metadata from Jira. Ensure that"
+                " the integration user has access to the requested project."
             )
 
         # check if the issuetype was passed as a parameter
