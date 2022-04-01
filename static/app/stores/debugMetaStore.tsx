@@ -12,12 +12,12 @@ type State = {
   filter: string | null;
 };
 
-type DebugMetaStoreInterface = {
+interface DebugMetaStoreInterface extends StoreDefinition {
   get(): State;
   init(): void;
   reset(): void;
   updateFilter(word: string): void;
-};
+}
 
 type Internals = {
   filter: string | null;

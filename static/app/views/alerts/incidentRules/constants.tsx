@@ -98,15 +98,6 @@ export function getWizardAlertFieldConfig(
 }
 
 /**
- * Allowed aggregations for alerts created from wizard
- */
-export const wizardAlertFieldConfig: OptionConfig = {
-  aggregations: commonAggregations,
-  fields: ['transaction.duration'],
-  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
-};
-
-/**
  * Allowed transaction aggregations for alerts
  */
 export const transactionFieldConfig: OptionConfig = {
