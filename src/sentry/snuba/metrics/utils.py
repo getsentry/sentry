@@ -5,7 +5,7 @@ __all__ = (
     "TS_COL_GROUP",
     "FIELD_REGEX",
     "TAG_REGEX",
-    "MetricOperation",
+    "MetricOperationType",
     "MetricUnit",
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
@@ -36,7 +36,19 @@ __all__ = (
 import re
 from abc import ABC
 from datetime import datetime
-from typing import Collection, Literal, Mapping, Optional, Protocol, Sequence, TypedDict
+from typing import (
+    Collection,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+)
 
 from sentry.snuba.dataset import EntityKey
 
@@ -51,7 +63,9 @@ FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
-MetricOperation = Literal["avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99"]
+MetricOperationType = Literal[
+    "avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99", "histogram"
+]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
@@ -106,7 +120,7 @@ class TagValue(TypedDict):
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
-    operations: Collection[MetricOperation]
+    operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
 
 
@@ -132,7 +146,7 @@ OPERATIONS = (
     "histogram",
 ) + OPERATIONS_PERCENTILES
 
-DEFAULT_AGGREGATES = {
+DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
