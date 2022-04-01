@@ -34,14 +34,14 @@ export interface GroupEventDetailsProps
 type State = typeof OrganizationEnvironmentsStore['state'];
 
 export class GroupEventDetailsContainer extends Component<GroupEventDetailsProps, State> {
-  state = OrganizationEnvironmentsStore.get();
+  state = OrganizationEnvironmentsStore.getState();
 
   componentDidMount() {
     this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(
       data => this.setState(data),
       undefined
     );
-    const {environments, error} = OrganizationEnvironmentsStore.get();
+    const {environments, error} = OrganizationEnvironmentsStore.getState();
     if (!environments && !error) {
       fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
     }

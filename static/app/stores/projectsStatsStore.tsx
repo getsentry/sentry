@@ -2,27 +2,23 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type ProjectsStatsStoreInterface = {
-  getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
+interface ProjectsStatsStoreDefinition extends StoreDefinition {
+  getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
 
   getBySlug(slug: string): Project;
-  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
+  getInitialState(): ProjectsStatsStoreDefinition['itemsBySlug'];
   itemsBySlug: Record<string, Project>;
   reset(): void;
-};
+}
 
 /**
  * This is a store specifically used by the dashboard, so that we can
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const storeConfig: StoreDefinition & ProjectsStatsStoreInterface & SafeStoreDefinition = {
+const storeConfig: ProjectsStatsStoreDefinition = {
   itemsBySlug: {},
   unsubscribeListeners: [],
 
@@ -114,6 +110,6 @@ const storeConfig: StoreDefinition & ProjectsStatsStoreInterface & SafeStoreDefi
 
 const ProjectsStatsStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & ProjectsStatsStoreInterface;
+) as SafeRefluxStore & ProjectsStatsStoreDefinition;
 
 export default ProjectsStatsStore;

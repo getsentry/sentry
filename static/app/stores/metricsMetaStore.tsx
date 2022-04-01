@@ -1,32 +1,27 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   metricsMeta: MetricsMetaCollection;
 };
 
-type Internals = {
+type InternalDefinition = {
   metricsMeta: MetricsMetaCollection;
 };
 
-type MetricsMetaStoreInterface = CommonStoreInterface<State> & {
+interface MetricsMetaStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
   onLoadSuccess(data: MetricsMeta[]): void;
   reset(): void;
-};
+}
 
-const storeConfig: StoreDefinition &
-  Internals &
-  MetricsMetaStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: MetricsMetaStoreDefinition = {
   unsubscribeListeners: [],
   metricsMeta: {},
 
@@ -62,6 +57,6 @@ const storeConfig: StoreDefinition &
 
 const MetricsMetaStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & MetricsMetaStoreInterface;
+) as SafeRefluxStore & MetricsMetaStoreDefinition;
 
 export default MetricsMetaStore;

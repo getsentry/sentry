@@ -3,11 +3,12 @@ import {Store} from 'reflux';
 
 import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
-type LegacyStoreShape =
-  | (Store & CommonStoreInterface<any>)
-  | (SafeRefluxStore & CommonStoreInterface<any>);
+interface UnsafeStore extends Store, CommonStoreDefinition<any> {}
+interface SafeStore extends SafeRefluxStore, CommonStoreDefinition<any> {}
+
+type LegacyStoreShape = UnsafeStore | SafeStore;
 
 /**
  * This wrapper exists because we have many old-style enzyme tests that trigger

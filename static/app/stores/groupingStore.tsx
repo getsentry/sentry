@@ -110,7 +110,11 @@ type IdState = {
   collapsed?: boolean;
 };
 
-type GroupingStoreInterface = StoreDefinition & {
+type InternalDefinition = {
+  api: Client;
+};
+
+interface GroupingStoreDefinition extends StoreDefinition, InternalDefinition {
   getInitialState(): State;
   init(): void;
   isAllUnmergedSelected(): boolean;
@@ -166,13 +170,9 @@ type GroupingStoreInterface = StoreDefinition & {
     | 'enableFingerprintCompare'
     | 'unmergeLastCollapsed'
   >;
-};
+}
 
-type Internals = {
-  api: Client;
-};
-
-const storeConfig: StoreDefinition & Internals & GroupingStoreInterface = {
+const storeConfig: GroupingStoreDefinition = {
   listenables: [GroupingActions],
   api: new Client(),
 
@@ -618,6 +618,6 @@ const storeConfig: StoreDefinition & Internals & GroupingStoreInterface = {
 };
 
 const GroupingStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  GroupingStoreInterface;
+  GroupingStoreDefinition;
 
 export default GroupingStore;

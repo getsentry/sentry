@@ -134,7 +134,8 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
 export function deleteNote(api: Client, group: Group, id: string, _oldText: string) {
   const restore = group.activity.find(activity => activity.id === id);
   const index = GroupStore.removeActivity(group.id, id);
-  if (index === -1) {
+
+  if (index === -1 || restore === undefined) {
     // I dunno, the id wasn't found in the GroupStore
     return Promise.reject(new Error('Group was not found in store'));
   }
@@ -166,14 +167,14 @@ export function updateNote(
   id: string,
   oldText: string
 ) {
-  GroupStore.updateActivity(group.id, id, {text: note.text});
+  GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
 
   const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
     method: 'PUT',
     data: note,
   });
 
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
+  promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
 
   return promise;
 }

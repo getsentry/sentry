@@ -1,17 +1,13 @@
 import isEqual from 'lodash/isEqual';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   desyncedFilters: Set<PinnedPageFilter>;
@@ -20,7 +16,7 @@ type State = {
   selection: PageFilters;
 };
 
-type Internals = {
+type InternalDefinition = {
   /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.
@@ -40,7 +36,9 @@ type Internals = {
   selection: PageFilters;
 };
 
-type PageFiltersStoreInterface = CommonStoreInterface<State> & {
+interface PageFiltersStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
   init(): void;
   onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
   onReset(): void;
@@ -50,12 +48,9 @@ type PageFiltersStoreInterface = CommonStoreInterface<State> & {
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[]): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
-};
+}
 
-const storeConfig: StoreDefinition &
-  Internals &
-  PageFiltersStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: PageFiltersStoreDefinition = {
   selection: getDefaultSelection(),
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
@@ -170,6 +165,6 @@ const storeConfig: StoreDefinition &
 
 const PageFiltersStore = createStore(
   makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & PageFiltersStoreInterface;
+) as SafeRefluxStore & PageFiltersStoreDefinition;
 
 export default PageFiltersStore;

@@ -1,15 +1,11 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Project, Team} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   loading: boolean;
@@ -21,13 +17,15 @@ type StatsData = Record<string, Project['stats']>;
 /**
  * Attributes that need typing but aren't part of the external interface,
  */
-type Internals = {
+type InternalDefinition = {
   itemsById: Record<string, Project>;
   loading: boolean;
   removeTeamFromProject(teamSlug: string, project: Project): void;
 };
 
-type ProjectsStoreInterface = CommonStoreInterface<State> & {
+interface ProjectsStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
   getAll(): Project[];
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
@@ -42,12 +40,9 @@ type ProjectsStoreInterface = CommonStoreInterface<State> & {
   onStatsLoadSuccess(data: StatsData): void;
   onUpdateSuccess(data: Partial<Project>): void;
   reset(): void;
-};
+}
 
-const storeConfig: StoreDefinition &
-  Internals &
-  ProjectsStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: ProjectsStoreDefinition = {
   itemsById: {},
   loading: true,
   unsubscribeListeners: [],
@@ -217,6 +212,6 @@ const storeConfig: StoreDefinition &
 };
 
 const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  ProjectsStoreInterface;
+  ProjectsStoreDefinition;
 
 export default ProjectsStore;
