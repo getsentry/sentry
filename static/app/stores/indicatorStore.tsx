@@ -63,6 +63,7 @@ const storeConfig: StoreDefinition &
   Internals &
   IndicatorStoreInterface &
   SafeStoreDefinition = {
+  unsubscribeListeners: [],
   items: [],
   lastId: 0,
 
