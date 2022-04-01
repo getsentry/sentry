@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.transactions import (
-    TransactionMetricsKey,
+    TransactionMetricKey,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
@@ -27,6 +27,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.project2 = self.create_project()
         self.login_as(user=self.user)
 
+        self.transaction_lcp_metric = indexer.record(
+            self.project.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+        )
+
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
         assert response.status_code == 400
@@ -41,7 +45,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         indexer.record(self.project.organization_id, "environment")
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
         )
 
@@ -59,7 +63,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="session.status",
             statsPeriod="1h",
             interval="1h",
@@ -80,7 +84,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             query="session.status:crashed",
             statsPeriod="1h",
             interval="1h",
@@ -91,7 +95,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         query = "release:foo or "
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
             query=query,
         )
@@ -103,7 +107,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         query = "release:myapp@2.0.0"
         response = self.get_success_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
             query=query,
         )
@@ -111,7 +115,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby_unknown(self):
         response = self.get_response(
-            self.project.organization.slug, field="sum(sentry.sessions.session)", orderBy="foo"
+            self.project.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            orderBy="foo",
         )
         assert response.status_code == 400
 
@@ -119,7 +125,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """Order by tag is not supported (yet)"""
         response = self.get_response(
             self.project.organization.slug,
-            field=["sum(sentry.sessions.session)", "environment"],
+            field=[f"sum({SessionMetricKey.SESSION.value})", "environment"],
             groupBy="environment",
             orderBy="environment",
         )
@@ -132,7 +138,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         response = self.get_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
         )
@@ -148,7 +154,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         response = self.get_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             cursor=Cursor(0, 1),
         )
@@ -160,7 +166,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_statsperiod_invalid(self):
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="",
         )
         assert response.status_code == 400
@@ -172,7 +178,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         def count_sessions(project_id: Optional[int]) -> int:
             kwargs = dict(
-                field="sum(sentry.sessions.session)",
+                field=f"sum({SessionMetricKey.SESSION.value})",
                 statsPeriod="1h",
                 interval="1h",
             )
@@ -183,7 +189,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groups = response.data["groups"]
             assert len(groups) == 1
 
-            return groups[0]["totals"]["sum(sentry.sessions.session)"]
+            return groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"]
 
         # Request for entire org gives a counter of two:
         assert count_sessions(project_id=None) == 2
@@ -194,7 +200,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_orderby(self):
         # Record some strings
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
         k_transaction = indexer.record(org_id, "transaction")
         v_foo = indexer.record(org_id, "/foo")
         v_bar = indexer.record(org_id, "/bar")
@@ -209,7 +214,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "tags": {
                         k_transaction: v_transaction,
@@ -228,12 +233,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             groupBy="transaction",
-            orderBy="-count(sentry.transactions.measurements.lcp)",
+            orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=2,
         )
         groups = response.data["groups"]
@@ -247,16 +252,15 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_transaction}
             assert group["series"] == {
-                "count(sentry.transactions.measurements.lcp)": [expected_count]
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
             assert group["totals"] == {
-                "count(sentry.transactions.measurements.lcp)": expected_count
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
     def test_orderby_percentile(self):
         # Record some strings
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
         tag1 = indexer.record(org_id, "tag1")
         value1 = indexer.record(org_id, "value1")
         value2 = indexer.record(org_id, "value2")
@@ -266,7 +270,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -283,11 +287,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -299,14 +303,15 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for (expected_tag_value, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
             assert group["by"] == {"tag1": expected_tag_value}
-            assert group["totals"] == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
+            }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_count]
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
 
     def test_orderby_percentile_with_pagination(self):
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
         tag1 = indexer.record(org_id, "tag1")
         value1 = indexer.record(org_id, "value1")
         value2 = indexer.record(org_id, "value2")
@@ -316,7 +321,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -333,32 +338,32 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
         )
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value2"}
-        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 2}
+        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 2}
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             cursor=Cursor(0, 1),
         )
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value1"}
-        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 5}
+        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5}
 
     def test_limit_with_orderby_is_overridden_by_paginator_limit(self):
         """
@@ -366,7 +371,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         `limit` parameter
         """
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
         tag1 = indexer.record(org_id, "tag1")
         value1 = indexer.record(org_id, "value1")
         value2 = indexer.record(org_id, "value2")
@@ -376,7 +380,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -392,11 +396,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             limit=2,
         )
@@ -409,8 +413,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         gracefully
         """
         for metric in [
-            "sentry.transactions.measurements.lcp",
-            "sentry.transactions.measurements.fcp",
+            TransactionMetricKey.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
             indexer.record(self.organization.id, metric)
@@ -418,13 +421,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "p50(sentry.transactions.measurements.fcp)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 0
@@ -435,8 +438,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from the same entity
         """
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
-        metric_id_fcp = indexer.record(org_id, "sentry.transactions.measurements.fcp")
+        metric_id_fcp = indexer.record(org_id, TransactionMetricKey.MEASUREMENTS_FCP.value)
         transaction_id = indexer.record(org_id, "transaction")
         transaction_1 = indexer.record(org_id, "/foo/")
         transaction_2 = indexer.record(org_id, "/bar/")
@@ -446,7 +448,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -483,13 +485,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "p50(sentry.transactions.measurements.fcp)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -504,12 +506,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
-                "p50(sentry.transactions.measurements.fcp)": expected_fcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
             }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
-                "p50(sentry.transactions.measurements.fcp)": [expected_fcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
     def test_orderby_percentile_with_many_fields_multiple_entities(self):
@@ -527,7 +529,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -564,13 +566,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -583,12 +585,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
-                "count_unique(sentry.transactions.user)": users,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"count_unique({TransactionMetricKey.USER.value})": users,
             }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
-                "count_unique(sentry.transactions.user)": [users],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=34))
@@ -607,7 +609,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -649,14 +651,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         request_args = {
             "field": [
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             "statsPeriod": "1h",
             "interval": "10m",
             "datasource": "snuba",
             "groupBy": ["project_id", "transaction"],
-            "orderBy": "p50(sentry.transactions.measurements.lcp)",
+            "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             "per_page": 1,
         }
 
@@ -665,12 +667,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/bar/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 11,
-            "p50(sentry.transactions.measurements.lcp)": 5.0,
+            f"count_unique({TransactionMetricKey.USER.value})": 11,
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5.0,
         }
         assert groups[0]["series"] == {
-            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 5.0],
-            "count_unique(sentry.transactions.user)": [0, 0, 0, 6, 0, 5],
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+                None,
+                None,
+                None,
+                None,
+                None,
+                5.0,
+            ],
+            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 6, 0, 5],
         }
 
         request_args["cursor"] = Cursor(0, 1)
@@ -680,12 +689,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/foo/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 4,
-            "p50(sentry.transactions.measurements.lcp)": 11.0,
+            f"count_unique({TransactionMetricKey.USER.value})": 4,
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 11.0,
         }
         assert groups[0]["series"] == {
-            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 11.0],
-            "count_unique(sentry.transactions.user)": [0, 0, 0, 3, 0, 1],
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+                None,
+                None,
+                None,
+                None,
+                None,
+                11.0,
+            ],
+            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 3, 0, 1],
         }
 
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
@@ -703,16 +719,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     )
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="4m",
             interval="1m",
             groupBy="release",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"]["sum(sentry.sessions.session)"] == [1, 2, 3, 4]
+            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 2, 3, 4]
 
         assert len(response.data["groups"]) == 1
 
@@ -731,15 +747,18 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     )
         response = self.get_success_response(
             self.organization.slug,
-            field=["sum(sentry.sessions.session)", "count_unique(sentry.sessions.session.user)"],
+            field=[
+                f"sum({SessionMetricKey.SESSION.value})",
+                f"count_unique({SessionMetricKey.USER.value})",
+            ],
             statsPeriod="4m",
             interval="1m",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"]["sum(sentry.sessions.session)"] == [3, 6, 9, 12]
+            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [3, 6, 9, 12]
 
         assert len(response.data["groups"]) == 1
 
@@ -759,7 +778,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -776,13 +795,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -795,12 +814,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "count_unique(sentry.transactions.user)": 0,
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
+                f"count_unique({TransactionMetricKey.USER.value})": 0,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
             }
             assert group["series"] == {
-                "count_unique(sentry.transactions.user)": [0],
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
+                f"count_unique({TransactionMetricKey.USER.value})": [0],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
             }
 
     def test_groupby_project(self):
@@ -812,7 +831,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             statsPeriod="1h",
             interval="1h",
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy=["project_id"],
         )
 
@@ -828,7 +847,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for group in groups:
             expected_count = expected[group["by"]["project_id"]]
             totals = group["totals"]
-            assert totals == {"sum(sentry.sessions.session)": expected_count}
+            assert totals == {f"sum({SessionMetricKey.SESSION.value})": expected_count}
 
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
@@ -840,7 +859,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy=["foo"],
@@ -852,7 +871,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy=["bar"],
@@ -875,13 +894,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             )
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="4m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["sum(sentry.sessions.session)"] == 4
-        assert group["series"]["sum(sentry.sessions.session)"] == [1, 1, 1, 1]
+        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 4
+        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 1, 1, 1]
 
     def test_unknown_filter(self):
         """Use a tag key/value in filter that does not exist in the indexer"""
@@ -890,7 +909,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             query="foo:123",  # Unknown tag key
@@ -899,23 +918,23 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             query="release:123",  # Unknown tag value is fine.
         )
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
-        assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
+        assert groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
+        assert groups[0]["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
 
     def test_request_too_granular(self):
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="24h",
             interval="5m",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
@@ -929,19 +948,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             includeTotals="0",
         )
 
         assert response.data["groups"] == [
-            {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
+            {"by": {}, "series": {f"sum({SessionMetricKey.SESSION.value})": [1.0]}}
         ]
 
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -967,8 +986,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
-        self.tx_metric = indexer.record(org_id, TransactionMetricsKey.TRANSACTION_DURATION.value)
+        self.tx_metric = indexer.record(org_id, TransactionMetricKey.DURATION.value)
         self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        self.transaction_lcp_metric = indexer.record(
+            self.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
@@ -1058,22 +1080,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
             statsPeriod="6m",
             interval="6m",
             orderBy="-session.crash_free_rate",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] is None
-        assert group["totals"]["sum(sentry.sessions.session)"] == 0
-        assert group["series"]["sum(sentry.sessions.session)"] == [0]
+        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
+        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
         assert group["series"]["session.crash_free_rate"] == [None]
 
     def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
             statsPeriod="6m",
             interval="6m",
             groupBy=["release"],
@@ -1947,7 +1969,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_histogram(self):
         # Record some strings
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.transactions.measurements.lcp")
         tag1 = indexer.record(org_id, "tag1")
         value1 = indexer.record(org_id, "value1")
         value2 = indexer.record(org_id, "value2")
@@ -1957,7 +1978,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -1975,7 +1996,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Note: everything is a string here on purpose to ensure we parse ints properly
         response = self.get_success_response(
             self.organization.slug,
-            field="histogram(sentry.transactions.measurements.lcp)",
+            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -1988,21 +2009,20 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "totals": {"histogram(sentry.transactions.measurements.lcp)": hist},
+                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
             }
         ]
 
     def test_histogram_session_duration(self):
         # Record some strings
         org_id = self.organization.id
-        metric_id = indexer.record(org_id, "sentry.sessions.session.duration")
 
         self._send_buckets(
             [
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.session_duration_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [4, 5, 6],
@@ -2012,7 +2032,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.session_duration_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [1, 2, 3],
@@ -2022,7 +2042,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.session_duration_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [7, 8, 9],
@@ -2036,7 +2056,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Note: everything is a string here on purpose to ensure we parse ints properly
         response = self.get_success_response(
             self.organization.slug,
-            field="histogram(sentry.sessions.session.duration)",
+            field=f"histogram({SessionMetricKey.SESSION_DURATION.value})",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -2047,7 +2067,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "totals": {"histogram(sentry.sessions.session.duration)": hist},
+                "totals": {f"histogram({SessionMetricKey.SESSION_DURATION.value})": hist},
             }
         ]
 
