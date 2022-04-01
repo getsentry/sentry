@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -64,21 +64,46 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
+  const cornerVariantTimeoutRed = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cornerVariantTimeoutRed.current) {
+        window.clearTimeout(cornerVariantTimeoutRed.current);
+      }
+    };
+  }, []);
+
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+
   if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
 
   const cornerVariantControl = useAnimation();
-  const [containerHasFooter, setContainerHasFooter] = React.useState<boolean>(false);
+  const updateCornerVariant = () => {
+    // TODO: find better way to delay the corner animation
+    if (cornerVariantTimeoutRed.current) {
+      window.clearTimeout(cornerVariantTimeoutRed.current);
+    }
+
+    cornerVariantTimeoutRed.current = window.setTimeout(
+      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      1000
+    );
+  };
+
+  useEffect(updateCornerVariant, []);
+  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
+
+  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  React.useEffect(updateAnimationState, []);
-  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+  useEffect(updateAnimationState, []);
 
   const addPlatform = (platform: PlatformKey) => {
     setPlatforms([...platforms, platform]);
@@ -87,6 +112,7 @@ function Onboarding(props: Props) {
   const removePlatform = (platform: PlatformKey) => {
     setPlatforms(platforms.filter(p => p !== platform));
   };
+  useEffect(updateCornerVariant, []);
 
   const clearPlatforms = () => setPlatforms([]);
 
