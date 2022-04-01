@@ -52,7 +52,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         )
 
         first_project = None
-        for i in range(2):
+        for i in range(len(projects)):
             project = SLUGS_TO_PROJECT[attachment["actions"][i]["text"]]
             if not first_project:
                 first_project = project
