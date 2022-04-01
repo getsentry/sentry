@@ -1451,7 +1451,7 @@ class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
 
 export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 
-export {SmartSearchBar};
+export {SmartSearchBar, Props as SmartSearchBarProps};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
   border: 1px solid ${p => p.theme.border};

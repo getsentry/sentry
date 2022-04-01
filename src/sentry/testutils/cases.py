@@ -1225,6 +1225,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         metric: str = "transaction.duration",
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
@@ -1243,6 +1244,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         else:
             metric_timestamp = timestamp.timestamp()
 
+        if project is None:
+            project = self.project.id
+
         if not isinstance(value, list):
             value = [value]
 
@@ -1250,7 +1254,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             [
                 {
                     "org_id": self.organization.id,
-                    "project_id": self.project.id,
+                    "project_id": project,
                     "metric_id": indexer.resolve(self.organization.id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
@@ -1425,6 +1429,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()"],
             "aggregates": ["count()"],
             "columns": [],
+            "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
@@ -1432,6 +1437,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
             "columns": [],
+            "fieldAliases": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
@@ -1439,6 +1445,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
             "columns": ["geo.country_code"],
+            "fieldAliases": [],
             "conditions": "has:geo.country_code",
         }
 
@@ -1487,6 +1494,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["aggregates"] == widget_data_source.aggregates
         if "columns" in data:
             assert data["columns"] == widget_data_source.columns
+        if "fieldAliases" in data:
+            assert data["fieldAliases"] == widget_data_source.field_aliases
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

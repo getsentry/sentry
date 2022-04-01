@@ -269,31 +269,33 @@ class WidgetQueriesForm extends React.Component<Props> {
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
             queries.forEach((widgetQuery, queryIndex) => {
-              const descending = widgetQuery.orderby.startsWith('-');
-              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFields = defined(widgetQuery.fields)
-                ? widgetQuery.fields
-                : [...widgetQuery.columns, ...widgetQuery.aggregates];
-              const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(field =>
-                isMetrics ? field : getAggregateAlias(field)
-              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
               newQuery.aggregates = aggregates;
               newQuery.columns = columns;
-              if (
-                !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-                widgetQuery.orderby !== ''
-              ) {
-                if (prevAggregateAliasFieldStrings.length === fields.length) {
-                  // The Field that was used in orderby has changed. Get the new field.
-                  newQuery.orderby = `${descending && '-'}${
-                    aggregateAliasFieldStrings[
-                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-                    ]
-                  }`;
-                } else {
-                  newQuery.orderby = '';
+              if (defined(widgetQuery.orderby)) {
+                const descending = widgetQuery.orderby.startsWith('-');
+                const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+                const prevAggregateAliasFields = defined(widgetQuery.fields)
+                  ? widgetQuery.fields
+                  : [...widgetQuery.columns, ...widgetQuery.aggregates];
+                const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
+                  field => (isMetrics ? field : getAggregateAlias(field))
+                );
+                if (
+                  !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+                  widgetQuery.orderby !== ''
+                ) {
+                  if (prevAggregateAliasFieldStrings.length === fields.length) {
+                    // The Field that was used in orderby has changed. Get the new field.
+                    newQuery.orderby = `${descending && '-'}${
+                      aggregateAliasFieldStrings[
+                        prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                      ]
+                    }`;
+                  } else {
+                    newQuery.orderby = '';
+                  }
                 }
               }
               onChange(queryIndex, newQuery);
