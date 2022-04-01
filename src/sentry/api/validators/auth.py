@@ -6,7 +6,6 @@ class AuthVerifyValidator(serializers.Serializer):
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
-    isSuperuserModal = serializers.BooleanField(required=False)
 
     def validate(self, data):
         if "password" in data:
