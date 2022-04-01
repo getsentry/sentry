@@ -135,6 +135,41 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
 
+        # Compatibility.
+        self.organization.update_option("getsentry.rate-limit.project-errors", 1)
+        self.organization.update_option("getsentry.rate-limit.window", 60)
+        # Shouldn't change.
+        quotas = self.quota.get_quotas(self.project)
+        assert quotas[0].id == "pae"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        # DataCategory.error_categories()
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        assert quotas[0].limit == 420
+        assert quotas[0].window == 10
+        assert quotas[0].reason_code == "project_abuse_limit"
+
+        self.organization.delete_option("sentry:project-error-limit")
+        # Same thing except limit = 1*60 now ver a window of 60.
+        quotas = self.quota.get_quotas(self.project)
+        assert quotas[0].id == "pae"
+        assert quotas[0].scope == QuotaScope.PROJECT
+        assert quotas[0].scope_id is None
+        # DataCategory.error_categories()
+        assert quotas[0].categories == {
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.SECURITY,
+        }
+        breakpoint()  # TODO: hmmm not sure why it remains the same
+        assert quotas[0].limit == 60
+        assert quotas[0].window == 60
+        assert quotas[0].reason_code == "project_abuse_limit"
+
     @patcher.object(RedisQuota, "get_project_quota")
     def get_project_quota(self):
         inst = mock.MagicMock()

@@ -390,3 +390,19 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# DEPRECATED. Use "sentry:project-abuse-quota.window" instead.
+# Migration of abuse rate limits into Relay.
+register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
+# Don't limit by default, base values and organization overrides are configured
+# in prod. The limits are per second, applied across a window. The actual quota
+# is then `window * limit`.
+# DEPRECATED. Use "sentry:project-error-limit" instead.
+register("getsentry.rate-limit.project-errors", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+# DEPRECATED. Use "sentry:project-transaction-limit" instead.
+register(
+    "getsentry.rate-limit.project-transactions",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK,
+)

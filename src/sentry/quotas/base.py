@@ -324,47 +324,50 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quotas(self, project):
+    def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
 
         abuse_window = options.get("sentry:project-abuse-quota.window")
+
+        if not abuse_window:
+            # Compatibility fallback.
+            abuse_window = options.get("getsentry.rate-limit.window")
+
         if not abuse_window:
             # Relay isn't effective at enforcing 1s windows.
             # 10 seconds has worked well.
             abuse_window = 10
 
-        from sentry.models import Organization
-
-        if not project.is_field_cached("organization"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-        org = project.organization
-
-        for option, id, categories in (
+        for option, compat_option, id, categories in (
             (
                 "sentry:project-error-limit",
+                "getsentry.rate-limit.project-errors",
                 "pae",
                 DataCategory.error_categories(),
             ),
             (
                 "sentry:project-transaction-limit",
+                "getsentry.rate-limit.project-transactions",
                 "pat",
                 (DataCategory.TRANSACTION,),
             ),
             (
                 "sentry:project-attachment-limit",
+                "getsentry.rate-limit.project-attachments",  # not used
                 "paa",
                 (DataCategory.ATTACHMENT,),
             ),
             (
                 "sentry:project-session-limit",
+                "getsentry.rate-limit.project-sessions",  # not used
                 "pas",
                 (DataCategory.SESSION,),
             ),
         ):
             limit = org.get_option(option)
-            if limit is not None:
+            if not limit:
+                limit = org.get_option(compat_option)
+            if limit:
                 yield QuotaConfig(
                     id=id,
                     limit=limit * abuse_window,
