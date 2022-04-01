@@ -81,7 +81,7 @@ type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
 export type ReactProps<T> = {
-  children: (props: GenericChildrenProps<T>) => React.ReactNode;
+  children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
 type ComponentProps<T, P> = {
