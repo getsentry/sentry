@@ -13,6 +13,7 @@ import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -78,7 +79,10 @@ class Replays extends AsyncView<Props, State> {
               {replayList?.map(replay => (
                 <PanelItemCentered key={replay.id}>
                   <Link
-                    to={`/organizations/${organization.slug}/replays/${replay.replayId}/`}
+                    to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                      project: replay['project.name'],
+                      id: replay.id,
+                    })}/`}
                   >
                     {replay.timestamp}
                   </Link>
