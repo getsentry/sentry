@@ -3,7 +3,9 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
+from sentry.snuba.metrics.fields.base import DerivedMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -15,7 +17,7 @@ MOCKED_DERIVED_METRICS_2.update(
             metrics=["metric_foo_doe", "session.all"],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, alias="session.crash_free_rate"
+                *args, alias=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value
             ),
         )
     }
@@ -93,15 +95,15 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         assert response.status_code == 404
 
-        indexer.record(self.organization.id, "sentry.sessions.session")
+        indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
         response = self.get_response(
             self.organization.slug,
-            "session.crash_free_rate",
+            DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
         )
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == "The following metrics ['session.crash_free_rate'] do not exist in the dataset"
+            == f"The following metrics ['{DerivedMetricKey.SESSION_CRASH_FREE_RATE.value}'] do not exist in the dataset"
         )
 
     def test_derived_metric_details(self):
@@ -116,10 +118,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         response = self.get_success_response(
             self.organization.slug,
-            "session.crash_free_rate",
+            DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
         )
         assert response.data == {
-            "name": "session.crash_free_rate",
+            "name": DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
             "type": "numeric",
             "operations": [],
             "unit": "percentage",

@@ -10,7 +10,7 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar from './spanGroupBar';
+import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
@@ -209,7 +209,7 @@ class SpanTree extends React.Component<PropType> {
 
         if (payload.type === 'span_group_chain') {
           acc.spanTree.push(
-            <SpanGroupBar
+            <SpanDescendantGroupBar
               key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}

@@ -47,6 +47,14 @@ type Props = {
 };
 
 class RuleNodeList extends React.Component<Props> {
+  propertyChangeTimeout: number | null = null;
+
+  componentWillUnmount() {
+    if (this.propertyChangeTimeout) {
+      window.clearTimeout(this.propertyChangeTimeout);
+    }
+  }
+
   getNode = (
     id: string,
     itemIdx: number
@@ -106,7 +114,12 @@ class RuleNodeList extends React.Component<Props> {
           // is undefined even if initial value is defined
           // can't directly call onPropertyChange, because
           // getNode is called during render
-          setTimeout(() => onPropertyChange(itemIdx, 'comparisonInterval', '1w'));
+          if (this.propertyChangeTimeout) {
+            window.clearTimeout(this.propertyChangeTimeout);
+          }
+          this.propertyChangeTimeout = window.setTimeout(() =>
+            onPropertyChange(itemIdx, 'comparisonInterval', '1w')
+          );
         }
         changeAlertNode = {
           ...changeAlertNode,

@@ -129,30 +129,6 @@ function SetupDocs({organization, projects, search}: Props) {
     <DocsWrapper key={platformDocs.html}>
       <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
       {missingExampleWarning()}
-      {project && (
-        <FirstEventFooter
-          project={project}
-          organization={organization}
-          isLast={projectIndex === projects.length - 1}
-          hasFirstEvent={checkProjectHasFirstEvent(project)}
-          onClickSetupLater={() => {
-            // TODO: analytics
-            const nextProject = projects.find(
-              (p, index) => !p.firstEvent && index > projectIndex
-            );
-            if (!nextProject) {
-              // TODO: integrations
-              browserHistory.push('/');
-              return;
-            }
-            setNewProject(nextProject.id);
-          }}
-          handleFirstIssueReceived={() => {
-            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
-            setHasFirstEventMap(newHasFirstEventMap);
-          }}
-        />
-      )}
     </DocsWrapper>
   );
 
@@ -182,6 +158,30 @@ function SetupDocs({organization, projects, search}: Props) {
           fixed: testOnlyAlert,
         })}
       </MainContent>
+      {project && (
+        <FirstEventFooter
+          project={project}
+          organization={organization}
+          isLast={projectIndex === projects.length - 1}
+          hasFirstEvent={checkProjectHasFirstEvent(project)}
+          onClickSetupLater={() => {
+            // TODO: analytics
+            const nextProject = projects.find(
+              (p, index) => !p.firstEvent && index > projectIndex
+            );
+            if (!nextProject) {
+              // TODO: integrations
+              browserHistory.push('/');
+              return;
+            }
+            setNewProject(nextProject.id);
+          }}
+          handleFirstIssueReceived={() => {
+            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+            setHasFirstEventMap(newHasFirstEventMap);
+          }}
+        />
+      )}
     </Wrapper>
   );
 }
@@ -262,5 +262,5 @@ const Wrapper = styled('div')`
 `;
 
 const MainContent = styled('div')`
-  width: 850px;
+  max-width: 850px;
 `;

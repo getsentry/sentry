@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -41,18 +41,21 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     title: t('Welcome'),
     Component: TargetedOnboardingWelcome,
     centered: true,
+    cornerVariant: 'top-right',
   },
   {
     id: 'select-platform',
     title: t('Select platforms'),
     Component: PlatformSelection,
     hasFooter: true,
+    cornerVariant: 'top-left',
   },
   {
     id: 'setup-docs',
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
     hasFooter: true,
+    cornerVariant: 'top-left',
   },
 ];
 
@@ -61,23 +64,46 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
+  const cornerVariantTimeoutRed = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cornerVariantTimeoutRed.current) {
+        window.clearTimeout(cornerVariantTimeoutRed.current);
+      }
+    };
+  }, []);
+
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+
   if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    // TODO: find better way to delay thhe corner animation
-    setTimeout(
+    // TODO: find better way to delay the corner animation
+    if (cornerVariantTimeoutRed.current) {
+      window.clearTimeout(cornerVariantTimeoutRed.current);
+    }
+
+    cornerVariantTimeoutRed.current = window.setTimeout(
       () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
       1000
     );
   };
 
-  React.useEffect(updateCornerVariant, []);
-  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
+  useEffect(updateCornerVariant, []);
+  const [platforms, setPlatforms] = useState<PlatformKey[]>([]);
+
+  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
+  const updateAnimationState = () => {
+    setContainerHasFooter(stepObj.hasFooter ?? false);
+    cornerVariantControl.start(stepObj.cornerVariant);
+  };
+
+  useEffect(updateAnimationState, []);
 
   const addPlatform = (platform: PlatformKey) => {
     setPlatforms([...platforms, platform]);
@@ -86,14 +112,23 @@ function Onboarding(props: Props) {
   const removePlatform = (platform: PlatformKey) => {
     setPlatforms(platforms.filter(p => p !== platform));
   };
+  useEffect(updateCornerVariant, []);
+
+  const clearPlatforms = () => setPlatforms([]);
 
   const goToStep = (step: StepDescriptor) => {
+    if (step.cornerVariant !== stepObj.cornerVariant) {
+      cornerVariantControl.start('none');
+    }
     browserHistory.push(`/onboarding/${props.params.orgId}/${step.id}/`);
   };
 
   const goNextStep = (step: StepDescriptor) => {
     const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
     const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
+    if (step.cornerVariant !== nextStep.cornerVariant) {
+      cornerVariantControl.start('none');
+    }
 
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
@@ -102,6 +137,9 @@ function Onboarding(props: Props) {
 
   const handleGoBack = () => {
     const previousStep = ONBOARDING_STEPS[activeStepIndex - 1];
+    if (stepObj.cornerVariant !== previousStep.cornerVariant) {
+      cornerVariantControl.start('none');
+    }
     browserHistory.replace(`/onboarding/${props.params.orgId}/${previousStep.id}/`);
   };
 
@@ -127,15 +165,11 @@ function Onboarding(props: Props) {
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
-        <AnimatePresence initial={false}>
-          {stepIndex !== 0 && (
-            <StyledStepper
-              numSteps={ONBOARDING_STEPS.length - 1}
-              currentStepIndex={stepIndex - 1}
-              onClick={i => goToStep(ONBOARDING_STEPS[i + 1])}
-            />
-          )}
-        </AnimatePresence>
+        <StyledStepper
+          numSteps={ONBOARDING_STEPS.length}
+          currentStepIndex={stepIndex}
+          onClick={i => goToStep(ONBOARDING_STEPS[i])}
+        />
         <UpsellWrapper>
           <Hook
             name="onboarding:targeted-onboarding-header"
@@ -143,12 +177,12 @@ function Onboarding(props: Props) {
           />
         </UpsellWrapper>
       </Header>
-      <Container hasFooter={!!stepObj.hasFooter}>
+      <Container hasFooter={containerHasFooter}>
         <Back
           animate={activeStepIndex > 0 ? 'visible' : 'hidden'}
           onClick={handleGoBack}
         />
-        <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
+        <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
           <OnboardingStep
             centered={stepObj.centered}
             key={stepObj.id}
@@ -162,10 +196,13 @@ function Onboarding(props: Props) {
                 orgId={props.params.orgId}
                 organization={props.organization}
                 search={props.location.search}
-                platforms={platforms}
-                addPlatform={addPlatform}
-                removePlatform={removePlatform}
-                genSkipOnboardingLink={genSkipOnboardingLink}
+                {...{
+                  platforms,
+                  addPlatform,
+                  removePlatform,
+                  genSkipOnboardingLink,
+                  clearPlatforms,
+                }}
               />
             )}
           </OnboardingStep>
@@ -205,6 +242,7 @@ const Header = styled('header')`
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  justify-items: stretch;
 `;
 
 const LogoSvg = styled(LogoSentry)`
