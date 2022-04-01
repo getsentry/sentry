@@ -145,6 +145,12 @@ export function generateSpansEventView({
   conditions.setFilterValues('event.type', ['transaction']);
   conditions.setFilterValues('transaction', [transactionName]);
 
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
+
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,

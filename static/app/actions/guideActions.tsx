@@ -7,6 +7,7 @@ const GuideActions = createActions([
   'toStep',
   'registerAnchor',
   'unregisterAnchor',
+  'setForceHide',
 ]);
 
 export default GuideActions;
