@@ -4,14 +4,12 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = RouteComponentProps<{}, {}> & {
   children: React.ReactChildren;
   organization: Organization;
-  selection: PageFilters;
 };
 
 function ReplaysContainer({organization, children}: Props) {
@@ -34,4 +32,4 @@ function ReplaysContainer({organization, children}: Props) {
   );
 }
 
-export default withPageFilters(withOrganization(ReplaysContainer));
+export default withOrganization(ReplaysContainer);
