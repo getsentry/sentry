@@ -5,7 +5,7 @@ __all__ = (
     "TS_COL_GROUP",
     "FIELD_REGEX",
     "TAG_REGEX",
-    "MetricOperation",
+    "MetricOperationType",
     "MetricUnit",
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
@@ -63,7 +63,7 @@ FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
-MetricOperation = Literal[
+MetricOperationType = Literal[
     "avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99", "histogram"
 ]
 MetricUnit = Literal["seconds"]
@@ -120,7 +120,7 @@ class TagValue(TypedDict):
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
-    operations: Collection[MetricOperation]
+    operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
 
 
@@ -146,7 +146,7 @@ OPERATIONS = (
     "histogram",
 ) + OPERATIONS_PERCENTILES
 
-DEFAULT_AGGREGATES: Dict[MetricOperation, Optional[Union[int, List[Tuple[float]]]]] = {
+DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,

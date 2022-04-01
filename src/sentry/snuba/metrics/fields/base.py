@@ -59,9 +59,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricEntity,
-)
-from sentry.snuba.metrics.utils import MetricOperation as MetricOperationType
-from sentry.snuba.metrics.utils import (
+    MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
@@ -95,7 +93,7 @@ def run_metrics_query(
     projects: Sequence[Project],
     org_id: int,
     referrer: str,
-) -> SnubaDataType:
+) -> List[SnubaDataType]:
     # Round timestamp to minute to get cache efficiency:
     now = datetime.now().replace(second=0, microsecond=0)
 
@@ -114,7 +112,7 @@ def run_metrics_query(
         granularity=Granularity(GRANULARITY),
     )
     result = raw_snql_query(query, referrer, use_cache=True)
-    return cast(SnubaDataType, result["data"])
+    return cast(List[SnubaDataType], result["data"])
 
 
 def _get_entity_of_metric_name(projects: Sequence[Project], metric_name: str) -> EntityKey:
@@ -403,12 +401,14 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     conversions to SnQL away from the query builder.
     """
 
-    def get_entity(self, **kwargs) -> MetricEntity:  # type: ignore
+    def get_entity(self, projects: Sequence[Project]) -> MetricEntity:
         return OPERATIONS_TO_ENTITY[self.metric_operation.op]
 
     def generate_select_statements(self, projects: Sequence[Project]) -> List[Function]:
         org_id = org_id_from_projects(projects)
-        return [self.build_conditional_aggregate_for_metric(org_id, entity=self.get_entity())]
+        return [
+            self.build_conditional_aggregate_for_metric(org_id, entity=self.get_entity(projects))
+        ]
 
     def generate_orderby_clause(
         self, direction: Direction, projects: Sequence[Project]
