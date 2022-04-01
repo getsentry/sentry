@@ -10,7 +10,6 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
-  SafeRefluxStore,
 } from 'sentry/utils/makeSafeRefluxStore';
 
 function guidePrioritySort(a: Guide, b: Guide) {
@@ -289,7 +288,5 @@ const storeConfig: GuideStoreDefinition = {
   },
 };
 
-const GuideStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  GuideStoreDefinition;
-
+const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GuideStore;

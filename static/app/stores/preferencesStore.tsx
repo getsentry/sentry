@@ -1,4 +1,4 @@
-import {createStore, Store} from 'reflux';
+import {createStore} from 'reflux';
 
 import PreferencesActions from 'sentry/actions/preferencesActions';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -70,7 +70,5 @@ const storeConfig: PreferenceStoreDefinition = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  PreferenceStoreDefinition;
-
+const PreferenceStore = createStore(makeSafeRefluxStore(storeConfig));
 export default PreferenceStore;

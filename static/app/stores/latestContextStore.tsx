@@ -4,7 +4,7 @@ import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type OrgTypes = Organization | null;
 
@@ -144,8 +144,5 @@ const storeConfig: LatestContextStoreDefinition = {
   },
 };
 
-const LatestContextStore = createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & LatestContextStoreDefinition;
-
+const LatestContextStore = createStore(makeSafeRefluxStore(storeConfig));
 export default LatestContextStore;

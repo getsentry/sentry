@@ -1,4 +1,4 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ReleaseActions from 'sentry/actions/releaseActions';
@@ -226,7 +226,5 @@ const storeConfig: ReleaseStoreDefinition = {
   },
 };
 
-const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  ReleaseStoreDefinition;
-
+const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ReleaseStore;

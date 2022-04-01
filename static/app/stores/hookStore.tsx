@@ -1,5 +1,5 @@
 import isUndefined from 'lodash/isUndefined';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -51,7 +51,5 @@ const storeConfig: HookStoreDefinition = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = createStore(makeSafeRefluxStore(storeConfig)) as HookStoreDefinition &
-  Store;
-
+const HookStore = createStore(makeSafeRefluxStore(storeConfig));
 export default HookStore;

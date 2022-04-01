@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import {Project, Team} from 'sentry/types';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -211,7 +211,5 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 };
 
-const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  ProjectsStoreDefinition;
-
+const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ProjectsStore;

@@ -38,9 +38,9 @@ export function cleanupActiveRefluxSubscriptions(
 // leaks in tests when we call store.init inside a beforeEach hook.
 export function makeSafeRefluxStore<
   T extends SafeStoreDefinition | Reflux.StoreDefinition
->(store: T): SafeRefluxStore {
+>(store: T): SafeRefluxStore & T {
   // Allow for a store to pass it's own array of unsubscribeListeners, else initialize one
-  const safeStore = store as unknown as SafeRefluxStore;
+  const safeStore = store as unknown as SafeRefluxStore & T;
   safeStore.unsubscribeListeners = Array.isArray(safeStore.unsubscribeListeners)
     ? safeStore.unsubscribeListeners
     : [];

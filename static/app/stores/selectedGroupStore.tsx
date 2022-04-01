@@ -1,4 +1,4 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -122,7 +122,5 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 };
 
-const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SelectedGroupStoreDefinition;
-
+const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SelectedGroupStore;

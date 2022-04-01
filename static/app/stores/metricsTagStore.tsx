@@ -1,4 +1,4 @@
-import {createStore, Store} from 'reflux';
+import {createStore} from 'reflux';
 
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {MetricsTag, MetricsTagCollection} from 'sentry/types';
@@ -55,7 +55,6 @@ const storeConfig: MetricsTagStoreDefinition = {
   },
 };
 
-const MetricsTagStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  MetricsTagStoreDefinition;
+const MetricsTagStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default MetricsTagStore;

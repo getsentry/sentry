@@ -1,4 +1,4 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
@@ -41,7 +41,5 @@ const storeConfig: SdkUpdatesStoreDefinition = {
   },
 };
 
-const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SdkUpdatesStoreDefinition;
-
+const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SdkUpdatesStore;

@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -86,8 +86,6 @@ const storeConfig: OrganizationEnvironmentsStoreDefinition = {
   },
 };
 
-const OrganizationEnvironmentsStore = createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & OrganizationEnvironmentsStoreDefinition;
+const OrganizationEnvironmentsStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default OrganizationEnvironmentsStore;

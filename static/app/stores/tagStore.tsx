@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -185,7 +185,5 @@ const storeConfig: TagStoreDefinition = {
   },
 };
 
-const TagStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  TagStoreDefinition;
-
+const TagStore = createStore(makeSafeRefluxStore(storeConfig));
 export default TagStore;
