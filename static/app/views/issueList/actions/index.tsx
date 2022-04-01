@@ -32,6 +32,7 @@ type Props = {
   queryCount: number;
   selection: PageFilters;
   statsPeriod: string;
+  onActionTaken?: (itemIds: string[]) => void;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
@@ -117,7 +118,8 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleUpdate = (data?: any) => {
-    const {selection, api, organization, query, onMarkReviewed} = this.props;
+    const {selection, api, organization, query, onMarkReviewed, onActionTaken} =
+      this.props;
     const orgId = organization.slug;
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
@@ -132,6 +134,8 @@ class IssueListActions extends React.Component<Props, State> {
       if (data?.inbox === false) {
         onMarkReviewed?.(itemIds ?? []);
       }
+
+      onActionTaken?.(itemIds ?? []);
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
