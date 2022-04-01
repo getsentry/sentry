@@ -118,7 +118,6 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
-  toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
@@ -129,6 +128,7 @@ type SpanBarProps = {
   isRoot?: boolean;
   spanBarColor?: string;
   spanBarHatch?: boolean;
+  toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
 type SpanBarState = {
