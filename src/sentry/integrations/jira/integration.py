@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 from operator import attrgetter
@@ -835,8 +837,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def sync_assignee_outbound(
         self,
-        external_issue: "ExternalIssue",
-        user: Optional["User"],
+        external_issue: ExternalIssue,
+        user: Optional[User],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
