@@ -1,4 +1,4 @@
-import {createStore, Store} from 'reflux';
+import {createStore} from 'reflux';
 
 import FormSearchActions from 'sentry/actions/formSearchActions';
 import {FieldObject} from 'sentry/components/forms/type';
@@ -14,17 +14,20 @@ export type FormSearchField = {
   title: React.ReactNode;
 };
 
-type StoreInterface = {
+interface StoreInterface {
   get(): InternalDefinition['searchMap'];
   reset(): void;
-};
+}
 
 type InternalDefinition = {
   onLoadSearchMap: (searchMap: null | FormSearchField[]) => void;
   searchMap: null | FormSearchField[];
 };
 
-interface ExternalIssuesDefinition extends SafeStoreDefinition, InternalDefinition {}
+interface ExternalIssuesDefinition
+  extends SafeStoreDefinition,
+    InternalDefinition,
+    StoreInterface {}
 
 /**
  * Store for "form" searches, but probably will include more
@@ -63,7 +66,5 @@ const storeConfig: ExternalIssuesDefinition = {
   },
 };
 
-const FormSearchStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  StoreInterface;
-
+const FormSearchStore = createStore(makeSafeRefluxStore(storeConfig));
 export default FormSearchStore;
