@@ -132,13 +132,11 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
 
-        assert len(mail.outbox) == 2
-
-        assert mail.outbox[0].to == ["manager@localhost"]
-        assert mail.outbox[1].to == ["owner@localhost"]
-
         expected_subject = f"Access request to {self.organization.name}"
-        assert mail.outbox[0].subject == expected_subject
+        assert len(mail.outbox) == 2
+        for i in range(len(mail.outbox)):
+            assert mail.outbox[i].to in ([user.email] for user in (user1, user2))
+            assert mail.outbox[i].subject == expected_subject
 
     @responses.activate
     def test_request_to_join_slack(self):
