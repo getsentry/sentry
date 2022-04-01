@@ -1,15 +1,15 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ClientStateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user, name="baz")
         self.path = reverse(
-            "sentry-api-0-organization-client-state", args=[self.org.slug, "onboarding"]
+            "sentry-api-0-organization-client-state", args=[self.organization.slug, "onboarding"]
         )
 
     def test_add_state(self):
@@ -26,11 +26,13 @@ class ClientStateTest(APITestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data == {"test": "data"}
+        assert resp["Content-Type"] == "application/json"
+        assert json.loads(resp.content) == {"test": "data"}
 
     def test_category_not_exist(self):
         path = reverse(
-            "sentry-api-0-organization-client-state", args=[self.org.slug, "onboarding-aaa"]
+            "sentry-api-0-organization-client-state",
+            args=[self.organization.slug, "onboarding-aaa"],
         )
         resp = self.client.get(path)
         assert resp.status_code == 404
