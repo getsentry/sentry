@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {Store} from 'reflux';
 
 import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
@@ -35,12 +35,17 @@ export function useLegacyStore<T extends LegacyStoreShape>(
   // Not all stores emit the new state, call get on change
   const callback = () => window._legacyStoreHookUpdate(() => setState(store.getState()));
 
-  useEffect(() => {
-    const listener = store.listen(callback, undefined);
+  // If we setup the listener in useEffect, there is a small race condition
+  // where the store may emit an event before we're listening (since useEffect
+  // fires AFTER rendering). Avoid this by ensuring we start listening
+  // *immediately* after we initialize the useState.
+  const unlisten = useRef<Function>();
+  if (unlisten.current === undefined) {
+    unlisten.current = store.listen(callback, undefined);
+  }
 
-    return () => {
-      listener();
-    };
+  useEffect(() => {
+    return () => void unlisten.current?.();
   }, []);
 
   return state;
