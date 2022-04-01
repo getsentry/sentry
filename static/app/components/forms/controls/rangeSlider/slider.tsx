@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-export default styled('input')<{hasLabel: boolean}>`
+const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
@@ -156,3 +156,5 @@ export default styled('input')<{hasLabel: boolean}>`
     box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
   }
 `;
+
+export default Slider;
