@@ -194,9 +194,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
 
-        if orderby:
-            builder.resolve_orderby(orderby)
-
         # TODO(dam): Add validation for metrics fields/queries
         try:
             builder.resolve_select(fields, equations)
@@ -206,6 +203,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             # Widget serializer to decide if whether or not to raise this
             # error based on the Widget's type
             data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
+
+        try:
+            builder.resolve_orderby(orderby)
+        except (InvalidSearchQuery) as err:
+            data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
 
