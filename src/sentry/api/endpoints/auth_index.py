@@ -203,7 +203,7 @@ class AuthIndexEndpoint(Endpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if request.user.is_superuser:
+        if request.user.is_superuser and validator.validated_data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)
 
         request.user = request._request.user

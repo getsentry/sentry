@@ -138,6 +138,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             response = self.client.put(
                 self.path,
                 data={
+                    "isSuperuserModal": True,
                     "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
@@ -160,6 +161,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "password": "admin",
+                    "isSuperuserModal": True,
                     "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
@@ -180,6 +182,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 HTTP_REFERER="http://testserver/bar",
                 data={
                     "password": "admin",
+                    "isSuperuserModal": True,
                     "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
@@ -201,6 +204,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 HTTP_REFERER="http://hacktheplanet/bar",
                 data={
                     "password": "admin",
+                    "isSuperuserModal": True,
                     "superuserAccessCategory": "for_testing",
                     "superuserReason": "for testing",
                 },
