@@ -3,9 +3,11 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from snuba_sdk import Direction, OrderBy
+from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -14,7 +16,7 @@ from sentry.snuba.metrics import (
     NotSupportedOverCompositeEntityException,
     SingularEntityDerivedMetric,
 )
-from sentry.snuba.metrics.fields.base import CompositeEntityDerivedMetric
+from sentry.snuba.metrics.fields.base import DERIVED_ALIASES, CompositeEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -38,6 +40,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         "sentry.sessions.session": EntityKey.MetricsCounters,
         "sentry.sessions.user": EntityKey.MetricsSets,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
+        "sentry.transactions.transaction.duration": EntityKey.Transactions,
     }[metric_name]
 
 
@@ -49,7 +52,7 @@ MOCKED_DERIVED_METRICS.update(
             metrics=["session.crashed", "session.errored_set"],
             unit="percentage",
             snql=lambda *args, org_id, metric_ids, alias=None: percentage(
-                *args, org_id, metric_ids, alias="crash_free_fake"
+                *args, metric_ids, alias="crash_free_fake"
             ),
         ),
         "random_composite": CompositeEntityDerivedMetric(
@@ -119,10 +122,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.crashed": (crashed_sessions, session_ids),
             "session.abnormal": (abnormal_sessions, session_ids),
             "session.errored_preaggregated": (errored_preaggr_sessions, session_ids),
-            "session.errored_set": (
-                sessions_errored_set,
-                [indexer.record(org_id, "sentry.sessions.session.error")],
-            ),
             "session.all_user": (all_users, session_user_ids),
             "session.crashed_user": (crashed_users, session_user_ids),
             "session.abnormal_user": (abnormal_users, session_user_ids),
@@ -136,11 +135,21 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                     alias=metric_name,
                 ),
             ]
+
+        session_error_metric_ids = [indexer.record(org_id, "sentry.sessions.session.error")]
+        assert DERIVED_METRICS["session.errored_set"].generate_select_statements(
+            [self.project]
+        ) == [
+            sessions_errored_set(
+                metric_ids=session_error_metric_ids,
+                alias="session.errored_set",
+            ),
+        ]
+
         assert MOCKED_DERIVED_METRICS[
             "session.crashed_and_abnormal_user"
         ].generate_select_statements([self.project]) == [
             addition(
-                org_id,
                 crashed_users(org_id, session_user_ids, alias="session.crashed_user"),
                 abnormal_users(org_id, session_user_ids, alias="session.abnormal_user"),
                 alias="session.crashed_and_abnormal_user",
@@ -150,10 +159,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             subtraction(
-                org_id,
                 errored_all_users(org_id, session_user_ids, alias="session.errored_user_all"),
                 addition(
-                    org_id,
                     crashed_users(org_id, session_user_ids, alias="session.crashed_user"),
                     abnormal_users(org_id, session_user_ids, alias="session.abnormal_user"),
                     alias="session.crashed_and_abnormal_user",
@@ -166,7 +173,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             subtraction(
-                org_id,
                 all_users(org_id, session_user_ids, alias="session.all_user"),
                 errored_all_users(org_id, session_user_ids, alias="session.errored_user_all"),
                 alias="session.healthy_user",
@@ -177,7 +183,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             percentage(
-                org_id,
                 crashed_sessions(org_id, metric_ids=session_ids, alias="session.crashed"),
                 all_sessions(org_id, metric_ids=session_ids, alias="session.all"),
                 alias="session.crash_free_rate",
@@ -187,7 +192,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             [self.project]
         ) == [
             percentage(
-                org_id,
                 crashed_users(org_id, metric_ids=session_user_ids, alias="session.crashed_user"),
                 all_users(org_id, metric_ids=session_user_ids, alias="session.all_user"),
                 alias="session.crash_free_user_rate",
@@ -297,6 +301,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
 
     def test_run_post_query_function(self):
+        query_definition = object()
         totals = {
             "session.crashed": 7,
         }
@@ -304,9 +309,21 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "session.crashed": [4, 0, 0, 0, 3, 0],
         }
         crashed_sessions = MOCKED_DERIVED_METRICS["session.crashed"]
-        assert crashed_sessions.run_post_query_function(totals) == 7
-        assert crashed_sessions.run_post_query_function(series, idx=0) == 4
-        assert crashed_sessions.run_post_query_function(series, idx=4) == 3
+        assert (
+            crashed_sessions.run_post_query_function(totals, query_definition=query_definition) == 7
+        )
+        assert (
+            crashed_sessions.run_post_query_function(
+                series, query_definition=query_definition, idx=0
+            )
+            == 4
+        )
+        assert (
+            crashed_sessions.run_post_query_function(
+                series, query_definition=query_definition, idx=4
+            )
+            == 3
+        )
 
 
 class CompositeEntityDerivedMetricTestCase(TestCase):
@@ -374,6 +391,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ]
 
     def test_run_post_query_function(self):
+        query_definition = object()
         totals = {
             "session.errored_set": 3,
             "session.errored_preaggregated": 4.0,
@@ -384,6 +402,44 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "session.errored": [0, 0, 0, 0, 0, 0],
             "session.errored_preaggregated": [4.0, 0, 0, 0, 0, 0],
         }
-        assert self.sessions_errored.run_post_query_function(totals) == 7
-        assert self.sessions_errored.run_post_query_function(series, idx=0) == 4
-        assert self.sessions_errored.run_post_query_function(series, idx=4) == 3
+        assert (
+            self.sessions_errored.run_post_query_function(totals, query_definition=query_definition)
+            == 7
+        )
+        assert (
+            self.sessions_errored.run_post_query_function(
+                series, query_definition=query_definition, idx=0
+            )
+            == 4
+        )
+        assert (
+            self.sessions_errored.run_post_query_function(
+                series, query_definition=query_definition, idx=4
+            )
+            == 3
+        )
+
+
+class DerivedMetricAliasTestCase(TestCase):
+    def test_session_duration_derived_alias(self):
+        org_id = self.project.organization_id
+        session_duration_derived_alias = DERIVED_ALIASES["session.duration"]
+        assert session_duration_derived_alias.generate_filter_snql_conditions(org_id) == Function(
+            "and",
+            [
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        resolve_weak(org_id, SessionMetricKey.SESSION_DURATION.value),
+                    ],
+                ),
+                Function(
+                    "equals",
+                    (
+                        Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                        resolve_weak(org_id, "exited"),
+                    ),
+                ),
+            ],
+        )

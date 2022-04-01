@@ -79,11 +79,20 @@ interface HovercardProps {
 function Hovercard(props: HovercardProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
 
-  const inTimeout = useRef<number | null>(null);
   const scheduleUpdateRef = useRef<(() => void) | null>(null);
 
   const portalEl = useMemo(() => findOrCreatePortal(), []);
   const tooltipId = useMemo(() => domId('hovercard-'), []);
+
+  const showHoverCardTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (showHoverCardTimeoutRef.current) {
+        window.clearTimeout(showHoverCardTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
@@ -96,12 +105,12 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   const toggleHovercard = useCallback(
     (value: boolean) => {
       // If a previous timeout is set, then clear it
-      if (typeof inTimeout.current === 'number') {
-        clearTimeout(inTimeout.current);
+      if (typeof showHoverCardTimeoutRef.current === 'number') {
+        clearTimeout(showHoverCardTimeoutRef.current);
       }
 
       // Else enqueue a new timeout
-      inTimeout.current = window.setTimeout(
+      showHoverCardTimeoutRef.current = window.setTimeout(
         () => setVisible(value),
         props.displayTimeout ?? 100
       );
