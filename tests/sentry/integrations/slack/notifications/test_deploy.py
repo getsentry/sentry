@@ -14,16 +14,21 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_deploy(self, mock_func):
         """
-        Test that a Slack message is sent with the expected payload when a deploy happens
+        Test that a Slack message is sent with the expected payload when a deploy happens.
         """
         release = Release.objects.create(
             version="meow" * 10,
             organization_id=self.project.organization_id,
             date_released=timezone.now(),
         )
-        project2 = self.create_project(name="battlesnake")
-        release.add_project(self.project)
-        release.add_project(project2)
+
+        # The projects can appear out of order.
+        projects = (self.project, self.create_project(name="battlesnake"))
+        SLUGS_TO_PROJECT = {project.slug: project for project in projects}
+
+        for project in projects:
+            release.add_project(project)
+
         deploy = Deploy.objects.create(
             release=release,
             organization_id=self.organization.id,
@@ -45,17 +50,20 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
             text
             == f"Release {release.version} was deployed to {self.environment.name} for these projects"
         )
-        assert attachment["actions"][0]["text"] == self.project.slug
-        assert (
-            attachment["actions"][0]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
-        )
-        assert attachment["actions"][1]["text"] == project2.slug
-        assert (
-            attachment["actions"][1]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={project2.id}&unselectedSeries=Healthy/"
-        )
+
+        first_project = None
+        for i in range(2):
+            project = SLUGS_TO_PROJECT[attachment["actions"][i]["text"]]
+            if not first_project:
+                first_project = project
+            assert (
+                attachment["actions"][i]["url"]
+                == f"http://testserver/organizations/{self.organization.slug}/releases/"
+                f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+            )
+
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release-activity-slack-user|Notification Settings>"
+            == f"{first_project.slug} | <http://testserver/settings/account/notifications/"
+            f"deploy/?referrer=release-activity-slack-user|Notification Settings>"
         )
