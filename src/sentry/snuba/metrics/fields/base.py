@@ -19,7 +19,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    Type,
     Union,
     cast,
 )
@@ -67,7 +66,7 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
-from sentry.utils.snuba import SnubaTSResult, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 __all__ = (
     "metric_object_factory",
@@ -80,7 +79,7 @@ __all__ = (
     "generate_bottom_up_dependency_tree_for_metrics",
 )
 
-SnubaDataType = Type[SnubaTSResult.data]
+SnubaDataType = Dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[Tuple[Any, ...], ClickhouseHistogram, int, float]]
 
 if TYPE_CHECKING:
