@@ -70,6 +70,7 @@ __all__ = (
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
+    "DerivedMetricKey",
 )
 
 
