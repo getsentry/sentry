@@ -41,7 +41,7 @@ function Sidebar({
           </SubHeader>
         </MiddleWrapper>
         {errorReceived ? (
-          <IconCheckmark isCircled color="green400" />
+          <StyledIconCheckmark isCircled color="green400" />
         ) : (
           isActive && <WaitingIndicator />
         )}
@@ -88,8 +88,12 @@ const indicatorAnimation: Variants = {
 
 const WaitingIndicator = styled(motion.div)`
   margin: 0 6px;
+  flex-shrink: 0;
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+`;
+const StyledIconCheckmark = styled(IconCheckmark)`
+  flex-shrink: 0;
 `;
 
 WaitingIndicator.defaultProps = {
@@ -117,4 +121,8 @@ const Wrapper = styled('div')`
   @media (max-width: 1150px) {
     display: none;
   }
+  flex-basis: 240px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 240px;
 `;
