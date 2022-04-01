@@ -1836,7 +1836,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: indexer.record(self.organization.id, "foo"),
                         self.tx_status: indexer.record(
                             self.organization.id, TransactionStatusTagValue.OK.value
                         ),
@@ -1851,7 +1850,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: indexer.record(self.organization.id, "foo"),
                         self.tx_status: indexer.record(
                             self.organization.id, TransactionStatusTagValue.CANCELLED.value
                         ),
@@ -1866,7 +1864,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: indexer.record(self.organization.id, "foo"),
                         self.tx_status: indexer.record(
                             self.organization.id, TransactionStatusTagValue.UNKNOWN.value
                         ),
@@ -1881,7 +1878,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.tx_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: indexer.record(self.organization.id, "foo"),
                         self.tx_status: indexer.record(
                             self.organization.id, TransactionStatusTagValue.ABORTED.value
                         ),
