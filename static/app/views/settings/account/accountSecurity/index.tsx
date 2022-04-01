@@ -1,18 +1,15 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import Field from 'sentry/components/forms/field';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Authenticator, OrganizationSummary} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
@@ -21,7 +18,6 @@ import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/com
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   authenticators: Authenticator[] | null;
@@ -82,6 +78,7 @@ class AccountSecurity extends AsyncView<Props> {
     const {authenticators, countEnrolled, deleteDisabled, onDisable, hasVerifiedEmail} =
       this.props;
     const isEmpty = !authenticators?.length;
+
     return (
       <div>
         <SettingsPageHeader
@@ -139,72 +136,70 @@ class AccountSecurity extends AsyncView<Props> {
                   configureButton,
                   name,
                 } = auth;
-                return (
-                  <AuthenticatorPanelItem key={id}>
-                    <AuthenticatorHeader>
-                      <AuthenticatorTitle>
-                        <AuthenticatorStatus enabled={isEnrolled} />
-                        <AuthenticatorName>{name}</AuthenticatorName>
-                      </AuthenticatorTitle>
 
-                      <Actions>
-                        {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                return (
+                  // eslint-disable-next-line react/jsx-key
+                  <Field
+                    key={id}
+                    alignRight
+                    flexibleControlStateSize
+                    label={name}
+                    help={description}
+                  >
+                    <Panel>
+                      {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                        <div>
                           <Button
                             to={`/settings/account/security/mfa/${id}/enroll/`}
-                            size="small"
                             priority="primary"
                             className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
-                        )}
-                        {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
-                          <Button
-                            onClick={this.handleAdd2FAClicked}
-                            size="small"
-                            priority="primary"
-                            className="enroll-button"
+                        </div>
+                      )}
+                      {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                        <Button
+                          onClick={this.handleAdd2FAClicked}
+                          priority="primary"
+                          className="enroll-button"
+                        >
+                          {t('Add')}
+                        </Button>
+                      )}
+
+                      {isEnrolled && authId && (
+                        <Button
+                          to={`/settings/account/security/mfa/${authId}/`}
+                          className="details-button"
+                        >
+                          {configureButton}
+                        </Button>
+                      )}
+
+                      {!isBackupInterface && isEnrolled && (
+                        <Tooltip
+                          title={t(
+                            `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
+                          )}
+                          disabled={!deleteDisabled}
+                        >
+                          <RemoveConfirm
+                            onConfirm={() => onDisable(auth)}
+                            disabled={deleteDisabled}
                           >
-                            {t('Add')}
-                          </Button>
-                        )}
+                            <Button
+                              size="small"
+                              aria-label={t('delete')}
+                              icon={<IconDelete />}
+                            />
+                          </RemoveConfirm>
+                        </Tooltip>
+                      )}
+                    </Panel>
 
-                        {isEnrolled && authId && (
-                          <Button
-                            to={`/settings/account/security/mfa/${authId}/`}
-                            size="small"
-                            className="details-button"
-                          >
-                            {configureButton}
-                          </Button>
-                        )}
-
-                        {!isBackupInterface && isEnrolled && (
-                          <Tooltip
-                            title={t(
-                              `Two-factor authentication is required for organization(s): ${this.formatOrgSlugs()}.`
-                            )}
-                            disabled={!deleteDisabled}
-                          >
-                            <RemoveConfirm
-                              onConfirm={() => onDisable(auth)}
-                              disabled={deleteDisabled}
-                            >
-                              <Button
-                                size="small"
-                                aria-label={t('delete')}
-                                icon={<IconDelete />}
-                              />
-                            </RemoveConfirm>
-                          </Tooltip>
-                        )}
-                      </Actions>
-
-                      {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
-                    </AuthenticatorHeader>
-
-                    <Description>{description}</Description>
-                  </AuthenticatorPanelItem>
+                    {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}
+                  </Field>
                 );
               })}
           </PanelBody>
@@ -213,38 +208,5 @@ class AccountSecurity extends AsyncView<Props> {
     );
   }
 }
-
-const AuthenticatorName = styled('span')`
-  font-size: 1.2em;
-`;
-
-const AuthenticatorPanelItem = styled(PanelItem)`
-  flex-direction: column;
-`;
-
-const AuthenticatorHeader = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
-
-const AuthenticatorTitle = styled('div')`
-  flex: 1;
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-`;
-
-const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-right: ${space(1)};
-`;
-
-const Description = styled(TextBlock)`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
-`;
 
 export default AccountSecurity;
