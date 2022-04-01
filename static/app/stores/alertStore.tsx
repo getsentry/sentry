@@ -111,6 +111,6 @@ const storeConfig: AlertStoreDefinition = {
   },
 };
 
-const AlertStore = createStore(storeConfig);
+const AlertStore = createStore(storeConfig) as Reflux.Store & AlertStoreDefinition;
 
 export default AlertStore;

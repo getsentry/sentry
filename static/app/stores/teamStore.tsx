@@ -19,6 +19,7 @@ interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   getAll(): Team[];
   getById(id: string): Team | null;
   getBySlug(slug: string): Team | null;
+  init(): void;
   initialized: boolean;
   loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
   onCreateSuccess(team: Team): void;

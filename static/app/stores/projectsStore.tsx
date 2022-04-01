@@ -29,6 +29,7 @@ interface ProjectsStoreDefinition
   getAll(): Project[];
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
+  init(): void;
   isLoading(): boolean;
   loadInitialData(projects: Project[]): void;
   onAddTeam(team: Team, projectSlug: string): void;
