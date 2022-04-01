@@ -47,7 +47,7 @@ describe('Onboarding', function () {
         context: routerContext,
       }
     );
-    expect(screen.getAllByText('Waiting for error')).toHaveLength(2);
+    expect(screen.getAllByTestId('sidebar-error-indicator')).toHaveLength(2);
   });
   it('renders the select platform step', function () {
     const {organization, router, routerContext} = initializeOrg({

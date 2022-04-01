@@ -38,7 +38,7 @@ function Sidebar({
         </IconWrapper>
         <MiddleWrapper>
           <NameWrapper>{name}</NameWrapper>
-          <SubHeader errorReceived={errorReceived}>
+          <SubHeader errorReceived={errorReceived} data-test-id="sidebar-error-indicator">
             {errorReceived ? t('Error Received') : t('Waiting for error')}
           </SubHeader>
         </MiddleWrapper>
