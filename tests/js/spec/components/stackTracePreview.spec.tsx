@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
-import {EntryType, Event} from 'sentry/types/event';
+import {EntryType, Event, Frame, Thread} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
@@ -122,6 +122,39 @@ describe('StackTracePreview', () => {
     ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
   ])('renders %s', async (component, features) => {
     const api = new MockApiClient();
+
+    const frame: Frame = {
+      colNo: 0,
+      filename: 'file.js',
+      function: 'throwError',
+      lineNo: 0,
+      absPath: null,
+      context: [],
+      errors: null,
+      inApp: false,
+      instructionAddr: null,
+      module: null,
+      package: null,
+      platform: null,
+      rawFunction: null,
+      symbol: null,
+      symbolAddr: null,
+      trust: undefined,
+      vars: null,
+    };
+    const thread: Thread = {
+      stacktrace: {
+        hasSystemFrames: false,
+        registers: {},
+        framesOmitted: 0,
+        frames: [frame],
+      },
+      crashed: false,
+      current: false,
+      id: 0,
+      rawStacktrace: null,
+    };
+
     jest.spyOn(api, 'requestPromise').mockResolvedValue(
       makeEvent({
         id: 'event_id',
@@ -130,18 +163,7 @@ describe('StackTracePreview', () => {
             // @ts-ignore, tbc what would be the right type here?
             type: EntryType.EXCEPTION,
             data: {
-              values: [
-                {
-                  stacktrace: {
-                    hasSystemFrames: false,
-                    registers: {},
-                    framesOmitted: 0,
-                    frames: [
-                      {colNo: 0, filename: 'file.js', function: 'throwError', lineNo: 0},
-                    ],
-                  },
-                },
-              ],
+              values: [thread],
             },
           },
         ],
