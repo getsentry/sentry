@@ -640,10 +640,10 @@ export function spanTargetHash(spanId: string): string {
 
 export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
   if (occurrence !== undefined) {
-    return `${span?.op}.${span?.description}.${occurrence}`;
+    return `${span.op}.${span.description}.${occurrence}`;
   }
 
-  return `${span?.op}.${span?.description}`;
+  return `${span.op}.${span.description}`;
 }
 
 export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {

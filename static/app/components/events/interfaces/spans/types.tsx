@@ -70,7 +70,7 @@ export type SpanSiblingGroupProps = {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
-  toggleSiblingSpanGroup: ((span: SpanType, occurrence?: number) => void) | undefined;
+  toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -95,7 +95,7 @@ export type EnhancedSpan =
   | ({
       span: SpanType;
       toggleNestedSpanGroup: (() => void) | undefined;
-      toggleSiblingSpanGroup: ((span: SpanType, occurrence?: number) => void) | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 
