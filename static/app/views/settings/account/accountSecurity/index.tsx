@@ -138,7 +138,6 @@ class AccountSecurity extends AsyncView<Props> {
                 } = auth;
 
                 return (
-                  // eslint-disable-next-line react/jsx-key
                   <Field
                     key={id}
                     alignRight
