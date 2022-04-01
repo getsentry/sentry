@@ -399,12 +399,19 @@ const HeaderSummaryWrapper = styled('div')`
 
 const SummaryStats = styled('div')`
   display: flex;
-  gap: ${space(4)};
   margin-top: ${space(3)};
+  gap: ${space(4)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    justify-content: space-between;
+    gap: unset;
     margin-top: ${space(1)};
     justify-items: flex-end;
+    width: 30%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 25%;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
@@ -422,7 +429,7 @@ const CountWrapper = styled('div')`
     white-space: nowrap;
     width: 100%;
 
-    @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    @media (min-width: ${p => p.theme.breakpoints[0]}) {
       text-align: right;
     }
   }
