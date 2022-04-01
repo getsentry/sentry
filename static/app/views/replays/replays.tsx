@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
@@ -93,7 +94,7 @@ class Replays extends React.Component<Props> {
               >
                 {data => {
                   if (data.isLoading) {
-                    return <div>Loading</div>;
+                    return <LoadingIndicator />;
                   }
                   return this.renderTable(data.tableData.data);
                 }}
