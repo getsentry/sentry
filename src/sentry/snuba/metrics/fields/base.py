@@ -26,7 +26,7 @@ from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import TransactionMetricsKey
+from sentry.sentry_metrics.transactions import TransactionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import rebucket_histogram
@@ -857,7 +857,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.TRANSACTION_ALL.value,
-            metrics=[TransactionMetricsKey.TRANSACTION_DURATION.value],
+            metrics=[TransactionMetricKey.DURATION.value],
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
