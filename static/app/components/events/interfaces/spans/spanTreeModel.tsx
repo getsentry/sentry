@@ -323,8 +323,6 @@ class SpanTreeModel {
     let descendants: EnhancedProcessedSpanType[];
 
     if (isAutogroupSiblingFeatureEnabled) {
-      // Check if the descendants in this span have consecutive similar siblings, and group them
-      // const groupedDescendants: SpanTreeModel[][] = [];
       const groupedDescendants: DescendantGroup[] = [];
       // Used to number sibling groups in case there are multiple groups with the same op and description
       const siblingGroupOccurrenceMap = {};
@@ -539,7 +537,7 @@ class SpanTreeModel {
             continuingTreeDepths,
             spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
-            groupOccurrence: occurrence ?? 0,
+            occurrence: occurrence ?? 0,
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
 
