@@ -354,7 +354,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
    *
    * This is exposed to render function
    */
-  closeMenu = (...args: Array<any>) => {
+  closeMenu(...args: Array<any>) {
     const {onClose, resetInputOnClose} = this.props;
 
     onClose?.(...args);
@@ -367,7 +367,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       isOpen: false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
-  };
+  }
 
   getInputProps<E extends HTMLInputElement>(
     inputProps?: GetInputArgs<E>
@@ -419,7 +419,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     return (
       <DropdownMenu
         isOpen={isOpen}
-        onClickOutside={this.handleClickOutside}
+        onClickOutside={this.handleClickOutside.bind(this)}
         onOpen={onMenuOpen}
       >
         {dropdownMenuProps =>
@@ -443,8 +443,8 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
             selectedItem,
             highlightedIndex,
             actions: {
-              open: this.openMenu,
-              close: this.closeMenu,
+              open: this.openMenu.bind(this),
+              close: this.closeMenu.bind(this),
             },
           })
         }
