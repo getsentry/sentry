@@ -329,6 +329,21 @@ class SpanTreeModel {
       // Used to number sibling groups in case there are multiple groups with the same op and description
       const siblingGroupOccurrenceMap = {};
 
+      const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
+        const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
+
+        if (!siblingGroupOccurrenceMap[groupKey]) {
+          siblingGroupOccurrenceMap[groupKey] = 1;
+        } else {
+          siblingGroupOccurrenceMap[groupKey] += 1;
+        }
+
+        groupedDescendants.push({
+          group,
+          occurrence: siblingGroupOccurrenceMap[groupKey],
+        });
+      };
+
       if (descendantsSource?.length >= MIN_SIBLING_GROUP_SIZE) {
         let prevSpanModel = descendantsSource[0];
         let currentGroup = [prevSpanModel];
@@ -344,18 +359,7 @@ class SpanTreeModel {
           ) {
             currentGroup.push(currSpanModel);
           } else {
-            const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
-
-            if (!siblingGroupOccurrenceMap[groupKey]) {
-              siblingGroupOccurrenceMap[groupKey] = 1;
-            } else {
-              siblingGroupOccurrenceMap[groupKey] += 1;
-            }
-
-            groupedDescendants.push({
-              group: currentGroup,
-              occurrence: siblingGroupOccurrenceMap[groupKey],
-            });
+            addGroupToMap(prevSpanModel, currentGroup);
 
             if (currSpanModel.children.length) {
               currentGroup = [currSpanModel];
@@ -369,18 +373,7 @@ class SpanTreeModel {
           prevSpanModel = currSpanModel;
         }
 
-        const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
-
-        if (!siblingGroupOccurrenceMap[groupKey]) {
-          siblingGroupOccurrenceMap[groupKey] = 1;
-        } else {
-          siblingGroupOccurrenceMap[groupKey] += 1;
-        }
-
-        groupedDescendants.push({
-          group: currentGroup,
-          occurrence: siblingGroupOccurrenceMap[groupKey],
-        });
+        addGroupToMap(prevSpanModel, currentGroup);
       } else if (descendantsSource.length >= 1) {
         groupedDescendants.push({group: descendantsSource});
       }
