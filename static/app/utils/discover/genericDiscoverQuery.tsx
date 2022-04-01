@@ -13,9 +13,21 @@ import {usePerformanceEventView} from 'sentry/utils/performance/contexts/perform
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type GenericChildrenProps<T> = {
+  /**
+   * Error, if not null.
+   */
   error: null | string;
+  /**
+   * Loading state of this query.
+   */
   isLoading: boolean;
+  /**
+   * Pagelinks, if applicable. Can be provided to the Pagination component.
+   */
   pageLinks: null | string;
+  /**
+   * Data / result.
+   */
   tableData: T | null;
 };
 
@@ -69,7 +81,7 @@ type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
 export type ReactProps<T> = {
-  children?: (props: GenericChildrenProps<T>) => React.ReactNode;
+  children: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
 type ComponentProps<T, P> = {
