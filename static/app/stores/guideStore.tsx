@@ -3,7 +3,6 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
-import {Client} from 'sentry/api';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
@@ -89,8 +88,6 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
 
   init() {
     this.state = defaultState;
-
-    this.api = new Client();
 
     this.unsubscribeListeners.push(
       this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded)
