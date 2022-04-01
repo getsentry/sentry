@@ -6,6 +6,7 @@ from sentry.snuba.metrics import (
     abnormal_users,
     addition,
     all_sessions,
+    all_transactions,
     all_users,
     crashed_sessions,
     crashed_users,
@@ -96,6 +97,25 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             ],
             alias,
+        )
+
+    def test_dist_count_aggregation_on_tx_status(self):
+        org_id = 1985
+        alias = "thefuture"
+        assert all_transactions(org_id, self.metric_ids, alias) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "in",
+                    [
+                        Column(name="metric_id"),
+                        list(self.metric_ids),
+                    ],
+                    alias=None,
+                ),
+            ],
+            alias=alias,
         )
 
     def test_percentage_in_snql(self):
