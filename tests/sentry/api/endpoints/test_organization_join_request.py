@@ -132,10 +132,11 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
 
+        users_able_to_approve_requests = {user1, user2}
         expected_subject = f"Access request to {self.organization.name}"
-        assert len(mail.outbox) == 2
+        assert len(mail.outbox) == len(users_able_to_approve_requests)
         for i in range(len(mail.outbox)):
-            assert mail.outbox[i].to in ([user.email] for user in (user1, user2))
+            assert mail.outbox[i].to in ([user.email] for user in users_able_to_approve_requests)
             assert mail.outbox[i].subject == expected_subject
 
     @responses.activate
