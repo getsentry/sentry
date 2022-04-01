@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
-import {EntryType, Event, Frame, Thread} from 'sentry/types/event';
+import {EventError} from 'sentry/types';
+import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
@@ -142,33 +143,38 @@ describe('StackTracePreview', () => {
       trust: undefined,
       vars: null,
     };
-    const thread: Thread = {
+    const thread: ExceptionValue = {
       stacktrace: {
         hasSystemFrames: false,
         registers: {},
         framesOmitted: 0,
         frames: [frame],
       },
-      crashed: false,
-      current: false,
-      id: 0,
+      mechanism: null,
+      module: null,
       rawStacktrace: null,
+      threadId: null,
+      type: '',
+      value: '',
     };
 
-    jest.spyOn(api, 'requestPromise').mockResolvedValue(
-      makeEvent({
-        id: 'event_id',
-        entries: [
-          {
-            // @ts-ignore, tbc what would be the right type here?
-            type: EntryType.EXCEPTION,
-            data: {
-              values: [thread],
-            },
-          },
-        ],
-      })
-    );
+    const exceptionValue: ExceptionType = {
+      values: [thread],
+      excOmitted: undefined,
+      hasSystemFrames: false,
+    };
+
+    const errorEvent: EventError = {
+      id: 'event_id',
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: exceptionValue,
+        },
+      ],
+    } as EventError;
+
+    jest.spyOn(api, 'requestPromise').mockResolvedValue(makeEvent(errorEvent));
 
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
