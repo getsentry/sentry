@@ -12,7 +12,7 @@ type Props = {
 
 function SetupWizard({hash = false}: Props) {
   const api = useApi();
-  const closeTimeoutRef = useRef<number | null>(null);
+  const closeTimeoutRef = useRef<number | undefined>(undefined);
   const [finished, setFinished] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
   const [finished, setFinished] = useState(false);
@@ -38,6 +38,7 @@ function SetupWizard({hash = false}: Props) {
       await api.requestPromise(`/wizard/${hash}/`);
     } catch {
       setFinished(true);
+      window.clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
     }
   }
