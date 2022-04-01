@@ -47,7 +47,8 @@ class AuthIndexEndpoint(Endpoint):
         initiate_login(request, redirect)
         raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
 
-    def _verify_user_via_inputs(self, validator, request):
+    @staticmethod
+    def _verify_user_via_inputs(validator, request):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
