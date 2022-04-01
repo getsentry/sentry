@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.models import UserRole
 from sentry.testutils import APITestCase
 
@@ -61,7 +59,6 @@ class UserUserRolesCreateTest(UserUserRolesTest, PermissionTestMixin):
         resp = self.get_response("me", "blah")
         assert resp.status_code == 404
 
-    @pytest.mark.xfail
     def test_existing_role(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
         role.users.add(self.user)
