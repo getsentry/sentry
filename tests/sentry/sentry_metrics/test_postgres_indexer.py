@@ -55,9 +55,6 @@ class PostgresIndexerV2Test(TestCase):
         # create a record with diff org_id but same string that we test against
         StringIndexer.objects.create(organization_id=999, string="hey")
 
-        # create a record with diff org_id but same string that we test against
-        StringIndexer.objects.create(organization_id=999, string="hey")
-
         assert list(
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
