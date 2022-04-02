@@ -23,41 +23,34 @@ from sentry.utils import metrics
 from sentry.utils.services import Service
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
+_INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
+# only used to compare to the older version of the PGIndexer
+_INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 
 class KeyCollection:
     """
     A KeyCollection is a way of keeping track of a group of keys
-    used to fetch ids, which are stored as results. There are
-    three potential steps to fetching the ids, and each step
-    can utilize a new KeyCollection:
-        1. ids from cache
-        2. ids from existing db records
-        3. ids from newly created db records
+    used to fetch ids, whose results are stored in KeyResults.
 
     A key is a org_id, string pair, either represented as a
     tuple e.g (1, "a"), or a string "1:a".
 
     Initial mapping is org_id's to sets of strings:
         { 1: {"a", "b", "c"}, 2: {"e", "f"} }
-
-    Resulting ids will be stored in self.results, which is a
-    mapping of org_id to string -> int mapping:
-        {
-            1: {"a": 10, "b": 11, "c": 12},
-            2: {"e": 13},
-        }
-
-    For any keys that we didn't find ids for in the current
-    step (and therefore weren't added to the results) , use
-    `get_unmapped_keys` to return a new KeyCollection that
-    can be used for the next step in getting those ids.
     """
 
     def __init__(self, mapping: Mapping[int, Set[str]]):
         self.mapping = mapping
+        self.size = self._size()
 
-    def as_tuples(self) -> MutableSequence[Tuple[int, str]]:
+    def _size(self) -> int:
+        total_size = 0
+        for org_id in self.mapping.keys():
+            total_size += len(self.mapping[org_id])
+        return total_size
+
+    def as_tuples(self) -> Sequence[Tuple[int, str]]:
         """
         Returns all the keys, each key represented as tuple -> (1, "a")
         """
@@ -67,7 +60,7 @@ class KeyCollection:
 
         return key_pairs
 
-    def as_strings(self) -> MutableSequence[str]:
+    def as_strings(self) -> Sequence[str]:
         """
         Returns all the keys, each key represented as string -> "1:a"
         """
@@ -95,17 +88,18 @@ class KeyResult:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[int, MutableMapping[str, int]] = {}
+        self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
 
     def add_key_results(self, key_results: Sequence[KeyResult]) -> None:
         for key_result in key_results:
-            try:
-                self.results[key_result.org_id][key_result.string] = key_result.id
-            except KeyError:
-                self.results[key_result.org_id] = {key_result.string: key_result.id}
+            self.results[key_result.org_id].update({key_result.string: key_result.id})
 
     def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
-        return self.results
+        """
+        Only return results that have org_ids with string/int mappings.
+        """
+        mapped_results = {k: v for k, v in self.results.items() if len(v) > 0}
+        return mapped_results
 
     def get_unmapped_keys(self, keys: KeyCollection) -> KeyCollection:
         """
@@ -116,9 +110,7 @@ class KeyResults:
         unmapped_org_strings: MutableMapping[int, Set[str]] = defaultdict(set)
         for org_id, strings in keys.mapping.items():
             for string in strings:
-                try:
-                    self.results[org_id][string]
-                except KeyError:
+                if not self.results[org_id].get(string):
                     unmapped_org_strings[org_id].add(string)
 
         return KeyCollection(unmapped_org_strings)
@@ -165,7 +157,29 @@ class PGStringIndexerV2(Service):
         self, org_strings: MutableMapping[int, Set[str]]
     ) -> MutableMapping[int, MutableMapping[str, int]]:
         """
-        TODO(meredith): add doc string
+        Takes in a mapping with org_ids to sets of strings.
+
+        Ultimately returns a mapping of those org_ids to a
+        string -> id mapping, for each string in the set.
+
+        There are three steps to getting the ids for strings:
+            1. ids from cache
+            2. ids from existing db records
+            3. ids from newly created db records
+
+        Each step will start off with a KeyCollection and KeyResults:
+            keys = KeyCollection(mapping)
+            key_results = KeyResults()
+
+        Then the work to get the ids (either from cache, db, etc)
+            .... # work to add results to KeyResults()
+
+        Those results will be added to `mapped_results`
+            key_results.get_mapped_results()
+
+        And any remaining unmapped keys get turned into a new
+        KeyCollection for the next step:
+            new_keys = key_results.get_unmapped_keys(mapping)
         """
         cache_keys = KeyCollection(org_strings)
         cache_key_strs = cache_keys.as_strings()
@@ -182,6 +196,11 @@ class PGStringIndexerV2(Service):
             tags={"cache_hit": "false", "caller": "get_many_ids"},
             amount=len(cache_results) - len(hits),
         )
+        # used to compare to pre org_id indexer cache fetch metric
+        metrics.incr(
+            _INDEXER_CACHE_FETCH_METRIC,
+            amount=cache_keys.size,
+        )
 
         cache_key_results = KeyResults()
         cache_key_results.add_key_results(
@@ -191,7 +210,7 @@ class PGStringIndexerV2(Service):
         mapped_results = cache_key_results.get_mapped_results()
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
-        if not db_read_keys.as_strings():
+        if db_read_keys.size == 0:
             return mapped_results
 
         db_read_key_results = KeyResults()
@@ -206,7 +225,18 @@ class PGStringIndexerV2(Service):
         mapped_results.update(db_read_key_results.get_mapped_results())
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
-        if not db_write_keys.as_strings():
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "true"},
+            amount=(db_read_keys.size - db_write_keys.size),
+        )
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "false"},
+            amount=db_write_keys.size,
+        )
+
+        if db_write_keys.size == 0:
             indexer_cache.set_many(new_results_to_cache)
             return mapped_results
 
