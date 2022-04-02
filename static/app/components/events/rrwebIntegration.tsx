@@ -39,7 +39,8 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
 
   renderLoading() {
     // hide loading indicator
-    return null;
+    // return null;
+    return super.renderLoading();
   }
 
   renderBody() {
