@@ -26,6 +26,9 @@ const defaultOrgFeatures = [
   'global-views',
 ];
 
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
+
 function renderTestComponent({
   dashboard,
   query,
@@ -180,6 +183,16 @@ describe('WidgetBuilder', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/tags/session.status/`,
+      body: [
+        {
+          key: 'session.status',
+          value: 'crashed',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/metrics/meta/`,
       body: [
         {
@@ -201,12 +214,6 @@ describe('WidgetBuilder', function () {
       body: TestStubs.MetricsField({
         field: `sum(${SessionMetric.SESSION})`,
       }),
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: [],
-          orderBy: `sum(${SessionMetric.SESSION})`,
-        }),
-      ],
     });
   });
 
@@ -1580,7 +1587,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  describe('Release Widgets', function () {
+  describe.only('Release Widgets', function () {
     it('sets widgetType to release', async function () {
       const handleSave = jest.fn();
 
@@ -1601,6 +1608,7 @@ describe('WidgetBuilder', function () {
               expect.objectContaining({
                 aggregates: ['sum(sentry.sessions.session)'],
                 fields: ['sum(sentry.sessions.session)'],
+                orderby: '-sum(sentry.sessions.session)',
               }),
             ],
           }),
@@ -1608,6 +1616,52 @@ describe('WidgetBuilder', function () {
       });
 
       expect(handleSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('render release data set disabled when the display type is world map', async function () {
+      renderTestComponent({
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('World Map'));
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Events (Errors, transactions)',
+        })
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Issues (Status, assignee, etc.)',
+        })
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Releases (sessions, crash rates)',
+        })
+      ).toBeDisabled();
+    });
+
+    it('renders with an release search bar', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.type(
+        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
+        'session.status:'
+      );
+      expect(await screen.findByText('No items found')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
+      userEvent.type(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'session.status:'
+      );
+      expect(await screen.findByText('crashed')).toBeInTheDocument();
     });
   });
 

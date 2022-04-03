@@ -16,7 +16,6 @@ interface Props {
   query: WidgetQuery;
   selection: PageFilters;
   tags: TagCollection;
-  searchSource?: string;
 }
 
 function IssuesSearchBarContainer({
@@ -26,7 +25,6 @@ function IssuesSearchBarContainer({
   organization,
   query,
   selection,
-  searchSource,
 }: Props) {
   const api = useApi();
   function tagValueLoader(key: string, search: string) {
@@ -43,7 +41,7 @@ function IssuesSearchBarContainer({
 
   return (
     <StyledIssueListSearchBar
-      searchSource={searchSource}
+      searchSource="widget_builder"
       organization={organization}
       query={query.conditions || ''}
       sort=""

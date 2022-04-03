@@ -78,7 +78,7 @@ export function SortByStep({
           <SortBySelectors
             widgetType={widgetType}
             sortByOptions={
-              dataSet === DataSet.EVENTS
+              dataSet !== DataSet.ISSUES
                 ? generateOrderOptions({
                     widgetType,
                     widgetBuilderNewDesign: true,
