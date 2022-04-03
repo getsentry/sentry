@@ -1,6 +1,8 @@
 import CommitterActions from 'sentry/actions/committerActions';
 import {Client} from 'sentry/api';
-import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
+import CommitterStore, {
+  getCommitterStoreKey,
+} from 'sentry/stores/Commiter/committerStore';
 import {Committer} from 'sentry/types';
 
 type ParamsGet = {

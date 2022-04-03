@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import CommitterStore from 'sentry/stores/committerStore';
+import CommitterStore from 'sentry/stores/Commiter/committerStore';
 import withCommitters from 'sentry/utils/withCommitters';
 
 describe('withCommitters HoC', function () {

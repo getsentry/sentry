@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import {getCommitters} from 'sentry/actionCreators/committers';
 import {Client} from 'sentry/api';
-import CommitterStore from 'sentry/stores/committerStore';
+import CommitterStore from 'sentry/stores/Commiter/committerStore';
 import {AvatarProject, Committer, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import getDisplayName from 'sentry/utils/getDisplayName';

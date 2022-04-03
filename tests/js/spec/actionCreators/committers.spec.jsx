@@ -1,6 +1,8 @@
 import {getCommitters} from 'sentry/actionCreators/committers';
 import CommitterActions from 'sentry/actions/committerActions';
-import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
+import CommitterStore, {
+  getCommitterStoreKey,
+} from 'sentry/stores/Commiter/committerStore';
 
 describe('CommitterActionCreator', function () {
   const organization = TestStubs.Organization();

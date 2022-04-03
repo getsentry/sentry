@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
-import CommitterStore from 'sentry/stores/committerStore';
+import CommitterStore from 'sentry/stores/Commiter/committerStore';
 
 describe('EventCause', function () {
   const organization = TestStubs.Organization();

@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import CommitterStore from 'sentry/stores/committerStore';
+import CommitterStore from 'sentry/stores/Commiter/committerStore';
 import {Event, Group} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
