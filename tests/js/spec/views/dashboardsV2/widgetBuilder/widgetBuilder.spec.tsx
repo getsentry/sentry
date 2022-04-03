@@ -1589,6 +1589,7 @@ describe('WidgetBuilder', function () {
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
+            // TODO(adam): Update widget type to be 'release'
             widgetType: 'metrics',
             queries: [
               expect.objectContaining({
