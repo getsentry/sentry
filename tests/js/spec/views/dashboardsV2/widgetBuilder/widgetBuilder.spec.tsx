@@ -9,6 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -174,14 +175,33 @@ describe('WidgetBuilder', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/tags/',
-      body: [],
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [],
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: [
+        {
+          name: SessionMetric.SESSION,
+          type: 'counter',
+          operations: ['sum'],
+        },
+        {
+          name: SessionMetric.SESSION_ERROR,
+          type: 'set',
+          operations: ['count_unique'],
+        },
+      ],
     });
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/org-slug/metrics/data/`,
+    body: TestStubs.MetricsField({
+      field: `sum(${SessionMetric.SESSION})`,
+    }),
   });
 
   afterEach(function () {
@@ -1551,6 +1571,36 @@ describe('WidgetBuilder', function () {
           }),
         ]);
       });
+    });
+  });
+
+  describe('Release Widgets', function () {
+    it('sets widgetType to release', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+      userEvent.click(screen.getByLabelText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            widgetType: 'metrics',
+            queries: [
+              expect.objectContaining({
+                aggregates: ['sum(sentry.sessions.session)'],
+                fields: ['sum(sentry.sessions.session)'],
+              }),
+            ],
+          }),
+        ]);
+      });
+
+      expect(handleSave).toHaveBeenCalledTimes(1);
     });
   });
 

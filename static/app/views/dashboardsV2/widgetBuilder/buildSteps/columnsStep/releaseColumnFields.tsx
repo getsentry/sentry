@@ -7,6 +7,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useMetricMetas} from 'sentry/utils/useMetricMetas';
 import {useMetricTags} from 'sentry/utils/useMetricTags';
+import useProjects from 'sentry/utils/useProjects';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
@@ -33,6 +34,7 @@ export function ReleaseColumnFields({
 }: Props) {
   const {metricTags} = useMetricTags();
   const {metricMetas} = useMetricMetas();
+  const {} = useProjects();
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.

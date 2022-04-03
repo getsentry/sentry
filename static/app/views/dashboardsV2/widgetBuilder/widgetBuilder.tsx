@@ -9,6 +9,7 @@ import set from 'lodash/set';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -241,12 +242,6 @@ function WidgetBuilder({
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
-    if (notDashboardsOrigin) {
-      fetchDashboards();
-    }
-  }, [source]);
-
-  useEffect(() => {
     trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
@@ -282,8 +277,21 @@ function WidgetBuilder({
   }, []);
 
   useEffect(() => {
+    if (notDashboardsOrigin) {
+      fetchDashboards();
+    }
+  }, [source]);
+
+  useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects]);
+
+  useEffect(() => {
+    if (widgetBuilderNewDesign) {
+      fetchMetricsTags(api, organization.slug, selection.projects);
+      fetchMetricsFields(api, organization.slug, selection.projects);
+    }
+  }, [selection.projects, organization.slug, widgetBuilderNewDesign]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS

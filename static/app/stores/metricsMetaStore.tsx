@@ -7,26 +7,24 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
-  isFetching: boolean;
+  /**
+   * This is state for when tags fetched from the API are loaded
+   */
+  loaded: boolean;
   metricsMeta: MetricsMetaCollection;
 };
 
-type InternalDefinition = {
-  isFetching: boolean;
-  metricsMeta: MetricsMetaCollection;
-};
-
-interface MetricsMetaStoreDefinition
-  extends InternalDefinition,
-    CommonStoreDefinition<State> {
+interface MetricsMetaStoreDefinition extends CommonStoreDefinition<State> {
   onLoadSuccess(data: MetricsMeta[]): void;
   reset(): void;
 }
 
 const storeConfig: MetricsMetaStoreDefinition = {
   unsubscribeListeners: [],
-  metricsMeta: {},
-  isFetching: false,
+  state: {
+    metricsMeta: {},
+    loaded: false,
+  },
 
   init() {
     this.unsubscribeListeners.push(
@@ -35,14 +33,15 @@ const storeConfig: MetricsMetaStoreDefinition = {
   },
 
   reset() {
-    this.metricsMeta = {};
-    this.isFetching = true;
+    this.state = {
+      metricsMeta: {},
+      loaded: false,
+    };
     this.trigger(this.state);
   },
 
   getState() {
-    const {metricsMeta, isFetching} = this;
-    return {metricsMeta, isFetching};
+    return this.state;
   },
 
   onLoadSuccess(data) {
@@ -54,8 +53,10 @@ const storeConfig: MetricsMetaStoreDefinition = {
       return acc;
     }, {});
 
-    this.metricsMeta = {...this.metricsMeta, ...newFields};
-    this.isFetching = false;
+    this.state = {
+      metricsMeta: {...this.state.metricsMeta, ...newFields},
+      loaded: true,
+    };
     this.trigger(this.state);
   },
 };

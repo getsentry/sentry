@@ -154,7 +154,7 @@ class Dashboard extends Component<Props, State> {
       organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       fetchMetricsFields(api, organization.slug, selection.projects);
-      // fetchMetricsTags(api, organization.slug, selection.projects);
+      fetchMetricsTags(api, organization.slug, selection.projects);
     }
     // Load organization tags when in edit mode.
     if (isEditing) {
@@ -189,7 +189,7 @@ class Dashboard extends Component<Props, State> {
         organization.features.includes('new-widget-builder-experience-modal-access')
       ) {
         fetchMetricsFields(api, organization.slug, selection.projects);
-        // fetchMetricsTags(api, organization.slug, selection.projects);
+        fetchMetricsTags(api, organization.slug, selection.projects);
       }
     }
   }
