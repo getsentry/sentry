@@ -194,14 +194,20 @@ describe('WidgetBuilder', function () {
         },
       ],
     });
-  });
 
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: `/organizations/org-slug/metrics/data/`,
-    body: TestStubs.MetricsField({
-      field: `sum(${SessionMetric.SESSION})`,
-    }),
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: `sum(${SessionMetric.SESSION})`,
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: [],
+          orderBy: `sum(${SessionMetric.SESSION})`,
+        }),
+      ],
+    });
   });
 
   afterEach(function () {
