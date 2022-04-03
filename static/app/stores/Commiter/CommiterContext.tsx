@@ -9,6 +9,7 @@ import {
   Organization,
   Project,
 } from 'sentry/types';
+import getDisplayName from 'sentry/utils/getDisplayName';
 import useApi from 'sentry/utils/useApi';
 
 function exhaustive(x?: never) {
@@ -130,7 +131,7 @@ interface RequiredProps {
 export function withCommitters<P extends RequiredProps>(
   Component: React.ComponentType<P>
 ) {
-  return (props: P): React.ReactElement => {
+  const wrappedComponent: React.FC<P> = (props): React.ReactElement => {
     const api = useApi();
     const [state, dispatch] = useCommiters();
 
@@ -180,4 +181,7 @@ export function withCommitters<P extends RequiredProps>(
       />
     );
   };
+
+  wrappedComponent.displayName = `withCommitters(${getDisplayName(Component)})`;
+  return wrappedComponent;
 }
