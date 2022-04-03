@@ -121,17 +121,23 @@ export function useCommiters() {
   return context;
 }
 
-interface RequiredProps {
+interface RequiredWithCommittersProps {
   event: Event;
-  group: Group;
   organization: Organization;
   project: Project | AvatarProject;
+  group?: Group;
 }
 
-export function withCommitters<P extends RequiredProps>(
+export interface WithCommittersProps {
+  committers: Committer[] | undefined;
+}
+
+export function withCommitters<P extends WithCommittersProps>(
   Component: React.ComponentType<P>
 ) {
-  const wrappedComponent: React.FC<P> = (props): React.ReactElement => {
+  const wrappedComponent: React.ComponentType<
+    Omit<P, keyof WithCommittersProps> & RequiredWithCommittersProps
+  > = (props): React.ReactElement => {
     const api = useApi();
     const [state, dispatch] = useCommiters();
 
@@ -168,7 +174,7 @@ export function withCommitters<P extends RequiredProps>(
 
     return (
       <Component
-        {...props}
+        {...(props as unknown as P)}
         committers={
           state[
             makeCommitterStoreKey({
