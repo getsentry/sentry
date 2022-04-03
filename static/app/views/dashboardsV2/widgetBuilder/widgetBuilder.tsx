@@ -91,7 +91,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-blah' : '',
+      orderby: widgetBuilderNewDesign ? '-count' : '',
     },
     [DataSet.ISSUES]: {
       name: '',

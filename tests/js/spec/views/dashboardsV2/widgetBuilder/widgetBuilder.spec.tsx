@@ -1587,7 +1587,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  describe.only('Release Widgets', function () {
+  describe('Release Widgets', function () {
     it('sets widgetType to release', async function () {
       const handleSave = jest.fn();
 
