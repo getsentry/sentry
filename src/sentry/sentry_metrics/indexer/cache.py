@@ -4,10 +4,37 @@ from typing import Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
 
+from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
+
+# todo: add the real names of strings here
+LOCAL_CACHE_KEYS = [
+    "release",
+    "environment",
+    "session",
+]
+
+
+class LocalIndexerCache:
+    def __init__(self) -> None:
+        self.cache: MutableMapping[str, int] = {}
+        self.loaded = False
+
+    def _load_cache(self) -> None:
+        objs = StringIndexer.objects.filter(organization_id=0, string__in=LOCAL_CACHE_KEYS)
+        self.cache = {obj.string: obj.id for obj in objs}
+
+    def get(self, key: str) -> Optional[int]:
+        if not self.loaded:
+            self._load_cache()
+            self.loaded = True
+        return self.cache.get(key)
+
+    def set(self, key: str, id: int) -> None:
+        self.cache[key] = id
 
 
 class StringIndexerCache:
@@ -80,3 +107,4 @@ class StringIndexerCache:
 
 # todo: dont hard code 1 as the version
 indexer_cache = StringIndexerCache(version=1)
+local_indexer_cache = LocalIndexerCache()

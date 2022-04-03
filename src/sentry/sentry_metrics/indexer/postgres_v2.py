@@ -17,7 +17,7 @@ from typing import (
 
 from django.db.models import Q
 
-from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.cache import indexer_cache, local_indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
 from sentry.utils import metrics
 from sentry.utils.services import Service
@@ -181,6 +181,27 @@ class PGStringIndexerV2(Service):
         KeyCollection for the next step:
             new_keys = key_results.get_unmapped_keys(mapping)
         """
+        if org_strings.get(0):
+            # strings with organization 0 are stored in the local cache
+            # since they are shared across orgs.
+            local_cache_keys = org_strings.pop(0)
+            collection = KeyCollection({0: local_cache_keys})
+
+            local_results = KeyResults()
+            local_cache_results = []
+            for key in local_cache_keys:
+                id = local_indexer_cache.get(key)
+                if id:
+                    local_cache_results.append(KeyResult(0, key, id))
+
+            local_results.add_key_results(local_cache_results)
+
+            mapped_results = local_results.get_mapped_results()
+            unmapped_keys = local_results.get_unmapped_keys(collection)
+            org_strings.update(unmapped_keys.mapping)
+        else:
+            mapped_results = {}
+
         cache_keys = KeyCollection(org_strings)
         cache_key_strs = cache_keys.as_strings()
         cache_results = indexer_cache.get_many(cache_key_strs)
@@ -207,7 +228,7 @@ class PGStringIndexerV2(Service):
             [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None]
         )
 
-        mapped_results = cache_key_results.get_mapped_results()
+        mapped_results.update(cache_key_results.get_mapped_results())
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_read_keys.size == 0:
@@ -264,7 +285,16 @@ class PGStringIndexerV2(Service):
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
         indexer_cache.set_many(new_results_to_cache)
 
-        mapped_results.update(db_write_key_results.get_mapped_results())
+        write_key_mapped_results = db_write_key_results.get_mapped_results()
+        # XXX(meredith): Local cache will normally be populated ahead of time
+        # but if the string hasn't been seen before we should make sure to add
+        # it to the local cache. This should really only happen when we are
+        # first introducing the local cache.
+        if write_key_mapped_results.get(0):
+            for string, id in write_key_mapped_results[0].items():
+                local_indexer_cache.set(string, id)
+
+        mapped_results.update(write_key_mapped_results)
 
         return mapped_results
 
@@ -279,6 +309,10 @@ class PGStringIndexerV2(Service):
         Returns None if the entry cannot be found.
 
         """
+        if org_id == 0:
+            # look up in local cache first
+            pass
+
         key = f"{org_id}:{string}"
         result = indexer_cache.get(key)
         if result and isinstance(result, int):
@@ -299,6 +333,7 @@ class PGStringIndexerV2(Service):
 
         Returns None if the entry cannot be found.
         """
+        # try local cache
         try:
             string: str = StringIndexerTable.objects.get_from_cache(id=id).string
         except StringIndexerTable.DoesNotExist:

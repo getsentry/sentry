@@ -1,4 +1,4 @@
-from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.cache import LocalIndexerCache, indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
@@ -99,6 +99,14 @@ class PostgresIndexerV2Test(TestCase):
         assert PGStringIndexerV2().resolve(org1_id, "beep") is None
         assert PGStringIndexerV2().reverse_resolve(1234) is None
 
+    def test_local_cache_indexer(self):
+        # todo: finish up this test
+        org_strings = {self.organization.id: self.strings, 0: {"release", "session"}}
+        results = PGStringIndexerV2().bulk_record(org_strings=org_strings)
+
+        for record in StringIndexer.objects.all():
+            assert results[record.organization_id][record.string] == record.id
+
     def test_get_db_records(self):
         """
         Make sure that calling `_get_db_records` doesn't populate the cache
@@ -114,6 +122,28 @@ class PostgresIndexerV2Test(TestCase):
 
         assert indexer_cache.get(string.id) is None
         assert indexer_cache.get(key) is None
+
+
+class LocalCacheTest(TestCase):
+    def test_no_data(self) -> None:
+        local_indexer_cache = LocalIndexerCache()
+        assert local_indexer_cache.cache == {}
+        assert local_indexer_cache.loaded is False
+
+        assert local_indexer_cache.get("release") is None
+        assert local_indexer_cache.cache == {}
+        assert local_indexer_cache.loaded is True
+
+    def test_local_cache(self) -> None:
+        local_indexer_cache = LocalIndexerCache()
+        record = StringIndexer.objects.create(organization_id=0, string="release")
+
+        assert local_indexer_cache.cache == {}
+        assert local_indexer_cache.loaded is False
+
+        assert local_indexer_cache.get("release") == record.id
+        assert local_indexer_cache.cache == {"release": record.id}
+        assert local_indexer_cache.loaded is True
 
 
 class KeyCollectionTest(TestCase):
