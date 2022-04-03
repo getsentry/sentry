@@ -6,7 +6,6 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {MetricsTagValue, Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {useMetricTags} from 'sentry/utils/useMetricTags';
-import useProjects from 'sentry/utils/useProjects';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -34,7 +33,6 @@ function MetricsSearchBar({
 }: Props) {
   const api = useApi();
   const {metricTags} = useMetricTags();
-  const {} = useProjects();
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
