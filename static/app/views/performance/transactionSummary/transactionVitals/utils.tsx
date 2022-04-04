@@ -166,7 +166,7 @@ export function shouldDisplayMissingVitalsAlert(
     return true;
   }
 
-  const isMissingVitalsMeasurement = allVitals.some(vital => !vitalsData?.[vital]);
+  const isMissingVitalsMeasurement = allVitals.some(vital => !vitalsData[vital]);
 
   const measurementsWithoutData = Object.keys(vitalsData).filter(key => {
     const vitalObj = vitalsData[key];
