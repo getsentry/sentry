@@ -26,6 +26,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 
 type TeamMiseryProps = {
   isLoading: boolean;
@@ -34,7 +35,7 @@ type TeamMiseryProps = {
   periodTableData: TableData | null;
   projects: Project[];
   weekTableData: TableData | null;
-  error?: Error | null;
+  error?: QueryError | null;
   period?: string | null;
 };
 
