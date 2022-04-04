@@ -13,7 +13,9 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import useApi from 'sentry/utils/useApi';
 
 function exhaustive(x?: never) {
-  throw new Error(`Unhandled ${JSON.stringify(x)} switch case action in CommiterReducer`);
+  throw new Error(
+    `Unhandled ${JSON.stringify(x)} switch case action in CommittersReducer`
+  );
 }
 
 function makeCommitterStoreKey({
@@ -69,10 +71,10 @@ type AddCommitters = {
     organizationSlug: string;
     projectSlug: string;
   };
-  type: 'add commiter';
+  type: 'add Committers';
 };
 
-type CommiterState = Record<
+export type CommittersState = Record<
   string,
   {
     committers: Committer[];
@@ -81,15 +83,15 @@ type CommiterState = Record<
   }
 >;
 
-type CommiterAction =
+export type CommittersAction =
   | ResetAction
   | AddCommitters
   | StartLoadingCommitters
   | SetCommittersError;
 
-function CommitersReducer(state, action: CommiterAction): CommiterState {
+function CommitterssReducer(state, action: CommittersAction): CommittersState {
   switch (action.type) {
-    case 'add commiter': {
+    case 'add Committers': {
       const key = makeCommitterStoreKey({
         organizationSlug: action.payload.organizationSlug,
         projectSlug: action.payload.projectSlug,
@@ -147,30 +149,30 @@ function CommitersReducer(state, action: CommiterAction): CommiterState {
   }
 }
 
-export const CommiterContext = createContext<
-  [CommiterState, React.Dispatch<CommiterAction>] | null
+export const CommittersContext = createContext<
+  [CommittersState, React.Dispatch<CommittersAction>] | null
 >(null);
 
-interface CommiterContextProviderProps {
+interface CommittersContextProviderProps {
   children: React.ReactNode;
-  initialState?: CommiterState;
+  initialState?: CommittersState;
 }
 
-export function CommittersProvider(props: CommiterContextProviderProps) {
-  const contextValue = useReducer(CommitersReducer, props.initialState ?? {});
+export function CommittersProvider(props: CommittersContextProviderProps) {
+  const contextValue = useReducer(CommitterssReducer, props.initialState ?? {});
 
   return (
-    <CommiterContext.Provider value={contextValue}>
+    <CommittersContext.Provider value={contextValue}>
       {props.children}
-    </CommiterContext.Provider>
+    </CommittersContext.Provider>
   );
 }
 
-export function useCommiters() {
-  const context = useContext(CommiterContext);
+export function useCommitterss(): [CommittersState, React.Dispatch<CommittersAction>] {
+  const context = useContext(CommittersContext);
 
   if (!context) {
-    throw new Error('useCommiter called outside of CommiterContext.Provider');
+    throw new Error('useCommitters called outside of CommittersContext.Provider');
   }
 
   return context;
@@ -194,7 +196,7 @@ export function withCommitters<P extends WithCommittersProps>(
     Omit<P, keyof WithCommittersProps> & RequiredWithCommittersProps
   > = (props): React.ReactElement => {
     const api = useApi();
-    const [state, dispatch] = useCommiters();
+    const [state, dispatch] = useCommitterss();
 
     useEffect(() => {
       if (!props.group?.firstRelease) {
@@ -222,7 +224,7 @@ export function withCommitters<P extends WithCommittersProps>(
             return;
           }
           dispatch({
-            type: 'add commiter',
+            type: 'add Committers',
             payload: {
               committers: response.committers,
               eventId: props.event.id,
