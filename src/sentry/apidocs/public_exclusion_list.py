@@ -95,6 +95,28 @@ from sentry.api.endpoints.integrations import (
     OrganizationPluginsConfigsEndpoint,
     OrganizationPluginsEndpoint,
 )
+from sentry.api.endpoints.integrations.sentry_apps import (
+    OrganizationSentryAppComponentsEndpoint,
+    OrganizationSentryAppsEndpoint,
+    SentryAppAuthorizationsEndpoint,
+    SentryAppComponentsEndpoint,
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
+    SentryAppInstallationDetailsEndpoint,
+    SentryAppInstallationExternalIssueActionsEndpoint,
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+    SentryAppInstallationExternalIssuesEndpoint,
+    SentryAppInstallationExternalRequestsEndpoint,
+    SentryAppInstallationsEndpoint,
+    SentryAppInteractionEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
+    SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
+)
 from sentry.api.endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -268,7 +290,6 @@ from sentry.api.endpoints.organization_request_project_creation import (
 from sentry.api.endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from sentry.api.endpoints.organization_searches import OrganizationSearchesEndpoint
-from sentry.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from sentry.api.endpoints.organization_sessions import OrganizationSessionsEndpoint
 from sentry.api.endpoints.organization_shortid import ShortIdLookupEndpoint
 from sentry.api.endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -382,27 +403,6 @@ from sentry.api.endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from sentry.api.endpoints.release_deploys import ReleaseDeploysEndpoint
-from sentry.api.endpoints.sentry_app import (
-    OrganizationSentryAppComponentsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
-    SentryAppInteractionEndpoint,
-    SentryAppPublishRequestEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppsEndpoint,
-    SentryAppsStatsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokensEndpoint,
-)
 from sentry.api.endpoints.setup_wizard import SetupWizard
 from sentry.api.endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from sentry.api.endpoints.system_health import SystemHealthEndpoint
