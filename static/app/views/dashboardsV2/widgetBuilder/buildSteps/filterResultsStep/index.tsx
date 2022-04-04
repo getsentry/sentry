@@ -73,17 +73,20 @@ export function FilterResultsStep({
     };
   }, []);
 
-  const handleBlur = useCallback((queryIndex: number) => {
-    return (field: string) => {
-      if (!blurTimeoutRef.current) {
-        const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
-          conditions: field,
-        };
-        onQueryChange(queryIndex, newQuery);
-      }
-    };
-  }, []);
+  const handleBlur = useCallback(
+    (queryIndex: number) => {
+      return (field: string) => {
+        if (!blurTimeoutRef.current) {
+          const newQuery: WidgetQuery = {
+            ...queries[queryIndex],
+            conditions: field,
+          };
+          onQueryChange(queryIndex, newQuery);
+        }
+      };
+    },
+    [queries]
+  );
 
   return (
     <BuildStep
