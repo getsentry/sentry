@@ -105,10 +105,13 @@ function importSingleProfile(
     });
   }
   if (isJSProfile(profile)) {
-    return wrapWithSpan(() => JSSelfProfile.FromProfile(profile, frameIndex), {
-      op: 'profile.import',
-      description: 'js',
-    });
+    return wrapWithSpan(
+      () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),
+      {
+        op: 'profile.import',
+        description: 'js',
+      }
+    );
   }
   throw new Error('Unrecognized trace format');
 }
