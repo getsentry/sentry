@@ -15,6 +15,7 @@ import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
@@ -50,6 +51,11 @@ function Chart(props: Props) {
   }
 
   function handleDisplayChange(value: string) {
+    trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
+      organization: props.organization,
+      selected_display: value,
+    });
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
