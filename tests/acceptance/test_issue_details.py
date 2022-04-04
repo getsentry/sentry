@@ -146,7 +146,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="invalid-interfaces")
         self.page.visit_issue(self.org.slug, event.group.id)
 
-        self.browser.click('[data-test-id="event-error-toggle"]')
+        self.browser.click('[data-test-id="event-error-alert"]')
         self.browser.wait_until_test_id("event-error-details")
         self.browser.snapshot("issue details invalid interfaces")
 

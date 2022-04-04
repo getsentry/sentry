@@ -1,24 +1,20 @@
-import {Component, Fragment} from 'react';
-import {css} from '@emotion/react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import Alert from 'sentry/components/alert';
 import ErrorItem from 'sentry/components/events/errorItem';
 import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
-import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Artifact, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {Theme} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
-import {BannerContainer, BannerSummary} from './styles';
+import {DataSection} from './styles';
 
 const MAX_ERRORS = 100;
 
@@ -33,23 +29,17 @@ type Props = {
 };
 
 type State = {
-  isOpen: boolean;
   releaseArtifacts?: Array<Artifact>;
 };
 
 class Errors extends Component<Props, State> {
-  state: State = {
-    isOpen: false,
-  };
+  state: State = {};
 
   componentDidMount() {
     this.checkSourceCodeErrors();
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    if (this.state.isOpen !== nextState.isOpen) {
-      return true;
-    }
+  shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
 
@@ -121,13 +111,9 @@ class Errors extends Component<Props, State> {
     }
   }
 
-  toggle = () => {
-    this.setState(state => ({isOpen: !state.isOpen}));
-  };
-
   render() {
     const {event, proGuardErrors} = this.props;
-    const {isOpen, releaseArtifacts} = this.state;
+    const {releaseArtifacts} = this.state;
     const {dist: eventDistribution, errors: eventErrors = []} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
@@ -137,29 +123,17 @@ class Errors extends Component<Props, State> {
     const errors = [...otherErrors, ...proGuardErrors];
 
     return (
-      <StyledBanner priority="danger">
-        <BannerSummary>
-          <StyledIconWarning />
-          <span data-test-id="errors-banner-summary-info">
-            {tn(
-              'There was %s problem processing this event',
-              'There were %s problems processing this event',
-              errors.length
-            )}
-          </span>
-          <StyledButton
-            data-test-id="event-error-toggle"
-            priority="link"
-            size="zero"
-            onClick={this.toggle}
-          >
-            {isOpen ? t('Hide') : t('Show')}
-          </StyledButton>
-        </BannerSummary>
-        {isOpen && (
-          <Fragment>
-            <Divider />
-            <ErrorList data-test-id="event-error-details" symbol="bullet">
+      <StyledDataSection>
+        <StyledAlert
+          type="error"
+          showIcon
+          data-test-id="event-error-alert"
+          expand={[
+            <ErrorList
+              key="event-error-details"
+              data-test-id="event-error-details"
+              symbol="bullet"
+            >
               {errors.map((error, errorIdx) => {
                 const data = error.data ?? {};
                 if (
@@ -194,54 +168,37 @@ class Errors extends Component<Props, State> {
 
                 return <ErrorItem key={errorIdx} error={{...error, data}} />;
               })}
-            </ErrorList>
-          </Fragment>
-        )}
-      </StyledBanner>
+            </ErrorList>,
+          ]}
+        >
+          <span data-test-id="alert-summary-info">
+            {tn(
+              'There was %s problem processing this event',
+              'There were %s problems processing this event',
+              errors.length
+            )}
+          </span>
+        </StyledAlert>
+      </StyledDataSection>
     );
   }
 }
 
-const linkStyle = ({theme}: {theme: Theme}) => css`
-  font-weight: bold;
-  color: ${theme.subText};
-  :hover {
-    color: ${theme.textColor};
+const StyledDataSection = styled(DataSection)`
+  border-top: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-top: 0;
   }
 `;
 
-const StyledButton = styled(Button)`
-  ${linkStyle}
-  align-self: center;
-`;
-
-const StyledBanner = styled(BannerContainer)`
-  margin-top: -1px;
-  a {
-    ${linkStyle}
-  }
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  color: ${p => p.theme.red300};
-`;
-
-// TODO(theme) don't use a custom pink
-const customPink = '#e7c0bc';
-
-const Divider = styled('div')`
-  height: 1px;
-  background-color: ${customPink};
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
 `;
 
 const ErrorList = styled(List)`
-  margin: 0 ${space(4)} 0 40px;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(0.5)};
-  pre {
-    background: #f9eded;
-    color: #381618;
-    margin: ${space(0.5)} 0 0;
+  li:last-child {
+    margin-bottom: 0;
   }
 `;
 

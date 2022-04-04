@@ -30,23 +30,17 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 
   const eventErrors = wrapper.find('Errors');
 
-  const bannerSummary = eventErrors.find('BannerSummary');
-  const bannerSummaryInfo = bannerSummary.find(
-    'span[data-test-id="errors-banner-summary-info"]'
-  );
+  const alert = eventErrors.find('StyledAlert');
+  const alertSummaryInfo = alert.find('span[data-test-id="alert-summary-info"]');
 
-  const toggleButton = bannerSummary
-    .find('[data-test-id="event-error-toggle"]')
-    .hostNodes();
-
-  toggleButton.simulate('click');
+  alert.simulate('click');
 
   await tick();
   wrapper.update();
 
   const errorItem = wrapper.find('ErrorItem');
 
-  return {bannerSummaryInfoText: bannerSummaryInfo.text(), errorItem};
+  return {alertSummaryInfoText: alertSummaryInfo.text(), errorItem};
 }
 
 describe('GroupEventEntries', function () {
@@ -82,9 +76,9 @@ describe('GroupEventEntries', function () {
         },
       ];
 
-      const {bannerSummaryInfoText, errorItem} = await renderComponent(event, errors);
+      const {alertSummaryInfoText, errorItem} = await renderComponent(event, errors);
 
-      expect(bannerSummaryInfoText).toEqual(
+      expect(alertSummaryInfoText).toEqual(
         `There were ${errors.length} problems processing this event`
       );
       expect(errorItem.length).toBe(2);
@@ -110,9 +104,9 @@ describe('GroupEventEntries', function () {
         };
 
         await act(async () => {
-          const {errorItem, bannerSummaryInfoText} = await renderComponent(newEvent);
+          const {errorItem, alertSummaryInfoText} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 
@@ -146,11 +140,9 @@ describe('GroupEventEntries', function () {
           ],
         };
 
-        const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+        const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-        expect(bannerSummaryInfoText).toEqual(
-          'There was 1 problem processing this event'
-        );
+        expect(alertSummaryInfoText).toEqual('There was 1 problem processing this event');
 
         expect(errorItem.length).toBe(1);
         expect(errorItem.at(0).props().error).toEqual({
@@ -200,9 +192,9 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 
@@ -274,9 +266,9 @@ describe('GroupEventEntries', function () {
             ],
           };
 
-          const {bannerSummaryInfoText, errorItem} = await renderComponent(newEvent);
+          const {alertSummaryInfoText, errorItem} = await renderComponent(newEvent);
 
-          expect(bannerSummaryInfoText).toEqual(
+          expect(alertSummaryInfoText).toEqual(
             'There was 1 problem processing this event'
           );
 

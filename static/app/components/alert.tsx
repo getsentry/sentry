@@ -73,6 +73,11 @@ const alertStyles = ({
       text-decoration-style: solid;
     }
 
+    pre {
+      background: ${alertColors.backgroundLight};
+      margin: ${space(0.5)} 0 0;
+    }
+
     ${IconWrapper} {
       color: ${alertColors.iconColor};
     }
