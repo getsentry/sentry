@@ -40,10 +40,9 @@ class AuthIndexEndpoint(Endpoint):
         """
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
-        redirect = request.META.get("HTTP_REFERER", "")
+        redirect = request.META.get("HTTP_REFERER", None)
         if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
-
         initiate_login(request, redirect)
         raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
 
@@ -106,6 +105,9 @@ class AuthIndexEndpoint(Endpoint):
         if Superuser.org_id:
             if not has_completed_sso(request, Superuser.org_id):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
+            # below is a special case if the user is a superuser but doesn't have a password or
+            # u2f device set up, the only way to authenticate this case is to see if they have a
+            # valid sso session.
             authenticated = True if authenticated is None else authenticated
         elif authenticated is None:
             return False
