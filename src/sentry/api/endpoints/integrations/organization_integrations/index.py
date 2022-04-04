@@ -51,7 +51,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         :qparam string provider_key: Filter by specific integration provider. (e.g. "slack")
         :qparam string[] features: Filter by integration features names.
         :qparam bool includeConfig: Should integrations configurations be fetched from third-party
-            APIs? This can add several thousand ms to the request round trip.
+            APIs? This can add several seconds to the request round trip.
 
         :auth: required
         """
