@@ -34,8 +34,8 @@ export interface RangeFieldProps
 
 function onChange(
   fieldOnChange: onEvent,
-  value: number | '',
-  e: React.FormEvent<HTMLInputElement>
+  e: React.FormEvent<HTMLInputElement>,
+  value?: number
 ) {
   fieldOnChange(value, e);
 }
@@ -66,7 +66,7 @@ export default function RangeField({
           {...fieldProps}
           value={value}
           onBlur={onBlur}
-          onChange={(val, event) => onChange(fieldOnChange, val, event)}
+          onChange={(val, event) => onChange(fieldOnChange, event, val)}
         />
       )}
     />

@@ -59,14 +59,9 @@ type Props = {
    * Show label with current value
    */
   showLabel?: boolean;
+
   step?: number;
-  /**
-   * String is a valid type here only for empty string
-   * Otherwise react complains:
-   * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
-   *
-   * And we want this to be a controlled input when value is empty
-   */
+
   value?: number;
 };
 
@@ -86,7 +81,7 @@ function RangeSlider({
   ...props
 }: Props) {
   const [sliderValue, setSliderValue] = useState(
-    allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
+    allowedValues ? allowedValues.indexOf(Number(value || 0)) : value ?? 0
   );
 
   useEffect(() => {
@@ -111,7 +106,7 @@ function RangeSlider({
     }
 
     // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-    return allowedValues[newSliderValue];
+    return allowedValues[newSliderValue ?? 0];
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
