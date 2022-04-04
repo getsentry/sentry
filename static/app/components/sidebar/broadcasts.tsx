@@ -39,39 +39,40 @@ class Broadcasts extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   componentWillUnmount() {
-    if (this.timer) {
-      window.clearTimeout(this.timer);
-      this.timer = null;
+    if (this.markSeenTimeout) {
+      window.clearTimeout(this.markSeenTimeout);
     }
 
-    if (this.poller) {
-      this.stopPoll();
+    if (this.pollingTimeout) {
+      this.stopPolling();
     }
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  poller: number | null = null;
-  timer: number | null = null;
+  pollingTimeout: number | null = null;
+  markSeenTimeout: number | null = null;
 
-  startPoll() {
-    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  startPolling() {
+    if (this.pollingTimeout) {
+      this.stopPolling();
+    }
+    this.pollingTimeout = window.setTimeout(this.fetchData, POLLER_DELAY);
   }
 
-  stopPoll() {
-    if (this.poller) {
-      window.clearTimeout(this.poller);
-      this.poller = null;
+  stopPolling() {
+    if (this.pollingTimeout) {
+      window.clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
     }
   }
 
   fetchData = async () => {
-    if (this.poller) {
-      this.stopPoll();
+    if (this.pollingTimeout) {
+      this.stopPolling();
     }
 
     try {
@@ -81,7 +82,7 @@ class Broadcasts extends Component<Props, State> {
       this.setState({loading: false, error: true});
     }
 
-    this.startPoll();
+    this.startPolling();
   };
 
   /**
@@ -89,10 +90,11 @@ class Broadcasts extends Component<Props, State> {
    * polling for broadcasts data, otherwise, if it gains visibility, start
    * polling again.
    */
-  handleVisibilityChange = () => (document.hidden ? this.stopPoll() : this.startPoll());
+  handleVisibilityChange = () =>
+    document.hidden ? this.stopPolling() : this.startPolling();
 
   handleShowPanel = () => {
-    this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
+    this.markSeenTimeout = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   };
 

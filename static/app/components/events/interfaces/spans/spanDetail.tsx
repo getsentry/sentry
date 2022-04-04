@@ -27,7 +27,7 @@ import {
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAnchor, IconWarning} from 'sentry/icons';
+import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -236,7 +236,7 @@ class SpanDetail extends React.Component<Props, State> {
     }
 
     return (
-      <Alert system type="info" icon={<IconWarning size="md" />}>
+      <Alert type="info" showIcon system>
         {t(
           'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
         )}
@@ -261,7 +261,7 @@ class SpanDetail extends React.Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert system type="error" icon={<IconWarning size="md" />}>
+      <Alert type="error" showIcon system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',

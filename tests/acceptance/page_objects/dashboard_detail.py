@@ -2,7 +2,7 @@ from .base import BasePage
 
 EDIT_WIDGET_BUTTON = '[data-test-id="widget-edit"]'
 WIDGET_DRAG_HANDLE = ".widget-drag"
-WIDGET_RESIZE_HANDLE = ".react-resizable-handle"
+WIDGET_RESIZE_HANDLE = ".widget-resize"
 WIDGET_TITLE_FIELD = 'input[data-test-id="widget-title-input"]'
 
 

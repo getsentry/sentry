@@ -26,7 +26,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tooltip from 'sentry/components/tooltip';
-import {IconInfo, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -388,7 +387,7 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledAlert type="info" icon={<IconInfo />}>
+          <StyledAlert type="info" showIcon>
             {t(
               'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
             )}
@@ -432,7 +431,6 @@ function WidgetViewerModal(props: Props) {
                         display: 'flex',
                       })}
                     >
-                      <StyledIconSearch />
                       {queryOptions[selectedQueryIndex].getHighlightedQuery({
                         display: 'block',
                       }) ??
@@ -823,10 +821,6 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
-`;
-
-const StyledIconSearch = styled(IconSearch)`
-  margin: auto ${space(1.5)} auto 0;
 `;
 
 const StyledSelectControlRowContainer = styled('span')`

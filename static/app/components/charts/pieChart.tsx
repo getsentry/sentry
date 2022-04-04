@@ -29,9 +29,16 @@ class PieChart extends React.Component<Props> {
 
     // Timeout is because we need to wait for rendering animation to complete
     // And I haven't found a callback for this
-    setTimeout(() => this.highlight(0), 1000);
+    this.highlightTimeout = window.setTimeout(() => this.highlight(0), 1000);
   }
 
+  componentWillUnmount() {
+    if (this.highlightTimeout) {
+      window.clearTimeout(this.highlightTimeout);
+    }
+  }
+
+  highlightTimeout: number | null = null;
   isInitialSelected = true;
   selected = 0;
   chart = React.createRef<ReactEchartsRef>();

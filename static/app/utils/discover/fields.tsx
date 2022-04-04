@@ -15,6 +15,8 @@ export type Sort = {
 // Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
+  // When an alias is defined for a field, it will be shown as a column name in the table visualization.
+  alias?: string;
   width?: number;
 };
 
@@ -70,10 +72,12 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
+// When an alias is defined for a field, it will be shown as a column name in the table visualization.
 export type QueryFieldValue =
   | {
       field: string;
       kind: 'field';
+      alias?: string;
     }
   | {
       field: string;
@@ -82,10 +86,12 @@ export type QueryFieldValue =
   | {
       field: string;
       kind: 'equation';
+      alias?: string;
     }
   | {
       function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
       kind: 'function';
+      alias?: string;
     };
 
 // Column is just an alias of a Query value
@@ -940,9 +946,9 @@ export function stripDerivedMetricsPrefix(field: string): string {
   return field.replace(CALCULATED_FIELD_PREFIX, '');
 }
 
-export function explodeFieldString(field: string): Column {
+export function explodeFieldString(field: string, alias?: string): Column {
   if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
+    return {kind: 'equation', field: getEquation(field), alias};
   }
 
   if (isDerivedMetric(field)) {
@@ -960,10 +966,11 @@ export function explodeFieldString(field: string): Column {
         results.arguments[1] as AggregationRefinement,
         results.arguments[2] as AggregationRefinement,
       ],
+      alias,
     };
   }
 
-  return {kind: 'field', field};
+  return {kind: 'field', field, alias};
 }
 
 export function generateFieldAsString(value: QueryFieldValue): string {
@@ -985,9 +992,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
 }
 
 export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field);
-
-  return results;
+  return explodeFieldString(field.field, field.alias);
 }
 
 /**
@@ -1053,10 +1058,12 @@ export function getColumnsAndAggregates(fields: string[]): {
 export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
   aggregates: string[];
   columns: string[];
+  fieldAliases: string[];
 } {
   // TODO(dam): distinguish between metrics, derived metrics and tags
   const aggregateFields: string[] = [];
   const nonAggregateFields: string[] = [];
+  const fieldAliases: string[] = [];
 
   for (const field of fields) {
     const fieldString = generateFieldAsString(field);
@@ -1071,8 +1078,11 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
     } else {
       nonAggregateFields.push(fieldString);
     }
+
+    fieldAliases.push(field.alias ?? '');
   }
-  return {aggregates: aggregateFields, columns: nonAggregateFields};
+
+  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**

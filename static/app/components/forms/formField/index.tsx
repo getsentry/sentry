@@ -4,7 +4,6 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Field, {FieldProps} from 'sentry/components/forms/field';
 import FieldControl from 'sentry/components/forms/field/fieldControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
@@ -14,7 +13,6 @@ import FormModel, {MockModel} from 'sentry/components/forms/model';
 import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
@@ -406,24 +404,26 @@ class FormField extends React.Component<FormFieldProps> {
                 }
 
                 return (
-                  <PanelAlert type={saveMessageAlertType}>
-                    <MessageAndActions>
-                      <div>
-                        {typeof saveMessage === 'function'
-                          ? saveMessage({...props, value})
-                          : saveMessage}
-                      </div>
-                      <ButtonBar gap={1}>
-                        <Button onClick={this.handleCancelField}>{t('Cancel')}</Button>
+                  <PanelAlert
+                    type={saveMessageAlertType}
+                    trailingItems={
+                      <React.Fragment>
+                        <Button onClick={this.handleCancelField} size="xsmall">
+                          {t('Cancel')}
+                        </Button>
                         <Button
                           priority="primary"
-                          type="button"
+                          size="xsmall"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}
                         </Button>
-                      </ButtonBar>
-                    </MessageAndActions>
+                      </React.Fragment>
+                    }
+                  >
+                    {typeof saveMessage === 'function'
+                      ? saveMessage({...props, value})
+                      : saveMessage}
                   </PanelAlert>
                 );
               }}
@@ -463,13 +463,6 @@ class FormField extends React.Component<FormFieldProps> {
 }
 
 export default FormField;
-
-const MessageAndActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(2)};
-  align-items: flex-start;
-`;
 
 const StyledReturnButton = styled(ReturnButton)`
   position: absolute;

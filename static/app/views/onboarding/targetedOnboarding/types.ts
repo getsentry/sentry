@@ -9,6 +9,7 @@ export type StepData = {
 export type StepProps = {
   active: boolean;
   addPlatform: (platform: PlatformKey) => void;
+  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   orgId: string;
@@ -21,8 +22,8 @@ export type StepProps = {
 
 export type StepDescriptor = {
   Component: React.ComponentType<StepProps>;
+  cornerVariant: 'top-right' | 'top-left';
   id: string;
   title: string;
-  centered?: boolean;
   hasFooter?: boolean;
 };

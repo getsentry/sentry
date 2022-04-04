@@ -91,6 +91,12 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
+  componentWillUnmount() {
+    if (this.blurTimeout) {
+      window.clearTimeout(this.blurTimeout);
+    }
+  }
+
   blurTimeout: number | null = null;
 
   // Handle scalar field values changing.
@@ -129,6 +135,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);
@@ -151,6 +160,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
             this.blurTimeout = null;
           }, 200);
@@ -258,31 +270,33 @@ class WidgetQueriesForm extends React.Component<Props> {
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
             queries.forEach((widgetQuery, queryIndex) => {
-              const descending = widgetQuery.orderby.startsWith('-');
-              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFields = defined(widgetQuery.fields)
-                ? widgetQuery.fields
-                : [...widgetQuery.columns, ...widgetQuery.aggregates];
-              const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(field =>
-                isMetrics ? field : getAggregateAlias(field)
-              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
               newQuery.aggregates = aggregates;
               newQuery.columns = columns;
-              if (
-                !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-                widgetQuery.orderby !== ''
-              ) {
-                if (prevAggregateAliasFieldStrings.length === fields.length) {
-                  // The Field that was used in orderby has changed. Get the new field.
-                  newQuery.orderby = `${descending && '-'}${
-                    aggregateAliasFieldStrings[
-                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-                    ]
-                  }`;
-                } else {
-                  newQuery.orderby = '';
+              if (defined(widgetQuery.orderby)) {
+                const descending = widgetQuery.orderby.startsWith('-');
+                const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+                const prevAggregateAliasFields = defined(widgetQuery.fields)
+                  ? widgetQuery.fields
+                  : [...widgetQuery.columns, ...widgetQuery.aggregates];
+                const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
+                  field => (isMetrics ? field : getAggregateAlias(field))
+                );
+                if (
+                  !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+                  widgetQuery.orderby !== ''
+                ) {
+                  if (prevAggregateAliasFieldStrings.length === fields.length) {
+                    // The Field that was used in orderby has changed. Get the new field.
+                    newQuery.orderby = `${descending && '-'}${
+                      aggregateAliasFieldStrings[
+                        prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                      ]
+                    }`;
+                  } else {
+                    newQuery.orderby = '';
+                  }
                 }
               }
               onChange(queryIndex, newQuery);

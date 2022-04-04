@@ -1,24 +1,36 @@
+# Setting coverage targets per flag
 coverage:
   status:
     project:
       default: false
     patch:
       default: false
-      python:
-        paths:
-        - "src/sentry/**/*.py"
-        target: 90%
-      javascript:
-        paths:
-        - "static/app"
+      frontend:
         target: 60%
+        flags:
+        - frontend
+      backend:
+        target: 90%
+        flags:
+          - backend
   ignore:
-  - src/.*?/migrations/.*
-  - src/bitfield/.*
-  - src/sentry/debug/.*
-  - src/sentry/lint/.*
-  - src/sentry/runner/.*
-  - src/social_auth/.*
+  - src/*/migrations/
+  - src/bitfield/
+  - src/sentry/debug/
+  - src/sentry/lint/
+  - src/sentry/runner/
+  - src/social_auth/
   - static/app/routes.tsx
   - tests/
+
+flags:
+  frontend:
+    paths:
+    - "static/app/"
+    carryforward: true
+  backend:
+    paths:
+    - "src/sentry/**/*.py"
+    carryforward: true
+
 comment: false
