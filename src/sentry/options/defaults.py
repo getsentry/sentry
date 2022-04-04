@@ -117,9 +117,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# DEPRECATED: This option is no longer in use.
 # The ratio of requests for which the new stackwalking method should be compared against the old one
 register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
 
+# DEPRECATED: This option is no longer in use.
 # The ratio of requests that should be stackwalked with rust-minidump (instead of the default breakpad)
 register("symbolicator.rust_minidump_stackwalking_rate", default=0.0)
 
