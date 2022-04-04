@@ -338,7 +338,8 @@ class Quota(Service):
             # 10 seconds has worked well.
             abuse_window = 10
 
-        # Compatible options
+        # compat_options were previously present in getsentry
+        # for errors and transactions.
         for option, compat_options, id, categories in (
             (
                 "project-abuse-quota.error-limit",
