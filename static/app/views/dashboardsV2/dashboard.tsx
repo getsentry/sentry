@@ -110,8 +110,6 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  forceCheckTimeout: number | null = null;
-
   static getDerivedStateFromProps(props, state) {
     if (props.organization.features.includes('dashboard-grid-layout')) {
       if (state.isMobile) {
@@ -191,6 +189,8 @@ class Dashboard extends Component<Props, State> {
       window.clearTimeout(this.forceCheckTimeout);
     }
   }
+
+  forceCheckTimeout: number | null = null;
 
   debouncedHandleResize = debounce(() => {
     this.setState({
