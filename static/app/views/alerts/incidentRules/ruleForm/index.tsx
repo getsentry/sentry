@@ -102,12 +102,16 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
-  pollingTimeout: number | null = null;
+  pollingTimeout: number | undefined = undefined;
 
   componentDidMount() {
     const {organization, project} = this.props;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
   }
 
   getDefaultState(): State {
@@ -175,9 +179,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    if (this.pollingTimeout) {
-      window.clearTimeout(this.pollingTimeout);
-    }
+    window.clearTimeout(this.pollingTimeout);
     this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
@@ -210,9 +212,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const {status, alertRule, error} = response;
 
       if (status === 'pending') {
-        if (this.pollingTimeout) {
-          window.clearTimeout(this.pollingTimeout);
-        }
+        window.clearTimeout(this.pollingTimeout);
 
         this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(model, quitTime, loadingSlackIndicator);

@@ -60,12 +60,10 @@ type State = AsyncView['state'] & {
 };
 
 class AccountClose extends AsyncView<Props, State> {
-  leaveRedirectTimeout: number | null = null;
+  leaveRedirectTimeout: number | undefined = undefined;
 
   componentWillUnmount() {
-    if (this.leaveRedirectTimeout) {
-      window.clearTimeout(this.leaveRedirectTimeout);
-    }
+    window.clearTimeout(this.leaveRedirectTimeout);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -126,6 +124,7 @@ class AccountClose extends AsyncView<Props, State> {
       });
 
       // Redirect after 10 seconds
+      window.clearTimeout(this.leaveRedirectTimeout);
       this.leaveRedirectTimeout = window.setTimeout(leaveRedirect, 10000);
     } catch {
       addErrorMessage('Error closing account');
