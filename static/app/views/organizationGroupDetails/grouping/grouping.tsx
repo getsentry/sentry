@@ -118,7 +118,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     return false;
   }
 
-  const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId?: number) => {
     setActiveGroupingLevel(Number(groupingLevelId));
   }, DEFAULT_DEBOUNCE_DURATION);
 
