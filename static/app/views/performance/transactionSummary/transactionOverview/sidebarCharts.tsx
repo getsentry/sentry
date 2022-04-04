@@ -288,9 +288,9 @@ function SidebarChartsContainer({
         gridIndex: 0,
         interval: 0.2,
         axisLabel: {
-          formatter: (value: number) => formatFloat(value, 1),
+          formatter: (value: number) => `${formatFloat(value, 1)}`,
           color: theme.chartLabel,
-        } as any,
+        },
         ...axisLineConfig,
       },
       {
