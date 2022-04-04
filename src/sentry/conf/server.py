@@ -1408,7 +1408,7 @@ SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
 # Metrics product
-SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.PGStringIndexerV2"
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres_v2.PGStringIndexerV2"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
