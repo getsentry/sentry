@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
-import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
 import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {FieldDateTime} from 'sentry/utils/discover/styles';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -36,11 +35,11 @@ class Replays extends React.Component<Props> {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp', 'replayId'],
+      fields: ['eventID', 'timestamp', 'replayId', 'user'],
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: 'transaction:sentry-replay', // future: change to replay event
+      query: 'transaction:sentry-replay hasReplay:yes', // future: change to replay event
     };
 
     if (selection.datetime.period) {
@@ -56,17 +55,22 @@ class Replays extends React.Component<Props> {
   renderTable(replayList: Array<Replay>) {
     const {organization} = this.props;
     return replayList?.map(replay => (
-      <PanelItemCentered key={replay.id}>
+      <React.Fragment key={replay.id}>
         <Link
           to={`/organizations/${organization.slug}/replays/${generateEventSlug({
             project: replay['project.name'],
             id: replay.id,
           })}/`}
         >
-          {replay.timestamp}
+          {replay.replayId}
         </Link>
-        {replay.replayId}
-      </PanelItemCentered>
+        <div>
+          <span>{replay.user}</span>
+        </div>
+        <div>
+          <FieldDateTime date={replay.timestamp} />
+        </div>
+      </React.Fragment>
     ));
   }
 
@@ -85,22 +89,24 @@ class Replays extends React.Component<Props> {
               </div>
             </HeaderTitle>
           </PageHeader>
-          <Panel>
-            <PanelBody>
-              <DiscoverQuery
-                eventView={this.getEventView()}
-                location={this.props.location}
-                orgSlug={organization.slug}
-              >
-                {data => {
-                  if (data.isLoading) {
-                    return <LoadingIndicator />;
-                  }
-                  return this.renderTable(data.tableData.data);
-                }}
-              </DiscoverQuery>
-            </PanelBody>
-          </Panel>
+
+          <DiscoverQuery
+            eventView={this.getEventView()}
+            location={this.props.location}
+            orgSlug={organization.slug}
+          >
+            {data => {
+              return (
+                <PanelTable
+                  isLoading={data.isLoading}
+                  isEmpty={data.tableData?.length === 0}
+                  headers={['Replay ID', 'User', 'Timestamp']}
+                >
+                  {data.isLoading ? null : this.renderTable(data.tableData.data)}
+                </PanelTable>
+              );
+            }}
+          </DiscoverQuery>
         </PageContent>
       </PageFiltersContainer>
     );
@@ -112,13 +118,6 @@ const HeaderTitle = styled(PageHeading)`
   align-items: center;
   justify-content: space-between;
   flex: 1;
-`;
-
-const PanelItemCentered = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: auto max-content;
-  gap: ${space(2)};
-  padding: ${space(2)};
 `;
 
 export default withRouter(withPageFilters(withOrganization(Replays)));
