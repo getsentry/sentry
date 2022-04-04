@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Query} from 'history';
@@ -11,15 +11,15 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import {Guide} from 'sentry/components/assistant/types';
 import Button from 'sentry/components/button';
 import {Body as HovercardBody, Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
-import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
+import GuideStore from 'sentry/stores/guideStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
-type Props = {
+type Props = React.PropsWithChildren<{
   /**
    * Hovercard renders the container
    */
@@ -33,216 +33,180 @@ type Props = {
     pathname: string;
     query: Query;
   };
-};
+}>;
 
-type State = {
-  active: boolean;
-  orgId: string | null;
-  step: number;
-  currentGuide?: Guide;
-};
+function BaseGuideAnchor({
+  target,
+  onFinish,
+  children,
+  position,
+  offset,
+  containerClassName,
+  to,
+}: Props) {
+  const guideContainerRef = useRef<HTMLSpanElement>(null);
+  const {orgId, forceHide, currentGuide, currentStep} = useLegacyStore(GuideStore);
 
-class BaseGuideAnchor extends Component<Props, State> {
-  state: State = {
-    active: false,
-    step: 0,
-    orgId: null,
-  };
+  const isActive =
+    forceHide !== true && currentGuide?.steps[currentStep]?.target === (target ?? false);
 
-  componentDidMount() {
-    const {target} = this.props;
-    target && registerAnchor(target);
-  }
-
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (this.containerElement.current && !prevState.active && this.state.active) {
-      try {
-        const {top} = this.containerElement.current.getBoundingClientRect();
-        const scrollTop = window.pageYOffset;
-        const centerElement = top + scrollTop - window.innerHeight / 2;
-        window.scrollTo({top: centerElement});
-      } catch (err) {
-        Sentry.captureException(err);
-      }
+  // Register the anchor in the store
+  useEffect(() => {
+    if (!target) {
+      return () => {};
     }
-  }
 
-  componentWillUnmount() {
-    const {target} = this.props;
-    target && unregisterAnchor(target);
-    this.unsubscribe();
-  }
+    registerAnchor(target);
+    return () => void unregisterAnchor(target);
+  }, [target]);
 
-  unsubscribe = GuideStore.listen(
-    (data: GuideStoreState) => this.onGuideStateChange(data),
-    undefined
-  );
+  // Scroll to the guide on activation
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
 
-  containerElement = createRef<HTMLSpanElement>();
+    if (guideContainerRef.current === null) {
+      return;
+    }
 
-  onGuideStateChange(data: GuideStoreState) {
-    const active =
-      (data.currentGuide?.steps[data.currentStep]?.target === this.props.target ??
-        false) &&
-      !data.forceHide;
+    try {
+      const {top} = guideContainerRef.current.getBoundingClientRect();
+      const scrollTop = window.pageYOffset;
+      const centerElement = top + scrollTop - window.innerHeight / 2;
+      window.scrollTo({top: centerElement});
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }, [isActive]);
 
-    this.setState({
-      active,
-      currentGuide: data.currentGuide ?? undefined,
-      step: data.currentStep,
-      orgId: data.orgId,
-    });
-  }
+  // Terminology:
+  //
+  // - A guide can be FINISHED by clicking one of the buttons in the last step
+  // - A guide can be DISMISSED by x-ing out of it at any step except the last
+  //   (where there is no x)
+  // - In both cases we consider it CLOSED
 
-  /**
-   * Terminology:
-   *
-   *  - A guide can be FINISHED by clicking one of the buttons in the last step
-   *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
-   *  - In both cases we consider it CLOSED
-   */
-  handleFinish = (e: React.MouseEvent) => {
+  function handleFinish(e: React.MouseEvent) {
     e.stopPropagation();
-    const {onFinish} = this.props;
-    if (onFinish) {
-      onFinish();
-    }
-    const {currentGuide, orgId} = this.state;
+    onFinish?.();
     if (currentGuide) {
       recordFinish(currentGuide.guide, orgId);
     }
     closeGuide();
-  };
+  }
 
-  handleNextStep = (e: React.MouseEvent) => {
+  function handleNextStep(e: React.MouseEvent) {
     e.stopPropagation();
     nextStep();
-  };
+  }
 
-  handleDismiss = (e: React.MouseEvent) => {
+  function handleDismiss(e: React.MouseEvent) {
     e.stopPropagation();
-    const {currentGuide, step, orgId} = this.state;
     if (currentGuide) {
-      dismissGuide(currentGuide.guide, step, orgId);
+      dismissGuide(currentGuide.guide, currentStep, orgId);
     }
-  };
+  }
 
-  getHovercardBody() {
-    const {to} = this.props;
-    const {currentGuide, step} = this.state;
-    if (!currentGuide) {
-      return null;
-    }
+  if (!isActive || !currentGuide) {
+    return <Fragment>{children}</Fragment>;
+  }
 
-    const totalStepCount = currentGuide.steps.length;
-    const currentStepCount = step + 1;
-    const currentStep = currentGuide.steps[step];
-    const lastStep = currentStepCount === totalStepCount;
-    const hasManySteps = totalStepCount > 1;
+  const totalStepCount = currentGuide.steps.length;
+  const currentStepCount = currentStep + 1;
+  const activeGuide = currentGuide.steps[currentStep];
+  const lastStep = currentStepCount === totalStepCount;
+  const hasManySteps = totalStepCount > 1;
 
-    // to clear `#assistant` from the url
-    const href = window.location.hash === '#assistant' ? '#' : '';
+  // to clear `#assistant` from the url
+  const href = window.location.hash === '#assistant' ? '#' : '';
 
-    const dismissButton = (
-      <DismissButton
-        size="small"
-        translucentBorder
-        href={href}
-        onClick={this.handleDismiss}
-        priority="link"
-      >
-        {currentStep.dismissText || t('Dismiss')}
-      </DismissButton>
-    );
+  const dismissButton = (
+    <DismissButton
+      size="small"
+      translucentBorder
+      href={href}
+      onClick={handleDismiss}
+      priority="link"
+    >
+      {activeGuide.dismissText || t('Dismiss')}
+    </DismissButton>
+  );
 
-    return (
-      <GuideContainer data-test-id="guide-container">
-        <GuideContent>
-          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
-          <GuideDescription>{currentStep.description}</GuideDescription>
-        </GuideContent>
-        <GuideAction>
-          <div>
-            {lastStep ? (
-              <Fragment>
-                <StyledButton
-                  size="small"
-                  translucentBorder
-                  to={to}
-                  onClick={this.handleFinish}
-                >
-                  {currentStep.nextText ||
-                    (hasManySteps ? t('Enough Already') : t('Got It'))}
-                </StyledButton>
-                {currentStep.hasNextGuide && dismissButton}
-              </Fragment>
-            ) : (
-              <Fragment>
-                <StyledButton
-                  size="small"
-                  translucentBorder
-                  onClick={this.handleNextStep}
-                  to={to}
-                >
-                  {currentStep.nextText || t('Next')}
-                </StyledButton>
-                {!currentStep.cantDismiss && dismissButton}
-              </Fragment>
-            )}
-          </div>
-
-          {hasManySteps && (
-            <StepCount>
-              {tct('[currentStepCount] of [totalStepCount]', {
-                currentStepCount,
-                totalStepCount,
-              })}
-            </StepCount>
+  const hovercardBody = (
+    <GuideContainer data-test-id="guide-container">
+      <GuideContent>
+        {activeGuide.title && <GuideTitle>{activeGuide.title}</GuideTitle>}
+        <GuideDescription>{activeGuide.description}</GuideDescription>
+      </GuideContent>
+      <GuideAction>
+        <div>
+          {lastStep ? (
+            <Fragment>
+              <StyledButton size="small" translucentBorder to={to} onClick={handleFinish}>
+                {activeGuide.nextText ||
+                  (hasManySteps ? t('Enough Already') : t('Got It'))}
+              </StyledButton>
+              {activeGuide.hasNextGuide && dismissButton}
+            </Fragment>
+          ) : (
+            <Fragment>
+              <StyledButton
+                size="small"
+                translucentBorder
+                onClick={handleNextStep}
+                to={to}
+              >
+                {activeGuide.nextText || t('Next')}
+              </StyledButton>
+              {!activeGuide.cantDismiss && dismissButton}
+            </Fragment>
           )}
-        </GuideAction>
-      </GuideContainer>
-    );
-  }
+        </div>
 
-  render() {
-    const {children, position, offset, containerClassName} = this.props;
-    const {active} = this.state;
+        {hasManySteps && (
+          <StepCount>
+            {tct('[currentStepCount] of [totalStepCount]', {
+              currentStepCount,
+              totalStepCount,
+            })}
+          </StepCount>
+        )}
+      </GuideAction>
+    </GuideContainer>
+  );
 
-    if (!active) {
-      return children ? children : null;
-    }
-
-    return (
-      <StyledHovercard
-        show
-        body={this.getHovercardBody()}
-        tipColor={theme.purple300}
-        position={position}
-        offset={offset}
-        containerClassName={containerClassName}
-      >
-        <span ref={this.containerElement}>{children}</span>
-      </StyledHovercard>
-    );
-  }
+  return (
+    <StyledHovercard
+      show
+      body={hovercardBody}
+      tipColor={theme.purple300}
+      position={position}
+      offset={offset}
+      containerClassName={containerClassName}
+    >
+      <span ref={guideContainerRef}>{children}</span>
+    </StyledHovercard>
+  );
 }
 
 /**
  * Wraps the GuideAnchor so we don't have to render it if it's disabled
  * Using a class so we automatically have children as a typed prop
  */
-type WrapperProps = React.PropsWithChildren<{disabled?: boolean} & Props>;
+type GuideAnchorProps = React.PropsWithChildren<{disabled?: boolean} & Props>;
 
 /**
  * A GuideAnchor puts an informative hovercard around an element. Guide anchors
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
-  if (disabled) {
-    return <Fragment>{children}</Fragment>;
-  }
-  return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
+function GuideAnchor({disabled, children, ...rest}: GuideAnchorProps) {
+  return (
+    <Fragment>
+      {disabled ? children : <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>}
+    </Fragment>
+  );
 }
 
 export default GuideAnchor;

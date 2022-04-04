@@ -4,13 +4,21 @@ import {createStore, StoreDefinition} from 'reflux';
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
-import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
 } from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
+
+/**
+ * Date when the assistant came into thsi world
+ */
+const ASSISTANT_THRESHOLD = new Date(2019, 6, 1);
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -22,7 +30,7 @@ function guidePrioritySort(a: Guide, b: Guide) {
   return a_priority - b_priority;
 }
 
-export type GuideStoreState = {
+type State = {
   /**
    * Anchors that are currently mounted
    */
@@ -61,9 +69,9 @@ export type GuideStoreState = {
   prevGuide: Guide | null;
 };
 
-const defaultState: GuideStoreState = {
-  forceHide: false,
+const defaultState: State = {
   guides: [],
+  forceHide: false,
   anchors: new Set(),
   currentGuide: null,
   currentStep: 0,
@@ -73,7 +81,7 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-interface GuideStoreDefinition extends StoreDefinition {
+interface GuideStoreInterface extends StoreDefinition, CommonStoreDefinition<State> {
   browserHistoryListener: null | (() => void);
 
   onFetchSucceeded(data: GuidesServerData): void;
@@ -81,11 +89,11 @@ interface GuideStoreDefinition extends StoreDefinition {
   onSetForceHide(forceHide: boolean): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
-  state: GuideStoreState;
+  state: State;
   updatePrevGuide(nextGuide: Guide | null): void;
 }
 
-const storeConfig: GuideStoreDefinition = {
+const storeConfig: GuideStoreInterface = {
   state: defaultState,
   unsubscribeListeners: [],
   browserHistoryListener: null,
@@ -122,19 +130,21 @@ const storeConfig: GuideStoreDefinition = {
     cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
     window.removeEventListener('load', this.onURLChange);
 
-    if (this.browserHistoryListener) {
-      this.browserHistoryListener();
-    }
+    this.browserHistoryListener?.();
   },
 
   onURLChange() {
-    this.state.forceShow = window.location.hash === '#assistant';
+    const forceShow = window.location.hash === '#assistant';
+    this.state = {...this.state, forceShow};
     this.updateCurrentGuide();
   },
 
-  onSetActiveOrganization(data) {
-    this.state.orgId = data ? data.id : null;
-    this.state.orgSlug = data ? data.slug : null;
+  onSetActiveOrganization(data?: Organization) {
+    this.state = {
+      ...this.state,
+      orgId: data?.id ?? null,
+      orgSlug: data?.slug ?? null,
+    };
     this.updateCurrentGuide();
   },
 
@@ -147,44 +157,46 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const guidesContent: GuidesContent = getGuidesContent(this.state.orgSlug);
+    const guidesContent = getGuidesContent(this.state.orgSlug);
+
     // map server guide state (i.e. seen status) with guide content
-    const guides = guidesContent.reduce((acc: Guide[], content) => {
+    const guides = guidesContent.reduce<Guide[]>((acc, content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
-      serverGuide &&
-        acc.push({
-          ...content,
-          ...serverGuide,
-        });
+      if (serverGuide) {
+        acc.push({...content, ...serverGuide});
+      }
       return acc;
     }, []);
 
-    this.state.guides = guides;
+    this.state = {...this.state, guides};
     this.updateCurrentGuide();
   },
 
   onCloseGuide(dismissed?: boolean) {
     const {currentGuide, guides} = this.state;
-    // update the current guide seen to true or all guides
-    // if markOthersAsSeen is true and the user is dismissing
-    guides
-      .filter(
-        guide =>
-          guide.guide === currentGuide?.guide ||
-          (currentGuide?.markOthersAsSeen && dismissed)
-      )
-      .forEach(guide => (guide.seen = true));
-    this.state.forceShow = false;
+
+    // update the current guide seen to true or all guides if markOthersAsSeen
+    // is true and the user is dismissing
+    const updatedGuides = guides.map(guide => {
+      const shouldUpdateSeen =
+        guide.guide === currentGuide?.guide ||
+        (currentGuide?.markOthersAsSeen && dismissed);
+
+      return shouldUpdateSeen ? {...guide, seen: true} : guide;
+    });
+
+    this.state = {...this.state, guides: updatedGuides, forceShow: false};
     this.updateCurrentGuide();
   },
 
   onNextStep() {
-    this.state.currentStep += 1;
+    const {currentStep} = this.state;
+    this.state = {...this.state, currentStep: currentStep + 1};
     this.trigger(this.state);
   },
 
   onToStep(step: number) {
-    this.state.currentStep = step;
+    this.state = {...this.state, currentStep: step};
     this.trigger(this.state);
   },
 
@@ -199,8 +211,12 @@ const storeConfig: GuideStoreDefinition = {
   },
 
   onSetForceHide(forceHide) {
-    this.state.forceHide = forceHide;
+    this.state = {...this.state, forceHide};
     this.trigger(this.state);
+  },
+
+  getState() {
+    return this.state;
   },
 
   recordCue(guide) {
@@ -227,7 +243,7 @@ const storeConfig: GuideStoreDefinition = {
 
     if (!prevGuide || prevGuide.guide !== nextGuide.guide) {
       this.recordCue(nextGuide.guide);
-      this.state.prevGuide = nextGuide;
+      this.state = {...this.state, prevGuide: nextGuide};
     }
   },
 
@@ -247,7 +263,6 @@ const storeConfig: GuideStoreDefinition = {
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');
-    const assistantThreshold = new Date(2019, 6, 1);
     const userDateJoined = new Date(user?.dateJoined);
 
     if (!forceShow) {
@@ -262,7 +277,7 @@ const storeConfig: GuideStoreDefinition = {
           // Show the guide to users who've joined before the date threshold
           return userDateJoined < dateThreshold;
         }
-        return userDateJoined > assistantThreshold;
+        return userDateJoined > ASSISTANT_THRESHOLD;
       });
     }
 
@@ -277,16 +292,24 @@ const storeConfig: GuideStoreDefinition = {
         : null;
 
     this.updatePrevGuide(nextGuide);
-    this.state.currentStep =
-      this.state.currentGuide &&
+
+    const nextStep =
       nextGuide &&
+      this.state.currentGuide &&
       this.state.currentGuide.guide === nextGuide.guide
         ? this.state.currentStep
         : 0;
-    this.state.currentGuide = nextGuide;
+
+    this.state = {
+      ...this.state,
+      currentGuide: nextGuide,
+      currentStep: nextStep,
+    };
+
     this.trigger(this.state);
   },
 };
 
 const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
+
 export default GuideStore;
