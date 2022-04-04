@@ -49,8 +49,6 @@ export function makeDefaultCta({
     };
   }
 
-  const transactionFields = ['title', 'count()', 'count_unique(user)'];
-
   const extraQueryParams = {
     display: DisplayModes.TOP5,
   };
@@ -65,7 +63,7 @@ export function makeDefaultCta({
       start,
       end,
       extraQueryParams,
-      fields: eventType === 'event.type:transaction' ? transactionFields : fields,
+      fields,
     }),
   };
 }
