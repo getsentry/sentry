@@ -1,5 +1,3 @@
-import {ReactNode, ReactText} from 'react';
-
 import {MetaType} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
@@ -13,7 +11,7 @@ import GenericDiscoverQuery, {
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  [key: string]: ReactText;
+  [key: string]: React.ReactText;
   id: string;
 };
 
@@ -34,7 +32,7 @@ type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
 };
 
 type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
-  children: (props: GenericChildrenProps<TableData>) => ReactNode;
+  children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 
 function shouldRefetchData(
