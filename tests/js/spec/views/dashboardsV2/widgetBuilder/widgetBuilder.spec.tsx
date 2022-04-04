@@ -8,7 +8,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
-import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
