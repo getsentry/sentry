@@ -101,7 +101,7 @@ type Props = {
 
 type State = {
   actionTaken: boolean;
-  actionTakenIds: string[];
+  actionTakenGroupData: Group[];
   error: string | null;
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
@@ -125,6 +125,7 @@ type State = {
   reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
+  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -165,8 +166,9 @@ class IssueListOverview extends React.Component<Props, State> {
       // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
       actionTaken: false,
-      actionTakenIds: [],
+      actionTakenGroupData: [],
       forReview: false,
+      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -543,7 +545,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     // TODO(Kelly): update once issue-list-removal-action feature is stable
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-      if (!this.state.actionTaken) {
+      if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
         this._streamManager.reset();
 
@@ -636,6 +638,9 @@ class IssueListOverview extends React.Component<Props, State> {
           return;
         }
 
+        if (this.state.undo) {
+          GroupStore.loadInitialData(data);
+        }
         this._streamManager.push(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
@@ -692,7 +697,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (hasIssueListRemovalAction && !this.state.realtimeActive) {
-          this.setState({actionTaken: false, actionTakenIds: []});
+          this.setState({actionTaken: false, undo: false});
         } else {
           this.setState({forReview: false});
         }
@@ -759,7 +764,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onGroupChange() {
     const {organization} = this.props;
-    const {actionTakenIds} = this.state;
+    const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
@@ -769,10 +774,10 @@ class IssueListOverview extends React.Component<Props, State> {
     if (
       hasIssueListRemovalAction &&
       !this.state.realtimeActive &&
-      actionTakenIds.length > 0
+      actionTakenGroupData.length > 0
     ) {
       const filteredItems = this._streamManager.getAllItems().filter(item => {
-        return actionTakenIds.indexOf(item.id) !== -1;
+        return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
       const resolvedIds = filteredItems
@@ -1063,6 +1068,46 @@ class IssueListOverview extends React.Component<Props, State> {
     this.fetchData(true);
   };
 
+  onUndo = () => {
+    const {organization, selection} = this.props;
+    const {actionTakenGroupData} = this.state;
+
+    const groupIds = actionTakenGroupData.map(data => data.id);
+    const projectIds = selection?.projects?.map(p => p.toString());
+    const isMarkedReviewed = actionTakenGroupData.every(
+      data => data.status === 'unresolved'
+    );
+    const endpoint = `/organizations/${organization.slug}/issues/`;
+
+    this.props.api.request(endpoint, {
+      method: 'PUT',
+      data: {
+        ...(isMarkedReviewed && {inbox: true}),
+        status: 'unresolved',
+      },
+      query: {
+        project: projectIds,
+        id: groupIds,
+      },
+      success: response => {
+        if (!response) {
+          return;
+        }
+        this.setState({undo: true});
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+          issuesLoading: false,
+        });
+      },
+      complete: () => {
+        this.setState({actionTakenGroupData: []});
+        this.fetchData();
+      },
+    });
+  };
+
   onMarkReviewed = (itemIds: string[]) => {
     const {organization} = this.props;
     const query = this.getQuery();
@@ -1103,8 +1148,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onActionTaken = (itemIds: string[]) => {
+    const actionTakenGroupData = itemIds.map(id => GroupStore.get(id));
     this.setState({
-      actionTakenIds: itemIds,
+      actionTakenGroupData: actionTakenGroupData as Group[],
     });
   };
 
@@ -1112,10 +1158,14 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
+        undo: this.onUndo,
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+      addMessage(t(`${actionType} ${shortId}`), 'success', {
+        duration: 4000,
+        undo: this.onUndo,
+      });
     }
 
     GroupStore.remove(itemIds);
