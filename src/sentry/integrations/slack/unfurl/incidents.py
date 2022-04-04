@@ -31,7 +31,6 @@ def unfurl_incidents(
         identifier = link.args["incident_id"]
         org_slug = link.args["org_slug"]
         filter_query |= Q(identifier=identifier, organization__slug=org_slug)
-
     results = {
         i.identifier: i
         for i in Incident.objects.filter(
