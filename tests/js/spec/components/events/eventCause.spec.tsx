@@ -1,8 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
-import CommitterStore from 'sentry/stores/Commiter/committerStore';
+import {CommittersProvider} from 'sentry/stores/Commiters/CommiterContext';
 
 describe('EventCause', function () {
   const organization = TestStubs.Organization();
@@ -10,21 +9,14 @@ describe('EventCause', function () {
   const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
 
-  const context = {
-    organization,
-    project,
-    group: TestStubs.Group(),
-  };
-
   afterEach(function () {
-    Client.clearMockResponses();
-    CommitterStore.reset();
+    MockApiClient.clearMockResponses();
   });
 
   beforeEach(function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {
         committers: [
           {
@@ -66,54 +58,43 @@ describe('EventCause', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
+    render(
+      <CommittersProvider>
+        <EventCause
+          organization={organization}
+          project={project}
+          event={event}
+          group={group}
+        />
+      </CommittersProvider>
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
-    expect(wrapper.find('EmailWarningIcon').exists()).toBe(false);
-    expect(wrapper.find('Hovercard').exists()).toBe(false);
+    expect(await screen.findByText(/Suspect Commits/)).toBeInTheDocument();
   });
 
   it('expands', async function () {
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
+    render(
+      <CommittersProvider>
+        <EventCause
+          organization={organization}
+          project={project}
+          event={event}
+          group={group}
+        />
+      </CommittersProvider>
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    // Shows commits
+    userEvent.click(await screen.findByText(/Show more/));
+    expect(await screen.findAllByTestId(/commit-row/)).toHaveLength(2);
 
-    wrapper.find('ExpandButton').simulate('click');
-    await tick();
-    expect(wrapper.find('CommitRow')).toHaveLength(2);
-
-    // and hides
-    wrapper.find('ExpandButton').simulate('click');
-    await tick();
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
+    // Shows only last commit by default
+    userEvent.click(await screen.findByText(/Show less/));
+    expect(await screen.findByTestId(/commit-row/)).toBeInTheDocument();
   });
 
   it('shows unassociated email warning', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
@@ -134,23 +115,17 @@ describe('EventCause', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
+    render(
+      <CommittersProvider>
+        <EventCause
+          organization={organization}
+          project={project}
+          event={event}
+          group={group}
+        />
+      </CommittersProvider>
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
-    expect(wrapper.find('EmailWarningIcon').exists()).toBe(true);
-    expect(wrapper.find('Hovercard').exists()).toBe(true);
+    expect(await screen.findByTestId(/email-warning-icon/)).toBeInTheDocument();
   });
 });

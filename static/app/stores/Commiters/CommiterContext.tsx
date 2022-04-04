@@ -44,7 +44,25 @@ type ResetAction = {
   type: 'reset';
 };
 
-type AddCommitersAction = {
+type SetCommittersError = {
+  payload: {
+    eventId: string;
+    organizationSlug: string;
+    projectSlug: string;
+  };
+  type: 'set error';
+};
+
+type StartLoadingCommitters = {
+  payload: {
+    eventId: string;
+    organizationSlug: string;
+    projectSlug: string;
+  };
+  type: 'start loading';
+};
+
+type AddCommitters = {
   payload: {
     committers: Committer[];
     eventId: string;
@@ -63,7 +81,11 @@ type CommiterState = Record<
   }
 >;
 
-type CommiterAction = ResetAction | AddCommitersAction;
+type CommiterAction =
+  | ResetAction
+  | AddCommitters
+  | StartLoadingCommitters
+  | SetCommittersError;
 
 function CommitersReducer(state, action: CommiterAction): CommiterState {
   switch (action.type) {
@@ -73,12 +95,45 @@ function CommitersReducer(state, action: CommiterAction): CommiterState {
         projectSlug: action.payload.projectSlug,
         eventId: action.payload.eventId,
       });
+
       return {
         ...state,
         [key]: {
           committers: action.payload.committers,
           committersLoading: false,
           committersError: undefined,
+        },
+      };
+    }
+
+    case 'start loading': {
+      const key = makeCommitterStoreKey({
+        organizationSlug: action.payload.organizationSlug,
+        projectSlug: action.payload.projectSlug,
+        eventId: action.payload.eventId,
+      });
+      return {
+        ...state,
+        [key]: {
+          committers: [],
+          committersLoading: true,
+          committersError: undefined,
+        },
+      };
+    }
+    case 'set error': {
+      const key = makeCommitterStoreKey({
+        organizationSlug: action.payload.organizationSlug,
+        projectSlug: action.payload.projectSlug,
+        eventId: action.payload.eventId,
+      });
+
+      return {
+        ...state,
+        [key]: {
+          committers: [],
+          committersLoading: false,
+          committersError: true,
         },
       };
     }
@@ -101,7 +156,7 @@ interface CommiterContextProviderProps {
   initialState?: CommiterState;
 }
 
-export function CommiterContextProvider(props: CommiterContextProviderProps) {
+export function CommittersProvider(props: CommiterContextProviderProps) {
   const contextValue = useReducer(CommitersReducer, props.initialState ?? {});
 
   return (
@@ -152,40 +207,45 @@ export function withCommitters<P extends WithCommittersProps>(
         organizationSlug: props.organization.slug,
         projectSlug: props.project.slug,
         eventId: props.event.id,
-      }).then(response => {
-        if (unmounted) {
-          return;
-        }
+      })
+        .then(response => {
+          if (unmounted) {
+            return;
+          }
 
-        dispatch({
-          type: 'add commiter',
-          payload: {
-            committers: response.committers,
-            eventId: props.event.id,
-            organizationSlug: props.organization.slug,
-            projectSlug: props.project.slug,
-          },
+          dispatch({
+            type: 'add commiter',
+            payload: {
+              committers: response.committers,
+              eventId: props.event.id,
+              organizationSlug: props.organization.slug,
+              projectSlug: props.project.slug,
+            },
+          });
+        })
+        .catch(() => {
+          dispatch({
+            type: 'set error',
+            payload: {
+              eventId: props.event.id,
+              organizationSlug: props.organization.slug,
+              projectSlug: props.project.slug,
+            },
+          });
         });
-      });
       return () => {
         unmounted = true;
       };
     }, [props.group, props.organization.slug, props.project.slug, props.event.id]);
 
-    return (
-      <Component
-        {...(props as unknown as P)}
-        committers={
-          state[
-            makeCommitterStoreKey({
-              organizationSlug: props.organization.slug,
-              projectSlug: props.project.slug,
-              eventId: props.event.id,
-            })
-          ]
-        }
-      />
-    );
+    const key = makeCommitterStoreKey({
+      organizationSlug: props.organization.slug,
+      projectSlug: props.project.slug,
+      eventId: props.event.id,
+    });
+
+    const committers = state[key]?.committers ?? [];
+    return <Component {...(props as unknown as P)} committers={committers} />;
   };
 
   wrappedComponent.displayName = `withCommitters(${getDisplayName(Component)})`;
