@@ -91,7 +91,7 @@ class RedisQuotaTest(TestCase):
         # Relay can't reasonably do 1 second, 10 has worked well though.
         # self.organization.update_option("sentry:project-abuse-quota.window", 10)
 
-        self.organization.update_option("sentry:project-error-limit", 42)
+        self.organization.update_option("project-abuse-quota.error-limit", 42)
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -106,9 +106,9 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        self.organization.update_option("sentry:project-transaction-limit", 600)
-        self.organization.update_option("sentry:project-attachment-limit", 601)
-        self.organization.update_option("sentry:project-session-limit", 602)
+        self.organization.update_option("project-abuse-quota.transaction-limit", 600)
+        self.organization.update_option("project-abuse-quota.attachment-limit", 601)
+        self.organization.update_option("project-abuse-quota.session-limit", 602)
         quotas = self.quota.get_quotas(self.project)
 
         assert quotas[1].id == "pat"
@@ -153,7 +153,7 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        self.organization.delete_option("sentry:project-error-limit")
+        self.organization.delete_option("project-abuse-quota.error-limit")
 
         self.organization.refresh_from_db()
 
@@ -168,7 +168,7 @@ class RedisQuotaTest(TestCase):
             DataCategory.ERROR,
             DataCategory.SECURITY,
         }
-        breakpoint()  # TODO: hmmm not sure why it remains the same
+        # breakpoint()  # TODO: hmmm not sure why it remains the same
         assert quotas[0].limit == 60
         assert quotas[0].window == 60
         assert quotas[0].reason_code == "project_abuse_limit"

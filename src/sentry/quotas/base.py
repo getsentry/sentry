@@ -327,7 +327,7 @@ class Quota(Service):
     def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
 
-        abuse_window = options.get("sentry:project-abuse-quota.window")
+        abuse_window = options.get("project-abuse-quota.window")
 
         if not abuse_window:
             # Compatibility fallback.
@@ -338,35 +338,45 @@ class Quota(Service):
             # 10 seconds has worked well.
             abuse_window = 10
 
-        for option, compat_option, id, categories in (
+        # Compatible options
+        for option, compat_options, id, categories in (
             (
-                "sentry:project-error-limit",
-                "getsentry.rate-limit.project-errors",
+                "project-abuse-quota.error-limit",
+                (
+                    "sentry:project-error-limit",
+                    "getsentry.rate-limit.project-errors",
+                ),
                 "pae",
                 DataCategory.error_categories(),
             ),
             (
-                "sentry:project-transaction-limit",
-                "getsentry.rate-limit.project-transactions",
+                "project-abuse-quota.transaction-limit",
+                (
+                    "sentry:project-transaction-limit",
+                    "getsentry.rate-limit.project-transactions",
+                ),
                 "pat",
                 (DataCategory.TRANSACTION,),
             ),
             (
-                "sentry:project-attachment-limit",
-                "getsentry.rate-limit.project-attachments",  # not used
+                "project-abuse-quota.attachment-limit",
+                (),
                 "paa",
                 (DataCategory.ATTACHMENT,),
             ),
             (
-                "sentry:project-session-limit",
-                "getsentry.rate-limit.project-sessions",  # not used
+                "project-abuse-quota.session-limit",
+                (),
                 "pas",
                 (DataCategory.SESSION,),
             ),
         ):
             limit = org.get_option(option)
             if not limit:
-                limit = org.get_option(compat_option)
+                for o in compat_options:
+                    limit = org.get_option(o)
+                    if limit:
+                        break
             if limit:
                 yield QuotaConfig(
                     id=id,
