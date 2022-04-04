@@ -12,6 +12,7 @@ import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
@@ -850,14 +851,12 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
   margin-bottom: -${space(1.5)};
 `;
 
-const AlertName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: normal;
-  color: ${p => p.theme.textColor};
+const AlertName = styled(HeaderTitleLegend)`
+  position: relative;
 `;
 
 const AlertInfo = styled('div')`
