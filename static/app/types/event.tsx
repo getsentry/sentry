@@ -1,12 +1,12 @@
-import {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
-import {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
-import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {DebugImage} from 'sentry/components/events/interfaces/debugMeta/types';
+import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import {RawCrumb} from './breadcrumbs';
-import {IssueAttachment} from './group';
-import {Release} from './release';
-import {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import type {RawCrumb} from './breadcrumbs';
+import type {IssueAttachment} from './group';
+import type {Release} from './release';
+import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
