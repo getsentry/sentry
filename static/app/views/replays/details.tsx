@@ -8,6 +8,7 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventEntries from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TagsTable from 'sentry/components/tagsTable';
@@ -47,7 +48,7 @@ const EventHeader = ({event}: {event: Event}) => {
   return (
     <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
-        <EventOrGroupTitle data={event} />
+        <EventOrGroupTitle data={event} /> <FeatureBadge type="beta" />
       </TitleWrapper>
       {message && (
         <MessageWrapper>
@@ -66,10 +67,6 @@ class ReplayDetails extends AsyncView<Props, State> {
     errors: {},
   };
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [];
-  }
-
   getTitle() {
     if (this.state.event) {
       return `${this.state.event.id} - Replays - ${this.props.params.orgId}`;
@@ -80,10 +77,6 @@ class ReplayDetails extends AsyncView<Props, State> {
   renderLoading() {
     return <PageContent>{super.renderLoading()}</PageContent>;
   }
-
-  generateTagUrl = () => {
-    return ''; // todo
-  };
 
   renderBody() {
     return (
@@ -111,13 +104,41 @@ function ReplayLoader(props: ReplayLoaderProps) {
   /* eslint-disable-next-line no-console */
   console.log({fetchError, fetching, event, replayEvents, rrwebEvents});
 
-  if (fetching) {
-    return <LoadingIndicator />;
-  }
+  const renderMain = () => {
+    if (fetching) {
+      return <LoadingIndicator />;
+    }
+    if (!event) {
+      return <NotFound />;
+    }
+    return (
+      <React.Fragment>
+        <BaseRRWebReplayer events={rrwebEvents} />
+        {replayEvents?.map(replayEvent => (
+          <React.Fragment key={replayEvent.id}>
+            <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
+            <EventEntries
+              // group={group}
+              event={replayEvent}
+              organization={props.organization}
+              project={{slug: getProjectSlug(replayEvent)}}
+              location={location}
+              showExampleCommit={false}
+              router={props.router}
+              route={props.route}
+            />
+          </React.Fragment>
+        ))}
+      </React.Fragment>
+    );
+  };
 
-  if (!event) {
-    return <NotFound />;
-  }
+  const renderSide = () => {
+    if (event) {
+      return <TagsTable generateUrl={() => ''} event={event} query="" />;
+    }
+    return null;
+  };
 
   return (
     <NoPaddingContent>
@@ -132,32 +153,12 @@ function ReplayLoader(props: ReplayLoaderProps) {
               {label: t('Replay Details')}, // TODO: put replay ID or something here
             ]}
           />
-          <EventHeader event={event} />
+          {event ? <EventHeader event={event} /> : null}
         </Layout.HeaderContent>
       </Layout.Header>
-
       <Layout.Body>
-        <Layout.Main>
-          <BaseRRWebReplayer events={rrwebEvents} />
-          {replayEvents?.map(replayEvent => (
-            <React.Fragment key={replayEvent.id}>
-              <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
-              <EventEntries
-                // group={group}
-                event={replayEvent}
-                organization={props.organization}
-                project={{slug: getProjectSlug(replayEvent)}}
-                location={location}
-                showExampleCommit={false}
-                router={props.router}
-                route={props.route}
-              />
-            </React.Fragment>
-          ))}
-        </Layout.Main>
-        <Layout.Side>
-          <TagsTable generateUrl={() => ''} event={event} query="" />
-        </Layout.Side>
+        <Layout.Main>{renderMain()}</Layout.Main>
+        <Layout.Side>{renderSide()}</Layout.Side>
       </Layout.Body>
     </NoPaddingContent>
   );

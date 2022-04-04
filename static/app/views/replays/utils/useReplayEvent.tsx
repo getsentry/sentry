@@ -11,15 +11,30 @@ import useApi from 'sentry/utils/useApi';
 export type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
 type State = {
-  // initiallyLoaded: boolean;
   /**
    * The root replay event
    */
   event: undefined | Event;
+
+  /**
+   * If any request returned an error then nothing is being returned
+   */
   fetchError: undefined | RequestError;
 
+  /**
+   * If a fetch is underway for the requested root reply.
+   * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
+   */
   fetching: boolean;
+
+  /**
+   * The list of related `sentry-replay-event` objects that were captured during this `sentry-replay`
+   */
   replayEvents: undefined | Event[];
+
+  /**
+   * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
+   */
   rrwebEvents: undefined | RRWebEvents;
 };
 
@@ -41,14 +56,7 @@ type Options = {
 };
 
 type Result = {
-  // /**
-  //  * The snapshots/incremental rrweb data that constitutes the video timeline
-  //  */
-  // rrwebEvents: RRWebEvents;
-  // /**
-  //  * The Sentry events, errors and transactions, that were captured during this replay session
-  //  */
-  // transactions: Event[];
+  // TODO: non-state?
 } & Pick<State, 'fetchError' | 'fetching' | 'event' | 'rrwebEvents' | 'replayEvents'>;
 
 const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
@@ -122,7 +130,6 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   }
 
   async function loadEvents() {
-    // console.log('setting event = null');
     setState({
       fetchError: undefined,
       fetching: true,
