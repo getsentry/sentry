@@ -6,11 +6,13 @@ coverage:
     patch:
       default: false
       frontend:
-        target: 60%
+        # codecov should not fail status checks
+        target: 0%
         flags:
         - frontend
       backend:
-        target: 90%
+        # codecov should not fail status checks
+        target: 0%
         flags:
           - backend
   ignore:
