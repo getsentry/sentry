@@ -1074,9 +1074,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const groupIds = actionTakenGroupData.map(data => data.id);
     const projectIds = selection?.projects?.map(p => p.toString());
-    const isMarkedReviewed = actionTakenGroupData.every(
-      data => data.status === 'unresolved'
-    );
+    const isMarkedReviewed = actionTakenGroupData.every(data => data.inbox);
     const endpoint = `/organizations/${organization.slug}/issues/`;
 
     this.props.api.request(endpoint, {
