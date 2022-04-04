@@ -57,15 +57,15 @@ export default function CreateProjectsFooter({
             createProject(api, organization.slug, teams[0].slug, platform, platform)
           )
       );
-      const nextState = lastState;
-      if (!nextState.platforms) {
-        nextState.platforms = {};
-      }
+      const nextState = {platforms: lastState.platforms || {}, ...lastState};
       responses.forEach(p => (nextState.platforms![p.platform] = p.slug));
-      api.requestPromise(`/organizations/${organization.slug}/client-state/onboarding/`, {
-        method: 'PUT',
-        data: nextState,
-      });
+      await api.requestPromise(
+        `/organizations/${organization.slug}/client-state/onboarding/`,
+        {
+          method: 'PUT',
+          data: nextState,
+        }
+      );
 
       responses.map(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {

@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,6 +14,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 type Props = {
   checkProjectHasFirstEvent: (project: Project) => boolean;
   projects: Project[];
+  selectedProjects: {[key in PlatformKey]?: string};
   setNewProject: (newProjectId: string) => void;
   activeProject?: Project;
 };
@@ -21,22 +23,30 @@ function Sidebar({
   activeProject,
   setNewProject,
   checkProjectHasFirstEvent,
+  selectedProjects,
 }: Props) {
-  const oneProject = (project: Project) => {
-    const name = platforms.find(p => p.id === project.platform)?.name ?? '';
-    const isActive = activeProject?.id === project.id;
-    const errorReceived = checkProjectHasFirstEvent(project);
+  const oneProject = (platformOnCreate: string, projectSlug: string) => {
+    const project = projects.find(p => p.slug === projectSlug);
+    const platform = project ? project.platform || 'other' : platformOnCreate;
+    const platformName = platforms.find(p => p.id === platform)?.name ?? '';
+    const isActive = !!project && activeProject?.id === project.id;
+    const errorReceived = !!project && checkProjectHasFirstEvent(project);
     return (
       <ProjectWrapper
-        key={project.id}
+        key={projectSlug}
         isActive={isActive}
-        onClick={() => setNewProject(project.id)}
+        onClick={() => project && setNewProject(project.id)}
+        disabled={!project}
       >
-        <PlatformIcon platform={project.platform || 'other'} size={36} />
+        <StyledPlatformIcon platform={platform} size={36} />
         <MiddleWrapper>
-          <NameWrapper>{name}</NameWrapper>
+          <NameWrapper>{platformName}</NameWrapper>
           <SubHeader errorReceived={errorReceived} data-test-id="sidebar-error-indicator">
-            {errorReceived ? t('Error Received') : t('Waiting for error')}
+            {!project
+              ? t('Project Deleted')
+              : errorReceived
+              ? t('Error Received')
+              : t('Waiting for error')}
           </SubHeader>
         </MiddleWrapper>
         {errorReceived ? (
@@ -50,7 +60,9 @@ function Sidebar({
   return (
     <Wrapper>
       <Title>{t('Projects to Setup')}</Title>
-      {projects.map(oneProject)}
+      {Object.entries(selectedProjects).map(([platformOnCreate, projectSlug]) =>
+        oneProject(platformOnCreate, projectSlug)
+      )}
     </Wrapper>
   );
 }
@@ -64,7 +76,14 @@ const Title = styled('span')`
   margin-left: ${space(2)};
 `;
 
-const ProjectWrapper = styled('div')<{isActive: boolean}>`
+const SubHeader = styled('div')<{errorReceived: boolean}>`
+  color: ${p =>
+    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)``;
+
+const ProjectWrapper = styled('div')<{disabled: boolean; isActive: boolean}>`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -72,11 +91,21 @@ const ProjectWrapper = styled('div')<{isActive: boolean}>`
   padding: ${space(2)};
   cursor: pointer;
   border-radius: 4px;
-`;
-
-const SubHeader = styled('div')<{errorReceived: boolean}>`
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  user-select: none;
+  ${p =>
+    p.disabled &&
+    `
+    cursor: not-allowed;
+    ${StyledPlatformIcon} {
+      filter: grayscale(1);
+    }
+    ${SubHeader} {
+      color: ${p.theme.gray400};
+    }
+    ${NameWrapper} {
+      text-decoration-line: line-through;
+    }
+  `}
 `;
 
 const indicatorAnimation: Variants = {

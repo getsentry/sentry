@@ -39,15 +39,15 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [selectedProjects, setSelectedProjects] = useState<string[]>();
-  const selectedProjectsSet = new Set(selectedProjects);
+  const [clientState, setClientState] = useState<ClientState>({});
+  const selectedProjectsSet = clientState.platforms
+    ? new Set(Object.values(clientState.platforms))
+    : new Set();
   useEffect(() => {
     api
       .requestPromise(`/organizations/${organization.slug}/client-state/onboarding/`)
       .then((lastState: ClientState) => {
-        if (lastState.platforms) {
-          setSelectedProjects(Object.values(lastState.platforms));
-        }
+        setClientState(lastState);
       });
   }, []);
 
@@ -163,7 +163,8 @@ function SetupDocs({organization, projects, search}: Props) {
     <React.Fragment>
       <Wrapper>
         <TargetedOnboardingSidebar
-          projects={projects.filter(p => selectedProjectsSet.has(p.slug))}
+          projects={projects}
+          selectedProjects={clientState.platforms || {}}
           activeProject={project}
           {...{checkProjectHasFirstEvent, setNewProject}}
         />
