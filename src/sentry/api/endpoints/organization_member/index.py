@@ -18,7 +18,6 @@ from sentry.models import (
     ExternalActor,
     InviteStatus,
     OrganizationMember,
-    OrganizationMemberTeam,
     Team,
     TeamStatus,
 )
@@ -28,21 +27,9 @@ from sentry.signals import member_invited
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
-from .organization_member_details import get_allowed_roles
+from . import get_allowed_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-
-@transaction.atomic
-def save_team_assignments(organization_member, teams):
-    # teams may be empty
-    OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
-    OrganizationMemberTeam.objects.bulk_create(
-        [
-            OrganizationMemberTeam(team=team, organizationmember=organization_member)
-            for team in teams
-        ]
-    )
 
 
 class MemberPermission(OrganizationPermission):

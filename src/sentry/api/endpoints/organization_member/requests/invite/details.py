@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
@@ -12,9 +13,8 @@ from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import InviteStatus, Organization, OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
 
-from ..bases import OrganizationMemberEndpoint
-from .organization_member_details import get_allowed_roles
-from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
+from ... import get_allowed_roles, save_team_assignments
+from ...index import OrganizationMemberSerializer
 
 
 class ApproveInviteRequestSerializer(serializers.Serializer):

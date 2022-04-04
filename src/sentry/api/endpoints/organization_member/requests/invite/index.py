@@ -14,7 +14,8 @@ from sentry.notifications.notifications.organization_request import InviteReques
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.utils.retries import TimedRetryPolicy
 
-from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
+from ... import save_team_assignments
+from ...index import OrganizationMemberSerializer
 
 
 class InviteRequestPermissions(OrganizationPermission):
