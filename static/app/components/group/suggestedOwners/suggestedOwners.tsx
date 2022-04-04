@@ -17,7 +17,6 @@ import {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
-import withCommitters from 'sentry/utils/withCommitters';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {findMatchedRules, Rules} from './findMatchedRules';

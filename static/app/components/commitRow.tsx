@@ -49,7 +49,7 @@ function CommitRow({commit, customAvatar, className}: CommitRowProps) {
   }, [commit.author]);
 
   return (
-    <PanelItem key={commit.id} className={className}>
+    <PanelItem key={commit.id} className={className} data-test-id="commit-row">
       {customAvatar ? (
         customAvatar
       ) : commit.author && commit.author.id === undefined ? (

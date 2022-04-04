@@ -9,13 +9,16 @@ import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {
+  withCommitters,
+  WithCommittersProps,
+} from 'sentry/stores/Commiters/CommittersContext';
 import space from 'sentry/styles/space';
-import {AvatarProject, Committer, Group, Organization} from 'sentry/types';
+import {AvatarProject, Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
-import withCommitters from 'sentry/utils/withCommitters';
 
-type Props = {
+interface Props extends WithCommittersProps {
   // injected by HoC
   api: Client;
   event: Event;
@@ -23,9 +26,8 @@ type Props = {
   // needed by HoC
   organization: Organization;
   project: AvatarProject;
-  committers?: Committer[];
   group?: Group;
-};
+}
 
 type State = {
   expanded: boolean;
