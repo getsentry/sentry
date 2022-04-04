@@ -11,6 +11,4 @@ export type WidgetViewerContextProps = {
 
 export const WidgetViewerContext = createContext<WidgetViewerContextProps>({
   setData: () => undefined,
-  seriesData: undefined,
-  tableData: undefined,
 });
