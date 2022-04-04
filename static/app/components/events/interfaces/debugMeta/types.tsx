@@ -1,4 +1,4 @@
-import {combineStatus} from './utils';
+import type {combineStatus} from './utils';
 
 export type DebugStatus = ReturnType<typeof combineStatus>;
 

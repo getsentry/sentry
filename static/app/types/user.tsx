@@ -1,6 +1,6 @@
-import {Authenticator, EnrolledAuthenticator} from './auth';
-import {Avatar, Scope} from './core';
-import {UserExperiments} from './experiments';
+import type {Authenticator, EnrolledAuthenticator} from './auth';
+import type {Avatar, Scope} from './core';
+import type {UserExperiments} from './experiments';
 
 /**
  * Avatars are a more primitive version of User.

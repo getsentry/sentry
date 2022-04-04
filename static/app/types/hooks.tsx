@@ -1,19 +1,16 @@
-import {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps} from 'react-router';
 
-import {ChildrenRenderFn} from 'sentry/components/acl/feature';
-import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
-import SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {
-  Integration,
-  IntegrationProvider,
-  Member,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
-import {ExperimentKey} from 'sentry/types/experiments';
-import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
+import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
+import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
+
+import type {ExperimentKey} from './experiments';
+import type {Integration, IntegrationProvider} from './integrations';
+import type {Member, Organization} from './organization';
+import type {Project} from './project';
+import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
 //

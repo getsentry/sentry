@@ -1,9 +1,9 @@
-import {Actor, Avatar, ObjectStatus, Scope} from './core';
-import {OrgExperiments} from './experiments';
-import {ExternalTeam} from './integrations';
-import {OnboardingTaskStatus} from './onboarding';
-import {Relay} from './relay';
-import {User} from './user';
+import type {Actor, Avatar, ObjectStatus, Scope} from './core';
+import type {OrgExperiments} from './experiments';
+import type {ExternalTeam} from './integrations';
+import type {OnboardingTaskStatus} from './onboarding';
+import type {Relay} from './relay';
+import type {User} from './user';
 
 /**
  * Organization summaries are sent when you request a

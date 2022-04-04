@@ -1,12 +1,12 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import {Actor, TimeseriesValue} from './core';
-import {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import {Commit, PullRequest} from './integrations';
-import {Team} from './organization';
-import {Project} from './project';
-import {Release} from './release';
-import {AvatarUser, User} from './user';
+import type {Actor, TimeseriesValue} from './core';
+import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
+import type {Commit, PullRequest} from './integrations';
+import type {Team} from './organization';
+import type {Project} from './project';
+import type {Release} from './release';
+import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
 

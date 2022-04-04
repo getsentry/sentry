@@ -1,5 +1,5 @@
-import SvgIcon from 'sentry/icons/svgIcon';
-import {Color} from 'sentry/utils/theme';
+import type SvgIcon from 'sentry/icons/svgIcon';
+import type {Color} from 'sentry/utils/theme';
 
 export type IconProps = React.ComponentProps<typeof SvgIcon>;
 

@@ -1,6 +1,6 @@
-import {ComponentClass, ComponentType, StatelessComponent} from 'react';
-import {InjectedRouter, PlainRoute, WithRouterProps} from 'react-router';
-import {Location} from 'history';
+import type {ComponentClass, ComponentType, StatelessComponent} from 'react';
+import type {InjectedRouter, PlainRoute, WithRouterProps} from 'react-router';
+import type {Location} from 'history';
 
 declare module 'react-router' {
   interface InjectedRouter<P = Record<string, string>, Q = any> {
