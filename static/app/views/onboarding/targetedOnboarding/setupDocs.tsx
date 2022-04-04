@@ -164,7 +164,7 @@ function SetupDocs({organization, projects, search}: Props) {
       <Wrapper>
         <TargetedOnboardingSidebar
           projects={projects}
-          selectedProjects={clientState.platforms || {}}
+          onboardingPlatforms={clientState.platforms || {}}
           activeProject={project}
           {...{checkProjectHasFirstEvent, setNewProject}}
         />

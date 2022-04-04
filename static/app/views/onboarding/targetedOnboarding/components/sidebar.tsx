@@ -13,8 +13,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   checkProjectHasFirstEvent: (project: Project) => boolean;
+  onboardingPlatforms: {[key in PlatformKey]?: string};
   projects: Project[];
-  selectedProjects: {[key in PlatformKey]?: string};
   setNewProject: (newProjectId: string) => void;
   activeProject?: Project;
 };
@@ -23,7 +23,7 @@ function Sidebar({
   activeProject,
   setNewProject,
   checkProjectHasFirstEvent,
-  selectedProjects,
+  onboardingPlatforms,
 }: Props) {
   const oneProject = (platformOnCreate: string, projectSlug: string) => {
     const project = projects.find(p => p.slug === projectSlug);
@@ -60,7 +60,7 @@ function Sidebar({
   return (
     <Wrapper>
       <Title>{t('Projects to Setup')}</Title>
-      {Object.entries(selectedProjects).map(([platformOnCreate, projectSlug]) =>
+      {Object.entries(onboardingPlatforms).map(([platformOnCreate, projectSlug]) =>
         oneProject(platformOnCreate, projectSlug)
       )}
     </Wrapper>
