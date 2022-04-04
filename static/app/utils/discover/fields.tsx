@@ -82,6 +82,7 @@ export type QueryFieldValue =
   | {
       field: string;
       kind: 'calculatedField';
+      alias?: string;
     }
   | {
       field: string;
