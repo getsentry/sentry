@@ -417,7 +417,7 @@ def process_messages(
             org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
 
-            new_tags: Mapping[int, int] = {}
+            new_tags: MutableMapping[int, int] = {}
 
             for k, v in tags.items():
                 tag_mappings = mapping.get(org_id, {})

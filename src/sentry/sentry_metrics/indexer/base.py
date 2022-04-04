@@ -1,4 +1,4 @@
-from typing import Dict, MutableMapping, Optional, Set
+from typing import MutableMapping, Optional, Set
 
 from sentry.utils.services import Service
 
@@ -13,7 +13,9 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Dict[str, int]:
+    def bulk_record(
+        self, org_strings: MutableMapping[int, Set[str]]
+    ) -> MutableMapping[int, MutableMapping[str, int]]:
         raise NotImplementedError()
 
     def record(self, org_id: int, string: str) -> int:

@@ -31,6 +31,9 @@ _STRINGS = (
 
 
 class SimpleIndexer(StringIndexer):
+
+    """Simple indexer with in-memory store. Do not use in production."""
+
     def __init__(self) -> None:
         self._counter = itertools.count(start=1)
         self._strings: DefaultDict[int, DefaultDict[str, int]] = defaultdict(
@@ -41,7 +44,7 @@ class SimpleIndexer(StringIndexer):
     def bulk_record(
         self, org_strings: MutableMapping[int, Set[str]]
     ) -> MutableMapping[int, MutableMapping[str, int]]:
-        result = {}
+        result: MutableMapping[int, MutableMapping[str, int]] = {}
         for org_id, strs in org_strings.items():
             strings_to_ints = {string: self._record(org_id, string) for string in strs}
             result[org_id] = strings_to_ints
@@ -54,7 +57,8 @@ class SimpleIndexer(StringIndexer):
     def resolve(self, org_id: int, string: str) -> Optional[int]:
         if string in _STRINGS:
             org_id = 0
-        return self._strings.get(org_id, {}).get(string)
+        strs = self._strings[org_id]
+        return strs.get(string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:
         return self._reverse.get(id)
