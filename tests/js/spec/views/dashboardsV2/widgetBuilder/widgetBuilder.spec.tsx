@@ -317,6 +317,22 @@ describe('WidgetBuilder', function () {
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
+  it('has links back to the new dashboard if creating', async function () {
+    // Dashboard has undefined dashboardId when creating from a new dashboard
+    // because of route setup
+    renderTestComponent({params: {dashboardId: undefined}});
+
+    expect(await screen.findByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+
+    expect(screen.getByLabelText('Cancel')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+  });
+
   it('renders new design', async function () {
     renderTestComponent({
       orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
