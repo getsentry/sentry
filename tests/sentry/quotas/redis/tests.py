@@ -154,6 +154,9 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].reason_code == "project_abuse_limit"
 
         self.organization.delete_option("sentry:project-error-limit")
+
+        self.organization.refresh_from_db()
+
         # Same thing except limit = 1*60 now ver a window of 60.
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == "pae"
