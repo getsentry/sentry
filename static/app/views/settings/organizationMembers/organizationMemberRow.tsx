@@ -205,12 +205,13 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
             {showLeaveButton && memberCanLeave && (
               <Confirm
+                priority="danger"
                 message={tct('Are you sure you want to leave [orgName]?', {
                   orgName,
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="small">
                   {t('Leave')}
                 </Button>
               </Confirm>
