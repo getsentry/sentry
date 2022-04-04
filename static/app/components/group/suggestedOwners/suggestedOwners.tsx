@@ -5,12 +5,9 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {
-  withCommitters,
-  WithCommittersProps,
-} from 'sentry/stores/Commiters/CommiterContext';
-import {
   Actor,
   CodeOwner,
+  Committer,
   Group,
   Organization,
   Project,
@@ -20,6 +17,7 @@ import {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
+import withCommitters from 'sentry/utils/withCommitters';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
@@ -28,13 +26,14 @@ import {SuggestedAssignees} from './suggestedAssignees';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
-interface Props extends WithCommittersProps {
+type Props = {
   api: Client;
   event: Event;
   group: Group;
   organization: Organization;
   project: Project;
-}
+  committers?: Committer[];
+} & AsyncComponent['props'];
 
 type State = {
   codeMappings: RepositoryProjectPathConfig[];
@@ -43,7 +42,7 @@ type State = {
   isDismissed: boolean;
 } & AsyncComponent['state'];
 
-class SuggestedOwners extends AsyncComponent<Props & AsyncComponent['props'], State> {
+class SuggestedOwners extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),

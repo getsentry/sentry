@@ -1,9 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
-import {CommittersProvider} from 'sentry/stores/Commiters/CommiterContext';
+import CommitterStore from 'sentry/stores/committerStore';
 
 describe('EventCause', function () {
   const organization = TestStubs.Organization();
@@ -19,6 +18,7 @@ describe('EventCause', function () {
 
   afterEach(function () {
     Client.clearMockResponses();
+    CommitterStore.reset();
   });
 
   beforeEach(function () {
@@ -67,23 +67,19 @@ describe('EventCause', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <CommittersProvider>
-        <EventCause
-          organization={organization}
-          project={project}
-          event={event}
-          group={group}
-        />
-      </CommittersProvider>,
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
       {context}
     );
 
-    await act(async () => {
-      await tick();
-      await tick(); // Run Store.load and fire Action.loadSuccess
-      await tick(); // Run Store.loadSuccess
-      wrapper.update();
-    });
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
 
     expect(wrapper.find('CommitRow')).toHaveLength(1);
     expect(wrapper.find('EmailWarningIcon').exists()).toBe(false);
@@ -92,38 +88,27 @@ describe('EventCause', function () {
 
   it('expands', async function () {
     const wrapper = mountWithTheme(
-      <CommittersProvider>
-        <EventCause
-          organization={organization}
-          project={project}
-          event={event}
-          group={group}
-        />
-      </CommittersProvider>,
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
       {context}
     );
 
-    await act(async () => {
-      await tick();
-      await tick(); // Run Store.load and fire Action.loadSuccess
-      await tick(); // Run Store.loadSuccess
-      wrapper.update();
-    });
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
 
     wrapper.find('ExpandButton').simulate('click');
-
-    await act(async () => {
-      await tick();
-    });
-
+    await tick();
     expect(wrapper.find('CommitRow')).toHaveLength(2);
 
     // and hides
     wrapper.find('ExpandButton').simulate('click');
-
-    await act(async () => {
-      await tick();
-    });
+    await tick();
     expect(wrapper.find('CommitRow')).toHaveLength(1);
   });
 
@@ -150,23 +135,19 @@ describe('EventCause', function () {
     });
 
     const wrapper = mountWithTheme(
-      <CommittersProvider>
-        <EventCause
-          organization={organization}
-          project={project}
-          event={event}
-          group={group}
-        />
-      </CommittersProvider>,
+      <EventCause
+        organization={organization}
+        project={project}
+        event={event}
+        group={group}
+      />,
       {context}
     );
 
-    await act(async () => {
-      await tick();
-      await tick(); // Run Store.load and fire Action.loadSuccess
-      await tick(); // Run Store.loadSuccess
-      wrapper.update();
-    });
+    await tick();
+    await tick(); // Run Store.load and fire Action.loadSuccess
+    await tick(); // Run Store.loadSuccess
+    wrapper.update();
 
     expect(wrapper.find('CommitRow')).toHaveLength(1);
     expect(wrapper.find('EmailWarningIcon').exists()).toBe(true);
