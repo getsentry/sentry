@@ -3,7 +3,7 @@ import isArray from 'lodash/isArray';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type InternalDefinition = {
   items: Event[];
@@ -99,7 +99,5 @@ const storeConfig: EventStoreDefinition = {
   },
 };
 
-const EventStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  EventStoreDefinition;
-
+const EventStore = createStore(makeSafeRefluxStore(storeConfig));
 export default EventStore;

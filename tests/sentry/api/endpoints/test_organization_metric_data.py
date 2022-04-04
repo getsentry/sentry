@@ -1902,6 +1902,82 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"transaction.all": 4}
         assert group["series"] == {"transaction.all": [4]}
 
+    def test_failure_count_transaction(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_count"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.failure_count": 1}
+        assert group["series"] == {"transaction.failure_count": [1]}
+
     def test_request_private_derived_metric(self):
         for private_name in [
             "session.crashed_and_abnormal_user",

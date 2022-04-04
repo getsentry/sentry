@@ -119,12 +119,6 @@ class DropdownMenu extends React.Component<Props, State> {
     isOpen: false,
   };
 
-  dropdownMenu: Element | null = null;
-  dropdownActor: Element | null = null;
-
-  mouseLeaveTimeout: number | null = null;
-  mouseEnterTimeout: number | null = null;
-
   componentWillUnmount() {
     if (this.mouseLeaveTimeout) {
       window.clearTimeout(this.mouseLeaveTimeout);
@@ -134,6 +128,12 @@ class DropdownMenu extends React.Component<Props, State> {
     }
     document.removeEventListener('click', this.checkClickOutside, true);
   }
+
+  dropdownMenu: Element | null = null;
+  dropdownActor: Element | null = null;
+
+  mouseLeaveTimeout: number | null = null;
+  mouseEnterTimeout: number | null = null;
 
   // Gets open state from props or local state when appropriate
   isOpen = () => {

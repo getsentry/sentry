@@ -13,7 +13,7 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
@@ -57,7 +57,7 @@ interface InternalDefinition {
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
 }
 
-interface GroupStoreDefintion extends StoreDefinition, InternalDefinition {
+interface GroupStoreDefinition extends StoreDefinition, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
@@ -97,7 +97,7 @@ interface GroupStoreDefintion extends StoreDefinition, InternalDefinition {
   reset: () => void;
 }
 
-const storeConfig: GroupStoreDefintion = {
+const storeConfig: GroupStoreDefinition = {
   listenables: [GroupActions],
   pendingChanges: new PendingChangeQueue(),
   items: [],
@@ -519,7 +519,5 @@ const storeConfig: GroupStoreDefintion = {
   },
 };
 
-const GroupStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  GroupStoreDefintion;
-
+const GroupStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GroupStore;
