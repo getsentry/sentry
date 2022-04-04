@@ -57,7 +57,7 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
-def auto_create_topics(topics: List[str]):
+def create_topics(topics: List[str]):
     """If configured to do so, create topics and make sure that they exist
 
     topics must be from the same cluster.
@@ -309,7 +309,7 @@ class BatchingKafkaConsumer:
             },
         )
 
-        auto_create_topics(topics)
+        create_topics(topics)
 
         consumer = Consumer(consumer_config)
 

@@ -17,7 +17,7 @@ from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTIO
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
-from sentry.utils.batching_kafka_consumer import auto_create_topics
+from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ class QuerySubscriptionConsumer:
         self.consumer = Consumer(self.cluster_options)
         self.__shutdown_requested = False
 
-        auto_create_topics([self.topic])
+        create_topics([self.topic])
 
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 

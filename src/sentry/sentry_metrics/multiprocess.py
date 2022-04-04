@@ -33,7 +33,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.utils import json, kafka_config
-from sentry.utils.batching_kafka_consumer import auto_create_topics
+from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
@@ -696,7 +696,7 @@ def get_streaming_metrics_consumer(
             commit_max_batch_time=commit_max_batch_time,
         )
 
-    auto_create_topics([topic])
+    create_topics([topic])
 
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
