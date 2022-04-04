@@ -41,7 +41,7 @@ export type PerformanceEventParameters = {
     show_onboarding: boolean;
   };
   'performance_views.span_summary.change_chart': {
-    selected_display: string;
+    change_to_display: string;
   };
   'performance_views.spans.change_op': {
     operation_name?: string;

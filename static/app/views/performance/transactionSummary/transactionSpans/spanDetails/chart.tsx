@@ -53,7 +53,7 @@ function Chart(props: Props) {
   function handleDisplayChange(value: string) {
     trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
       organization: props.organization,
-      selected_display: value,
+      change_to_display: value,
     });
 
     browserHistory.push({
