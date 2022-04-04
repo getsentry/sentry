@@ -143,9 +143,9 @@ function ReplayLoader(props: ReplayLoaderProps) {
               <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
               <EventEntries
                 // group={group}
-                event={event}
+                event={replayEvent}
                 organization={props.organization}
-                project={{slug: getProjectSlug(event)}}
+                project={{slug: getProjectSlug(replayEvent)}}
                 location={location}
                 showExampleCommit={false}
                 router={props.router}
