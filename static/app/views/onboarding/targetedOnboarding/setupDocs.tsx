@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
