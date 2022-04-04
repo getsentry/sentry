@@ -386,7 +386,8 @@ class Quota(Service):
                     categories=categories,
                     window=abuse_window,
                     # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                    #      from getsentry. Could move it over in the future.
+                    #      from getsentry. Don't change it here.
+                    #      If it's changed in getsentry, it needs to be synced here.
                     reason_code="project_abuse_limit",
                 )
 
