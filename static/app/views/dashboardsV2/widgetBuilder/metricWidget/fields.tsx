@@ -72,7 +72,7 @@ export function generateMetricsWidgetFieldOptions(
 
   numericFields.forEach(field => {
     fieldOptions[`field:${field.name}`] = {
-      label: field.name,
+      label: `${field.name}()`,
       value: {
         kind: FieldValueKind.NUMERIC_METRICS,
         meta: {

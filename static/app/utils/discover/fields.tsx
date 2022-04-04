@@ -862,7 +862,7 @@ export function parseArguments(functionText: string, columnText: string): string
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
-const CALCULATED_FIELD_PREFIX = 'calculated|';
+export const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);

@@ -174,12 +174,7 @@ class QueryField extends React.Component<Props> {
         };
         break;
       case FieldValueKind.FUNCTION:
-        if (current.kind === 'field') {
-          fieldValue = {
-            kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
-          };
-        } else if (current.kind === 'function') {
+        if (current.kind === 'function') {
           fieldValue = {
             kind: 'function',
             function: [
@@ -188,6 +183,11 @@ class QueryField extends React.Component<Props> {
               current.function[2],
               current.function[3],
             ],
+          };
+        } else {
+          fieldValue = {
+            kind: 'function',
+            function: [value.meta.name as AggregationKey, '', undefined, undefined],
           };
         }
         break;
@@ -553,9 +553,12 @@ class QueryField extends React.Component<Props> {
         text = kind;
         tagType = 'warning';
         break;
+      case FieldValueKind.NUMERIC_METRICS:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
       case FieldValueKind.FIELD:
       case FieldValueKind.METRICS:
-      case FieldValueKind.NUMERIC_METRICS:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
