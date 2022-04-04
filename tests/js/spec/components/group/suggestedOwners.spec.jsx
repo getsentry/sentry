@@ -1,8 +1,10 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import CommitterStore from 'sentry/stores/committerStore';
+import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
 import MemberListStore from 'sentry/stores/memberListStore';
 
 describe('SuggestedOwners', function () {
@@ -40,7 +42,6 @@ describe('SuggestedOwners', function () {
 
   afterEach(function () {
     Client.clearMockResponses();
-    CommitterStore.reset();
   });
 
   it('Renders suggested owners', async function () {
@@ -65,14 +66,18 @@ describe('SuggestedOwners', function () {
     });
 
     const wrapper = mountWithTheme(
-      <SuggestedOwners project={project} group={group} event={event} />,
+      <CommittersProvider>
+        <SuggestedOwners project={project} group={group} event={event} />
+      </CommittersProvider>,
       routerContext
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    await act(async () => {
+      await tick();
+      await tick(); // Run Store.load and fire Action.loadSuccess
+      await tick(); // Run Store.loadSuccess
+      wrapper.update();
+    });
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(2);
 
@@ -113,14 +118,18 @@ describe('SuggestedOwners', function () {
     });
 
     const wrapper = mountWithTheme(
-      <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
+      <CommittersProvider>
+        <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />
+      </CommittersProvider>,
       routerContext
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    await act(async () => {
+      await tick();
+      await tick(); // Run Store.load and fire Action.loadSuccess
+      await tick(); // Run Store.loadSuccess
+      wrapper.update();
+    });
 
     expect(committers).not.toHaveBeenCalled();
     expect(wrapper.find('ActorAvatar')).toHaveLength(1);
@@ -145,14 +154,18 @@ describe('SuggestedOwners', function () {
     });
 
     const wrapper = mountWithTheme(
-      <SuggestedOwners project={project} group={group} event={event} />,
+      <CommittersProvider>
+        <SuggestedOwners project={project} group={group} event={event} />
+      </CommittersProvider>,
       routerContext
     );
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
+    await act(async () => {
+      await tick();
+      await tick(); // Run Store.load and fire Action.loadSuccess
+      await tick(); // Run Store.loadSuccess
+      wrapper.update();
+    });
 
     expect(wrapper.find('ActorAvatar')).toHaveLength(1);
 

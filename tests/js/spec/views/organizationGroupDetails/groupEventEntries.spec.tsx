@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
+import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -15,13 +16,15 @@ const api = new MockApiClient();
 async function renderComponent(event: Event, errors?: Array<Error>) {
   const wrapper = mountWithTheme(
     <OrganizationContext.Provider value={organization}>
-      <EventEntries
-        organization={organization}
-        event={{...event, errors: errors ?? event.errors}}
-        project={project}
-        location={location}
-        api={api}
-      />
+      <CommittersProvider>
+        <EventEntries
+          organization={organization}
+          event={{...event, errors: errors ?? event.errors}}
+          project={project}
+          location={location}
+          api={api}
+        />
+      </CommittersProvider>
     </OrganizationContext.Provider>
   );
 

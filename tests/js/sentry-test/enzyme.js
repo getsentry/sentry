@@ -12,9 +12,15 @@ import {lightTheme} from 'sentry/utils/theme';
  * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/render` instead.
  */
 export function mountWithTheme(tree, opts) {
+  // We allow extra providers as some enzyme tests require passing them
+  // in order to be able to call setProps on our component
+  const MaybeProviders = opts?.Providers ?? (({children}) => children);
+
   const WrappingThemeProvider = props => (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
+      <ThemeProvider theme={lightTheme}>
+        <MaybeProviders>{props.children}</MaybeProviders>
+      </ThemeProvider>
     </CacheProvider>
   );
 

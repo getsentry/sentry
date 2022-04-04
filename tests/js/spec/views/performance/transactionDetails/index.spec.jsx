@@ -1,5 +1,6 @@
 import {cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import EventDetails from 'sentry/views/performance/transactionDetails';
@@ -31,11 +32,13 @@ describe('EventDetails', () => {
 
     render(
       <OrganizationContext.Provider value={organization}>
-        <EventDetails
-          organization={organization}
-          params={{orgId: organization.slug, eventSlug: 'latest'}}
-          location={routerContext.context.location}
-        />
+        <CommittersProvider>
+          <EventDetails
+            organization={organization}
+            params={{orgId: organization.slug, eventSlug: 'latest'}}
+            location={routerContext.context.location}
+          />
+        </CommittersProvider>
       </OrganizationContext.Provider>
     );
     expect(screen.getByText(alertText)).toBeInTheDocument();
@@ -61,11 +64,13 @@ describe('EventDetails', () => {
 
     render(
       <OrganizationContext.Provider value={organization}>
-        <EventDetails
-          organization={organization}
-          params={{orgId: organization.slug, eventSlug: 'latest'}}
-          location={routerContext.context.location}
-        />
+        <CommittersProvider>
+          <EventDetails
+            organization={organization}
+            params={{orgId: organization.slug, eventSlug: 'latest'}}
+            location={routerContext.context.location}
+          />
+        </CommittersProvider>
       </OrganizationContext.Provider>
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
