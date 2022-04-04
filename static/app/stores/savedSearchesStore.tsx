@@ -1,5 +1,5 @@
 import findIndex from 'lodash/findIndex';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
@@ -245,7 +245,5 @@ const storeConfig: SavedSearchesStoreDefinition = {
   },
 };
 
-const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SavedSearchesStoreDefinition;
-
+const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SavedSearchesStore;

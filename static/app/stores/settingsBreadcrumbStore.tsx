@@ -1,5 +1,5 @@
 import {PlainRoute} from 'react-router';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -60,7 +60,5 @@ const storeConfig: SettingsBreadcrumbStoreDefinition = {
   },
 };
 
-const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SettingsBreadcrumbStoreDefinition;
-
+const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SettingsBreadcrumbStore;
