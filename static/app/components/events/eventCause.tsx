@@ -48,7 +48,6 @@ class EventCause extends Component<Props, State> {
     }
 
     const commits = this.getUniqueCommitsWithAuthors();
-
     return (
       <DataSection>
         <CauseHeader>

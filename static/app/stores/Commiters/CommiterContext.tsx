@@ -203,6 +203,15 @@ export function withCommitters<P extends WithCommittersProps>(
 
       let unmounted = false;
 
+      dispatch({
+        type: 'start loading',
+        payload: {
+          eventId: props.event.id,
+          organizationSlug: props.organization.slug,
+          projectSlug: props.project.slug,
+        },
+      });
+
       fetchCommitters(api, {
         organizationSlug: props.organization.slug,
         projectSlug: props.project.slug,
@@ -212,7 +221,6 @@ export function withCommitters<P extends WithCommittersProps>(
           if (unmounted) {
             return;
           }
-
           dispatch({
             type: 'add commiter',
             payload: {
@@ -224,6 +232,9 @@ export function withCommitters<P extends WithCommittersProps>(
           });
         })
         .catch(() => {
+          if (unmounted) {
+            return;
+          }
           dispatch({
             type: 'set error',
             payload: {
@@ -233,6 +244,7 @@ export function withCommitters<P extends WithCommittersProps>(
             },
           });
         });
+
       return () => {
         unmounted = true;
       };
