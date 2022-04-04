@@ -64,7 +64,8 @@ export default function SpanDetailsContentWrapper(props: Props) {
             noPagination
           >
             {({tableData}) => {
-              const totalCount: number = tableData?.data?.[0]?.count ?? null;
+              const totalCount: number | null =
+                (tableData?.data?.[0]?.count as number) ?? null;
 
               return (
                 <SuspectSpansQuery

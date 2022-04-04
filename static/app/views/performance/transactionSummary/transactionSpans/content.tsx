@@ -126,7 +126,8 @@ function SpansContent(props: Props) {
         noPagination
       >
         {({tableData}) => {
-          const totals: SpansTotalValues | null = tableData?.data?.[0] ?? null;
+          const totals: SpansTotalValues | null =
+            (tableData?.data?.[0] as SpansTotalValues | undefined) ?? null;
           return (
             <SuspectSpansQuery
               location={location}

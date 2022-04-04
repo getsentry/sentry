@@ -99,10 +99,12 @@ class Replays extends React.Component<Props> {
               return (
                 <PanelTable
                   isLoading={data.isLoading}
-                  isEmpty={data.tableData?.length === 0}
+                  isEmpty={data.tableData?.data.length === 0}
                   headers={['Replay ID', 'User', 'Timestamp']}
                 >
-                  {data.tableData ? this.renderTable(data.tableData.data) : null}
+                  {data.tableData
+                    ? this.renderTable(data.tableData.data as Replay[])
+                    : null}
                 </PanelTable>
               );
             }}

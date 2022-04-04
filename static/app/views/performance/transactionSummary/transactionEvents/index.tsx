@@ -162,7 +162,8 @@ function EventsContentWrapper(props: ChildProps) {
           );
         }
 
-        const percentiles: PercentileValues = tableData?.data?.[0];
+        const percentiles: PercentileValues = tableData
+          ?.data?.[0] as any as PercentileValues;
         const filteredEventView = getFilteredEventView(percentiles);
 
         return (

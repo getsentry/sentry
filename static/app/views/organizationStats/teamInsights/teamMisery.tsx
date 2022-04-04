@@ -21,6 +21,7 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {Color} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -34,7 +35,7 @@ type TeamMiseryProps = {
   periodTableData: TableData | null;
   projects: Project[];
   weekTableData: TableData | null;
-  error?: Error | null;
+  error?: QueryError | null;
   period?: string | null;
 };
 

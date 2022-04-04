@@ -23,6 +23,7 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -41,7 +42,7 @@ import {
 } from '../transactionAnomalies/utils';
 
 type ContainerProps = WithRouterProps & {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -393,7 +394,7 @@ function SidebarChartsContainer({
 
 type ChartValueProps = {
   'data-test-id': string;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   value: React.ReactNode;
 };
