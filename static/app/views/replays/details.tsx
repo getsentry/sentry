@@ -1,25 +1,43 @@
+import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventEntries from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TagsTable from 'sentry/components/tagsTable';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getMessage} from 'sentry/utils/events';
 import useReplayEvent from 'sentry/utils/useReplayEvent';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{eventSlug: string; orgId: string}, {}>;
+  RouteComponentProps<
+    {
+      eventSlug: string;
+      orgId: string;
+    },
+    {}
+  > & {organization: Organization};
 
-type ReplayLoaderProps = {eventSlug: string; location: Props['location']; orgId: string};
+type ReplayLoaderProps = {
+  eventSlug: string;
+  location: Props['location'];
+  orgId: string;
+  organization: Organization;
+  route: Props['route'];
+  router: Props['router'];
+};
 
 type State = AsyncView['state'];
 
@@ -66,22 +84,22 @@ class ReplayDetails extends AsyncView<Props, State> {
     return ''; // todo
   };
 
-  getProjectSlug(event: Event) {
-    return event.projectSlug || event['project.name']; // seems janky
-  }
-
   renderBody() {
     return (
       <ReplayLoader
         eventSlug={this.props.params.eventSlug}
         location={this.props.location}
         orgId={this.props.params.orgId}
+        organization={this.props.organization}
+        router={this.props.router}
+        route={this.props.route}
       />
     );
-    // const {event, replayEvents} = this.state;
-
-    // const eventView = this.getEventView();
   }
+}
+
+function getProjectSlug(event: Event) {
+  return event.projectSlug || event['project.name']; // seems janky
 }
 
 function ReplayLoader(props: ReplayLoaderProps) {
@@ -91,6 +109,10 @@ function ReplayLoader(props: ReplayLoaderProps) {
 
   /* eslint-disable-next-line no-console */
   console.log({fetchError, fetching, event, replayEvents, rrwebEvents});
+
+  if (fetching) {
+    return <LoadingIndicator />;
+  }
 
   if (!event) {
     return <NotFound />;
@@ -116,10 +138,20 @@ function ReplayLoader(props: ReplayLoaderProps) {
       <Layout.Body>
         <Layout.Main>
           <BaseRRWebReplayer events={rrwebEvents} />
-          {replayEvents.map(replayEvent => (
-            <TitleWrapper key={replayEvent.id}>
-              ReplayEvent: {replayEvent.id}
-            </TitleWrapper>
+          {replayEvents?.map(replayEvent => (
+            <React.Fragment key={replayEvent.id}>
+              <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
+              <EventEntries
+                // group={group}
+                event={event}
+                organization={props.organization}
+                project={{slug: getProjectSlug(event)}}
+                location={location}
+                showExampleCommit={false}
+                router={props.router}
+                route={props.route}
+              />
+            </React.Fragment>
           ))}
         </Layout.Main>
         <Layout.Side>
@@ -147,4 +179,4 @@ const NoPaddingContent = styled(PageContent)`
   padding: 0;
 `;
 
-export default ReplayDetails;
+export default withOrganization(ReplayDetails);

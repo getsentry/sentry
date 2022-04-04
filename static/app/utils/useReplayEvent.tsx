@@ -7,7 +7,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import {Replay} from 'sentry/views/replays//types';
 
 export type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
@@ -16,11 +15,11 @@ type State = {
   /**
    * The root replay event
    */
-  event: Event | null;
-  fetchError: null | RequestError;
+  event: undefined | Event;
+  fetchError: undefined | RequestError;
 
   fetching: boolean;
-  replayEvents: Event[];
+  replayEvents: undefined | Event[];
   rrwebEvents: undefined | RRWebEvents;
 };
 
@@ -52,45 +51,48 @@ type Result = {
   // transactions: Event[];
 } & Pick<State, 'fetchError' | 'fetching' | 'event' | 'rrwebEvents' | 'replayEvents'>;
 
-// const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
+const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
+function isRRWebEventAttachment(attachment: IssueAttachment) {
+  return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
+}
 
 function useReplayEvent({eventSlug, location, orgId}: Options): Result {
-  // console.log('hook entered');
-  const api = useApi();
-
   const [projectId, eventId] = eventSlug.split(':');
 
+  const api = useApi();
   const [state, setState] = useState<State>({
-    // initiallyLoaded,
-    fetchError: null,
+    fetchError: undefined,
     fetching: false,
-    event: null,
-
-    replayEvents: [],
+    event: undefined,
+    replayEvents: undefined,
     rrwebEvents: undefined,
   });
 
-  // const initiallyLoaded = state.event;
-
-  // function createAttachmentUrl(attachment: IssueAttachment) {
-  //   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name)
-  //     ? `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`
-  //     : null;
-  // }
-
-  const replayId = eventSlug.split(':')[1];
-
   function fetchEvent() {
-    return api.requestPromise(`/organizations/${orgId}/events/${eventSlug}/`);
-  }
-
-  function fetchAttachmentList() {
     return api.requestPromise(
-      `/projects/${orgId}/${projectId}/events/${eventId}/attachments/`
-    );
+      `/organizations/${orgId}/events/${eventSlug}/`
+    ) as Promise<Event>;
   }
 
-  function fetchReplayEventList() {
+  function fetchRRWebEvents() {
+    return api
+      .requestPromise(`/projects/${orgId}/${projectId}/events/${eventId}/attachments/`)
+      .then(attachments =>
+        Promise.all(
+          attachments.filter(isRRWebEventAttachment).map(attachment =>
+            api
+              .requestPromise(
+                `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
+              )
+              .then(resp => JSON.parse(resp))
+              .then(json => json.events)
+          )
+        )
+      )
+      .then(attachments => attachments.flat()) as Promise<RRWebEvents>;
+  }
+
+  function fetchReplayEvents() {
     const replayEventsView = EventView.fromSavedQuery({
       id: '',
       name: '',
@@ -101,108 +103,59 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       range: '14d',
       query: `transaction:sentry-replay-event`,
     });
-    replayEventsView.additionalConditions.addFilterValues('rootReplayId', [replayId]);
+    replayEventsView.additionalConditions.addFilterValues('rootReplayId', [eventId]);
     const replayEventsQuery = replayEventsView.getEventsAPIPayload(location);
 
-    return api.requestPromise(`/organizations/${orgId}/eventsv2/`, {
-      query: replayEventsQuery,
-    });
-  }
-
-  function fetchAttachments(attachments: IssueAttachment[]) {
-    return attachments.map(attachment =>
-      api
-        .requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
+    return api
+      .requestPromise(`/organizations/${orgId}/eventsv2/`, {
+        query: replayEventsQuery,
+      })
+      .then(replayEventList =>
+        Promise.all(
+          replayEventList.data.map(event =>
+            api.requestPromise(
+              `/organizations/${orgId}/events/${generateEventSlug(event)}/`
+            )
+          )
         )
-        .then(resp => JSON.parse(resp))
-        .then(json => json.events)
-    );
-  }
-
-  function fetchReplayEvents(replayEventIds: Replay[]) {
-    return replayEventIds.map(event =>
-      api.requestPromise(`/organizations/${orgId}/events/${generateEventSlug(event)}/`)
-    );
+      ) as Promise<Event[]>;
   }
 
   async function loadEvents() {
     // console.log('setting event = null');
     setState({
-      fetchError: null,
+      fetchError: undefined,
       fetching: true,
 
-      event: null,
-      replayEvents: [],
+      event: undefined,
+      replayEvents: undefined,
       rrwebEvents: undefined,
     });
-    const [event, attachmentList, replayEventList] = await Promise.all([
-      fetchEvent(),
-      fetchAttachmentList(),
-      fetchReplayEventList(),
-    ]);
+    try {
+      const [event, rrwebEvents, replayEvents] = await Promise.all([
+        fetchEvent(),
+        fetchRRWebEvents(),
+        fetchReplayEvents(),
+      ]);
 
-    // console.log({event, attachmentList, replayEventList});
-    setState({
-      ...state,
-      event,
-    });
+      setState({
+        ...state,
+        fetchError: undefined,
+        fetching: false,
+        event,
+        replayEvents,
+        rrwebEvents,
+      });
+    } catch (error) {
+      setState({
+        fetchError: error,
+        fetching: false,
 
-    const [attachments, replayEvents] = await Promise.all([
-      Promise.all(fetchAttachments(attachmentList)),
-      Promise.all(fetchReplayEvents(replayEventList.data)),
-    ]);
-
-    // const attachments = await Promise.all(
-    //   attachmentList.map(fetch)
-    // );
-    // const replayEvents = await Promise.all(
-
-    // );
-    // console.log({attachments});
-    // const rrwebEvents = attachments.
-
-    setState({
-      ...state,
-      fetchError: null,
-      fetching: false,
-      event,
-      replayEvents,
-      rrwebEvents: attachments.flat(),
-    });
-
-    // await api.requestPromise(`/projects/${orgId}/${projectId}/events/${event.id}/attachments/`);
-
-    // // get attachment list
-    // [
-    //   'attachmentList',
-    //   `/projects/${orgId}/${projectId}/events/${event.id}/attachments/`,
-
-    //   // This was changed from `rrweb.json`, so that we can instead
-    //   // support incremental rrweb events as attachments. This is to avoid
-    //   // having clients uploading a single, large sized replay.
-    //   //
-    //   // Note: This will include all attachments that contain `rrweb`
-    //   // anywhere its name. We need to maintain compatibility with existing
-    //   // rrweb plugin users (single replay), but also support incremental
-    //   // replays as well. I can't think of a reason why someone would have
-    //   // a non-rrweb replay containing the string `rrweb`, but people have
-    //   // surprised me before.
-    //   {query: {query: 'rrweb'}},
-    // ],
-    // //
-    // const urls = attachments.map(createAttachmentUrl).filter(Boolean);
-
-    // const data: RRWebEvents[] = await Promise.all(
-    //   urls.map(async url => {
-    //     const resp = await fetch(url);
-    //     const json = await resp.json();
-
-    //     return json.events;
-    //   })
-    // );
-
-    // setEvents(data.flat());
+        event: undefined,
+        replayEvents: undefined,
+        rrwebEvents: undefined,
+      });
+    }
   }
 
   useEffect(() => void loadEvents(), [orgId, eventSlug]);
