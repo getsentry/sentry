@@ -239,12 +239,14 @@ describe('utils.projectDisplayCompare', function () {
 });
 
 describe('utils.descopeFeatureName', function () {
-  [
-    ['organizations:feature', 'feature'],
-    ['projects:feature', 'feature'],
-    ['unknown-scope:feature', 'unknown-scope:feature'],
-    ['', ''],
-  ].map(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
+  it('descopes the feature name', () => {
+    [
+      ['organizations:feature', 'feature'],
+      ['projects:feature', 'feature'],
+      ['unknown-scope:feature', 'unknown-scope:feature'],
+      ['', ''],
+    ].forEach(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
+  });
 });
 
 describe('deepFreeze', function () {

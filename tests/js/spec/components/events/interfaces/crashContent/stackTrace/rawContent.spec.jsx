@@ -39,20 +39,24 @@ describe('RawStacktraceContent', function () {
   });
 
   describe('getJavaPreamble()', function () {
-    expect(
-      getJavaPreamble({
-        type: 'Baz',
-        value: 'message',
-      })
-    ).toEqual('Baz: message');
+    it('takes a type and value', () => {
+      expect(
+        getJavaPreamble({
+          type: 'Baz',
+          value: 'message',
+        })
+      ).toEqual('Baz: message');
+    });
 
-    expect(
-      getJavaPreamble({
-        module: 'foo.bar',
-        type: 'Baz',
-        value: 'message',
-      })
-    ).toEqual('foo.bar.Baz: message');
+    it('takes a module name', () => {
+      expect(
+        getJavaPreamble({
+          module: 'foo.bar',
+          type: 'Baz',
+          value: 'message',
+        })
+      ).toEqual('foo.bar.Baz: message');
+    });
   });
 
   describe('render()', function () {
@@ -78,16 +82,20 @@ describe('RawStacktraceContent', function () {
         ],
       };
 
-    expect(render(data, 'java', exception)).toEqual(
-      `example.application.Error: an error occurred
+    it('renders java example', () => {
+      expect(render(data, 'java', exception)).toEqual(
+        `example.application.Error: an error occurred
     at example.application.doThing(application:2)
     at example.application.main(application:1)`
-    );
+      );
+    });
 
-    expect(render(data, 'python', exception)).toEqual(
-      `Error: an error occurred
+    it('renders python example', () => {
+      expect(render(data, 'python', exception)).toEqual(
+        `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
-    );
+      );
+    });
   });
 });
