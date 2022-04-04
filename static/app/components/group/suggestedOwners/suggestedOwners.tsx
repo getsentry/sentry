@@ -3,11 +3,14 @@ import * as React from 'react';
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import AsyncComponent, {AsyncComponentProps} from 'sentry/components/asyncComponent';
+import {
+  withCommitters,
+  WithCommittersProps,
+} from 'sentry/stores/Commiters/CommittersContext';
 import {
   Actor,
   CodeOwner,
-  Committer,
   Group,
   Organization,
   Project,
@@ -25,14 +28,13 @@ import {SuggestedAssignees} from './suggestedAssignees';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
-type Props = {
+interface Props extends WithCommittersProps, AsyncComponentProps {
   api: Client;
   event: Event;
   group: Group;
   organization: Organization;
   project: Project;
-  committers?: Committer[];
-} & AsyncComponent['props'];
+}
 
 type State = {
   codeMappings: RepositoryProjectPathConfig[];
