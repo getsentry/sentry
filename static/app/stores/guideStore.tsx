@@ -1,13 +1,16 @@
 import {browserHistory} from 'react-router';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
-import {Client} from 'sentry/api';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {
+  cleanupActiveRefluxSubscriptions,
+  makeSafeRefluxStore,
+} from 'sentry/utils/makeSafeRefluxStore';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -33,6 +36,10 @@ export type GuideStoreState = {
    */
   currentStep: number;
   /**
+   * Hides guides that normally would be shown
+   */
+  forceHide: boolean;
+  /**
    * We force show a guide if the URL contains #assistant
    */
   forceShow: boolean;
@@ -55,6 +62,7 @@ export type GuideStoreState = {
 };
 
 const defaultState: GuideStoreState = {
+  forceHide: false,
   guides: [],
   anchors: new Set(),
   currentGuide: null,
@@ -65,33 +73,58 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-type GuideStoreInterface = {
-  onFetchSucceeded(data: GuidesServerData): void;
+interface GuideStoreDefinition extends StoreDefinition {
+  browserHistoryListener: null | (() => void);
 
+  onFetchSucceeded(data: GuidesServerData): void;
   onRegisterAnchor(target: string): void;
+  onSetForceHide(forceHide: boolean): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
   state: GuideStoreState;
   updatePrevGuide(nextGuide: Guide | null): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+const storeConfig: GuideStoreDefinition = {
   state: defaultState,
+  unsubscribeListeners: [],
+  browserHistoryListener: null,
 
   init() {
     this.state = defaultState;
 
-    this.api = new Client();
-    this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
-    this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
-    this.listenTo(GuideActions.nextStep, this.onNextStep);
-    this.listenTo(GuideActions.toStep, this.onToStep);
-    this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
-    this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
-    this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.closeGuide, this.onCloseGuide)
+    );
+    this.unsubscribeListeners.push(this.listenTo(GuideActions.nextStep, this.onNextStep));
+    this.unsubscribeListeners.push(this.listenTo(GuideActions.toStep, this.onToStep));
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.setForceHide, this.onSetForceHide)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
+    );
 
     window.addEventListener('load', this.onURLChange, false);
-    browserHistory.listen(() => this.onURLChange());
+    this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
+  },
+
+  teardown() {
+    cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
+    window.removeEventListener('load', this.onURLChange);
+
+    if (this.browserHistoryListener) {
+      this.browserHistoryListener();
+    }
   },
 
   onURLChange() {
@@ -163,6 +196,11 @@ const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   onUnregisterAnchor(target) {
     this.state.anchors.delete(target);
     this.updateCurrentGuide();
+  },
+
+  onSetForceHide(forceHide) {
+    this.state.forceHide = forceHide;
+    this.trigger(this.state);
   },
 
   recordCue(guide) {
@@ -250,6 +288,5 @@ const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
-
+const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GuideStore;

@@ -2,6 +2,7 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields.base import DerivedMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -11,7 +12,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def test_unknown_tag(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_success_response(self.project.organization.slug, "bar")
         assert response.data == []
 
@@ -20,7 +21,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         assert response.status_code == 400
 
     def test_non_existing_filter(self):
-        indexer.record("bar")
+        indexer.record(self.organization.id, "bar")
         response = self.get_response(self.project.organization.slug, "bar", metric="bad")
         assert response.status_code == 200
         assert response.data == []
@@ -55,13 +56,29 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
 
         # We need to ensure that if the tag is present in the indexer but has no values in the
         # dataset, the intersection of it and other tags should not yield any results
-        indexer.record("random_tag")
+        indexer.record(self.organization.id, "random_tag")
         response = self.get_success_response(
             self.organization.slug,
             "tag1",
             metric=["metric1", "random_tag"],
         )
         assert response.data == []
+
+    def test_tag_values_for_session_status_tag(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            "session.status",
+        )
+        assert response.data["detail"] == "Tag name session.status is an unallowed tag"
 
     def test_tag_values_for_derived_metrics(self):
         self.store_session(
@@ -76,9 +93,52 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         response = self.get_response(
             self.organization.slug,
             "release",
-            metric=["session.crash_free_rate", "session.init"],
+            metric=[
+                DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+                DerivedMetricKey.SESSION_ALL.value,
+            ],
         )
         assert response.data == [{"key": "release", "value": "foobar"}]
+
+    def test_private_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        for private_name in [
+            DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+            DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
+            DerivedMetricKey.SESSION_ERRORED_SET.value,
+            DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
+        ]:
+            response = self.get_success_response(
+                self.organization.slug,
+                "release",
+                metric=[private_name],
+            )
+            assert response.data == []
+
+    def test_tag_values_for_composite_derived_metrics(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            "release",
+            metric=[DerivedMetricKey.SESSION_HEALTHY.value],
+        )
+        assert response.data == [{"key": "release", "value": "foobar@2.0"}]
 
     def test_tag_not_available_in_the_indexer(self):
         response = self.get_response(
@@ -90,8 +150,9 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         assert response.json()["detail"] == "Tag release is not available in the indexer"
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.datasource.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_incorrectly_setup_derived_metric(self):
+    @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
+    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         self.store_session(
             self.build_session(
                 project_id=self.project.id,

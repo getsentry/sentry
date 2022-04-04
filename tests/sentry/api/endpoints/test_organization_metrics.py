@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
+from sentry.snuba.metrics.fields.base import DerivedMetricKey
 from sentry.snuba.metrics.fields.snql import percentage
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -16,7 +17,10 @@ MOCKED_DERIVED_METRICS.update(
     {
         "crash_free_fake": SingularEntityDerivedMetric(
             metric_name="crash_free_fake",
-            metrics=["session.crashed", "session.errored_set"],
+            metrics=[
+                DerivedMetricKey.SESSION_CRASHED.value,
+                DerivedMetricKey.SESSION_ERRORED_SET.value,
+            ],
             unit="percentage",
             snql=lambda *args, entity, metric_ids, alias=None: percentage(
                 *args, entity, metric_ids, alias="crash_free_fake"
@@ -82,20 +86,36 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 "operations": ["count_unique"],
                 "unit": None,
             },
+            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
+            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
+            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
                 "operations": [],
                 "unit": "percentage",
             },
-            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
             {
-                "name": "session.errored_preaggregated",
+                "name": "session.crash_free_user_rate",
                 "type": "numeric",
                 "operations": [],
-                "unit": "sessions",
+                "unit": "percentage",
             },
-            {"name": "session.init", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
+            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
+            {
+                "name": "session.errored_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
+            {
+                "name": "session.healthy_user",
+                "type": "numeric",
+                "operations": [],
+                "unit": "users",
+            },
         ]
 
     def test_metrics_index(self):
@@ -125,7 +145,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         assert response.data == self.session_metrics_meta
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_metrics_index_invalid_derived_metric(self):
+    def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
         for errors, minute in [(0, 0), (2, 1)]:
             self.store_session(
                 self.build_session(
@@ -148,7 +168,13 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "unit": None,
                 },
                 {
-                    "name": "session.errored_set",
+                    "name": "session.errored",
+                    "type": "numeric",
+                    "operations": [],
+                    "unit": "sessions",
+                },
+                {
+                    "name": "session.healthy",
                     "type": "numeric",
                     "operations": [],
                     "unit": "sessions",

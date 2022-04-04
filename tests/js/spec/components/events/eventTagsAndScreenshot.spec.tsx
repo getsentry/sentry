@@ -4,7 +4,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'sentry/types';
 
-describe('EventTagsAndScreenshot ', function () {
+import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
+
+describe('EventTagsAndScreenshot', function () {
   const contexts = {
     app: {
       app_start_time: '2021-08-31T15:14:21Z',
@@ -180,7 +182,9 @@ describe('EventTagsAndScreenshot ', function () {
 
       // Context Item 3
       const contextItem3 = within(contextItems[2]);
-      expect(contextItem3.getByRole('heading')).toHaveTextContent(contexts.device.model);
+      expect(contextItem3.getByRole('heading')).toHaveTextContent(
+        deviceNameMapper(contexts.device.model)?.trim() ?? ''
+      );
       expect(contextItem3.getByTestId('context-sub-title')).toHaveTextContent(
         `Model:${contexts.device.model_id}`
       );

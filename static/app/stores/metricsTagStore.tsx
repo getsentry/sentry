@@ -1,28 +1,34 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {MetricsTag, MetricsTagCollection} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
   metricsTags: MetricsTagCollection;
 };
 
-type Internals = {
+type InternalDefinition = {
   metricsTags: MetricsTagCollection;
 };
 
-type MetricsTagStoreInterface = CommonStoreInterface<State> & {
+interface MetricsTagStoreDefinition
+  extends InternalDefinition,
+    CommonStoreDefinition<State> {
   onLoadSuccess(data: MetricsTag[]): void;
   reset(): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & Internals & MetricsTagStoreInterface = {
+const storeConfig: MetricsTagStoreDefinition = {
+  unsubscribeListeners: [],
   metricsTags: {},
 
   init() {
-    this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadSuccess)
+    );
   },
 
   reset() {
@@ -49,7 +55,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & MetricsTagStoreInterface
   },
 };
 
-const MetricsTagStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricsTagStoreInterface;
+const MetricsTagStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default MetricsTagStore;

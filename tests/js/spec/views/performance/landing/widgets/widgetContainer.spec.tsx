@@ -343,6 +343,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -382,6 +383,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -419,6 +421,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -533,6 +536,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-count_web_vitals(measurements.lcp, poor)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );
@@ -881,6 +885,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
           metricsEnhanced: '1',
+          preventMetricAggregates: '1',
         }),
       })
     );

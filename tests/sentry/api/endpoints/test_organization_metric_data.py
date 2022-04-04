@@ -9,6 +9,11 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.sentry_metrics.transactions import (
+    TransactionMetricKey,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -22,6 +27,10 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.project2 = self.create_project()
         self.login_as(user=self.user)
 
+        self.transaction_lcp_metric = indexer.record(
+            self.project.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+        )
+
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
         assert response.status_code == 400
@@ -33,20 +42,60 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             assert response.status_code == 400
 
     def test_groupby_single(self):
-        indexer.record("environment")
+        indexer.record(self.project.organization_id, "environment")
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
         )
 
         assert response.status_code == 200
 
+    def test_groupby_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            groupBy="session.status",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == (
+            "Tag name session.status cannot be used to groupBy query"
+        )
+
+    def test_filter_session_status(self):
+        for status in ["ok", "crashed"]:
+            for minute in range(4):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=(time.time() // 60 - minute) * 60,
+                        status=status,
+                    )
+                )
+        response = self.get_response(
+            self.project.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            query="session.status:crashed",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
+
     def test_invalid_filter(self):
         query = "release:foo or "
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
             query=query,
         )
@@ -54,11 +103,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_valid_filter(self):
         for tag in ("release", "environment"):
-            indexer.record(tag)
+            indexer.record(self.project.organization_id, tag)
         query = "release:myapp@2.0.0"
         response = self.get_success_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             groupBy="environment",
             query=query,
         )
@@ -66,7 +115,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby_unknown(self):
         response = self.get_response(
-            self.project.organization.slug, field="sum(sentry.sessions.session)", orderBy="foo"
+            self.project.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            orderBy="foo",
         )
         assert response.status_code == 400
 
@@ -74,7 +125,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """Order by tag is not supported (yet)"""
         response = self.get_response(
             self.project.organization.slug,
-            field=["sum(sentry.sessions.session)", "environment"],
+            field=[f"sum({SessionMetricKey.SESSION.value})", "environment"],
             groupBy="environment",
             orderBy="environment",
         )
@@ -87,7 +138,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         response = self.get_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
         )
@@ -103,7 +154,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         response = self.get_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             cursor=Cursor(0, 1),
         )
@@ -115,7 +166,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_statsperiod_invalid(self):
         response = self.get_response(
             self.project.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="",
         )
         assert response.status_code == 400
@@ -127,7 +178,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         def count_sessions(project_id: Optional[int]) -> int:
             kwargs = dict(
-                field="sum(sentry.sessions.session)",
+                field=f"sum({SessionMetricKey.SESSION.value})",
                 statsPeriod="1h",
                 interval="1h",
             )
@@ -138,7 +189,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groups = response.data["groups"]
             assert len(groups) == 1
 
-            return groups[0]["totals"]["sum(sentry.sessions.session)"]
+            return groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"]
 
         # Request for entire org gives a counter of two:
         assert count_sessions(project_id=None) == 2
@@ -148,22 +199,22 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_orderby(self):
         # Record some strings
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        k_transaction = indexer.record("transaction")
-        v_foo = indexer.record("/foo")
-        v_bar = indexer.record("/bar")
-        v_baz = indexer.record("/baz")
-        k_rating = indexer.record("measurement_rating")
-        v_good = indexer.record("good")
-        v_meh = indexer.record("meh")
-        v_poor = indexer.record("poor")
+        org_id = self.organization.id
+        k_transaction = indexer.record(org_id, "transaction")
+        v_foo = indexer.record(org_id, "/foo")
+        v_bar = indexer.record(org_id, "/bar")
+        v_baz = indexer.record(org_id, "/baz")
+        k_rating = indexer.record(org_id, "measurement_rating")
+        v_good = indexer.record(org_id, "good")
+        v_meh = indexer.record(org_id, "meh")
+        v_poor = indexer.record(org_id, "poor")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "tags": {
                         k_transaction: v_transaction,
@@ -182,12 +233,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="count(sentry.transactions.measurements.lcp)",
+            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             groupBy="transaction",
-            orderBy="-count(sentry.transactions.measurements.lcp)",
+            orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=2,
         )
         groups = response.data["groups"]
@@ -201,25 +252,25 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_transaction}
             assert group["series"] == {
-                "count(sentry.transactions.measurements.lcp)": [expected_count]
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
             assert group["totals"] == {
-                "count(sentry.transactions.measurements.lcp)": expected_count
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
     def test_orderby_percentile(self):
         # Record some strings
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -236,11 +287,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -252,23 +303,25 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for (expected_tag_value, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
             assert group["by"] == {"tag1": expected_tag_value}
-            assert group["totals"] == {"p50(sentry.transactions.measurements.lcp)": expected_count}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
+            }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_count]
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
 
     def test_orderby_percentile_with_pagination(self):
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -285,49 +338,49 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
         )
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value2"}
-        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 2}
+        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 2}
 
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             cursor=Cursor(0, 1),
         )
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value1"}
-        assert groups[0]["totals"] == {"p50(sentry.transactions.measurements.lcp)": 5}
+        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5}
 
     def test_limit_with_orderby_is_overridden_by_paginator_limit(self):
         """
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
         `limit` parameter
         """
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        tag1 = indexer.record("tag1")
-        value1 = indexer.record("value1")
-        value2 = indexer.record("value2")
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -343,11 +396,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field="p50(sentry.transactions.measurements.lcp)",
+            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             limit=2,
         )
@@ -360,22 +413,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         gracefully
         """
         for metric in [
-            "sentry.transactions.measurements.lcp",
-            "sentry.transactions.measurements.fcp",
+            TransactionMetricKey.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
-            indexer.record(metric)
+            indexer.record(self.organization.id, metric)
 
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "p50(sentry.transactions.measurements.fcp)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 0
@@ -385,18 +437,18 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from the same entity
         """
-        metric_id = indexer.record("sentry.transactions.measurements.lcp")
-        metric_id_fcp = indexer.record("sentry.transactions.measurements.fcp")
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        metric_id_fcp = indexer.record(org_id, TransactionMetricKey.MEASUREMENTS_FCP.value)
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": metric_id,
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -413,7 +465,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
                     "metric_id": metric_id_fcp,
                     "timestamp": int(time.time()),
@@ -433,13 +485,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "p50(sentry.transactions.measurements.fcp)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -454,12 +506,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
-                "p50(sentry.transactions.measurements.fcp)": expected_fcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
             }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
-                "p50(sentry.transactions.measurements.fcp)": [expected_fcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
     def test_orderby_percentile_with_many_fields_multiple_entities(self):
@@ -467,16 +519,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -493,9 +546,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.user"),
+                    "metric_id": indexer.record(org_id, "sentry.transactions.user"),
                     "timestamp": int(time.time()),
                     "tags": {tag: value},
                     "type": "s",
@@ -513,13 +566,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -532,12 +585,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
-                "count_unique(sentry.transactions.user)": users,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"count_unique({TransactionMetricKey.USER.value})": users,
             }
             assert group["series"] == {
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
-                "count_unique(sentry.transactions.user)": [users],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=34))
@@ -546,16 +599,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -569,7 +623,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_distributions",
         )
-        user_metric = indexer.record("sentry.transactions.user")
+        user_metric = indexer.record(org_id, "sentry.transactions.user")
         user_ts = time.time()
         for ts, ranges in [
             (int(user_ts), [range(4, 5), range(6, 11)]),
@@ -578,7 +632,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self._send_buckets(
                 [
                     {
-                        "org_id": self.organization.id,
+                        "org_id": org_id,
                         "project_id": self.project.id,
                         "metric_id": user_metric,
                         "timestamp": ts,
@@ -597,14 +651,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         request_args = {
             "field": [
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             "statsPeriod": "1h",
             "interval": "10m",
             "datasource": "snuba",
             "groupBy": ["project_id", "transaction"],
-            "orderBy": "p50(sentry.transactions.measurements.lcp)",
+            "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             "per_page": 1,
         }
 
@@ -613,12 +667,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/bar/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 11,
-            "p50(sentry.transactions.measurements.lcp)": 5.0,
+            f"count_unique({TransactionMetricKey.USER.value})": 11,
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5.0,
         }
         assert groups[0]["series"] == {
-            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 5.0],
-            "count_unique(sentry.transactions.user)": [0, 0, 0, 6, 0, 5],
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+                None,
+                None,
+                None,
+                None,
+                None,
+                5.0,
+            ],
+            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 6, 0, 5],
         }
 
         request_args["cursor"] = Cursor(0, 1)
@@ -628,12 +689,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/foo/"
         assert groups[0]["totals"] == {
-            "count_unique(sentry.transactions.user)": 4,
-            "p50(sentry.transactions.measurements.lcp)": 11.0,
+            f"count_unique({TransactionMetricKey.USER.value})": 4,
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 11.0,
         }
         assert groups[0]["series"] == {
-            "p50(sentry.transactions.measurements.lcp)": [None, None, None, None, None, 11.0],
-            "count_unique(sentry.transactions.user)": [0, 0, 0, 3, 0, 1],
+            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+                None,
+                None,
+                None,
+                None,
+                None,
+                11.0,
+            ],
+            f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 3, 0, 1],
         }
 
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
@@ -651,16 +719,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     )
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="4m",
             interval="1m",
             groupBy="release",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"]["sum(sentry.sessions.session)"] == [1, 2, 3, 4]
+            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 2, 3, 4]
 
         assert len(response.data["groups"]) == 1
 
@@ -679,15 +747,18 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     )
         response = self.get_success_response(
             self.organization.slug,
-            field=["sum(sentry.sessions.session)", "count_unique(sentry.sessions.session.user)"],
+            field=[
+                f"sum({SessionMetricKey.SESSION.value})",
+                f"count_unique({SessionMetricKey.USER.value})",
+            ],
             statsPeriod="4m",
             interval="1m",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"]["sum(sentry.sessions.session)"] == [3, 6, 9, 12]
+            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [3, 6, 9, 12]
 
         assert len(response.data["groups"]) == 1
 
@@ -697,16 +768,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         with a different entity than the entity of the field in the order by), then the table gets
         populated accordingly
         """
-        transaction_id = indexer.record("transaction")
-        transaction_1 = indexer.record("/foo/")
-        transaction_2 = indexer.record("/bar/")
+        org_id = self.organization.id
+        transaction_id = indexer.record(org_id, "transaction")
+        transaction_1 = indexer.record(org_id, "/foo/")
+        transaction_2 = indexer.record(org_id, "/bar/")
 
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record("sentry.transactions.measurements.lcp"),
+                    "metric_id": self.transaction_lcp_metric,
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": numbers,
@@ -723,13 +795,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                "p50(sentry.transactions.measurements.lcp)",
-                "count_unique(sentry.transactions.user)",
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count_unique({TransactionMetricKey.USER.value})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy="p50(sentry.transactions.measurements.lcp)",
+            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -742,12 +814,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                "count_unique(sentry.transactions.user)": 0,
-                "p50(sentry.transactions.measurements.lcp)": expected_lcp_count,
+                f"count_unique({TransactionMetricKey.USER.value})": 0,
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
             }
             assert group["series"] == {
-                "count_unique(sentry.transactions.user)": [0],
-                "p50(sentry.transactions.measurements.lcp)": [expected_lcp_count],
+                f"count_unique({TransactionMetricKey.USER.value})": [0],
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
             }
 
     def test_groupby_project(self):
@@ -759,16 +831,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             statsPeriod="1h",
             interval="1h",
-            field="sum(sentry.sessions.session)",
-            groupBy=["project_id", "session.status"],
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            groupBy=["project_id"],
         )
 
         assert response.status_code == 200
 
         groups = response.data["groups"]
-        assert len(groups) >= 2 and all(
-            group["by"].keys() == {"project_id", "session.status"} for group in groups
-        )
+        assert len(groups) >= 2 and all(group["by"].keys() == {"project_id"} for group in groups)
 
         expected = {
             self.project2.id: 1,
@@ -777,7 +847,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for group in groups:
             expected_count = expected[group["by"]["project_id"]]
             totals = group["totals"]
-            assert totals == {"sum(sentry.sessions.session)": expected_count}
+            assert totals == {f"sum({SessionMetricKey.SESSION.value})": expected_count}
 
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
@@ -785,26 +855,26 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id))
 
         # "foo" is known by indexer, "bar" is not
-        indexer.record("foo")
+        indexer.record(self.organization.id, "foo")
 
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "foo"],
+            groupBy=["foo"],
         )
 
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["by"] == {"session.status": "init", "foo": None}
+        assert groups[0]["by"] == {"foo": None}
 
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
-            groupBy=["session.status", "bar"],
+            groupBy=["bar"],
         )
         assert response.status_code == 400
 
@@ -815,7 +885,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=30))
     def test_no_limit_with_series(self):
         """Pagination args do not apply to series"""
-        indexer.record("session.status")
+        indexer.record(self.organization.id, "session.status")
         for minute in range(4):
             self.store_session(
                 self.build_session(
@@ -824,13 +894,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             )
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="4m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["sum(sentry.sessions.session)"] == 4
-        assert group["series"]["sum(sentry.sessions.session)"] == [1, 1, 1, 1]
+        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 4
+        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 1, 1, 1]
 
     def test_unknown_filter(self):
         """Use a tag key/value in filter that does not exist in the indexer"""
@@ -839,7 +909,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             query="foo:123",  # Unknown tag key
@@ -848,23 +918,23 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="1h",
             interval="1h",
             query="release:123",  # Unknown tag value is fine.
         )
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
-        assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
+        assert groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
+        assert groups[0]["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
 
     def test_request_too_granular(self):
         response = self.get_response(
             self.organization.slug,
-            field="sum(sentry.sessions.session)",
+            field=f"sum({SessionMetricKey.SESSION.value})",
             statsPeriod="24h",
             interval="5m",
-            orderBy="-sum(sentry.sessions.session)",
+            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
@@ -873,17 +943,59 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    def test_include_series(self):
+        indexer.record(self.organization.id, "session.status")
+        self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeTotals="0",
+        )
 
+        assert response.data["groups"] == [
+            {"by": {}, "series": {f"sum({SessionMetricKey.SESSION.value})": [1.0]}}
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({SessionMetricKey.SESSION.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            includeTotals="0",
+        )
+
+        assert response.data["groups"] == []
+
+
+@freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26))
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        org_id = self.organization.id
+        self.session_duration_metric = indexer.record(
+            org_id, SessionMetricKey.SESSION_DURATION.value
+        )
+        self.session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
+        self.session_user_metric = indexer.record(org_id, SessionMetricKey.USER.value)
+        self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
+        self.session_status_tag = indexer.record(org_id, "session.status")
+        self.release_tag = indexer.record(self.organization.id, "release")
+        self.tx_metric = indexer.record(org_id, TransactionMetricKey.DURATION.value)
+        self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        self.transaction_lcp_metric = indexer.record(
+            self.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+        )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.query_builder.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_derived_metric_incorrectly_defined_as_singular_entity(self):
+    @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
+    def test_derived_metric_incorrectly_defined_as_singular_entity(self, mocked_derived_metrics):
+        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -904,7 +1016,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Derived Metric crash_free_fake cannot be calculated from a single entity"
         )
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
@@ -917,17 +1028,16 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_rate", "session.init", "session.crashed"],
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] == 0.5
-        assert group["totals"]["session.init"] == 8
+        assert group["totals"]["session.all"] == 8
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
-    @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=26, second=31))
     def test_crash_free_percentage_with_orderby(self):
         for status in ["ok", "crashed"]:
             for minute in range(4):
@@ -970,23 +1080,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
             statsPeriod="6m",
             interval="6m",
             orderBy="-session.crash_free_rate",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] is None
-        assert group["totals"]["sum(sentry.sessions.session)"] == 0
-        assert group["series"]["sum(sentry.sessions.session)"] == [0]
+        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
+        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
         assert group["series"]["session.crash_free_rate"] == [None]
 
     def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
-        indexer.record("release")
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
+            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
             statsPeriod="6m",
             interval="6m",
             groupBy=["release"],
@@ -1007,36 +1116,31 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
     def test_errored_sessions(self):
-        session_metric = indexer.record(SessionMetricKey.SESSION.value)
-        indexer.record("sentry.sessions.session.duration")
-        indexer.record("sentry.sessions.user")
-        session_error_metric = indexer.record("sentry.sessions.session.error")
-        session_status_tag = indexer.record("session.status")
-        release_tag = indexer.record("release")
         user_ts = time.time()
+        org_id = self.organization.id
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        session_status_tag: indexer.record("errored_preaggr"),
-                        release_tag: indexer.record("foo"),
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
                     "retention_days": 90,
                 },
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_metric,
+                    "metric_id": self.session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        session_status_tag: indexer.record("init"),
-                        release_tag: indexer.record("foo"),
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 10,
@@ -1048,25 +1152,1011 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": session_error_metric,
+                    "metric_id": self.session_error_metric,
                     "timestamp": user_ts,
                     "tags": {tag: value},
                     "type": "s",
                     "value": numbers,
                     "retention_days": 90,
                 }
-                for tag, value, numbers in ((release_tag, indexer.record("foo"), list(range(3))),)
+                for tag, value, numbers in (
+                    (self.release_tag, indexer.record(org_id, "foo"), list(range(3))),
+                )
             ],
             entity="metrics_sets",
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored_preaggregated", "session.errored_set"],
+            field=["session.errored"],
             statsPeriod="6m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"]["session.errored_set"] == 3
-        assert group["totals"]["session.errored_preaggregated"] == 4
+        assert group["totals"]["session.errored"] == 7
+        assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"session.errored": 7},
+            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
+        }
+
+    def test_orderby_composite_entity_derived_metric(self):
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+                errors=2,
+            )
+        )
+        response = self.get_response(
+            self.organization.slug,
+            field=["session.errored"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["session.errored"],
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "It is not possible to orderBy field session.errored as it does not "
+            "have a direct mapping to a query alias"
+        )
+
+    def test_abnormal_sessions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        self.release_tag: indexer.record(self.organization.id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal"),
+                        self.release_tag: indexer.record(self.organization.id, "bar"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.abnormal"],
+        )
+        foo_group, bar_group = response.data["groups"][0], response.data["groups"][1]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.abnormal": 4}
+        assert foo_group["series"] == {"session.abnormal": [0, 4, 0, 0, 0, 0]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.abnormal": 3}
+        assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
+
+    def test_crashed_user_sessions(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "bar"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8, 9, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crashed_user"],
+            statsPeriod="6m",
+            interval="1m",
+            groupBy=["release"],
+            orderBy=["-session.crashed_user"],
+        )
+        foo_group, bar_group = response.data["groups"][1], response.data["groups"][0]
+        assert foo_group["by"]["release"] == "foo"
+        assert foo_group["totals"] == {"session.crashed_user": 3}
+        assert foo_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 3]}
+        assert bar_group["by"]["release"] == "bar"
+        assert bar_group["totals"] == {"session.crashed_user": 6}
+        assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}
+
+    def test_all_user_sessions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.all_user"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"] == {"session.all_user": 3}
+        assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
+
+    def test_abnormal_user_sessions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "abnormal")
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
+                    "type": "s",
+                    "value": [1, 2, 4, 7, 9],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.abnormal_user"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"] == {"session.abnormal_user": 3}
+        assert group["series"] == {"session.abnormal_user": [0, 0, 0, 0, 0, 3]}
+
+    def test_crash_free_user_percentage_with_orderby(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@2.0"),
+                    },
+                    "type": "s",
+                    "value": [3, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_user_rate"],
+            statsPeriod="6m",
+            interval="6m",
+            groupBy="release",
+            orderBy="-session.crash_free_user_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.crash_free_user_rate"] == 1
+        assert group["series"]["session.crash_free_user_rate"] == [1]
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.crash_free_user_rate"] == 0.5
+        assert group["series"]["session.crash_free_user_rate"] == [0.5]
+
+    def test_crash_free_user_rate_orderby_crash_free_rate(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        # Users crash free rate
+        # foobar@1.0 -> 0.5
+        # foobar@2.0 -> 1
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 8],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(org_id, "foobar@1.0"),
+                    },
+                    "type": "s",
+                    "value": [1, 2],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(org_id, "foobar@2.0"),
+                    },
+                    "type": "s",
+                    "value": [3, 5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        # Crash free rate
+        # foobar@1.0 -> 0.75
+        # foobar@2.0 -> 0.25
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@1.0"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@1.0"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 4) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "init"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@2.0"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60 - 2) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(self.organization.id, "crashed"),
+                        self.release_tag: indexer.record(self.organization.id, "foobar@2.0"),
+                    },
+                    "type": "c",
+                    "value": 3,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_user_rate", "session.crash_free_rate"],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="release",
+            orderBy="-session.crash_free_rate",
+        )
+        group = response.data["groups"][0]
+        assert group["by"]["release"] == "foobar@1.0"
+        assert group["totals"]["session.crash_free_rate"] == 0.75
+        assert group["totals"]["session.crash_free_user_rate"] == 0.5
+
+        group = response.data["groups"][1]
+        assert group["by"]["release"] == "foobar@2.0"
+        assert group["totals"]["session.crash_free_rate"] == 0.25
+        assert group["totals"]["session.crash_free_user_rate"] == 1.0
+
+    def test_healthy_sessions(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_error_metric,
+                    "timestamp": user_ts,
+                    "tags": {tag: value},
+                    "type": "s",
+                    "value": numbers,
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (self.release_tag, indexer.record(org_id, "foo"), list(range(3))),
+                )
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy", "session.errored", "session.all"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy"] == 3
+        assert group["series"]["session.healthy"] == [3]
+
+    def test_errored_user_sessions(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # Crashed 3
+        # Abnormal 6
+        # Errored all 9
+        # Errored = 3
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "abnormal"),
+                    },
+                    "type": "s",
+                    "value": [99, 3, 6, 8, 9, 5],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [99, 3, 6, 8, 9, 5],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [22, 33, 44],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.errored_user"] == 3
+        assert group["series"]["session.errored_user"] == [3]
+
+    def test_errored_user_sessions_clamped_to_zero(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # Crashed 3
+        # Errored all 0
+        # Errored = -3
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "crashed"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.errored_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.errored_user"] == 0
+        assert group["series"]["session.errored_user"] == [0]
+
+    def test_healthy_user_sessions(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # init = 7
+        # errored_all = 5
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                    },
+                    "type": "s",
+                    "value": [1, 2, 4, 5, 7, 8, 9],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [22, 33, 44],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy_user"] == 4
+        assert group["series"]["session.healthy_user"] == [4]
+
+    def test_healthy_user_sessions_clamped_to_zero(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+        # init = 0
+        # errored_all = 1
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored"),
+                    },
+                    "type": "s",
+                    "value": [1],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy_user"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy_user"] == 0
+        assert group["series"]["session.healthy_user"] == [0]
+
+    def test_all_transactions(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.all"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.all": 4}
+        assert group["series"] == {"transaction.all": [4]}
+
+    def test_failure_count_transaction(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_count"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.failure_count": 1}
+        assert group["series"] == {"transaction.failure_count": [1]}
+
+    def test_request_private_derived_metric(self):
+        for private_name in [
+            "session.crashed_and_abnormal_user",
+            "session.errored_preaggregated",
+            "session.errored_set",
+            "session.errored_user_all",
+        ]:
+            response = self.get_response(
+                self.organization.slug,
+                field=[private_name],
+                statsPeriod="6m",
+                interval="6m",
+            )
+            assert response.data["detail"] == (
+                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
+                "or a supported aggregate derived metric like `session.crash_free_rate"
+            )
+
+    def test_session_duration_derived_alias(self):
+        org_id = self.organization.id
+        user_ts = time.time()
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [2, 6, 8],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": user_ts,
+                    "type": "d",
+                    "value": [11, 13, 15],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "crashed")},
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["p50(session.duration)"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        group = response.data["groups"][0]
+        assert group == {
+            "by": {},
+            "totals": {"p50(session.duration)": 6.0},
+            "series": {"p50(session.duration)": [6.0]},
+        }
+
+    def test_histogram(self):
+        # Record some strings
+        org_id = self.organization.id
+        tag1 = indexer.record(org_id, "tag1")
+        value1 = indexer.record(org_id, "value1")
+        value2 = indexer.record(org_id, "value2")
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.transaction_lcp_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": numbers,
+                    "tags": {tag: value},
+                    "retention_days": 90,
+                }
+                for tag, value, numbers in (
+                    (tag1, value1, [4, 5, 6]),
+                    (tag1, value2, [1, 2, 3]),
+                )
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramFrom="2",
+        )
+
+        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
+            }
+        ]
+
+    def test_histogram_session_duration(self):
+        # Record some strings
+        org_id = self.organization.id
+
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": [4, 5, 6],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": [1, 2, 3],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "exited")},
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_duration_metric,
+                    "timestamp": int(time.time()),
+                    "type": "d",
+                    "value": [7, 8, 9],
+                    "tags": {self.session_status_tag: indexer.record(org_id, "crashed")},
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+
+        # Note: everything is a string here on purpose to ensure we parse ints properly
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"histogram({SessionMetricKey.SESSION_DURATION.value})",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramFrom="2",
+        )
+        hist = [(2.0, 5.5, 3.5), (5.5, 9.0, 4.0)]
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {f"histogram({SessionMetricKey.SESSION_DURATION.value})": hist},
+            }
+        ]
+
+        # Using derived alias `session.duration` which has a filter on `exited` session.status
+        response = self.get_success_response(
+            self.organization.slug,
+            field="histogram(session.duration)",
+            statsPeriod="1h",
+            interval="1h",
+            includeSeries="0",
+            histogramBuckets="2",
+            histogramFrom="2",
+        )
+        hist = [(2.0, 4.0, 2.0), (4.0, 6.0, 2.5)]
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"histogram(session.duration)": hist},
+            }
+        ]

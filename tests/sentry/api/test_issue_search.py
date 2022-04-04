@@ -1,3 +1,7 @@
+import unittest
+
+import pytest
+
 from sentry.api.event_search import (
     AggregateFilter,
     AggregateKey,
@@ -19,7 +23,7 @@ from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 
 
-class ParseSearchQueryTest(TestCase):
+class ParseSearchQueryTest(unittest.TestCase):
     def test_key_mappings(self):
         # Test a couple of keys to ensure things are working as expected
         assert parse_search_query("bookmarks:123") == [
@@ -119,7 +123,7 @@ class ParseSearchQueryTest(TestCase):
             'times_seen:"<10"',
         ]
         for invalid_query in invalid_queries:
-            with self.assertRaisesMessage(InvalidSearchQuery, "Invalid number"):
+            with pytest.raises(InvalidSearchQuery, match="Invalid number"):
                 parse_search_query(invalid_query)
 
     def test_boolean_operators_not_allowed(self):
@@ -130,9 +134,9 @@ class ParseSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com",
         ]
         for invalid_query in invalid_queries:
-            with self.assertRaisesMessage(
+            with pytest.raises(
                 InvalidSearchQuery,
-                'Boolean statements containing "OR" or "AND" are not supported in this search',
+                match='Boolean statements containing "OR" or "AND" are not supported in this search',
             ):
                 parse_search_query(invalid_query)
 
@@ -179,13 +183,13 @@ class ConvertStatusValueTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
-        with self.assertRaisesMessage(InvalidSearchQuery, "invalid status value"):
+        with pytest.raises(InvalidSearchQuery, match="invalid status value"):
             convert_query_values(filters, [self.project], self.user, None)
 
         filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
-        with self.assertRaisesMessage(
+        with pytest.raises(
             InvalidSearchQuery,
-            "Aggregate filters (count_unique(user)) are not supported in issue searches.",
+            match=r"Aggregate filters \(count_unique\(user\)\) are not supported in issue searches.",
         ):
             convert_query_values(filters, [self.project], self.user, None)
 

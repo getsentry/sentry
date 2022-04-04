@@ -1,8 +1,9 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
 import PreferencesActions from 'sentry/actions/preferencesActions';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type Preferences = {
   /**
@@ -11,23 +12,30 @@ type Preferences = {
   collapsed?: boolean;
 };
 
-type PreferenceStoreInterface = CommonStoreInterface<Preferences> & {
+interface PreferenceStoreDefinition extends CommonStoreDefinition<Preferences> {
   getInitialState(): Preferences;
 
   loadInitialState(prefs: Preferences): void;
   prefs: Preferences;
   reset(): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
+const storeConfig: PreferenceStoreDefinition = {
   prefs: {},
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
 
-    this.listenTo(PreferencesActions.hideSidebar, this.onHideSidebar);
-    this.listenTo(PreferencesActions.showSidebar, this.onShowSidebar);
-    this.listenTo(PreferencesActions.loadInitialState, this.loadInitialState);
+    this.unsubscribeListeners.push(
+      this.listenTo(PreferencesActions.hideSidebar, this.onHideSidebar)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PreferencesActions.showSidebar, this.onShowSidebar)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PreferencesActions.loadInitialState, this.loadInitialState)
+    );
   },
 
   getInitialState() {
@@ -62,7 +70,5 @@ const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PreferenceStoreInterface;
-
+const PreferenceStore = createStore(makeSafeRefluxStore(storeConfig));
 export default PreferenceStore;

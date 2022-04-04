@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -77,9 +76,8 @@ export function YAxisSelector({
   }
 
   function handleTopNChangeField(value: QueryFieldValue) {
-    const newAggregates = [...aggregates];
-    newAggregates[aggregates.length - 1] = value;
-    onChange(newAggregates);
+    // Top N widgets can only ever change a single y-axis
+    onChange([value]);
   }
 
   // Any function/field choice for Big Number widgets is legal since the

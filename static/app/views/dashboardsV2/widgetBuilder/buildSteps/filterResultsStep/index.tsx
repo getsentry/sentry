@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -42,33 +42,40 @@ export function FilterResultsStep({
   widgetType,
   selection,
 }: Props) {
-  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+  const blurTimeoutRef = useRef<number | null>(null);
 
-  function handleSearch(queryIndex) {
-    return field => {
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        window.clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSearch = useCallback((queryIndex: number) => {
+    return (field: string) => {
       // SearchBar will call handlers for both onSearch and onBlur
       // when selecting a value from the autocomplete dropdown. This can
       // cause state issues for the search bar in our use case. To prevent
       // this, we set a timer in our onSearch handler to block our onBlur
       // handler from firing if it is within 200ms, ie from clicking an
       // autocomplete value.
-      setBlurTimeout(
-        window.setTimeout(() => {
-          setBlurTimeout(null);
-        }, 200)
-      );
+      blurTimeoutRef.current = window.setTimeout(() => {
+        blurTimeoutRef.current = null;
+      }, 200);
 
       const newQuery: WidgetQuery = {
         ...queries[queryIndex],
         conditions: field,
       };
+
       onQueryChange(queryIndex, newQuery);
     };
-  }
+  }, []);
 
-  function handleBlur(queryIndex) {
-    return field => {
-      if (!blurTimeout) {
+  const handleBlur = useCallback((queryIndex: number) => {
+    return (field: string) => {
+      if (!blurTimeoutRef.current) {
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -76,7 +83,7 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       }
     };
-  }
+  }, []);
 
   return (
     <BuildStep

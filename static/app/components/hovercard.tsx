@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import ReactDOM from 'react-dom';
+import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -79,11 +79,20 @@ interface HovercardProps {
 function Hovercard(props: HovercardProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
 
-  const inTimeout = useRef<number | null>(null);
   const scheduleUpdateRef = useRef<(() => void) | null>(null);
 
   const portalEl = useMemo(() => findOrCreatePortal(), []);
   const tooltipId = useMemo(() => domId('hovercard-'), []);
+
+  const showHoverCardTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (showHoverCardTimeoutRef.current) {
+        window.clearTimeout(showHoverCardTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
@@ -96,12 +105,12 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   const toggleHovercard = useCallback(
     (value: boolean) => {
       // If a previous timeout is set, then clear it
-      if (typeof inTimeout.current === 'number') {
-        clearTimeout(inTimeout.current);
+      if (typeof showHoverCardTimeoutRef.current === 'number') {
+        clearTimeout(showHoverCardTimeoutRef.current);
       }
 
       // Else enqueue a new timeout
-      inTimeout.current = window.setTimeout(
+      showHoverCardTimeoutRef.current = window.setTimeout(
         () => setVisible(value),
         props.displayTimeout ?? 100
       );
@@ -127,10 +136,10 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   // If show is not set, then visibility state is uncontrolled
   const isVisible = props.show === undefined ? visible : props.show;
 
-  const hoverProps = useMemo((): Pick<
-    React.HTMLProps<HTMLDivElement>,
-    'onMouseEnter' | 'onMouseLeave'
-  > => {
+  const hoverProps = useMemo((): {
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  } => {
     // If show is not set, then visibility state is controlled by mouse events
     if (props.show === undefined) {
       return {
@@ -155,7 +164,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
           </span>
         )}
       </Reference>
-      {ReactDOM.createPortal(
+      {createPortal(
         <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
           {({ref, style, placement, arrowProps, scheduleUpdate}) => {
             scheduleUpdateRef.current = scheduleUpdate;

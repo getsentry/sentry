@@ -6,7 +6,6 @@ import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 import Alert from 'sentry/components/alert';
 import {ApiForm} from 'sentry/components/forms';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -110,7 +109,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" icon={<IconWarning />}>
+      <Alert type="error" showIcon>
         {t(
           'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
         )}

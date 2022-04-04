@@ -9,8 +9,6 @@ import ColumnEditCollection from 'sentry/views/eventsV2/table/columnEditCollecti
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 interface Props {
-  aggregates: QueryFieldValue[];
-  columns: QueryFieldValue[];
   displayType: DisplayType;
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   fields: QueryFieldValue[];
@@ -21,8 +19,6 @@ interface Props {
 }
 
 export function ColumnFields({
-  aggregates,
-  columns,
   displayType,
   fieldOptions,
   widgetType,
@@ -45,10 +41,16 @@ export function ColumnFields({
           fieldOptions={fieldOptions}
           organization={organization}
           source={widgetType}
+          showAliasField={organization.features.includes(
+            'new-widget-builder-experience-design'
+          )}
         />
       ) : (
+        // The only other display type this component
+        // renders for is TOP_N, where the n - 1 fields
+        // are columns and the nth field is the y-axis
         <ColumnCollectionEdit
-          columns={[...columns, ...aggregates.slice(0, aggregates.length - 1)]}
+          columns={fields.slice(0, fields.length - 1)}
           onChange={newColumns => {
             onChange([...newColumns, fields[fields.length - 1]]);
           }}

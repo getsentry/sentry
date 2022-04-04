@@ -3,7 +3,11 @@ import isEqual from 'lodash/isEqual';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  getAggregateAlias,
+  isLegalYAxisType,
+} from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
@@ -14,6 +18,10 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+// Used in the widget builder to limit the number of lines plotted in the chart
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
 
 export enum DataSet {
   EVENTS = 'events',
@@ -91,6 +99,8 @@ export function normalizeQueries({
     DisplayType.BAR,
   ].includes(displayType);
 
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
+
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
       displayType
@@ -103,21 +113,45 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
+  if (widgetBuilderNewDesign) {
+    queries = queries.map(query => {
+      const {fields = [], columns} = query;
+
+      if (isTabularChart) {
+        // If the groupBy field has values, port everything over to the columnEditCollect field.
+        query.fields = [...new Set([...fields, ...columns])];
+      } else {
+        // If columnEditCollect has field values , port everything over to the groupBy field.
+        query.fields = fields.filter(field => !columns.includes(field));
+      }
+
+      if (!!query.orderby) {
+        return {
+          ...query,
+          orderby: getAggregateAlias(query.orderby),
+        };
+      }
+
+      const orderBy =
+        getAggregateAlias(queries[0].orderby) ||
+        (widgetType === WidgetType.DISCOVER
           ? generateOrderOptions({
               widgetType,
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
             })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
-    }
+          : IssueSortOptions.DATE);
 
+      // Issues data set doesn't support order by descending
+      query.orderby =
+        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+
+      return query;
+    });
+  }
+
+  if (isTabularChart) {
     return queries;
   }
 
@@ -187,6 +221,8 @@ export function normalizeQueries({
         ...query,
         fields: query.aggregates.slice(0, 1),
         aggregates: query.aggregates.slice(0, 1),
+        orderby: '',
+        columns: [],
       };
     });
   }

@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {
   deleteSavedSearch,
@@ -30,7 +31,7 @@ import QueryCount from 'sentry/components/queryCount';
 import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
@@ -99,7 +100,10 @@ type Props = {
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 type State = {
+  actionTaken: boolean;
+  actionTakenIds: string[];
   error: string | null;
+  // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
   isSidebarVisible: boolean;
@@ -117,6 +121,7 @@ type State = {
   queryCounts: QueryCounts;
   queryMaxCount: number;
   realtimeActive: boolean;
+  // TODO(Kelly): remove reviewedIds once issue-list-removal-action feature is stable
   reviewedIds: string[];
   selectAllActive: boolean;
   tagsLoading: boolean;
@@ -157,7 +162,10 @@ class IssueListOverview extends React.Component<Props, State> {
 
     return {
       groupIds: [],
+      // TODO(Kelly): remove reviewedIds and forReview once issue-list-removal-action feature is stable
       reviewedIds: [],
+      actionTaken: false,
+      actionTakenIds: [],
       forReview: false,
       selectAllActive: false,
       realtimeActive,
@@ -211,8 +219,11 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
-    if (prevState.forReview !== this.state.forReview) {
-      this.fetchData();
+    // TODO(Kelly): remove once issue-list-removal-action feature is stable
+    if (!this.props.organization.features.includes('issue-list-removal-action')) {
+      if (prevState.forReview !== this.state.forReview) {
+        this.fetchData();
+      }
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -524,19 +535,38 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchData = (fetchAllCounts = false) => {
+    const {organization} = this.props;
     const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
-    if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
-      GroupStore.loadInitialData([]);
-      this._streamManager.reset();
+    // TODO(Kelly): update once issue-list-removal-action feature is stable
+    if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+      if (!this.state.actionTaken) {
+        GroupStore.loadInitialData([]);
+        this._streamManager.reset();
 
-      this.setState({
-        issuesLoading: true,
-        queryCount: 0,
-        itemsRemoved: 0,
-        reviewedIds: [],
-        error: null,
-      });
+        this.setState({
+          issuesLoading: true,
+          queryCount: 0,
+          itemsRemoved: 0,
+          error: null,
+        });
+      }
+    } else {
+      if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
+        GroupStore.loadInitialData([]);
+        this._streamManager.reset();
+
+        this.setState({
+          issuesLoading: true,
+          queryCount: 0,
+          itemsRemoved: 0,
+          reviewedIds: [],
+          error: null,
+        });
+      }
     }
 
     const transaction = getCurrentSentryReactTransaction();
@@ -608,8 +638,11 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
 
-        if (isForReviewQuery(query)) {
-          GroupStore.remove(this.state.reviewedIds);
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (!hasIssueListRemovalAction) {
+          if (isForReviewQuery(query)) {
+            GroupStore.remove(this.state.reviewedIds);
+          }
         }
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
@@ -622,8 +655,13 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = resp.getResponseHeader('Link');
 
-        if (!this.state.forReview) {
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
           this.fetchCounts(queryCount, fetchAllCounts);
+        } else {
+          if (!this.state.forReview) {
+            this.fetchCounts(queryCount, fetchAllCounts);
+          }
         }
 
         this.setState({
@@ -652,7 +690,12 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this.resumePolling();
 
-        this.setState({forReview: false});
+        // TODO(Kelly): update once issue-list-removal-action feature is stable
+        if (hasIssueListRemovalAction && !this.state.realtimeActive) {
+          this.setState({actionTaken: false, actionTakenIds: []});
+        } else {
+          this.setState({forReview: false});
+        }
       },
     });
   };
@@ -715,6 +758,62 @@ class IssueListOverview extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
+    const {organization} = this.props;
+    const {actionTakenIds} = this.state;
+    const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
+
+    // TODO(Kelly): update once issue-list-removal-action feature is stable
+    if (
+      hasIssueListRemovalAction &&
+      !this.state.realtimeActive &&
+      actionTakenIds.length > 0
+    ) {
+      const filteredItems = this._streamManager.getAllItems().filter(item => {
+        return actionTakenIds.indexOf(item.id) !== -1;
+      });
+
+      const resolvedIds = filteredItems
+        .filter(item => item.status === 'resolved')
+        .map(id => id.id);
+      const ignoredIds = filteredItems
+        .filter(item => item.status === 'ignored')
+        .map(i => i.id);
+      // need to include resolve and ignored statuses because marking as resolved/ignored also
+      // counts as reviewed
+      const reviewedIds = filteredItems
+        .filter(
+          item => !item.inbox && item.status !== 'resolved' && item.status !== 'ignored'
+        )
+        .map(i => i.id);
+      // Remove Ignored and Resolved group ids from the issue stream if on the All Unresolved,
+      // For Review, or Ignored tab. Still include on the saved/custom search tab.
+      if (
+        resolvedIds.length > 0 &&
+        (query.includes('is:unresolved') ||
+          query.includes('is:ignored') ||
+          isForReviewQuery(query))
+      ) {
+        this.onIssueAction(resolvedIds, t('Resolved'));
+      }
+      if (
+        ignoredIds.length > 0 &&
+        (query.includes('is:unresolved') || isForReviewQuery(query))
+      ) {
+        this.onIssueAction(ignoredIds, t('Ignored'));
+      }
+      // Remove issues that are marked as Reviewed from the For Review tab, but still include the
+      // issues if on the All Unresolved tab or saved/custom searches.
+      if (
+        reviewedIds.length > 0 &&
+        (isForReviewQuery(query) || query.includes('is:ignored'))
+      ) {
+        this.onIssueAction(reviewedIds, t('Reviewed'));
+      }
+    }
+
     const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
@@ -748,6 +847,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onDisplayChange = (display: string) => {
     this.transitionTo({display});
+    trackAdvancedAnalyticsEvent('search.display_changed', {
+      organization: this.props.organization,
+    });
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -957,13 +1059,24 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   onDelete = () => {
+    this.setState({actionTaken: true});
     this.fetchData(true);
   };
 
   onMarkReviewed = (itemIds: string[]) => {
+    const {organization} = this.props;
     const query = this.getQuery();
+    const hasIssueListRemovalAction = organization.features.includes(
+      'issue-list-removal-action'
+    );
 
     if (!isForReviewQuery(query)) {
+      if (itemIds.length > 1) {
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+      } else {
+        const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+      }
       return;
     }
 
@@ -972,16 +1085,42 @@ class IssueListOverview extends React.Component<Props, State> {
     if (itemIds.length && currentQueryCount) {
       const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
       currentQueryCount.count -= inInboxCount;
+      // TODO(Kelly): update once issue-list-removal-action feature is stable
+      if (!hasIssueListRemovalAction) {
+        this.setState({
+          reviewedIds: itemIds,
+          forReview: true,
+        });
+      }
       this.setState({
         queryCounts: {
           ...queryCounts,
           [query as Query]: currentQueryCount,
         },
         itemsRemoved: itemsRemoved + inInboxCount,
-        reviewedIds: itemIds,
-        forReview: true,
       });
     }
+  };
+
+  onActionTaken = (itemIds: string[]) => {
+    this.setState({
+      actionTakenIds: itemIds,
+    });
+  };
+
+  onIssueAction = (itemIds: string[], actionType: string) => {
+    if (itemIds.length > 1) {
+      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+        duration: 4000,
+      });
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
+      addMessage(t(`${actionType} ${shortId}`), 'success', {duration: 4000});
+    }
+
+    GroupStore.remove(itemIds);
+    this.setState({actionTaken: true});
+    this.fetchData(true);
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1106,6 +1245,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   displayCount={displayCount}
                   onSelectStatsPeriod={this.onSelectStatsPeriod}
                   onMarkReviewed={this.onMarkReviewed}
+                  onActionTaken={this.onActionTaken}
                   onDelete={this.onDelete}
                   statsPeriod={this.getGroupStatsPeriod()}
                   groupIds={groupIds}

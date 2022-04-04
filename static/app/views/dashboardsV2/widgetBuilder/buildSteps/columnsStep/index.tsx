@@ -20,8 +20,6 @@ import {ColumnFields} from './columnFields';
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  explodedAggregates: QueryFieldValue[];
-  explodedColumns: QueryFieldValue[];
   explodedFields: QueryFieldValue[];
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
@@ -42,8 +40,6 @@ export function ColumnsStep({
   onYAxisOrColumnFieldChange,
   queryErrors,
   explodedFields,
-  explodedColumns,
-  explodedAggregates,
   tags,
 }: Props) {
   return (
@@ -79,8 +75,6 @@ export function ColumnsStep({
               displayType={displayType}
               organization={organization}
               widgetType={widgetType}
-              columns={explodedColumns}
-              aggregates={explodedAggregates}
               fields={explodedFields}
               errors={queryErrors}
               fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
@@ -93,8 +87,6 @@ export function ColumnsStep({
           displayType={displayType}
           organization={organization}
           widgetType={widgetType}
-          columns={explodedColumns}
-          aggregates={explodedAggregates}
           fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
           fieldOptions={generateIssueWidgetFieldOptions()}
@@ -105,6 +97,7 @@ export function ColumnsStep({
             newQuery.fields = fieldStrings;
             newQuery.aggregates = splitFields.aggregates;
             newQuery.columns = splitFields.columns;
+            newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
         />

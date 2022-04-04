@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode} from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -43,7 +43,7 @@ type Props = ModalRenderProps & {
   /**
    * Finish callback
    */
-  onFinish: (path: string) => void;
+  onFinish: (path: string) => number | void;
   /**
    * Callback for when organization is selected
    */
@@ -108,6 +108,14 @@ class ContextPickerModal extends Component<Props> {
     }
   }
 
+  componentWillUnmount() {
+    if (this.onFinishTimeout) {
+      window.clearTimeout(this.onFinishTimeout);
+    }
+  }
+
+  onFinishTimeout: number | null = null;
+
   // TODO(ts) The various generics in react-select types make getting this
   // right hard.
   orgSelect: any | null = null;
@@ -136,13 +144,18 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
+    if (this.onFinishTimeout) {
+      window.clearTimeout(this.onFinishTimeout);
+    }
+
     // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
-      onFinish(
-        replaceRouterParams(nextPath, {
-          orgId: organizations[0].slug,
-        })
-      );
+      this.onFinishTimeout =
+        onFinish(
+          replaceRouterParams(nextPath, {
+            orgId: organizations[0].slug,
+          })
+        ) ?? null;
       return;
     }
 
@@ -152,13 +165,14 @@ class ContextPickerModal extends Component<Props> {
       org = organizations[0].slug;
     }
 
-    onFinish(
-      replaceRouterParams(nextPath, {
-        orgId: org,
-        projectId: projects[0].slug,
-        project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
-      })
-    );
+    this.onFinishTimeout =
+      onFinish(
+        replaceRouterParams(nextPath, {
+          orgId: org,
+          projectId: projects[0].slug,
+          project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+        })
+      ) ?? null;
   };
 
   doFocus = (ref: any | null) => {
@@ -167,7 +181,7 @@ class ContextPickerModal extends Component<Props> {
     }
 
     // eslint-disable-next-line react/no-find-dom-node
-    const el = ReactDOM.findDOMNode(ref) as HTMLElement;
+    const el = findDOMNode(ref) as HTMLElement;
 
     if (el !== null) {
       const input = el.querySelector('input');

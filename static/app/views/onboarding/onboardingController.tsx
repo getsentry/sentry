@@ -15,19 +15,22 @@ type Props = Omit<ComponentPropsWithoutRef<typeof Onboarding>, 'projects'> & {
 function OnboardingController({experimentAssignment, ...rest}: Props) {
   useEffect(() => {
     logExperiment({
-      key: 'TargetedOnboardingWelcomePageExperiment',
+      key: 'TargetedOnboardingWelcomePageExperimentV2',
       organization: rest.organization,
     });
   }, []);
-  if (rest.params.step === 'welcome' && experimentAssignment) {
-    return <TargetedOnboarding />;
+  if (
+    (rest.params.step === 'welcome' && experimentAssignment) ||
+    rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment
+  ) {
+    return <TargetedOnboarding {...rest} />;
   }
   return <Onboarding {...rest} />;
 }
 
 export default withOrganization(
   withExperiment(OnboardingController, {
-    experiment: 'TargetedOnboardingWelcomePageExperiment',
+    experiment: 'TargetedOnboardingWelcomePageExperimentV2',
     injectLogExperiment: true,
   })
 );

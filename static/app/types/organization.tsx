@@ -1,4 +1,4 @@
-import {Actor, Avatar, Scope} from './core';
+import {Actor, Avatar, ObjectStatus, Scope} from './core';
 import {OrgExperiments} from './experiments';
 import {ExternalTeam} from './integrations';
 import {OnboardingTaskStatus} from './onboarding';
@@ -19,8 +19,7 @@ export type OrganizationSummary = {
   require2FA: boolean;
   slug: string;
   status: {
-    // TODO(ts): Are these fields == `ObjectStatus`?
-    id: string;
+    id: ObjectStatus;
     name: string;
   };
 };
@@ -167,6 +166,7 @@ export type NewQuery = {
 
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
+  utc?: boolean | string;
   widths?: Readonly<string[]>;
 
   // Graph

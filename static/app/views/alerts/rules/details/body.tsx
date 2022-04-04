@@ -12,18 +12,23 @@ import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS, TimePeriodType} from './constants';
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  TIME_OPTIONS,
+  TIME_WINDOWS,
+  TimePeriodType,
+} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -63,10 +68,13 @@ export default class DetailsBody extends React.Component<Props> {
     const startDate = moment.utc(start);
     const endDate = moment.utc(end);
     const timeWindow = rule?.timeWindow;
+    const startEndDifferenceMs = endDate.diff(startDate);
 
     if (
       timeWindow &&
-      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
+        // Special case 7 days * 1m interval over the api limit
+        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
     ) {
       return `${timeWindow}m`;
     }
@@ -81,8 +89,9 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
-    const eventType =
-      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
+    const eventType = isCrashFreeAlert(dataset)
+      ? null
+      : extractEventTypeFilterFromRule(rule);
     const queryWithEventType = [eventType, query].join(' ').split(' ');
 
     return queryWithEventType;
@@ -141,14 +150,14 @@ export default class DetailsBody extends React.Component<Props> {
         {selectedIncident &&
           selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
             <StyledLayoutBody>
-              <StyledAlert type="warning" icon={<IconInfo size="md" />}>
+              <StyledAlert type="warning" showIcon>
                 {t(
                   'Alert Rule settings have been updated since this alert was triggered.'
                 )}
               </StyledAlert>
             </StyledLayoutBody>
           )}
-        <StyledLayoutBodyWrapper>
+        <Layout.Body>
           <Layout.Main>
             <DateContainer>
               <StyledDropdownControl
@@ -189,14 +198,16 @@ export default class DetailsBody extends React.Component<Props> {
               organization={organization}
               project={project}
               interval={this.getInterval()}
-              query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
+              query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
               orgId={orgId}
             />
             <DetailWrapper>
               <ActivityWrapper>
                 <MetricHistory organization={organization} incidents={incidents} />
-                {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
+                {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(
+                  dataset
+                ) && (
                   <RelatedIssues
                     organization={organization}
                     rule={rule}
@@ -205,7 +216,7 @@ export default class DetailsBody extends React.Component<Props> {
                     query={
                       dataset === Dataset.ERRORS
                         ? queryWithTypeFilter
-                        : dataset === Dataset.SESSIONS
+                        : isCrashFreeAlert(dataset)
                         ? `${query} error.unhandled:true`
                         : undefined
                     }
@@ -228,7 +239,7 @@ export default class DetailsBody extends React.Component<Props> {
           <Layout.Side>
             <Sidebar incidents={incidents} rule={rule} />
           </Layout.Side>
-        </StyledLayoutBodyWrapper>
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -268,10 +279,6 @@ const StyledLayoutBody = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledLayoutBodyWrapper = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
 `;
 
 const StyledAlert = styled(Alert)`

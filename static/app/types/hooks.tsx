@@ -57,8 +57,6 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type GlobalNotificationProps = {className: string; organization?: Organization};
-
 type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
 
 type MemberListHeaderProps = {
@@ -100,7 +98,6 @@ export type ComponentHooks = {
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
-  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
@@ -115,6 +112,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
@@ -195,7 +193,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
-  'onboarding:targeted-onboarding-header': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**
@@ -521,6 +519,22 @@ type IntegrationsFeatureGatesHook = () => {
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
+
+/**
+ * Invite Button customization allows for a render-props component to replace
+ * or intercept props of the button element.
+ */
+type InviteButtonCustomizationHook = () => React.ComponentType<{
+  children: (opts: {
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
+    onTriggerModal: () => void;
+  }) => React.ReactElement;
+  onTriggerModal: () => void;
+  organization: Organization;
+}>;
 
 /**
  * Invite Modal customization allows for a render-prop component to add
