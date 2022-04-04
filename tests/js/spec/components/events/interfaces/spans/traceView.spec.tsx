@@ -180,4 +180,47 @@ describe('TraceView', () => {
     const grouped = await screen.findByText('group me');
     expect(grouped).toBeInTheDocument();
   });
+
+  it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
+    const data = initializeData({features: ['performance-autogroup-sibling-spans']});
+
+    const event = generateSampleEvent();
+    generateSampleSpan('group me', 'http', 'b000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'c000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'd000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'e000000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'f000000000000000', 'a000000000000000', event);
+
+    generateSampleSpan('not me', 'http', 'aa00000000000000', 'a000000000000000', event);
+
+    generateSampleSpan('group me', 'http', 'bb00000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'cc00000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'dd00000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'ee00000000000000', 'a000000000000000', event);
+    generateSampleSpan('group me', 'http', 'ff00000000000000', 'a000000000000000', event);
+
+    const waterfallModel = new WaterfallModel(event);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    expect(screen.queryAllByText('group me')).toHaveLength(2);
+
+    const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+    userEvent.click(firstGroup);
+    expect(await screen.findAllByText('group me')).toHaveLength(6);
+
+    const secondGroup = await screen.findByText('Autogrouped — http —');
+    userEvent.click(secondGroup);
+    expect(await screen.findAllByText('group me')).toHaveLength(10);
+
+    const firstRegroup = screen.queryAllByText('Regroup')[0];
+    userEvent.click(firstRegroup);
+    expect(await screen.findAllByText('group me')).toHaveLength(6);
+
+    const secondRegroup = await screen.findByText('Regroup');
+    userEvent.click(secondRegroup);
+    expect(await screen.findAllByText('group me')).toHaveLength(2);
+  });
 });
