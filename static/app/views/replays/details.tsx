@@ -17,9 +17,10 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getMessage} from 'sentry/utils/events';
-import useReplayEvent from 'sentry/utils/useReplayEvent';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+
+import useReplayEvent from './utils/useReplayEvent';
 
 type Props = AsyncView['props'] &
   RouteComponentProps<
