@@ -3,9 +3,9 @@ from __future__ import annotations
 import inspect
 import os
 import os.path
-import pytest
 from contextlib import contextmanager
 
+import pytest
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
