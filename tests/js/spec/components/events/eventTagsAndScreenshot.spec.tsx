@@ -6,7 +6,7 @@ import {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
 
-describe('EventTagsAndScreenshot ', function () {
+describe('EventTagsAndScreenshot', function () {
   const contexts = {
     app: {
       app_start_time: '2021-08-31T15:14:21Z',

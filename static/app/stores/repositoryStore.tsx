@@ -1,4 +1,4 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import RepoActions from 'sentry/actions/repositoryActions';
 import {Repository} from 'sentry/types';
@@ -82,7 +82,5 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 };
 
-const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  RepositoryStoreDefinition;
-
+const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig));
 export default RepositoryStore;

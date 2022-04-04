@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {cache} from '@emotion/css';
+import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
