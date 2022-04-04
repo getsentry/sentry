@@ -9,34 +9,6 @@ from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus, Organization, OrganizationIntegration
 
 
-def query_param_to_bool(value: bool | int | str | None, default: bool = False) -> bool:
-    """
-    Generic parser for boolean-like query parameters.
-    TODO(mgaeta): Move this to somewhere in utils.
-    """
-    if value is None:
-        return default
-
-    if isinstance(value, int):
-        return value > 0
-
-    if isinstance(value, bool):
-        return value
-
-    try:
-        int_value = int(value)
-    except ValueError:
-        int_value = None
-
-    if int_value is not None:
-        return int_value > 0
-
-    if value == "":
-        return default
-
-    return value.lower() in {"on", "true"}
-
-
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
@@ -72,7 +44,8 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
             integrations = integrations.filter(integration__provider=provider_key.lower())
 
         # Include the configurations by default if includeConfig is not present.
-        include_config = query_param_to_bool(include_config_raw, default=True)
+        # TODO(mgaeta): HACK. We need a consistent way to get booleans from query parameters.
+        include_config = include_config_raw != "0"
 
         def on_results(results):
             if len(features):
