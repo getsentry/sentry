@@ -9,7 +9,6 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
-import withProjects from 'sentry/utils/withProjects';
 
 type Props = {
   checkProjectHasFirstEvent: (project: Project) => boolean;
@@ -56,7 +55,7 @@ function Sidebar({
   );
 }
 
-export default withProjects(Sidebar);
+export default Sidebar;
 
 const Title = styled('span')`
   font-size: 12px;

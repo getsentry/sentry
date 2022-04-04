@@ -21,6 +21,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
+import {ClientState} from '../types';
+
 import GenericFooter from './genericFooter';
 
 type Props = {
@@ -42,14 +44,29 @@ export default function CreateProjectsFooter({
   const {teams} = useTeams();
 
   const createProjects = async () => {
-    // TODO: add logic to prevent creating project if step repeated
     try {
       addLoadingMessage(t('Creating projects'));
-      const responses = await Promise.all(
-        platforms.map(platform =>
-          createProject(api, organization.slug, teams[0].slug, platform, platform)
-        )
+
+      const lastState: ClientState = await api.requestPromise(
+        `/organizations/${organization.slug}/client-state/onboarding/`
       );
+      const responses = await Promise.all(
+        platforms
+          .filter(platform => !(lastState.platforms && lastState.platforms[platform]))
+          .map(platform =>
+            createProject(api, organization.slug, teams[0].slug, platform, platform)
+          )
+      );
+      const nextState = lastState;
+      if (!nextState.platforms) {
+        nextState.platforms = {};
+      }
+      responses.forEach(p => (nextState.platforms![p.platform] = p.slug));
+      api.requestPromise(`/organizations/${organization.slug}/client-state/onboarding/`, {
+        method: 'PUT',
+        data: nextState,
+      });
+
       responses.map(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
         platforms: platforms.join(','),

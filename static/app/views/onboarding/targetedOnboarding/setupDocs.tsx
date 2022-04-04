@@ -22,7 +22,7 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {StepProps} from './types';
+import {ClientState, StepProps} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -39,6 +39,18 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
+  const [selectedProjects, setSelectedProjects] = useState<string[]>();
+  const selectedProjectsSet = new Set(selectedProjects);
+  useEffect(() => {
+    api
+      .requestPromise(`/organizations/${organization.slug}/client-state/onboarding/`)
+      .then((lastState: ClientState) => {
+        if (lastState.platforms) {
+          setSelectedProjects(Object.values(lastState.platforms));
+        }
+      });
+  }, []);
+
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
@@ -57,11 +69,13 @@ function SetupDocs({organization, projects, search}: Props) {
   const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
   const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(p => !checkProjectHasFirstEvent(p));
+  const firstProjectNoError = projects.findIndex(
+    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
+  );
+  // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
-  const {platform} = project || {};
-  const currentPlatform = loadedPlatform ?? platform ?? 'other';
+  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const fetchData = async () => {
     // const {platform} = project || {};
@@ -134,7 +148,7 @@ function SetupDocs({organization, projects, search}: Props) {
 
   const loadingError = (
     <LoadingError
-      message={t('Failed to load documentation for the %s platform.', platform)}
+      message={t('Failed to load documentation for the %s platform.', project?.platform)}
       onRetry={fetchData}
     />
   );
@@ -149,6 +163,7 @@ function SetupDocs({organization, projects, search}: Props) {
     <React.Fragment>
       <Wrapper>
         <TargetedOnboardingSidebar
+          projects={projects.filter(p => selectedProjectsSet.has(p.slug))}
           activeProject={project}
           {...{checkProjectHasFirstEvent, setNewProject}}
         />

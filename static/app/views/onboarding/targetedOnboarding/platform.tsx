@@ -1,16 +1,41 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {StepProps} from './types';
+import {ClientState, StepProps} from './types';
 
 function OnboardingPlatform(props: StepProps) {
+  const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
+  const addPlatform = (platform: PlatformKey) => {
+    setSelectedPlatforms([...selectedPlatforms, platform]);
+  };
+  const removePlatform = (platform: PlatformKey) => {
+    setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
+  };
+
+  const api = useApi();
+  useEffect(() => {
+    api
+      .requestPromise(
+        `/organizations/${props.organization.slug}/client-state/onboarding/`
+      )
+      .then((lastState: ClientState) => {
+        if (lastState.platforms) {
+          setSelectedPlatforms(Object.keys(lastState.platforms) as PlatformKey[]);
+        }
+      });
+  }, []);
+
+  const clearPlatforms = () => setSelectedPlatforms([]);
   return (
     <Wrapper>
       <StepHeading step={props.stepIndex}>
@@ -32,9 +57,20 @@ function OnboardingPlatform(props: StepProps) {
             {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
           )}
         </p>
-        <MultiPlatformPicker noAutoFilter source="targeted-onboarding" {...props} />
+        <MultiPlatformPicker
+          noAutoFilter
+          source="targeted-onboarding"
+          {...props}
+          removePlatform={removePlatform}
+          addPlatform={addPlatform}
+          platforms={selectedPlatforms}
+        />
       </motion.div>
-      <CreateProjectsFooter {...props} />
+      <CreateProjectsFooter
+        {...props}
+        clearPlatforms={clearPlatforms}
+        platforms={selectedPlatforms}
+      />
     </Wrapper>
   );
 }

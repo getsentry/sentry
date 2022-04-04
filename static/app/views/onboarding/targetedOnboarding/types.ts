@@ -8,14 +8,10 @@ export type StepData = {
 // Not sure if we need platform info to be passed down
 export type StepProps = {
   active: boolean;
-  addPlatform: (platform: PlatformKey) => void;
-  clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: () => void;
   orgId: string;
   organization: Organization;
-  platforms: PlatformKey[];
-  removePlatform: (platform: PlatformKey) => void;
   search: string;
   stepIndex: number;
 };
@@ -26,4 +22,9 @@ export type StepDescriptor = {
   id: string;
   title: string;
   hasFooter?: boolean;
+};
+
+export type ClientState = {
+  // map from platform id to project id
+  platforms?: {[key in PlatformKey]?: string};
 };
