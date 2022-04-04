@@ -5,11 +5,15 @@ import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import routes from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 
+import {CommittersProvider} from './stores/Commiters/CommittersContext';
+
 function Main() {
   return (
     <ThemeAndStyleProvider>
       {ConfigStore.get('demoMode') && <DemoHeader />}
-      <Router history={browserHistory}>{routes()}</Router>
+      <Router history={browserHistory}>
+        <CommittersProvider>{routes()}</CommittersProvider>
+      </Router>
     </ThemeAndStyleProvider>
   );
 }
