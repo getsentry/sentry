@@ -1117,10 +1117,16 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (!isForReviewQuery(query)) {
       if (itemIds.length > 1) {
-        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {
+          duration: 4000,
+          ...(hasIssueListRemovalAction && {undo: this.onUndo}),
+        });
       } else {
         const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+        addMessage(t(`Reviewed ${shortId}`), 'success', {
+          duration: 4000,
+          ...(hasIssueListRemovalAction && {undo: this.onUndo}),
+        });
       }
       return;
     }
