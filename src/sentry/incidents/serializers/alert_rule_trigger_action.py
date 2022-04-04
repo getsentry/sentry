@@ -121,7 +121,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
 
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
-            sentry_app_installation_uuid = attrs.pop("sentry_app_installation_uuid", None)
+            sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
 
             if not attrs.get("sentry_app"):
                 raise serializers.ValidationError(
@@ -157,29 +157,31 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        for key in ("id", "sentry_app_installation_uuid"):
+            validated_data.pop(key, None)
+
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
-        except InvalidTriggerActionError as e:
+        except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
-        else:
-            analytics.record(
-                "metric_alert_with_ui_component.created",
-                user_id=getattr(self.context["user"], "id", None),
-                alert_rule_id=getattr(self.context["alert_rule"], "id"),
-                organization_id=getattr(self.context["organization"], "id"),
-            )
-            return action
+
+        analytics.record(
+            "metric_alert_with_ui_component.created",
+            user_id=getattr(self.context["user"], "id", None),
+            alert_rule_id=getattr(self.context["alert_rule"], "id"),
+            organization_id=getattr(self.context["organization"], "id"),
+        )
+        return action
 
     def update(self, instance, validated_data):
-        if "id" in validated_data:
-            validated_data.pop("id")
+        for key in ("id", "sentry_app_installation_uuid"):
+            validated_data.pop(key, None)
+
         try:
-            return update_alert_rule_trigger_action(instance, **validated_data)
-        except InvalidTriggerActionError as e:
+            action = update_alert_rule_trigger_action(instance, **validated_data)
+        except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
+
+        return action
