@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useMemo, useReducer} from 'react';
+import {createContext, useContext, useEffect, useReducer} from 'react';
 
 import {Client} from 'sentry/api';
 import {
@@ -198,18 +198,16 @@ export function withCommitters<P extends WithCommittersProps>(
     const api = useApi();
     const [state, dispatch] = useCommitters();
 
-    const key = useMemo(() => {
-      return makeCommitterStoreKey({
-        organizationSlug: props.organization.slug,
-        projectSlug: props.project.slug,
-        eventId: props.event.id,
-      });
-    }, [props.organization.slug, props.project.slug, props.event.id]);
-
     useEffect(() => {
       if (!props.group?.firstRelease) {
         return undefined;
       }
+
+      const key = makeCommitterStoreKey({
+        organizationSlug: props.organization.slug,
+        projectSlug: props.project.slug,
+        eventId: props.event.id,
+      });
 
       if (state[key]?.committers || state[key]?.committersLoading) {
         return undefined;
@@ -263,10 +261,17 @@ export function withCommitters<P extends WithCommittersProps>(
       return () => {
         unmounted = true;
       };
-    }, [props.group, props.organization.slug, props.project.slug, props.event.id, key]);
+    }, [props.group, props.organization.slug, props.project.slug, props.event.id]);
 
-    const committers = state[key]?.committers ?? [];
-    return <Component {...(props as unknown as P)} committers={committers} />;
+    const key = makeCommitterStoreKey({
+      organizationSlug: props.organization.slug,
+      projectSlug: props.project.slug,
+      eventId: props.event.id,
+    });
+
+    return (
+      <Component {...(props as unknown as P)} committers={state[key]?.committers ?? []} />
+    );
   };
 
   wrappedComponent.displayName = `withCommitters(${getDisplayName(Component)})`;
