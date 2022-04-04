@@ -572,14 +572,15 @@ class SnubaResultConverter:
                 if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
                     tag_data["totals"][key] = cleaned_value
 
-            if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
-                empty_values = len(self._intervals) * [default_null_value]
-                series = tag_data["series"].setdefault(key, empty_values)
+            if self._query_definition.include_series:
+                if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
+                    empty_values = len(self._intervals) * [default_null_value]
+                    series = tag_data["series"].setdefault(key, empty_values)
 
-                if bucketed_time is not None:
-                    series_index = self._timestamp_index[bucketed_time]
-                    if series[series_index] == default_null_value:
-                        series[series_index] = cleaned_value
+                    if bucketed_time is not None:
+                        series_index = self._timestamp_index[bucketed_time]
+                        if series[series_index] == default_null_value:
+                            series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
@@ -609,8 +610,10 @@ class SnubaResultConverter:
 
             for op, metric_name in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_name=metric_name)
+
+                grp_key = metric_name if op is None else f"{op}({metric_name})"
                 if totals is not None:
-                    totals[metric_name] = metric_obj.run_post_query_function(
+                    totals[grp_key] = metric_obj.run_post_query_function(
                         totals, query_definition=self._query_definition
                     )
 
@@ -618,10 +621,10 @@ class SnubaResultConverter:
                     # Series
                     for idx in range(0, len(self._intervals)):
                         series.setdefault(
-                            metric_name,
+                            grp_key,
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
-                        series[metric_name][idx] = metric_obj.run_post_query_function(
+                        series[grp_key][idx] = metric_obj.run_post_query_function(
                             series, query_definition=self._query_definition, idx=idx
                         )
 
