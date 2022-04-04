@@ -45,7 +45,6 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
             end = incident_trigger.date_modified
         else:
             start, end = None, None
-        # this line is failing in the unfurl test, very annoying
         metric_value = get_incident_aggregates(incident=incident, start=start, end=end).get("count")
     time_window = alert_rule.snuba_query.time_window // 60
 
