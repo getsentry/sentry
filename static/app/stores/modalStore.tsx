@@ -2,7 +2,7 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 import ModalActions from 'sentry/actions/modalActions';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -54,7 +54,5 @@ const storeConfig: ModalStoreDefinition = {
   },
 };
 
-const ModalStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  ModalStoreDefinition;
-
+const ModalStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ModalStore;

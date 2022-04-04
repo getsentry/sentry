@@ -2,7 +2,7 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface ProjectsStatsStoreDefinition extends StoreDefinition {
   getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
@@ -108,8 +108,5 @@ const storeConfig: ProjectsStatsStoreDefinition = {
   },
 };
 
-const ProjectsStatsStore = createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & ProjectsStatsStoreDefinition;
-
+const ProjectsStatsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ProjectsStatsStore;

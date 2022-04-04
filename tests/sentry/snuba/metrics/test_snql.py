@@ -1,5 +1,6 @@
 from snuba_sdk import Column, Function
 
+from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     abnormal_sessions,
@@ -17,6 +18,7 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
+from sentry.snuba.metrics.fields.snql import failure_count_transaction
 from sentry.testutils import TestCase
 
 
@@ -101,8 +103,8 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_dist_count_aggregation_on_tx_status(self):
         org_id = 1985
-        alias = "thefuture"
-        assert all_transactions(org_id, self.metric_ids, alias) == Function(
+
+        assert all_transactions(org_id, self.metric_ids, "transactions.all") == Function(
             "countIf",
             [
                 Column("value"),
@@ -115,7 +117,39 @@ class DerivedMetricSnQLTestCase(TestCase):
                     alias=None,
                 ),
             ],
-            alias=alias,
+            alias="transactions.all",
+        )
+
+        assert failure_count_transaction(
+            org_id, self.metric_ids, "transactions.failed"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "in",
+                            [Column(name="metric_id"), list(self.metric_ids)],
+                        ),
+                        Function(
+                            "notIn",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+                                ),
+                                [
+                                    resolve_weak(org_id, TransactionStatusTagValue.OK.value),
+                                    resolve_weak(org_id, TransactionStatusTagValue.CANCELLED.value),
+                                    resolve_weak(org_id, TransactionStatusTagValue.UNKNOWN.value),
+                                ],
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias="transactions.failed",
         )
 
     def test_percentage_in_snql(self):

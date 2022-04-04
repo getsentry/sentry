@@ -2,7 +2,7 @@ from typing import List
 
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.transactions import TransactionTagsKey
+from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 
 
@@ -162,6 +162,19 @@ def all_transactions(org_id, metric_ids, alias=None):
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
         exclude_tx_statuses=[],
+        metric_ids=metric_ids,
+        alias=alias,
+    )
+
+
+def failure_count_transaction(org_id, metric_ids, alias=None):
+    return _dist_count_aggregation_on_tx_status_factory(
+        org_id,
+        exclude_tx_statuses=[
+            TransactionStatusTagValue.OK.value,
+            TransactionStatusTagValue.CANCELLED.value,
+            TransactionStatusTagValue.UNKNOWN.value,
+        ],
         metric_ids=metric_ids,
         alias=alias,
     )

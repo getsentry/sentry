@@ -25,6 +25,5 @@ export type StepDescriptor = {
   cornerVariant: 'top-right' | 'top-left';
   id: string;
   title: string;
-  centered?: boolean;
   hasFooter?: boolean;
 };
