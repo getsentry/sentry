@@ -21,12 +21,12 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {Color} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
-import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 
 type TeamMiseryProps = {
   isLoading: boolean;
