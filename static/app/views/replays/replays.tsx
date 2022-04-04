@@ -39,7 +39,7 @@ class Replays extends React.Component<Props> {
       orderby: '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: 'transaction:sentry-replay hasReplay:yes', // future: change to replay event
+      query: 'transaction:sentry-replay', // future: change to replay event
     };
 
     if (selection.datetime.period) {
