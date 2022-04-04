@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -340,6 +341,11 @@ class Project(Model, PendingDeletionMixin):
                 is_member = actor.resolve().organization_id == organization.id
             if not is_member:
                 rule.update(owner=None)
+
+        # null out environment_id so when the org(and its associated resources) eventually gets deleted
+        # the to_org resources aren't referencing to-be-deleted DB objects, blocking the deletion process
+        for alert_rule in list(alert_rules):
+            SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).update(environment_id=None)
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 

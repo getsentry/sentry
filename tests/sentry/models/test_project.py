@@ -17,6 +17,7 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
@@ -177,6 +178,22 @@ class ProjectTest(TestCase):
 
         project = self.create_project(teams=[team])
 
+        def project_props(proj: Project):
+            return {
+                "id": proj.id,
+                "slug": proj.slug,
+                "name": proj.name,
+                "forced_color": proj.forced_color,
+                "public": proj.public,
+                "date_added": proj.date_added,
+                "status": proj.status,
+                "first_event": proj.first_event,
+                "flags": proj.flags,
+                "platform": proj.platform,
+            }
+
+        project_before = project_props(project)
+
         environment = Environment.get_or_create(project, "production")
         release = Release.get_or_create(project=project, version="1.0")
 
@@ -184,6 +201,13 @@ class ProjectTest(TestCase):
             project=project, release=release, environment=environment
         )
 
+        assert Environment.objects.filter(id=environment.id).exists()
+        assert Environment.objects.filter(organization_id=from_org.id, projects=project).exists()
+        assert not Environment.objects.filter(
+            project_id=project.id
+        ).exists()  # project_id deprecated
+
+        assert EnvironmentProject.objects.filter(environment=environment, project=project).exists()
         assert ReleaseProjectEnvironment.objects.filter(
             project=project, release=release, environment=environment
         ).exists()
@@ -192,10 +216,16 @@ class ProjectTest(TestCase):
         project.transfer_to(organization=to_org)
 
         project = Project.objects.get(id=project.id)
+        project_after = project_props(project)
 
+        assert project_before == project_after
         assert project.teams.count() == 0
         assert project.organization_id == to_org.id
 
+        assert Environment.objects.filter(id=environment.id).exists()
+        assert not EnvironmentProject.objects.filter(
+            environment=environment, project=project
+        ).exists()
         assert not ReleaseProjectEnvironment.objects.filter(
             project=project, release=release, environment=environment
         ).exists()
@@ -212,13 +242,16 @@ class ProjectTest(TestCase):
         self.create_member(user=to_user, role="member", organization=to_org)
 
         project = self.create_project(teams=[team])
+        environment = Environment.get_or_create(project, "production")
 
         # should lose their owners
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[project],
             owner=ActorTuple.from_actor_identifier(f"team:{team.id}"),
+            environment=environment,
         )
+        snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
         rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
         rule2 = Rule.objects.create(label="rule4", project=project, owner=from_user.actor)
 
@@ -226,6 +259,8 @@ class ProjectTest(TestCase):
         rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
         rule4 = Rule.objects.create(label="rule3", project=project, owner=to_user.actor)
 
+        assert snuba_query
+        assert snuba_query.environment.id is environment.id
         project.transfer_to(organization=to_org)
 
         alert_rule.refresh_from_db()
@@ -233,11 +268,13 @@ class ProjectTest(TestCase):
         rule2.refresh_from_db()
         rule3.refresh_from_db()
         rule4.refresh_from_db()
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.environment is None
         assert alert_rule.organization_id == to_org.id
         assert alert_rule.owner is None
         assert rule1.owner is None
         assert rule2.owner is None
-
         assert rule3.owner is not None
         assert rule4.owner is not None
 

@@ -2,21 +2,27 @@ from datetime import timedelta
 from unittest.mock import Mock
 from uuid import uuid4
 
-from sentry import nodestore
+from sentry import deletions, nodestore
 from sentry.constants import ObjectStatus
+from sentry.deletions.defaults.organization import OrganizationDeletionTask
 from sentry.eventstore.models import Event
+from sentry.incidents.models import AlertRule
 from sentry.models import (
+    ActorTuple,
+    Environment,
     Group,
     GroupAssignee,
     GroupHash,
     GroupMeta,
     GroupRedirect,
     GroupStatus,
+    Organization,
     Repository,
     ScheduledDeletion,
     Team,
 )
 from sentry.signals import pending_delete
+from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion import delete_groups, reattempt_deletions, run_scheduled_deletions
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -138,6 +144,80 @@ class RunScheduledDeletionTest(TestCase):
             run_scheduled_deletions()
 
         assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
+
+class DeleteOrganizationTest(TestCase):
+    def test_delete_org_simple(self):
+        name_filter = {"name": "test_delete_org_simple"}
+        org = self.create_organization(**name_filter)
+
+        assert Organization.objects.filter(**name_filter).count() == 1
+        assert ScheduledDeletion.objects.count() == 0
+
+        org_deletion_task: OrganizationDeletionTask = deletions.get(
+            model=Organization, query={"id": org.id}
+        )
+
+        # schedule the deletion
+        ScheduledDeletion.schedule(instance=org, days=0)
+        assert ScheduledDeletion.objects.count() == 1
+
+        # org should still exist and not deleted yet
+        assert Organization.objects.filter(**name_filter).count() == 1
+        # make progress on the deletion tasks
+        work = True
+        while work:
+            work = org_deletion_task.chunk()
+
+        assert Organization.objects.filter(**name_filter).count() == 0
+
+    def test_delete_org_after_project_transfer(self):
+        from_org = self.create_organization(name="from_org")
+        from_user = self.create_user()
+        self.create_member(user=from_user, role="member", organization=from_org)
+        from_team = self.create_team(organization=from_org)
+
+        to_org = self.create_organization(name="to_org")
+        self.create_team(organization=to_org)
+        to_user = self.create_user()
+        self.create_member(user=to_user, role="member", organization=to_org)
+        assert Organization.objects.filter(name="to_org").exists()
+
+        project = self.create_project(teams=[from_team])
+        environment = Environment.get_or_create(project, "production")
+
+        alert_rule: AlertRule = self.create_alert_rule(
+            organization=from_org,
+            projects=[project],
+            owner=ActorTuple.from_actor_identifier(f"team:{from_team.id}"),
+            environment=environment,
+        )
+
+        project.transfer_to(organization=to_org)
+        assert project.organization.id is to_org.id
+
+        alert_rule.refresh_from_db()
+        assert AlertRule.objects.fetch_for_project(project).exists()
+        assert alert_rule.snuba_query.environment is not environment
+        assert alert_rule.snuba_query.environment is None
+        assert Environment.objects.filter(organization_id=from_org.id).count() == 1
+        assert (
+            Environment.objects.filter(organization_id=to_org.id).count() == 0
+        )  # env should stay with og org
+
+        # block until its deleted
+        ScheduledDeletion.schedule(instance=from_org, days=0)
+        org_deletion_task: OrganizationDeletionTask = deletions.get(
+            model=Organization, query={"id": from_org.id}
+        )
+        work = True
+        while work:
+            work = org_deletion_task.chunk()
+
+        assert not Organization.objects.filter(name="from_org").exists()
+        assert Organization.objects.filter(name="to_org").exists()
+        assert AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert SnubaQuery.objects.filter(id=alert_rule.snuba_query.id, environment_id=None).exists()
 
 
 class ReattemptDeletionsTest(TestCase):
