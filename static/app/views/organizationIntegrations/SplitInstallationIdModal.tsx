@@ -16,13 +16,11 @@ type Props = {
  * We also have a link for users to click so they can go to Split's website.
  */
 export function SplitInstallationIdModal(props: Props) {
-  const openAdminIntegrationTimeoutRef = useRef<number | null>(null);
+  const openAdminIntegrationTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (openAdminIntegrationTimeoutRef.current) {
-        window.clearTimeout(openAdminIntegrationTimeoutRef.current);
-      }
+      window.clearTimeout(openAdminIntegrationTimeoutRef.current);
     };
   }, []);
 
@@ -35,9 +33,7 @@ export function SplitInstallationIdModal(props: Props) {
     onCopy();
     addSuccessMessage('Copied to clipboard');
 
-    if (openAdminIntegrationTimeoutRef.current) {
-      window.clearTimeout(openAdminIntegrationTimeoutRef.current);
-    }
+    window.clearTimeout(openAdminIntegrationTimeoutRef.current);
 
     openAdminIntegrationTimeoutRef.current = window.setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');

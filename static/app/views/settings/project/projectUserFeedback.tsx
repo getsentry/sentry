@@ -21,7 +21,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
-  submitTimeout: number | null = null;
+  submitTimeout: number | undefined = undefined;
 
   componentDidMount() {
     window.sentryEmbedCallback = function (embed) {

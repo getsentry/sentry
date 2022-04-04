@@ -136,17 +136,13 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   const [status, setStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
   const [event, setEvent] = React.useState<Event | null>(null);
 
-  const delayTimeoutRef = React.useRef<number | null>(null);
-  const loaderTimeoutRef = React.useRef<number | null>(null);
+  const delayTimeoutRef = React.useRef<number | undefined>(undefined);
+  const loaderTimeoutRef = React.useRef<number | undefined>(undefined);
 
   React.useEffect(() => {
     return () => {
-      if (loaderTimeoutRef.current !== null) {
-        window.clearTimeout(loaderTimeoutRef.current);
-      }
-      if (delayTimeoutRef.current !== null) {
-        window.clearTimeout(delayTimeoutRef.current);
-      }
+      window.clearTimeout(loaderTimeoutRef.current);
+      window.clearTimeout(delayTimeoutRef.current);
     };
   }, []);
 
@@ -171,12 +167,12 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
           ? `/projects/${props.organization.slug}/${props.projectSlug}/events/${props.eventId}/`
           : `/issues/${props.issueId}/events/latest/?collapse=stacktraceOnly`
       );
-      clearTimeout(loaderTimeoutRef.current);
+      window.clearTimeout(loaderTimeoutRef.current);
       setEvent(evt);
       setStatus('loaded');
       setLoadingVisible(false);
     } catch {
-      clearTimeout(loaderTimeoutRef.current);
+      window.clearTimeout(loaderTimeoutRef.current);
       setEvent(null);
       setStatus('error');
       setLoadingVisible(false);
@@ -191,14 +187,13 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   ]);
 
   const handleMouseEnter = React.useCallback(() => {
+    window.clearTimeout(delayTimeoutRef.current);
     delayTimeoutRef.current = window.setTimeout(fetchData, REQUEST_DELAY);
   }, [fetchData]);
 
   const handleMouseLeave = React.useCallback(() => {
-    if (delayTimeoutRef.current) {
-      window.clearTimeout(delayTimeoutRef.current);
-      delayTimeoutRef.current = null;
-    }
+    window.clearTimeout(delayTimeoutRef.current);
+    delayTimeoutRef.current = undefined;
   }, []);
 
   // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?

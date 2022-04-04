@@ -55,13 +55,11 @@ interface StarGroupProps extends SVGMotionProps<SVGGElement> {
 }
 
 function StarGroup(props: StarGroupProps): React.ReactElement {
-  const animationRestartTimeoutRef = useRef<number | null>(null);
+  const animationRestartTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (animationRestartTimeoutRef.current) {
-        window.clearTimeout(animationRestartTimeoutRef.current);
-      }
+      window.clearTimeout(animationRestartTimeoutRef.current);
     };
   }, []);
 
@@ -84,9 +82,7 @@ function StarGroup(props: StarGroupProps): React.ReactElement {
       };
 
       style.animation = 'none';
-      if (animationRestartTimeoutRef.current) {
-        window.clearTimeout(animationRestartTimeoutRef.current);
-      }
+      window.clearTimeout(animationRestartTimeoutRef.current);
       animationRestartTimeoutRef.current = window.setTimeout(restart, delay);
 
       return undefined;

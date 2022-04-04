@@ -42,13 +42,11 @@ export function FilterResultsStep({
   widgetType,
   selection,
 }: Props) {
-  const blurTimeoutRef = useRef<number | null>(null);
+  const blurTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (blurTimeoutRef.current) {
-        window.clearTimeout(blurTimeoutRef.current);
-      }
+      window.clearTimeout(blurTimeoutRef.current);
     };
   }, []);
 
@@ -60,8 +58,9 @@ export function FilterResultsStep({
       // this, we set a timer in our onSearch handler to block our onBlur
       // handler from firing if it is within 200ms, ie from clicking an
       // autocomplete value.
+      window.clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = window.setTimeout(() => {
-        blurTimeoutRef.current = null;
+        blurTimeoutRef.current = undefined;
       }, 200);
 
       const newQuery: WidgetQuery = {

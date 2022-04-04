@@ -43,18 +43,14 @@ class Broadcasts extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.markSeenTimeout) {
-      window.clearTimeout(this.markSeenTimeout);
-    }
+    window.clearTimeout(this.markSeenTimeout);
+    window.clearTimeout(this.pollingTimeout);
 
-    if (this.pollingTimeout) {
-      this.stopPolling();
-    }
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  pollingTimeout: number | null = null;
-  markSeenTimeout: number | null = null;
+  pollingTimeout: number | undefined = undefined;
+  markSeenTimeout: number | undefined = undefined;
 
   startPolling() {
     if (this.pollingTimeout) {
@@ -64,10 +60,8 @@ class Broadcasts extends Component<Props, State> {
   }
 
   stopPolling() {
-    if (this.pollingTimeout) {
-      window.clearTimeout(this.pollingTimeout);
-      this.pollingTimeout = null;
-    }
+    window.clearTimeout(this.pollingTimeout);
+    this.pollingTimeout = undefined;
   }
 
   fetchData = async () => {
@@ -94,6 +88,8 @@ class Broadcasts extends Component<Props, State> {
     document.hidden ? this.stopPolling() : this.startPolling();
 
   handleShowPanel = () => {
+    window.clearTimeout(this.markSeenTimeout);
+
     this.markSeenTimeout = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   };

@@ -63,13 +63,11 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
-  const cornerVariantTimeoutRed = useRef<number | null>(null);
+  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (cornerVariantTimeoutRed.current) {
-        window.clearTimeout(cornerVariantTimeoutRed.current);
-      }
+      window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
 
@@ -83,9 +81,7 @@ function Onboarding(props: Props) {
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
     // TODO: find better way to delay the corner animation
-    if (cornerVariantTimeoutRed.current) {
-      window.clearTimeout(cornerVariantTimeoutRed.current);
-    }
+    window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
       () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),

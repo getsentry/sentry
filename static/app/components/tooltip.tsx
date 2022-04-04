@@ -148,18 +148,14 @@ export function DO_NOT_USE_TOOLTIP({
   const tooltipId = useMemo(() => domId('tooltip-'), []);
 
   // Delayed open and close time handles
-  const delayOpenTimeoutRef = useRef<number | null>(null);
-  const delayHideTimeoutRef = useRef<number | null>(null);
+  const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
+  const delayHideTimeoutRef = useRef<number | undefined>(undefined);
 
   // When the component is unmounted, make sure to stop the timeouts
   useEffect(() => {
     return () => {
-      if (delayOpenTimeoutRef.current) {
-        window.clearTimeout(delayOpenTimeoutRef.current);
-      }
-      if (delayHideTimeoutRef.current) {
-        window.clearTimeout(delayHideTimeoutRef.current);
-      }
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      window.clearTimeout(delayHideTimeoutRef.current);
     };
   }, []);
 
@@ -168,10 +164,8 @@ export function DO_NOT_USE_TOOLTIP({
       return;
     }
 
-    if (delayHideTimeoutRef.current) {
-      window.clearTimeout(delayHideTimeoutRef.current);
-      delayHideTimeoutRef.current = null;
-    }
+    window.clearTimeout(delayHideTimeoutRef.current);
+    window.clearTimeout(delayOpenTimeoutRef.current);
 
     if (delay === 0) {
       setVisible(true);
@@ -185,10 +179,8 @@ export function DO_NOT_USE_TOOLTIP({
   }
 
   function handleMouseLeave() {
-    if (delayOpenTimeoutRef.current) {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      delayOpenTimeoutRef.current = null;
-    }
+    window.clearTimeout(delayOpenTimeoutRef.current);
+    window.clearTimeout(delayHideTimeoutRef.current);
 
     if (isHoverable) {
       delayHideTimeoutRef.current = window.setTimeout(

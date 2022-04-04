@@ -124,12 +124,10 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
-  pollingTimeout: number | null = null;
+  pollingTimeout: number | undefined = undefined;
 
   componentWillUnmount() {
-    if (this.pollingTimeout) {
-      window.clearTimeout(this.pollingTimeout);
-    }
+    window.clearTimeout(this.pollingTimeout);
   }
 
   getTitle() {
@@ -211,9 +209,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        if (this.pollingTimeout) {
-          window.clearTimeout(this.pollingTimeout);
-        }
+        window.clearTimeout(this.pollingTimeout);
 
         this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(quitTime);
@@ -244,9 +240,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    if (this.pollingTimeout) {
-      window.clearTimeout(this.pollingTimeout);
-    }
+    window.clearTimeout(this.pollingTimeout);
 
     this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(quitTime);

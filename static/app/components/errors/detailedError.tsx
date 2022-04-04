@@ -45,12 +45,10 @@ class DetailedError extends React.Component<Props> {
   }
 
   componentWillUnmount() {
-    if (this.forceUpdateTimeout) {
-      window.clearTimeout(this.forceUpdateTimeout);
-    }
+    window.clearTimeout(this.forceUpdateTimeout);
   }
 
-  forceUpdateTimeout: number | null = null;
+  forceUpdateTimeout: number | undefined = undefined;
 
   render() {
     const {className, heading, message, onRetry, hideSupportLinks} = this.props;

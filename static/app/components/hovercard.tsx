@@ -84,13 +84,11 @@ function Hovercard(props: HovercardProps): React.ReactElement {
   const portalEl = useMemo(() => findOrCreatePortal(), []);
   const tooltipId = useMemo(() => domId('hovercard-'), []);
 
-  const showHoverCardTimeoutRef = useRef<number | null>(null);
+  const showHoverCardTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (showHoverCardTimeoutRef.current) {
-        window.clearTimeout(showHoverCardTimeoutRef.current);
-      }
+      window.clearTimeout(showHoverCardTimeoutRef.current);
     };
   }, []);
 
@@ -104,10 +102,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
 
   const toggleHovercard = useCallback(
     (value: boolean) => {
-      // If a previous timeout is set, then clear it
-      if (typeof showHoverCardTimeoutRef.current === 'number') {
-        clearTimeout(showHoverCardTimeoutRef.current);
-      }
+      window.clearTimeout(showHoverCardTimeoutRef.current);
 
       // Else enqueue a new timeout
       showHoverCardTimeoutRef.current = window.setTimeout(

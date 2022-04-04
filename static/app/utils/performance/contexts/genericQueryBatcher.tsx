@@ -181,27 +181,24 @@ function handleBatching(
 export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => {
   const queries = useRef<Record<symbol, BatchQueryDefinition>>({});
 
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | undefined>(undefined);
   const organization = useOrganization();
 
   const addQuery = (q: BatchQueryDefinition, id: symbol) => {
     queries.current[id] = q;
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+    window.clearTimeout(timeoutRef.current);
     // Put batch function in the next macro task to aggregate all requests in this frame.
     timeoutRef.current = window.setTimeout(() => {
       handleBatching(organization, queries.current);
-      timeoutRef.current = null;
+      timeoutRef.current = undefined;
     }, 0);
   };
 
   // Cleanup timeout after component unmounts.
   useEffect(
     () => () => {
-      timeoutRef.current !== null && clearTimeout(timeoutRef.current);
+      timeoutRef.current && window.clearTimeout(timeoutRef.current);
     },
     []
   );
