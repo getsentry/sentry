@@ -635,7 +635,14 @@ class QueryField extends React.Component<Props> {
         fieldValue.kind === 'function' &&
         AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
       ) {
-        gridColumnsQuantity = containerColumns;
+        if (
+          containerColumns === 3 &&
+          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
+        ) {
+          gridColumnsQuantity = 2;
+        } else {
+          gridColumnsQuantity = containerColumns;
+        }
       } else {
         gridColumnsQuantity = 1;
       }
