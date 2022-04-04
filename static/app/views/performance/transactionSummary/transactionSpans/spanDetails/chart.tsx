@@ -10,6 +10,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import Count from 'sentry/components/count';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -78,7 +79,7 @@ function Chart(props: Props) {
           <InlineContainer>
             <SectionHeading>{t('Total Events')}</SectionHeading>
             <SectionValue data-test-id="total-value">
-              {defined(props.totalCount) ? props.totalCount : '\u2014'}
+              {defined(props.totalCount) ? <Count value={props.totalCount} /> : '\u2014'}
             </SectionValue>
           </InlineContainer>
           <InlineContainer data-test-id="display-toggle">
