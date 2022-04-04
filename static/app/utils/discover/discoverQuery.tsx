@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {ReactNode, ReactText} from 'react';
 
 import {MetaType} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
@@ -13,7 +13,7 @@ import GenericDiscoverQuery, {
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: ReactText;
   id: string;
 };
 
@@ -34,7 +34,7 @@ type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
 };
 
 type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
-  children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
+  children: (props: GenericChildrenProps<TableData>) => ReactNode;
 };
 
 function shouldRefetchData(
