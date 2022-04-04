@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Field, {FieldProps} from 'sentry/components/forms/field';
 
 /**

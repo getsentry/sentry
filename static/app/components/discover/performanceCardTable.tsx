@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import * as React from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
