@@ -22,6 +22,7 @@ import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCard
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {VITAL_GROUPS, ZOOM_KEYS} from './constants';
+import {shouldDisplayMissingVitalsAlert} from './utils';
 import VitalsPanel from './vitalsPanel';
 
 type Props = {
@@ -66,7 +67,7 @@ function VitalsContent(props: Props) {
             {results => {
               const isMissingVitalsData =
                 !results.isLoading &&
-                allVitals.some(vital => !results.vitalsData?.[vital]);
+                shouldDisplayMissingVitalsAlert(results.vitalsData, allVitals);
 
               return (
                 <Fragment>

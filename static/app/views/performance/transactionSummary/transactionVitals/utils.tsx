@@ -1,8 +1,10 @@
 import type {ECharts} from 'echarts';
 import {Query} from 'history';
 
+import {WebVital} from 'sentry/utils/discover/fields';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
+import {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
 import {Point, Rectangle} from './types';
 
@@ -154,4 +156,28 @@ export function mapPoint(
     x: destRect.point1.x + (destRect.point2.x - destRect.point1.x) * xPercentage,
     y: destRect.point1.y + (destRect.point2.y - destRect.point1.y) * yPercentage,
   };
+}
+
+export function shouldDisplayMissingVitalsAlert(
+  vitalsData: VitalsData | null,
+  allVitals: WebVital[]
+): boolean {
+  if (!vitalsData) {
+    return true;
+  }
+
+  const isMissingVitalsMeasurement = allVitals.some(vital => !vitalsData?.[vital]);
+
+  const measurementsWithoutData = Object.keys(vitalsData).filter(key => {
+    const vitalObj = vitalsData[key];
+    const isVitalObjectEmpty = Object.keys(vitalObj).every(
+      measurement => vitalObj[measurement] === null || vitalObj[measurement] === 0
+    );
+
+    return isVitalObjectEmpty;
+  });
+
+  const hasEmptyVitalsMeasurement = measurementsWithoutData.length > 0;
+
+  return isMissingVitalsMeasurement || hasEmptyVitalsMeasurement;
 }
