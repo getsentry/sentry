@@ -121,20 +121,20 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 )
 
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+            sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
+
             if not attrs.get("sentry_app"):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
             if attrs.get("sentry_app_config"):
-                if attrs.get("sentry_app_installation_uuid") is None:
+                if sentry_app_installation_uuid is None:
                     raise serializers.ValidationError(
                         {"sentry_app": "Missing parameter: sentry_app_installation_uuid"}
                     )
 
                 try:
-                    install = SentryAppInstallation.objects.get(
-                        uuid=attrs.get("sentry_app_installation_uuid")
-                    )
+                    install = SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
                 except SentryAppInstallation.DoesNotExist:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
@@ -148,8 +148,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 if not result["success"]:
                     raise serializers.ValidationError({"sentry_app": result["message"]})
 
-                del attrs["sentry_app_installation_uuid"]
-
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
         should_validate_channel_id = self.context.get("validate_channel_id", True)
@@ -159,29 +157,31 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        for key in ("id", "sentry_app_installation_uuid"):
+            validated_data.pop(key, None)
+
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
-        except InvalidTriggerActionError as e:
+        except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
-        else:
-            analytics.record(
-                "metric_alert_with_ui_component.created",
-                user_id=getattr(self.context["user"], "id", None),
-                alert_rule_id=getattr(self.context["alert_rule"], "id"),
-                organization_id=getattr(self.context["organization"], "id"),
-            )
-            return action
+
+        analytics.record(
+            "metric_alert_with_ui_component.created",
+            user_id=getattr(self.context["user"], "id", None),
+            alert_rule_id=getattr(self.context["alert_rule"], "id"),
+            organization_id=getattr(self.context["organization"], "id"),
+        )
+        return action
 
     def update(self, instance, validated_data):
-        if "id" in validated_data:
-            validated_data.pop("id")
+        for key in ("id", "sentry_app_installation_uuid"):
+            validated_data.pop(key, None)
+
         try:
-            return update_alert_rule_trigger_action(instance, **validated_data)
-        except InvalidTriggerActionError as e:
+            action = update_alert_rule_trigger_action(instance, **validated_data)
+        except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_text(e))
-        except ApiRateLimitedError as e:
-            raise serializers.ValidationError(force_text(e))
+
+        return action

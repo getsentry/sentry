@@ -116,7 +116,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
         self.rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(self.rule, "hi", 1000)
-        print(trigger)
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger,
             target_identifier=self.sentry_app.id,
