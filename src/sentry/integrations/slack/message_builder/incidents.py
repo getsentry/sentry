@@ -34,7 +34,7 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
         self.metric_value = metric_value
         self.new_status = new_status
 
-    def build(self, unfurl=False) -> SlackBody:
+    def build(self, unfurl: bool = False) -> SlackBody:
         data = incident_attachment_info(
             self.incident, self.new_status, self.metric_value, unfurl=unfurl
         )
