@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventEntries from 'sentry/components/events/eventEntries';
+import EventEntry from 'sentry/components/events/eventEntry';
 import EventMessage from 'sentry/components/events/eventMessage';
 import BaseRRWebReplayer from 'sentry/components/events/rrwebReplayer/baseRRWebReplayer';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {Entry, EntryType, Event} from 'sentry/types/event';
 import {getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -96,6 +96,17 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
+function isReplayEventEntity(entry: Entry) {
+  // Starting with an allowlist, might be better to block only a few types (like Tags)
+  switch (entry.type) {
+    case EntryType.BREADCRUMBS:
+    case EntryType.SPANS:
+      return true;
+    default:
+      return false;
+  }
+}
+
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
 
@@ -117,16 +128,18 @@ function ReplayLoader(props: ReplayLoaderProps) {
         {replayEvents?.map(replayEvent => (
           <React.Fragment key={replayEvent.id}>
             <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
-            <EventEntries
-              // group={group}
-              event={replayEvent}
-              organization={props.organization}
-              project={{slug: getProjectSlug(replayEvent)}}
-              location={location}
-              showExampleCommit={false}
-              router={props.router}
-              route={props.route}
-            />
+            {replayEvent.entries.filter(isReplayEventEntity).map(entry => (
+              <EventEntry
+                key={`${replayEvent.id}+${entry.type}`}
+                projectSlug={getProjectSlug(replayEvent)}
+                // group={group}
+                organization={props.organization}
+                event={replayEvent}
+                entry={entry}
+                route={props.route}
+                router={props.router}
+              />
+            ))}
           </React.Fragment>
         ))}
       </React.Fragment>
