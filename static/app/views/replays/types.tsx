@@ -4,4 +4,5 @@ export type Replay = {
   projectID: string;
   replayId: string;
   timestamp: string;
+  user: string;
 };
