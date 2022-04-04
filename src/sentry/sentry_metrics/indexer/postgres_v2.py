@@ -19,6 +19,7 @@ from django.db.models import Q
 
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
+from sentry.sentry_metrics.multiprocess import SHARED_STRINGS
 from sentry.utils import metrics
 from sentry.utils.services import Service
 
@@ -279,6 +280,8 @@ class PGStringIndexerV2(Service):
         Returns None if the entry cannot be found.
 
         """
+        if string in SHARED_STRINGS:
+            org_id = 0
         key = f"{org_id}:{string}"
         result = indexer_cache.get(key)
         if result and isinstance(result, int):

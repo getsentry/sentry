@@ -37,6 +37,27 @@ from sentry.utils import json, kafka_config
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
+SHARED_METRIC_NAMES = {
+    "c:sessions/session@none",
+    "s:sessions/error@none",
+    "s:sessions/user@none",
+    "d:sessions/duration@second",
+}
+SHARED_TAG_STRINGS = {
+    "abnormal",
+    "crashed",
+    "environment",
+    "errored",
+    "exited",
+    "healthy",
+    "init",
+    "production",
+    "release",
+    "session.status",
+    "staging",
+}
+SHARED_STRINGS = {*SHARED_METRIC_NAMES, *SHARED_TAG_STRINGS}
+
 logger = logging.getLogger(__name__)
 
 MessageBatch = List[Message[KafkaPayload]]
@@ -372,7 +393,12 @@ def process_messages(
                 *tags.keys(),
                 *tags.values(),
             }
-            org_strings[org_id].update(parsed_strings)
+            non_org_zero = parsed_strings.difference(SHARED_STRINGS)
+            org_zero = parsed_strings.intersection(SHARED_STRINGS)
+
+            org_strings[org_id].update(non_org_zero)
+            org_strings[0].update(org_zero)
+            # used just for metrics
             strings.update(parsed_strings)
 
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
@@ -388,16 +414,46 @@ def process_messages(
             new_payload_value = deepcopy(parsed_payload_value)
 
             metric_name = parsed_payload_value["name"]
+            org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
 
+            new_tags: Mapping[int, int] = {}
+
+            for k, v in tags.items():
+                tag_mappings = mapping.get(org_id, {})
+                tag_mappings.update(mapping.get(0, {}))
+
+                if len(tag_mappings) > 0:
+                    try:
+                        new_key = tag_mappings[k]
+                        new_value = tag_mappings[v]
+                        new_tags[new_key] = new_value
+                    except KeyError:
+                        logger.error(
+                            "process_messages.key_error",
+                            extra={"org_id": org_id, "tags": tags},
+                            exc_info=True,
+                        )
+                        continue
+                else:
+                    logger.error(
+                        "process_messages.no_mappings_found", extra={"org_id": org_id, "tags": tags}
+                    )
+
             try:
-                new_tags: Mapping[int, int] = {mapping[k]: mapping[v] for k, v in tags.items()}
+                metric_id = mapping.get(org_id, {}).get(metric_name)
+                if not metric_id:
+                    metric_id = mapping[0][metric_name]
             except KeyError:
-                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                logger.error(
+                    "process_messages.key_error",
+                    extra={"org_id": org_id, "metric_name": metric_name},
+                    exc_info=True,
+                )
                 continue
 
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[metric_name]
+            new_payload_value["metric_id"] = metric_id
             new_payload_value["retention_days"] = 90
 
             del new_payload_value["name"]

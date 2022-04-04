@@ -65,14 +65,14 @@ def get_entity_of_metric_mocked(_, metric_name):
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[17])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[20])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[21])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[21]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -81,7 +81,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[21]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -90,20 +90,21 @@ def get_entity_of_metric_mocked(_, metric_name):
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[21]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[18]"), Op.EQ, rhs=19)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[22]"), Op.EQ, rhs=23)]),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
-    org_id = 666  # mock indexer does not require a real organization ID
+    org_id = 1
     local_indexer = MockIndexer()
     for s in ("", "myapp@2.0.0", "transaction", "/bar/:orgId/"):
-        local_indexer.record(1, s)
+        # these will be ids -> [20, 21, 22, 23] respectively
+        local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(org_id, parse_query(query_string))
     assert parsed == expected

@@ -13,13 +13,13 @@ from arroyo.utils.clock import TestingClock as Clock
 
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.multiprocess import (
+    SHARED_STRINGS,
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
     ProduceStep,
     process_messages,
 )
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.utils import json
 
 
@@ -157,7 +157,7 @@ def test_metrics_batch_builder():
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
-    "name": SessionMetricKey.SESSION.value,
+    "name": "c:sessions/session@none",
     "tags": {
         "environment": "production",
         "session.status": "init",
@@ -169,7 +169,7 @@ counter_payload = {
     "project_id": 3,
 }
 distribution_payload = {
-    "name": SessionMetricKey.SESSION_DURATION.value,
+    "name": "d:sessions/duration@second",
     "tags": {
         "environment": "production",
         "session.status": "healthy",
@@ -183,7 +183,7 @@ distribution_payload = {
 }
 
 set_payload = {
-    "name": SessionMetricKey.SESSION_ERROR.value,
+    "name": "s:sessions/error@none",
     "tags": {
         "environment": "production",
         "session.status": "errored",
@@ -208,10 +208,19 @@ def __translated_payload(
     payload = payload.copy()
     org_id = payload["org_id"]
 
-    new_tags = {
-        indexer.resolve(org_id, k): indexer.resolve(org_id, v) for k, v in payload["tags"].items()
-    }
-    payload["metric_id"] = indexer.resolve(org_id, payload["name"])
+    new_tags = {}
+    for k, v in payload["tags"].items():
+        new_k = indexer.resolve(0, k) if k in SHARED_STRINGS else indexer.record(org_id, k)
+        new_v = indexer.resolve(0, v) if v in SHARED_STRINGS else indexer.record(org_id, v)
+
+        new_tags[new_k] = new_v
+
+    metric_name = payload["name"]
+    payload["metric_id"] = (
+        indexer.resolve(0, metric_name)
+        if metric_name in SHARED_STRINGS
+        else indexer.record(org_id, metric_name)
+    )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 
