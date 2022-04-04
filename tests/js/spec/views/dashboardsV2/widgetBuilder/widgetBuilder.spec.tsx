@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
@@ -107,6 +108,7 @@ describe('WidgetBuilder', function () {
 
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
+  let metricsDataMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -199,16 +201,24 @@ describe('WidgetBuilder', function () {
           name: SessionMetric.SESSION,
           type: 'counter',
           operations: ['sum'],
+          unit: null,
         },
         {
           name: SessionMetric.SESSION_ERROR,
           type: 'set',
           operations: ['count_unique'],
+          unit: null,
+        },
+        {
+          name: SessionMetric.USER,
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
         },
       ],
     });
 
-    MockApiClient.addMockResponse({
+    metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics/data/`,
       body: TestStubs.MetricsField({
@@ -1588,6 +1598,135 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
+    it('maintains the selected dataset when display type is changed', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      const metricsDataset = screen.getByLabelText(/releases/i);
+      expect(metricsDataset).not.toBeChecked();
+      userEvent.click(metricsDataset);
+      expect(metricsDataset).toBeChecked();
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(metricsDataset).toBeChecked();
+    });
+
+    it('displays metrics tags', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
+      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('session.status')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
+      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+    });
+
+    it('displays no metrics message', async function () {
+      // ensure that we have no metrics fields
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/metrics/meta/`,
+        body: [],
+      });
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      // change data set to metrics
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      // open visualization select
+      userEvent.click(screen.getByText('Table'));
+      // choose line chart
+      userEvent.click(screen.getByText('Line Chart'));
+
+      // open fields select
+      userEvent.click(screen.getByText(/required/i));
+
+      // there's correct empty message
+      expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
+    });
+
+    it('makes the appropriate metrics call', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: [`sum(${SessionMetric.SESSION})`],
+            groupBy: [],
+            interval: '5m',
+            project: [],
+            statsPeriod: '24h',
+            per_page: 20,
+            orderBy: `-sum(${SessionMetric.SESSION})`,
+          },
+        })
+      );
+    });
+
+    it('displays the correct options for area chart', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      // change data set to metrics
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText(`${SessionMetric.SESSION}`)).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
+      expect(screen.getByText(`${SessionMetric.USER}`)).toBeInTheDocument();
+    });
+
     it('sets widgetType to release', async function () {
       const handleSave = jest.fn();
 
@@ -1606,9 +1745,9 @@ describe('WidgetBuilder', function () {
             widgetType: 'metrics',
             queries: [
               expect.objectContaining({
-                aggregates: ['sum(sentry.sessions.session)'],
-                fields: ['sum(sentry.sessions.session)'],
-                orderby: '-sum(sentry.sessions.session)',
+                aggregates: [`sum(${SessionMetric.SESSION})`],
+                fields: [`sum(${SessionMetric.SESSION})`],
+                orderby: `-sum(${SessionMetric.SESSION})`,
               }),
             ],
           }),
