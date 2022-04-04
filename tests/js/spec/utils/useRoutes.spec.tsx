@@ -3,7 +3,7 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useRoutes from 'sentry/utils/useRoutes';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useRoutes', () => {
@@ -31,7 +31,6 @@ describe('useRoutes', () => {
         <Route path="/" component={HomePage} />
       </Router>
     );
-
     expect(typeof routes).toBe('object');
     expect(routes.length).toEqual(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});

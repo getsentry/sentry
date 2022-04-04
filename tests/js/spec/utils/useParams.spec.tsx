@@ -3,7 +3,7 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useParams from 'sentry/utils/useParams';
+import {useParams} from 'sentry/utils/useParams';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useParams', () => {
@@ -33,7 +33,6 @@ describe('useParams', () => {
         </Router>
       );
 
-      expect(typeof params).toBe('object');
       expect(params).toEqual({});
     });
   });

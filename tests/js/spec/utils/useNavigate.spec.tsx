@@ -2,14 +2,14 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useHistory from 'sentry/utils/useHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {RouteContext} from 'sentry/views/routeContext';
 
-describe('useHistory', () => {
-  it('returns the history object', function () {
-    let history;
+describe('useNavigate', () => {
+  it('returns the navigate function', function () {
+    let navigate;
     function HomePage() {
-      history = useHistory();
+      navigate = useNavigate();
       return null;
     }
 
@@ -31,7 +31,6 @@ describe('useHistory', () => {
       </Router>
     );
 
-    expect(typeof history).toBe('object');
-    expect(typeof history.push).toBe('function');
+    expect(typeof navigate).toBe('function');
   });
 });

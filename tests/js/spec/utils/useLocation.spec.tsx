@@ -3,7 +3,7 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useLocation from 'sentry/utils/useLocation';
+import {useLocation} from 'sentry/utils/useLocation';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
@@ -32,7 +32,6 @@ describe('useLocation', () => {
       </Router>
     );
 
-    expect(typeof location).toBe('object');
     expect(location.pathname).toBe('/');
     expect(location.query).toEqual({hello: null});
     expect(location.search).toBe('?hello');
