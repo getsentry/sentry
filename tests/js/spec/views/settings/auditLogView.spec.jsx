@@ -15,17 +15,16 @@ describe('OrganizationAuditLog', function () {
     });
   });
 
-  it('renders', function (done) {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />
     );
     wrapper.setState({loading: false});
     wrapper.update();
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper).toSnapshot();
-      done();
-    });
+    await tick();
+
+    wrapper.update();
+    expect(wrapper).toSnapshot();
   });
 
   it('displays whether an action was done by a superuser', function () {

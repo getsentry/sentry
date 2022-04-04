@@ -82,20 +82,14 @@ describe('ProjectPluginDetails', function () {
     expect(wrapper.state().pluginDetails.config[0].value).toBe('default');
   });
 
-  it('enables/disables plugin', function (done) {
+  it('enables/disables plugin', async function () {
     const btn = component.find('button').first();
     expect(btn.text()).toBe('Enable Plugin');
 
     btn.simulate('click');
+    await tick();
 
-    setTimeout(() => {
-      try {
-        component.update();
-        expect(btn.text()).toBe('Disable Plugin');
-        done();
-      } catch (err) {
-        done(err);
-      }
-    }, 1);
+    component.update();
+    expect(btn.text()).toBe('Disable Plugin');
   });
 });
