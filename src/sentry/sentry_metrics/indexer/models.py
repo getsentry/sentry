@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from django.conf import settings
@@ -7,6 +8,8 @@ from django.utils import timezone
 from sentry.db.models import Model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsKeyIndexer(Model):  # type: ignore
@@ -43,6 +46,8 @@ class StringIndexer(Model):  # type: ignore
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     retention_days = models.IntegerField(default=90)
+
+    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_stringindexer"
