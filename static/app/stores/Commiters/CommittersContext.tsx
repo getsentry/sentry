@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useReducer} from 'react';
+import {createContext, useContext, useEffect, useMemo, useReducer} from 'react';
 
 import {Client} from 'sentry/api';
 import {
@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 function exhaustive(x?: never) {
   throw new Error(
-    `Unhandled ${JSON.stringify(x)} switch case action in CommittersReducer`
+    `Unhandled ${JSON.stringify(x)} switch case action in committersReducer`
   );
 }
 
@@ -71,7 +71,7 @@ type AddCommitters = {
     organizationSlug: string;
     projectSlug: string;
   };
-  type: 'add Committers';
+  type: 'add committers';
 };
 
 export type CommittersState = Record<
@@ -89,9 +89,9 @@ export type CommittersAction =
   | StartLoadingCommitters
   | SetCommittersError;
 
-function CommitterssReducer(state, action: CommittersAction): CommittersState {
+export function committersReducer(state, action: CommittersAction): CommittersState {
   switch (action.type) {
-    case 'add Committers': {
+    case 'add committers': {
       const key = makeCommitterStoreKey({
         organizationSlug: action.payload.organizationSlug,
         projectSlug: action.payload.projectSlug,
@@ -159,7 +159,7 @@ interface CommittersContextProviderProps {
 }
 
 export function CommittersProvider(props: CommittersContextProviderProps) {
-  const contextValue = useReducer(CommitterssReducer, props.initialState ?? {});
+  const contextValue = useReducer(committersReducer, props.initialState ?? {});
 
   return (
     <CommittersContext.Provider value={contextValue}>
@@ -168,7 +168,7 @@ export function CommittersProvider(props: CommittersContextProviderProps) {
   );
 }
 
-export function useCommitterss(): [CommittersState, React.Dispatch<CommittersAction>] {
+export function useCommitters(): [CommittersState, React.Dispatch<CommittersAction>] {
   const context = useContext(CommittersContext);
 
   if (!context) {
@@ -196,14 +196,24 @@ export function withCommitters<P extends WithCommittersProps>(
     Omit<P, keyof WithCommittersProps> & RequiredWithCommittersProps
   > = (props): React.ReactElement => {
     const api = useApi();
-    const [state, dispatch] = useCommitterss();
+    const [state, dispatch] = useCommitters();
+
+    const key = useMemo(() => {
+      return makeCommitterStoreKey({
+        organizationSlug: props.organization.slug,
+        projectSlug: props.project.slug,
+        eventId: props.event.id,
+      });
+    }, [props.organization.slug, props.project.slug, props.event.id]);
 
     useEffect(() => {
       if (!props.group?.firstRelease) {
         return undefined;
       }
 
-      let unmounted = false;
+      if (state[key]?.committers || state[key]?.committersLoading) {
+        return undefined;
+      }
 
       dispatch({
         type: 'start loading',
@@ -214,6 +224,8 @@ export function withCommitters<P extends WithCommittersProps>(
         },
       });
 
+      let unmounted = false;
+
       fetchCommitters(api, {
         organizationSlug: props.organization.slug,
         projectSlug: props.project.slug,
@@ -223,8 +235,9 @@ export function withCommitters<P extends WithCommittersProps>(
           if (unmounted) {
             return;
           }
+
           dispatch({
-            type: 'add Committers',
+            type: 'add committers',
             payload: {
               committers: response.committers,
               eventId: props.event.id,
@@ -250,13 +263,7 @@ export function withCommitters<P extends WithCommittersProps>(
       return () => {
         unmounted = true;
       };
-    }, [props.group, props.organization.slug, props.project.slug, props.event.id]);
-
-    const key = makeCommitterStoreKey({
-      organizationSlug: props.organization.slug,
-      projectSlug: props.project.slug,
-      eventId: props.event.id,
-    });
+    }, [props.group, props.organization.slug, props.project.slug, props.event.id, key]);
 
     const committers = state[key]?.committers ?? [];
     return <Component {...(props as unknown as P)} committers={committers} />;
