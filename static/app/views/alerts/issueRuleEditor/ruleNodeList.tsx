@@ -47,13 +47,13 @@ type Props = {
 };
 
 class RuleNodeList extends React.Component<Props> {
-  propertyChangeTimeout: number | null = null;
-
   componentWillUnmount() {
     if (this.propertyChangeTimeout) {
       window.clearTimeout(this.propertyChangeTimeout);
     }
   }
+
+  propertyChangeTimeout: number | null = null;
 
   getNode = (
     id: string,
