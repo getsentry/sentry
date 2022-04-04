@@ -171,6 +171,7 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
         exclude_tx_statuses=[
+            # See statuses in https://docs.sentry.io/product/performance/metrics/#failure-rate
             TransactionStatusTagValue.OK.value,
             TransactionStatusTagValue.CANCELLED.value,
             TransactionStatusTagValue.UNKNOWN.value,
