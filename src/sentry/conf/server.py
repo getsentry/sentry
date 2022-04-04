@@ -968,6 +968,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable projects page redesign
+    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
