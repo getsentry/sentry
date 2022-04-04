@@ -1,4 +1,4 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'sentry/types';
@@ -49,7 +49,5 @@ const storeConfig: SentryAppComponentsStoreDefinition = {
   },
 };
 
-const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SentryAppComponentsStoreDefinition;
-
+const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SentryAppComponentsStore;

@@ -82,7 +82,9 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
-      data.currentGuide?.steps[data.currentStep]?.target === this.props.target ?? false;
+      (data.currentGuide?.steps[data.currentStep]?.target === this.props.target ??
+        false) &&
+      !data.forceHide;
 
     this.setState({
       active,
@@ -237,7 +239,7 @@ type WrapperProps = React.PropsWithChildren<{disabled?: boolean} & Props>;
  * anchors on the page to determine which guides can be shown on the page.
  */
 function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
-  if (disabled || window.localStorage.getItem('hide_anchors') === '1') {
+  if (disabled) {
     return <Fragment>{children}</Fragment>;
   }
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;

@@ -5,7 +5,7 @@ import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -163,8 +163,6 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 };
 
-const PageFiltersStore = createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & PageFiltersStoreDefinition;
+const PageFiltersStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default PageFiltersStore;

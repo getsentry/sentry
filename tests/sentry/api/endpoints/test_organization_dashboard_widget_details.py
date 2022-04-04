@@ -21,6 +21,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "errors",
                     "conditions": "(level:error OR title:*Error*) !release:latest",
                     "fields": ["count()"],
+                    "orderby": "count()",
                 },
             ],
         }

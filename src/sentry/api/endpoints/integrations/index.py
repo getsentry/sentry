@@ -3,7 +3,8 @@ from rest_framework.response import Response
 
 from sentry import features, integrations
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.serializers import IntegrationProviderSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.integration import IntegrationProviderSerializer
 from sentry.utils.compat import filter
 
 

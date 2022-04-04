@@ -40,7 +40,6 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     id: 'welcome',
     title: t('Welcome'),
     Component: TargetedOnboardingWelcome,
-    centered: true,
     cornerVariant: 'top-right',
   },
   {
@@ -157,7 +156,7 @@ function Onboarding(props: Props) {
   };
 
   return (
-    <OnboardingWrapper data-test-id="targeted-onboarding">
+    <main data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
@@ -179,11 +178,7 @@ function Onboarding(props: Props) {
           onClick={handleGoBack}
         />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
-          <OnboardingStep
-            centered={stepObj.centered}
-            key={stepObj.id}
-            data-test-id={`onboarding-step-${stepObj.id}`}
-          >
+          <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
                 active
@@ -205,26 +200,16 @@ function Onboarding(props: Props) {
         </AnimatePresence>
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
-    </OnboardingWrapper>
+    </main>
   );
 }
 
-const OnboardingWrapper = styled('main')`
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-`;
-
 const Container = styled('div')<{hasFooter: boolean}>`
-  display: flex;
-  justify-content: center;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
-  flex-grow: 1;
   padding-bottom: ${p => p.hasFooter && '72px'};
   margin-bottom: ${p => p.hasFooter && '72px'};
 `;
@@ -247,14 +232,7 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  ${p =>
-    p.centered &&
-    `justify-content: center;
-     align-items: center;`};
-`;
+const OnboardingStep = styled(motion.div)``;
 
 OnboardingStep.defaultProps = {
   initial: 'initial',

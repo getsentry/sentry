@@ -1,8 +1,8 @@
-import {FocusTrap} from 'focus-trap';
+import type {FocusTrap} from 'focus-trap';
 
-import exportGlobals from 'sentry/bootstrap/exportGlobals';
+import type exportGlobals from 'sentry/bootstrap/exportGlobals';
 
-import {User} from './user';
+import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
