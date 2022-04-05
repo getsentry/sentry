@@ -129,7 +129,7 @@ const TestHOCComponent = withCommitters(({committers}) => {
   if (Object.keys(state).some(key => state[key].committersLoading)) {
     return <Fragment>component loading</Fragment>;
   }
-  return    <Fragment>{nodes.length > 0 ? nodes: 'empty component'}</Fragment>
+  return <Fragment>{nodes.length > 0 ? nodes : 'empty component'}</Fragment>;
 });
 
 describe('withCommitters', () => {
