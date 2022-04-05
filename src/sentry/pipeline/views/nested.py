@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Type
+from typing import TYPE_CHECKING, Any, Mapping, Type
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.pipeline import Pipeline
 from sentry.pipeline.views.base import PipelineView
+
+if TYPE_CHECKING:
+    from sentry.pipeline import Pipeline
 
 
 class NestedPipelineView(PipelineView):
@@ -26,6 +28,7 @@ class NestedPipelineView(PipelineView):
         provider_key: str,
         config: Mapping[str, Any] | None = None,
     ) -> None:
+        super().__init__()
         self.provider_key = provider_key
         self.config = config or {}
 

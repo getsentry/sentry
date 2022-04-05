@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -8,7 +8,8 @@ from sentry.utils import json
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..base import Pipeline
+if TYPE_CHECKING:
+    from sentry.pipeline.base import Pipeline
 
 
 class PipelineView(BaseView, abc.ABC):  # type: ignore
@@ -18,7 +19,7 @@ class PipelineView(BaseView, abc.ABC):  # type: ignore
     """
 
     @abc.abstractmethod
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: Request, pipeline: "Pipeline") -> HttpResponseBase:
         """
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
