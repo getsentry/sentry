@@ -120,7 +120,8 @@ function OverviewContentWrapper(props: ChildProps) {
       referrer="api.performance.transaction-summary"
     >
       {({isLoading, error, tableData}) => {
-        const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+        const totals: TotalValues | null =
+          (tableData?.data?.[0] as {[k: string]: number}) ?? null;
         return (
           <SummaryContent
             location={location}

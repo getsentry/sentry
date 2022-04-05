@@ -134,13 +134,13 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
   }
 
   componentWillUnmount() {
-    if (this.blurTimeout) {
-      window.clearTimeout(this.blurTimeout);
-    }
+    window.clearTimeout(this.blurTimeout);
+    window.clearTimeout(this.cancelCloseTimeout);
   }
 
   items = new Map();
-  blurTimeout: number | null = null;
+  blurTimeout: number | undefined = undefined;
+  cancelCloseTimeout: number | undefined = undefined;
   itemCount?: number;
 
   isControlled() {
@@ -196,9 +196,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
    */
   handleInputBlur<E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) {
     return (e: React.FocusEvent<E>) => {
-      if (this.blurTimeout) {
-        window.clearTimeout(this.blurTimeout);
-      }
+      window.clearTimeout(this.blurTimeout);
       this.blurTimeout = window.setTimeout(() => {
         this.closeMenu();
         onBlur?.(e);
@@ -211,9 +209,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
-    if (this.blurTimeout) {
-      window.clearTimeout(this.blurTimeout);
-    }
+    window.clearTimeout(this.blurTimeout);
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
@@ -265,9 +261,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
         return;
       }
 
-      if (this.blurTimeout) {
-        window.clearTimeout(this.blurTimeout);
-      }
+      window.clearTimeout(this.blurTimeout);
 
       this.setState({highlightedIndex: index});
       this.handleSelect(item, e);
@@ -284,14 +278,10 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
     };
 
   handleMenuMouseDown() {
-    if (this.blurTimeout) {
-      window.clearTimeout(this.blurTimeout);
-    }
+    window.clearTimeout(this.cancelCloseTimeout);
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    this.blurTimeout = window.setTimeout(() => {
-      if (this.blurTimeout) {
-        window.clearTimeout(this.blurTimeout);
-      }
+    this.cancelCloseTimeout = window.setTimeout(() => {
+      window.clearTimeout(this.blurTimeout);
     });
   }
 
@@ -354,7 +344,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
    *
    * This is exposed to render function
    */
-  closeMenu(...args: Array<any>) {
+  closeMenu = (...args: Array<any>) => {
     const {onClose, resetInputOnClose} = this.props;
 
     onClose?.(...args);
@@ -367,7 +357,7 @@ class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
       isOpen: false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
-  }
+  };
 
   getInputProps<E extends HTMLInputElement>(
     inputProps?: GetInputArgs<E>

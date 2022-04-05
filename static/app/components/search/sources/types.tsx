@@ -1,4 +1,4 @@
-import {Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * A result item that sources create.

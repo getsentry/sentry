@@ -30,7 +30,7 @@ class UserFeedbackEmpty extends Component<Props> {
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body) {
         this._submitInProgress = true;
-        window.setTimeout(() => {
+        setTimeout(() => {
           this._submitInProgress = false;
           this.onSuccess();
         }, 500);

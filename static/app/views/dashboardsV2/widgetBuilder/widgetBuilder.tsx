@@ -319,9 +319,9 @@ function WidgetBuilder({
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname:
-      currentDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${orgId}/dashboards/new/`
-        : `/organizations/${orgId}/dashboard/${currentDashboardId}/`,
+      defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
+        ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
+        : `/organizations/${orgId}/dashboards/${NEW_DASHBOARD_ID}/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
