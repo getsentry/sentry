@@ -136,7 +136,7 @@ function FeatureDisabled({
   const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
   return (
     <AlertComponent type="warning" showIcon expand={renderHelp()}>
-      {message ?? t('This feature is not enabled on your Sentry installation.')}
+      {message}
     </AlertComponent>
   );
 }
