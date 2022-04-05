@@ -74,7 +74,7 @@ type AddCommitters = {
   type: 'add committers';
 };
 
-type CommittersState = Record<
+export type CommittersState = Record<
   string,
   {
     committers: Committer[];
@@ -83,7 +83,7 @@ type CommittersState = Record<
   }
 >;
 
-export type CommittersAction =
+type CommittersAction =
   | ResetAction
   | AddCommitters
   | StartLoadingCommitters
