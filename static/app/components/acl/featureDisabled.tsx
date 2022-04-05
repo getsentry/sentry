@@ -90,7 +90,6 @@ function FeatureDisabled({
           </CopyButton>
         </Clipboard>
         <Pre
-          insideAlert={!!alert}
           onClick={e => {
             e.stopPropagation();
             e.preventDefault();
@@ -186,7 +185,7 @@ const CopyButton = styled(Button)`
   margin-left: auto;
 `;
 
-const Pre = styled('pre')<{insideAlert?: boolean}>`
+const Pre = styled('pre')`
   margin-bottom: 0;
 `;
 
