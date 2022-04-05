@@ -313,7 +313,7 @@ export function Chart({
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     tooltip: {
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(value, seriesName);

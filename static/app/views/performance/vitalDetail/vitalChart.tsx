@@ -140,7 +140,7 @@ function VitalChart({
 
                 const seriesMax = getMaxOfSeries(smoothedSeries);
                 const yAxisMax = Math.max(seriesMax, vitalPoor);
-                chartOptions.yAxis.max = yAxisMax * 1.1;
+                chartOptions.yAxis!.max = yAxisMax * 1.1;
 
                 return (
                   <ReleaseSeries
@@ -230,13 +230,13 @@ export function _VitalChart(props: _VitalChartProps) {
   }
   const theme = useTheme();
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     grid,
     seriesOptions: {
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
