@@ -109,7 +109,7 @@ function importSingleProfile(
       () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),
       {
         op: 'profile.import',
-        description: 'js',
+        description: 'js-self-profile',
       }
     );
   }
