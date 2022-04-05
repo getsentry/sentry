@@ -1,34 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as globalSelection from 'sentry/actionCreators/pageFilters';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import EventView from 'sentry/utils/discover/eventView';
 
-jest.mock('sentry/components/charts/eventsRequest', () => jest.fn(() => null));
-jest.spyOn(globalSelection, 'updateDateTime');
-jest.mock(
-  'sentry/components/charts/eventsGeoRequest',
-  () =>
-    ({children}) =>
-      children({
-        errored: false,
-        loading: false,
-        reloading: false,
-        tableData: [],
-      })
-);
-
 describe('simpleTableChart', function () {
-  const {routerContext} = initializeOrg();
-  let wrapper;
+  const {router, routerContext} = initializeOrg();
 
-  beforeEach(function () {
-    globalSelection.updateDateTime.mockClear();
-  });
-
-  it('links trace ids to performance', function () {
-    wrapper = mountWithTheme(
+  it('links trace ids to performance', async function () {
+    render(
       <SimpleTableChart
         data={[{trace: 'abcd'}]}
         eventView={
@@ -41,19 +21,24 @@ describe('simpleTableChart', function () {
         loading={false}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
-    const trace = wrapper.find('Link[data-test-id="view-trace"]');
-    expect(trace.first().props().to.pathname).toBe(
-      '/organizations/org-slug/performance/trace/abcd/'
-    );
+    userEvent.click(await screen.findByText('abcd'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/performance/trace/abcd/',
+      query: {
+        pageEnd: undefined,
+        pageStart: undefined,
+        statsPeriod: '14d',
+      },
+    });
   });
 
-  it('links event ids to event details', function () {
+  it('links event ids to event details', async function () {
     const project = TestStubs.Project();
-    wrapper = mountWithTheme(
+    render(
       <SimpleTableChart
-        data={[{id: 'abcd', 'project.name': project.slug}]}
+        data={[{id: 'defg', 'project.name': project.slug}]}
         eventView={
           new EventView({
             fields: [{field: 'id'}],
@@ -65,11 +50,25 @@ describe('simpleTableChart', function () {
         loading={false}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
-    const trace = wrapper.find('Link[data-test-id="view-event"]');
-    expect(trace.first().props().to.pathname).toBe(
-      `/organizations/org-slug/discover/${project.slug}:abcd/`
-    );
+    userEvent.click(await screen.findByText('defg'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
+      query: {
+        display: undefined,
+        environment: [],
+        field: ['id'],
+        id: undefined,
+        interval: undefined,
+        name: undefined,
+        project: [project.id],
+        query: '',
+        sort: [],
+        topEvents: undefined,
+        widths: [],
+        yAxis: 'count()',
+      },
+    });
   });
 });
