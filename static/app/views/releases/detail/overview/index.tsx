@@ -14,6 +14,7 @@ import PerformanceCardTable from 'sentry/components/discover/performanceCardTabl
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {Body, Main, Side} from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
@@ -359,6 +360,8 @@ class ReleaseOverview extends AsyncView<Props> {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <ReleaseContext.Consumer>
         {({
@@ -451,53 +454,57 @@ class ReleaseOverview extends AsyncView<Props> {
                               onRestore={() => this.handleRestore(project, refetchData)}
                             />
                           )}
-
-                          <StyledPageTimeRangeSelector
-                            organization={organization}
-                            relative={period ?? ''}
-                            start={start ?? null}
-                            end={end ?? null}
-                            utc={utc ?? null}
-                            onUpdate={this.handleDateChange}
-                            relativeOptions={
-                              releaseBounds.type !== 'ancient'
-                                ? {
-                                    [RELEASE_PERIOD_KEY]: (
-                                      <Fragment>
-                                        {releaseBounds.type === 'clamped'
-                                          ? t('Clamped Release Period')
-                                          : t('Entire Release Period')}{' '}
-                                        (
-                                        <DateTime
-                                          date={releaseBounds.releaseStart}
-                                          timeAndDate
-                                        />{' '}
-                                        -{' '}
-                                        <DateTime
-                                          date={releaseBounds.releaseEnd}
-                                          timeAndDate
-                                        />
-                                        )
-                                      </Fragment>
-                                    ),
-                                    ...DEFAULT_RELATIVE_PERIODS,
-                                  }
-                                : DEFAULT_RELATIVE_PERIODS
-                            }
-                            defaultPeriod={
-                              releaseBounds.type !== 'ancient'
-                                ? RELEASE_PERIOD_KEY
-                                : '90d'
-                            }
-                            defaultAbsolute={{
-                              start: moment(releaseBounds.releaseStart)
-                                .subtract(1, 'hour')
-                                .toDate(),
-                              end: releaseBounds.releaseEnd
-                                ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
-                                : undefined,
-                            }}
-                          />
+                          <ReleaseDetailsPageFilters hasPageFilters={hasPageFilters}>
+                            {hasPageFilters && <EnvironmentPageFilter />}
+                            <StyledPageTimeRangeSelector
+                              organization={organization}
+                              relative={period ?? ''}
+                              start={start ?? null}
+                              end={end ?? null}
+                              utc={utc ?? null}
+                              onUpdate={this.handleDateChange}
+                              relativeOptions={
+                                releaseBounds.type !== 'ancient'
+                                  ? {
+                                      [RELEASE_PERIOD_KEY]: (
+                                        <Fragment>
+                                          {releaseBounds.type === 'clamped'
+                                            ? t('Clamped Release Period')
+                                            : t('Entire Release Period')}{' '}
+                                          (
+                                          <DateTime
+                                            date={releaseBounds.releaseStart}
+                                            timeAndDate
+                                          />{' '}
+                                          -{' '}
+                                          <DateTime
+                                            date={releaseBounds.releaseEnd}
+                                            timeAndDate
+                                          />
+                                          )
+                                        </Fragment>
+                                      ),
+                                      ...DEFAULT_RELATIVE_PERIODS,
+                                    }
+                                  : DEFAULT_RELATIVE_PERIODS
+                              }
+                              defaultPeriod={
+                                releaseBounds.type !== 'ancient'
+                                  ? RELEASE_PERIOD_KEY
+                                  : '90d'
+                              }
+                              defaultAbsolute={{
+                                start: moment(releaseBounds.releaseStart)
+                                  .subtract(1, 'hour')
+                                  .toDate(),
+                                end: releaseBounds.releaseEnd
+                                  ? moment(releaseBounds.releaseEnd)
+                                      .add(1, 'hour')
+                                      .toDate()
+                                  : undefined,
+                              }}
+                            />
+                          </ReleaseDetailsPageFilters>
 
                           {(hasDiscover || hasPerformance || hasHealthData) && (
                             <ReleaseComparisonChart
@@ -708,8 +715,16 @@ function getTransactionsListSort(location: Location): {
   return {selectedSort, sortOptions};
 }
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const ReleaseDetailsPageFilters = styled('div')<{hasPageFilters?: boolean}>`
+  display: grid;
+  grid-template-columns: ${p =>
+    p.hasPageFilters ? 'minmax(0, max-content) minmax(0, max-content)' : '1fr'};
+  gap: ${space(1)};
   margin-bottom: ${space(1.5)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  height: 40px;
 `;
 
 export default withApi(withPageFilters(withOrganization(ReleaseOverview)));
