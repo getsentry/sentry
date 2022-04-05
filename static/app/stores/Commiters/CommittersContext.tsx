@@ -106,7 +106,7 @@ export function committersReducer(
         [key]: {
           committers: action.payload.committers,
           committersLoading: false,
-          committersError: undefined,
+          committersError: false,
         },
       };
     }
@@ -122,7 +122,7 @@ export function committersReducer(
         [key]: {
           committers: [],
           committersLoading: true,
-          committersError: undefined,
+          committersError: false,
         },
       };
     }
