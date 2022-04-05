@@ -13,7 +13,8 @@ import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {BuildStep} from '../buildStep';
 
 import {EventsSearchBar} from './eventsSearchBar';
-import IssuesSearchBar from './issuesSearchBar';
+import {IssuesSearchBar} from './issuesSearchBar';
+import {ReleaseSearchBar} from './releaseSearchBar';
 
 interface Props {
   canAddSearchConditions: boolean;
@@ -118,8 +119,16 @@ export function FilterResultsStep({
                     selection={selection}
                     searchSource="widget_builder"
                   />
-                ) : (
+                ) : widgetType === WidgetType.DISCOVER ? (
                   <EventsSearchBar
+                    organization={organization}
+                    query={query}
+                    projectIds={projectIds}
+                    onBlur={handleBlur(queryIndex)}
+                    onSearch={handleSearch(queryIndex)}
+                  />
+                ) : (
+                  <ReleaseSearchBar
                     organization={organization}
                     query={query}
                     projectIds={projectIds}
