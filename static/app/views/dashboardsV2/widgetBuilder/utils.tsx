@@ -49,7 +49,7 @@ export const displayTypes = {
   [DisplayType.TOP_N]: t('Top 5 Events'),
 };
 
-type ValidationError = {
+export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
@@ -79,6 +79,30 @@ export function mapErrors(
     }
   });
 
+  return update;
+}
+
+export function flattenErrors(
+  data: ValidationError,
+  update: FlatValidationError
+): FlatValidationError {
+  Object.keys(data).forEach((key: string) => {
+    const value = data[key];
+    if (typeof value === 'string') {
+      update[key] = value;
+      return;
+    }
+    // Recurse into nested objects.
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      update[key] = value[0];
+      return;
+    }
+    if (Array.isArray(value) && typeof value[0] === 'object') {
+      (value as ValidationError[]).map(item => flattenErrors(item, update));
+    } else {
+      flattenErrors(value as ValidationError, update);
+    }
+  });
   return update;
 }
 
