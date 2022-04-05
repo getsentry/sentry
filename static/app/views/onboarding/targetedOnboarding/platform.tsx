@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {ClientState, StepProps} from './types';
+import {ClientState, fetchClientState, StepProps} from './types';
 
 function OnboardingPlatform(props: StepProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
@@ -24,15 +24,9 @@ function OnboardingPlatform(props: StepProps) {
 
   const api = useApi();
   useEffect(() => {
-    api
-      .requestPromise(
-        `/organizations/${props.organization.slug}/client-state/onboarding/`
-      )
-      .then((lastState: ClientState) => {
-        if (lastState.platforms) {
-          setSelectedPlatforms(Object.keys(lastState.platforms) as PlatformKey[]);
-        }
-      });
+    fetchClientState(api, props.organization.slug).then((lastState: ClientState) => {
+      setSelectedPlatforms(lastState.selectedPlatforms);
+    });
   }, []);
 
   const clearPlatforms = () => setSelectedPlatforms([]);

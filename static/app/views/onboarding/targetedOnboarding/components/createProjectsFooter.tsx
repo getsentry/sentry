@@ -21,7 +21,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {ClientState} from '../types';
+import {ClientState, fetchClientState} from '../types';
 
 import GenericFooter from './genericFooter';
 
@@ -47,9 +47,7 @@ export default function CreateProjectsFooter({
     try {
       addLoadingMessage(t('Creating projects'));
 
-      const lastState: ClientState = await api.requestPromise(
-        `/organizations/${organization.slug}/client-state/onboarding/`
-      );
+      const lastState: ClientState = await fetchClientState(api, organization.slug);
       const responses = await Promise.all(
         platforms
           .filter(platform => !(lastState.platforms && lastState.platforms[platform]))
@@ -57,8 +55,11 @@ export default function CreateProjectsFooter({
             createProject(api, organization.slug, teams[0].slug, platform, platform)
           )
       );
-      const nextState = {platforms: lastState.platforms || {}, ...lastState};
-      responses.forEach(p => (nextState.platforms![p.platform] = p.slug));
+      const nextState: ClientState = {
+        platforms: lastState.platforms,
+        selectedPlatforms: platforms,
+      };
+      responses.forEach(p => (nextState.platforms[p.platform] = p.slug));
       await api.requestPromise(
         `/organizations/${organization.slug}/client-state/onboarding/`,
         {

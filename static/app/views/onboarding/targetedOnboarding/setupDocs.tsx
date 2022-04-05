@@ -22,7 +22,7 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {ClientState, StepProps} from './types';
+import {ClientState, fetchClientState, StepProps} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -39,16 +39,16 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
-  const [clientState, setClientState] = useState<ClientState>({});
-  const selectedProjectsSet = clientState.platforms
-    ? new Set(Object.values(clientState.platforms))
+  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const selectedProjectsSet = clientState
+    ? new Set(
+        clientState.selectedPlatforms.map(platform => clientState.platforms[platform])
+      )
     : new Set();
   useEffect(() => {
-    api
-      .requestPromise(`/organizations/${organization.slug}/client-state/onboarding/`)
-      .then((lastState: ClientState) => {
-        setClientState(lastState);
-      });
+    fetchClientState(api, organization.slug).then((lastState: ClientState) => {
+      setClientState(lastState);
+    });
   }, []);
 
   const [hasError, setHasError] = useState(false);
@@ -75,6 +75,14 @@ function SetupDocs({organization, projects, search}: Props) {
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
+
+  useEffect(() => {
+    if (clientState && !project) {
+      // Can't find a project to show, probably because all projects are either deleted or finished.
+      browserHistory.push('/');
+    }
+  }, [clientState, project]);
+
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const fetchData = async () => {
@@ -164,7 +172,16 @@ function SetupDocs({organization, projects, search}: Props) {
       <Wrapper>
         <TargetedOnboardingSidebar
           projects={projects}
-          onboardingPlatforms={clientState.platforms || {}}
+          onboardingPlatforms={
+            clientState
+              ? Object.fromEntries(
+                  clientState.selectedPlatforms.map(platform => [
+                    platform,
+                    clientState.platforms[platform],
+                  ])
+                )
+              : {}
+          }
           activeProject={project}
           {...{checkProjectHasFirstEvent, setNewProject}}
         />
