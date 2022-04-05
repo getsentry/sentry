@@ -1,17 +1,12 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {animate, HTMLMotionProps, motion, useMotionValue} from 'framer-motion';
+import {animate, motion, useMotionValue} from 'framer-motion';
 
-const StepperWrapper = styled(motion.div)`
+const StepperWrapper = styled('div')`
   border-radius: 4px;
   position: relative;
   overflow: hidden;
 `;
-StepperWrapper.defaultProps = {
-  initial: {opacity: 0},
-  animate: {opacity: 1},
-  exit: {opacity: 0},
-};
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -32,7 +27,7 @@ const StepperTransitionIndicator = styled(motion.span)`
   position: absolute;
 `;
 
-type Props = HTMLMotionProps<'div'> & {
+type Props = React.HTMLAttributes<HTMLDivElement> & {
   currentStepIndex: number;
   numSteps: number;
   onClick: (stepIndex: number) => void;

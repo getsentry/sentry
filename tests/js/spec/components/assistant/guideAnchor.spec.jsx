@@ -1,12 +1,15 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import GuideActions from 'sentry/actions/guideActions';
-import GuideAnchorWrapper, {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ConfigStore from 'sentry/stores/configStore';
-import theme from 'sentry/utils/theme';
 
 describe('GuideAnchor', function () {
-  let wrapper, wrapper2;
   const serverGuide = [
     {
       guide: 'issue',
@@ -21,36 +24,32 @@ describe('GuideAnchor', function () {
         dateJoined: new Date(2020, 0, 1),
       },
     };
-
-    wrapper = mountWithTheme(<GuideAnchor target="issue_title" />);
-    wrapper2 = mountWithTheme(<GuideAnchor target="exception" />);
-  });
-
-  afterEach(function () {
-    wrapper.unmount();
-    wrapper2.unmount();
   });
 
   it('renders, advances, and finishes', async function () {
+    render(
+      <div>
+        <GuideAnchor target="issue_title" />
+        <GuideAnchor target="exception" />
+      </div>
+    );
+
     GuideActions.fetchSucceeded(serverGuide);
-    await tick();
-    wrapper.update();
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
 
-    expect(wrapper.find('Hovercard').exists()).toBe(true);
-    expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
-    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple300);
+    // XXX(epurkhiser): Skip pointer event checks due to a bug with how Popper
+    // renders the hovercard with pointer-events: none. See [0]
+    //
+    // [0]: https://github.com/testing-library/user-event/issues/639
+    //
+    // NOTE(epurkhiser): We may be able to remove the skipPointerEventsCheck
+    // when we're on popper >= 1.
+    userEvent.click(screen.getByLabelText('Next'), undefined, {
+      skipPointerEventsCheck: true,
+    });
 
-    // Clicking on next should deactivate the current card and activate the next one.
-    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
-
-    await tick();
-    wrapper.update();
-    wrapper2.update();
-    expect(wrapper.state('active')).toBeFalsy();
-    expect(wrapper2.state('active')).toBeTruthy();
-
-    expect(wrapper2.find('Hovercard').exists()).toBe(true);
-    expect(wrapper2.find('GuideTitle').text()).toBe('Narrow Down Suspects');
+    expect(await screen.findByText('Narrow Down Suspects')).toBeInTheDocument();
+    expect(screen.queryByText("Let's Get This Over With")).not.toBeInTheDocument();
 
     // Clicking on the button in the last step should finish the guide.
     const finishMock = MockApiClient.addMockResponse({
@@ -58,7 +57,9 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    wrapper2.find('Button').last().simulate('click');
+    userEvent.click(screen.getByLabelText('Enough Already'), undefined, {
+      skipPointerEventsCheck: true,
+    });
 
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
@@ -73,16 +74,24 @@ describe('GuideAnchor', function () {
   });
 
   it('dismisses', async function () {
+    render(
+      <div>
+        <GuideAnchor target="issue_title" />
+        <GuideAnchor target="exception" />
+      </div>
+    );
+
     GuideActions.fetchSucceeded(serverGuide);
-    await tick();
-    wrapper.update();
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
 
     const dismissMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/assistant/',
     });
 
-    wrapper.find('StyledButton[aria-label="Dismiss"]').simulate('click');
+    userEvent.click(screen.getByLabelText('Dismiss'), undefined, {
+      skipPointerEventsCheck: true,
+    });
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/assistant/',
@@ -95,35 +104,44 @@ describe('GuideAnchor', function () {
       })
     );
 
-    await tick();
-    expect(wrapper.state('active')).toBeFalsy();
+    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
   });
 
   it('renders no container when inactive', function () {
-    wrapper = mountWithTheme(
+    render(
       <GuideAnchor target="target 1">
-        <span>A child</span>
+        <span data-test-id="child-div" />
       </GuideAnchor>
     );
 
-    const component = wrapper.instance();
-    wrapper.update();
-    expect(component.state).toMatchObject({active: false});
-    expect(wrapper.find('Hovercard').exists()).toBe(false);
+    expect(screen.queryByTestId('guide-container')).not.toBeInTheDocument();
+    expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
   it('renders children when disabled', async function () {
-    const wrapper3 = mountWithTheme(
-      <GuideAnchorWrapper disabled target="exception">
+    render(
+      <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />
-      </GuideAnchorWrapper>
+      </GuideAnchor>
+    );
+
+    expect(screen.queryByTestId('guide-container')).not.toBeInTheDocument();
+    expect(screen.getByTestId('child-div')).toBeInTheDocument();
+  });
+
+  it('if forceHide is true, do not render guide', async function () {
+    render(
+      <div>
+        <GuideAnchor target="issue_title" />
+        <GuideAnchor target="exception" />
+      </div>
     );
 
     GuideActions.fetchSucceeded(serverGuide);
-    await tick();
-    wrapper3.update();
-
-    expect(wrapper3.find('Hovercard').exists()).toBe(false);
-    expect(wrapper3.find('[data-test-id="child-div"]').exists()).toBe(true);
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
+    GuideActions.setForceHide(true);
+    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
+    GuideActions.setForceHide(false);
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
   });
 });

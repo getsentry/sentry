@@ -3,7 +3,11 @@ import isEqual from 'lodash/isEqual';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  getAggregateAlias,
+  isLegalYAxisType,
+} from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import {
@@ -22,7 +26,7 @@ export const RESULTS_LIMIT = 10;
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  METRICS = 'metrics',
+  RELEASE = 'release',
 }
 
 export enum SortDirection {
@@ -122,11 +126,14 @@ export function normalizeQueries({
       }
 
       if (!!query.orderby) {
-        return query;
+        return {
+          ...query,
+          orderby: getAggregateAlias(query.orderby),
+        };
       }
 
       const orderBy =
-        queries[0].orderby ||
+        getAggregateAlias(queries[0].orderby) ||
         (widgetType === WidgetType.DISCOVER
           ? generateOrderOptions({
               widgetType,

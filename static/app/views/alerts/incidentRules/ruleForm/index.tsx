@@ -12,6 +12,7 @@ import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
@@ -102,10 +103,16 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
   componentDidMount() {
     const {organization, project} = this.props;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
   }
 
   getDefaultState(): State {
@@ -173,7 +180,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
@@ -205,7 +213,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const {status, alertRule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;
@@ -841,14 +851,12 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
   margin-bottom: -${space(1.5)};
 `;
 
-const AlertName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: normal;
-  color: ${p => p.theme.textColor};
+const AlertName = styled(HeaderTitleLegend)`
+  position: relative;
 `;
 
 const AlertInfo = styled('div')`

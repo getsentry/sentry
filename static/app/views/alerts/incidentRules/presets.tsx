@@ -250,12 +250,7 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
 /**
  * Get the CTA used for alerts that do not have a preset
  */
-export function makeDefaultCta({
-  orgSlug,
-  projects,
-  incident,
-  stats,
-}: PresetCtaOpts): PresetCta {
+function makeDefaultCta({orgSlug, projects, incident, stats}: PresetCtaOpts): PresetCta {
   if (!incident) {
     return {
       buttonText: t('Open in Discover'),

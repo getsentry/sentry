@@ -113,7 +113,7 @@ export const VisuallyCompleteWithData = ({
 
         performance.mark(`${id}-vcsd-end-pre-timeout`);
 
-        setTimeout(() => {
+        window.setTimeout(() => {
           if (!browserPerformanceTimeOrigin) {
             return;
           }
