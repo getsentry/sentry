@@ -146,11 +146,7 @@ class Dashboard extends Component<Props, State> {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (
-      organization.features.includes('dashboards-metrics') &&
-      !organization.features.includes('new-widget-builder-experience') &&
-      organization.features.includes('new-widget-builder-experience-modal-access')
-    ) {
+    if (organization.features.includes('dashboards-metrics')) {
       fetchMetricsFields(api, organization.slug, selection.projects);
       fetchMetricsTags(api, organization.slug, selection.projects);
     }
@@ -181,11 +177,7 @@ class Dashboard extends Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
 
-      if (
-        organization.features.includes('dashboards-metrics') &&
-        !organization.features.includes('new-widget-builder-experience') &&
-        organization.features.includes('new-widget-builder-experience-modal-access')
-      ) {
+      if (organization.features.includes('dashboards-metrics')) {
         fetchMetricsFields(api, organization.slug, selection.projects);
         fetchMetricsTags(api, organization.slug, selection.projects);
       }
