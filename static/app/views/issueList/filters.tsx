@@ -5,6 +5,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import QueryCount from 'sentry/components/queryCount';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -75,9 +76,12 @@ function IssueListFilters({
       </SearchContainer>
       {hasPageFilters && (
         <ResultsRow>
-          <QueryCount>
-            {queryCount > 0 && tct('[queryCount] results found', {queryCount})}
-          </QueryCount>
+          <QueryCountText>
+            {queryCount > 0 &&
+              tct('[queryCount] results found', {
+                queryCount: <QueryCount hideParens count={queryCount} max={1000} />,
+              })}
+          </QueryCountText>
           <DisplayOptionsBar>
             <IssueListSortOptions
               sort={sort}
@@ -131,7 +135,7 @@ const DropdownsWrapper = styled('div')`
   }
 `;
 
-const QueryCount = styled('p')`
+const QueryCountText = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 600;
   color: ${p => p.theme.headingColor};

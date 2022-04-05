@@ -45,7 +45,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         self.get_error_response(self.organization.slug, status_code=403)
 
     @patch(
-        "sentry.api.endpoints.organization_join_request.ratelimiter.is_limited", return_value=True
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         response = self.get_error_response(
@@ -53,7 +54,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         )
         assert response.data["detail"] == "Rate limit exceeded."
 
-    @patch("sentry.api.endpoints.organization_join_request.logger")
+    @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_org_sso_enabled(self, mock_log):
         AuthProvider.objects.create(organization=self.organization, provider="google")
 
@@ -63,7 +64,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         assert member == self.owner
         assert not mock_log.info.called
 
-    @patch("sentry.api.endpoints.organization_join_request.logger")
+    @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_user_already_exists(self, mock_log):
         self.get_success_response(self.organization.slug, email=self.user.email, status_code=204)
 
@@ -71,7 +72,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         assert member == self.owner
         assert not mock_log.info.called
 
-    @patch("sentry.api.endpoints.organization_join_request.logger")
+    @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_pending_member_already_exists(self, mock_log):
         pending_email = "pending@example.com"
         original_pending = self.create_member(
@@ -87,7 +88,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
         assert not mock_log.info.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.api.endpoints.organization_join_request.logger")
+    @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_already_requested_to_join(self, mock_log, mock_record):
         join_request_email = "join-request@example.com"
         original_join_request = self.create_member(
@@ -132,13 +133,12 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
             "join_request.created", member_id=join_request.id, organization_id=self.organization.id
         )
 
-        assert len(mail.outbox) == 2
-
-        assert mail.outbox[0].to == ["manager@localhost"]
-        assert mail.outbox[1].to == ["owner@localhost"]
-
+        users_able_to_approve_requests = {user1, user2}
         expected_subject = f"Access request to {self.organization.name}"
-        assert mail.outbox[0].subject == expected_subject
+        assert len(mail.outbox) == len(users_able_to_approve_requests)
+        for i in range(len(mail.outbox)):
+            assert mail.outbox[i].to in ([user.email] for user in users_able_to_approve_requests)
+            assert mail.outbox[i].subject == expected_subject
 
     @responses.activate
     def test_request_to_join_slack(self):

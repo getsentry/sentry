@@ -1,11 +1,11 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import {TimeseriesValue} from './core';
-import {DynamicSamplingRules} from './dynamicSampling';
-import {SDKUpdatesSuggestion} from './event';
-import {Plugin} from './integrations';
-import {Organization, Team} from './organization';
-import {Deploy, Release} from './release';
+import type {TimeseriesValue} from './core';
+import type {DynamicSamplingRules} from './dynamicSampling';
+import type {SDKUpdatesSuggestion} from './event';
+import type {Plugin} from './integrations';
+import type {Organization, Team} from './organization';
+import type {Deploy, Release} from './release';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
