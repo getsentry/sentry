@@ -9,7 +9,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkPoint from 'sentry/components/charts/components/markPoint';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -23,6 +23,7 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -43,7 +44,7 @@ import {
 } from '../transactionAnomalies/utils';
 
 type ContainerProps = WithRouterProps & {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -58,7 +59,7 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
     errored: boolean;
     loading: boolean;
     reloading: boolean;
-    series: React.ComponentProps<typeof LineChart>['series'];
+    series: LineChartProps['series'];
   };
   eventView: EventView;
   location: Location;
@@ -397,7 +398,7 @@ function SidebarChartsContainer({
 
 type ChartValueProps = {
   'data-test-id': string;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   value: React.ReactNode;
 };

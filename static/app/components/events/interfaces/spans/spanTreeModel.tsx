@@ -6,6 +6,7 @@ import {EventTransaction} from 'sentry/types/event';
 
 import {ActiveOperationFilter} from './filter';
 import {
+  DescendantGroup,
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FetchEmbeddedChildrenState,
@@ -29,7 +30,7 @@ import {
   SpanGeneratedBoundsType,
 } from './utils';
 
-const MIN_SIBLING_GROUP_SIZE = 5;
+export const MIN_SIBLING_GROUP_SIZE = 5;
 
 class SpanTreeModel {
   api: Client;
@@ -322,8 +323,25 @@ class SpanTreeModel {
     let descendants: EnhancedProcessedSpanType[];
 
     if (isAutogroupSiblingFeatureEnabled) {
-      // Check if the descendants in this span have consecutive similar siblings, and group them
-      const groupedDescendants: SpanTreeModel[][] = [];
+      const groupedDescendants: DescendantGroup[] = [];
+      // Used to number sibling groups in case there are multiple groups with the same op and description
+      const siblingGroupOccurrenceMap = {};
+
+      const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
+        const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
+
+        if (!siblingGroupOccurrenceMap[groupKey]) {
+          siblingGroupOccurrenceMap[groupKey] = 1;
+        } else {
+          siblingGroupOccurrenceMap[groupKey] += 1;
+        }
+
+        groupedDescendants.push({
+          group,
+          occurrence: siblingGroupOccurrenceMap[groupKey],
+        });
+      };
+
       if (descendantsSource?.length >= MIN_SIBLING_GROUP_SIZE) {
         let prevSpanModel = descendantsSource[0];
         let currentGroup = [prevSpanModel];
@@ -339,10 +357,11 @@ class SpanTreeModel {
           ) {
             currentGroup.push(currSpanModel);
           } else {
-            groupedDescendants.push(currentGroup);
+            addGroupToMap(prevSpanModel, currentGroup);
+
             if (currSpanModel.children.length) {
               currentGroup = [currSpanModel];
-              groupedDescendants.push(currentGroup);
+              groupedDescendants.push({group: currentGroup});
               currentGroup = [];
             } else {
               currentGroup = [currSpanModel];
@@ -352,9 +371,9 @@ class SpanTreeModel {
           prevSpanModel = currSpanModel;
         }
 
-        groupedDescendants.push(currentGroup);
+        addGroupToMap(prevSpanModel, currentGroup);
       } else if (descendantsSource.length >= 1) {
-        groupedDescendants.push(descendantsSource);
+        groupedDescendants.push({group: descendantsSource});
       }
 
       descendants = (hideSpanTree ? [] : groupedDescendants).reduce(
@@ -363,7 +382,7 @@ class SpanTreeModel {
             descendants: EnhancedProcessedSpanType[];
             previousSiblingEndTimestamp: number | undefined;
           },
-          group,
+          {group, occurrence},
           groupIndex
         ) => {
           // Groups less than 5 indicate that the spans should be left ungrouped
@@ -415,6 +434,76 @@ class SpanTreeModel {
 
           // This may not be the case, and needs to be looked into later
 
+          const key = getSiblingGroupKey(group[0].span, occurrence);
+          if (this.expandedSiblingGroups.has(key)) {
+            // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
+            // In this case, we must add only the specified span into the accumulator's descendants
+            group.forEach((spanModel, index) => {
+              if (this.isSpanFilteredOut(props, spanModel)) {
+                acc.descendants.push({
+                  type: 'filtered_out',
+                  span: spanModel.span,
+                });
+              } else {
+                const enhancedSibling: EnhancedSpan = {
+                  type: 'span',
+                  span: spanModel.span,
+                  numOfSpanChildren: 0,
+                  treeDepth: treeDepth + 1,
+                  isLastSibling:
+                    index === group.length - 1 &&
+                    groupIndex === groupedDescendants.length - 1,
+                  isFirstSiblingOfGroup: index === 0,
+                  groupOccurrence: occurrence,
+                  continuingTreeDepths: descendantContinuingTreeDepths,
+                  fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
+                  showEmbeddedChildren: spanModel.showEmbeddedChildren,
+                  toggleEmbeddedChildren: spanModel.toggleEmbeddedChildren({
+                    addTraceBounds,
+                    removeTraceBounds,
+                  }),
+                  toggleNestedSpanGroup: undefined,
+                  toggleSiblingSpanGroup:
+                    index === 0 ? this.toggleSiblingSpanGroup : undefined,
+                };
+
+                acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
+                acc.descendants.push(enhancedSibling);
+              }
+            });
+
+            return acc;
+          }
+
+          // Since we are not recursively traversing elements in this group, need to check
+          // if the spans are filtered or out of bounds here
+
+          if (this.isSpanFilteredOut(props, group[0])) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'filtered_out',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          const bounds = generateBounds({
+            startTimestamp: group[0].span.start_timestamp,
+            endTimestamp: group[group.length - 1].span.timestamp,
+          });
+
+          if (!bounds.isSpanVisibleInView) {
+            group.forEach(spanModel =>
+              acc.descendants.push({
+                type: 'out_of_view',
+                span: spanModel.span,
+              })
+            );
+            return acc;
+          }
+
+          // Since the group is not expanded, return a singular grouped span bar
           const wrappedSiblings: EnhancedSpan[] = group.map((spanModel, index) => {
             const enhancedSibling: EnhancedSpan = {
               type: 'span',
@@ -425,6 +514,7 @@ class SpanTreeModel {
                 index === group.length - 1 &&
                 groupIndex === groupedDescendants.length - 1,
               isFirstSiblingOfGroup: index === 0,
+              groupOccurrence: occurrence,
               continuingTreeDepths: descendantContinuingTreeDepths,
               fetchEmbeddedChildrenState: spanModel.fetchEmbeddedChildrenState,
               showEmbeddedChildren: spanModel.showEmbeddedChildren,
@@ -440,35 +530,19 @@ class SpanTreeModel {
             return enhancedSibling;
           });
 
-          if (this.isSpanFilteredOut(props, group[0])) {
-            group.forEach(spanModel =>
-              acc.descendants.push({
-                type: 'filtered_out',
-                span: spanModel.span,
-              })
-            );
-            return acc;
-          }
-
           const groupedSiblingsSpan: EnhancedProcessedSpanType = {
-            type: 'span_group_sibling',
+            type: 'span_group_siblings',
             span: this.span,
             treeDepth: treeDepth + 1,
             continuingTreeDepths,
             spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
+            occurrence: occurrence ?? 0,
             toggleSiblingSpanGroup: this.toggleSiblingSpanGroup,
           };
 
           acc.previousSiblingEndTimestamp =
             wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
-
-          // Check if the group is currently expanded or not
-          const key = `${group[0].span.op}.${group[0].span.description}`;
-          if (this.expandedSiblingGroups.has(key)) {
-            acc.descendants.push(...wrappedSiblings);
-            return acc;
-          }
 
           acc.descendants.push(groupedSiblingsSpan);
           return acc;
@@ -715,8 +789,8 @@ class SpanTreeModel {
     this.isNestedSpanGroupExpanded = !this.isNestedSpanGroupExpanded;
   };
 
-  toggleSiblingSpanGroup = (span: SpanType) => {
-    const key = getSiblingGroupKey(span);
+  toggleSiblingSpanGroup = (span: SpanType, occurrence?: number) => {
+    const key = getSiblingGroupKey(span, occurrence);
 
     if (this.expandedSiblingGroups.has(key)) {
       this.expandedSiblingGroups.delete(key);

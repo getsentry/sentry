@@ -1,15 +1,16 @@
 import extend from 'lodash/extend';
 import isArray from 'lodash/isArray';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {Event} from 'sentry/types/event';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type Internals = {
+type InternalDefinition = {
   items: Event[];
   itemsById: Record<string, Event>;
 };
 
-type EventStoreInterface = {
+interface EventStoreDefinition extends StoreDefinition, InternalDefinition {
   add(items: Event[]): void;
   get(id: string): Event | undefined;
   getAllItemIds(): string[];
@@ -18,9 +19,9 @@ type EventStoreInterface = {
   loadInitialData(items: Event[]): void;
   remove(id: string): void;
   reset(): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
+const storeConfig: EventStoreDefinition = {
   items: [],
   itemsById: {},
 
@@ -98,6 +99,5 @@ const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
   },
 };
 
-const EventStore = Reflux.createStore(storeConfig) as Reflux.Store & EventStoreInterface;
-
+const EventStore = createStore(makeSafeRefluxStore(storeConfig));
 export default EventStore;

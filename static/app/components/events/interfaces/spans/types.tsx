@@ -1,4 +1,6 @@
-import {Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+
+import SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;
@@ -66,8 +68,9 @@ export type SpanGroupProps = {
 
 export type SpanSiblingGroupProps = {
   isLastSibling: boolean;
+  occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
-  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
+  toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -80,6 +83,7 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  groupOccurrence?: number;
   isFirstSiblingOfGroup?: boolean;
 };
 
@@ -91,7 +95,7 @@ export type EnhancedSpan =
   | ({
       span: SpanType;
       toggleNestedSpanGroup: (() => void) | undefined;
-      toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 
@@ -120,7 +124,7 @@ export type EnhancedProcessedSpanType =
       continuingTreeDepths: Array<TreeDepthType>;
       span: SpanType;
       treeDepth: number;
-      type: 'span_group_sibling';
+      type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
@@ -192,3 +196,13 @@ export type TraceBound = {
   traceEndTimestamp: number;
   traceStartTimestamp: number;
 };
+
+export type DescendantGroup = {
+  group: SpanTreeModel[];
+  occurrence?: number;
+};
+
+export enum GroupType {
+  DESCENDANTS,
+  SIBLINGS,
+}

@@ -354,13 +354,13 @@ describe('Dashboards > Detail', function () {
       wrapper
         .find('WidgetCard')
         .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
+        .find('Button[data-test-id="widget-delete"]')
         .simulate('click');
 
       wrapper
         .find('WidgetCard')
         .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
+        .find('Button[data-test-id="widget-delete"]')
         .simulate('click');
 
       // Save changes
@@ -406,7 +406,7 @@ describe('Dashboards > Detail', function () {
       wrapper
         .find('WidgetCard')
         .first()
-        .find('IconClick[data-test-id="widget-edit"]')
+        .find('Button[data-test-id="widget-edit"]')
         .simulate('click');
 
       expect(openEditModal).toHaveBeenCalledTimes(1);
@@ -621,6 +621,46 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
     });
 
+    it('unsets newWidget after rendering', async function () {
+      initialData.router.location = {
+        query: {
+          displayType: 'line',
+          interval: '5m',
+          queryConditions: ['title:test', 'event.type:test'],
+          queryFields: ['count()', 'failure_count()'],
+          queryNames: ['1', '2'],
+          queryOrderby: '',
+          title: 'Widget Title',
+        },
+      };
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/mockpath'}}
+        />,
+        initialData.routerContext
+      );
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.EDIT
+      );
+      expect(wrapper.find('DashboardDetail').props().newWidget).toBeDefined();
+      await act(async () => {
+        // Wrap await tick in act because componentDidMount in Dashboard triggers
+        // state change when parsing widget from location
+        await tick();
+      });
+      wrapper.update();
+
+      // The newWidget state was cleared after adding the widget
+      expect(wrapper.find('DashboardDetail').props().newWidget).toBeUndefined();
+
+      await act(async () => {
+        await tick();
+      });
+    });
+
     it('enters edit mode when given a new widget in location query', async function () {
       initialData.router.location = {
         query: {
@@ -642,11 +682,15 @@ describe('Dashboards > Detail', function () {
         />,
         initialData.routerContext
       );
-      await tick();
-      wrapper.update();
+
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
+      await act(async () => {
+        // Wrap await tick in act because componentDidMount in Dashboard triggers
+        // state change when parsing widget from location
+        await tick();
+      });
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -666,7 +710,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('opens add widget to custom  modal', async function () {
+    it('opens add widget to custom modal', async function () {
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({

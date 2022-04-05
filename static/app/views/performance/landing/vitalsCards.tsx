@@ -216,7 +216,7 @@ function GenericCards(props: GenericCardsProps) {
 
                   const {title, tooltip, formatter} = cardDetail;
                   const alias = getAggregateAlias(fieldName);
-                  const rawValue = tableData?.data?.[0]?.[alias];
+                  const rawValue = tableData?.data?.[0]?.[alias] as number;
 
                   const data = series?.[fieldName];
                   const value =

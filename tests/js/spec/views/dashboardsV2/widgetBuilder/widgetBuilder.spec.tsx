@@ -1,14 +1,15 @@
-import React from 'react';
+import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -18,10 +19,6 @@ import {
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
-
-// Mock World Map because setState inside componentDidMount is
-// throwing UnhandledPromiseRejection
-jest.mock('sentry/components/charts/worldMapChart');
 
 const defaultOrgFeatures = [
   'new-widget-builder-experience',
@@ -106,6 +103,7 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsv2Mock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -123,7 +121,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       method: 'GET',
       statusCode: 200,
@@ -170,11 +168,52 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/events-geo/',
       body: {data: [], meta: {}},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: [
+        {
+          name: SessionMetric.SESSION,
+          type: 'counter',
+          operations: ['sum'],
+        },
+        {
+          name: SessionMetric.SESSION_ERROR,
+          type: 'set',
+          operations: ['count_unique'],
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: `sum(${SessionMetric.SESSION})`,
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: [],
+          orderBy: `sum(${SessionMetric.SESSION})`,
+        }),
+      ],
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -315,6 +354,22 @@ describe('WidgetBuilder', function () {
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
   });
 
+  it('has links back to the new dashboard if creating', async function () {
+    // Dashboard has undefined dashboardId when creating from a new dashboard
+    // because of route setup
+    renderTestComponent({params: {dashboardId: undefined}});
+
+    expect(await screen.findByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+
+    expect(screen.getByLabelText('Cancel')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+  });
+
   it('renders new design', async function () {
     renderTestComponent({
       orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
@@ -437,9 +492,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(2);
 
-    userEvent.click(countFields[1]);
-    userEvent.type(countFields[1], 'last');
-    userEvent.click(screen.getByText('last_seen()'));
+    await selectEvent.select(countFields[1], ['last_seen()']);
 
     userEvent.click(screen.getByText('Select a dashboard'));
     userEvent.click(screen.getByText('Test Dashboard'));
@@ -481,9 +534,7 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     userEvent.click(screen.getByLabelText('Add Widget'));
 
@@ -499,6 +550,7 @@ describe('WidgetBuilder', function () {
               conditions: '',
               fields: ['count()', 'count_unique(user)'],
               aggregates: ['count()', 'count_unique(user)'],
+              fieldAliases: [],
               columns: [],
               orderby: '',
               name: '',
@@ -542,6 +594,7 @@ describe('WidgetBuilder', function () {
               fields: ['count()', 'equation|count() + 100'],
               aggregates: ['count()', 'equation|count() + 100'],
               columns: [],
+              fieldAliases: [],
               conditions: '',
               orderby: '',
             },
@@ -751,6 +804,43 @@ describe('WidgetBuilder', function () {
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('should properly query for table fields', async function () {
+    const defaultWidgetQuery = {
+      name: '',
+      fields: ['title', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultTableColumns = ['title', 'count()', 'count_unique(user)', 'epm()'];
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+        defaultTableColumns,
+      },
+    });
+
+    expect(await screen.findByText('Line Chart')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    await waitFor(() => {
+      expect(eventsv2Mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: defaultTableColumns,
+          }),
+        })
+      );
+    });
   });
 
   it('should automatically add columns for top n widget charts according to the URL params', async function () {
@@ -1009,6 +1099,50 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('does not error when query conditions field is blurred', async function () {
+    jest.useFakeTimers();
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.BAR,
+      queries: [
+        {
+          name: 'filled in',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
+
+    userEvent.click(await screen.findByLabelText('Add Query'));
+
+    // Triggering the onBlur of the new field should not error
+    userEvent.click(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+    );
+    userEvent.keyboard('{esc}');
+    act(() => {
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
+    });
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1237,6 +1371,41 @@ describe('WidgetBuilder', function () {
     ).toBeInTheDocument();
   });
 
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
+  });
+
   describe('Widget creation coming from other verticals', function () {
     it('redirects correctly when creating a new dashboard', async function () {
       const {router} = renderTestComponent({
@@ -1312,6 +1481,37 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  // Disabling for CI, but should run locally when making changes
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('Update table header values (field alias)', async function () {
+    const handleSave = jest.fn();
+
+    renderTestComponent({
+      onSave: handleSave,
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+
+    userEvent.click(screen.getByLabelText('Add a Column'));
+
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          queries: [
+            expect.objectContaining({fieldAliases: ['First Alias', 'Second Alias']}),
+          ],
+        }),
+      ]);
+    });
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
@@ -1334,6 +1534,7 @@ describe('WidgetBuilder', function () {
                 fields: ['issue', 'assignee', 'title'],
                 columns: ['issue', 'assignee', 'title'],
                 aggregates: [],
+                fieldAliases: [],
                 name: '',
                 orderby: '',
               },
@@ -1400,6 +1601,74 @@ describe('WidgetBuilder', function () {
         'is:'
       );
       expect(await screen.findByText('resolved')).toBeInTheDocument();
+    });
+
+    // Disabling for CI, but should run locally when making changes
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('Update table header values (field alias)', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Table');
+
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+
+      await screen.findAllByPlaceholderText('Alias');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+              }),
+            ],
+          }),
+        ]);
+      });
+    });
+  });
+
+  describe('Release Widgets', function () {
+    it('sets widgetType to release', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+      userEvent.click(screen.getByLabelText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            // TODO(adam): Update widget type to be 'release'
+            widgetType: 'metrics',
+            queries: [
+              expect.objectContaining({
+                aggregates: ['sum(sentry.sessions.session)'],
+                fields: ['sum(sentry.sessions.session)'],
+              }),
+            ],
+          }),
+        ]);
+      });
+
+      expect(handleSave).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1546,7 +1815,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('limit field', function () {
-    it('renders if groupBy value and  is present in the handleSave', async function () {
+    it('renders if groupBy value is present', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -1555,8 +1824,8 @@ describe('WidgetBuilder', function () {
         onSave: handleSave,
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await screen.findByText('Group your results');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 

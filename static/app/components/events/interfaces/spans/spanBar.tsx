@@ -61,10 +61,10 @@ import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
-import {GroupType} from './spanGroupBar';
 import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
+  GroupType,
   ParsedTraceType,
   ProcessedSpanType,
   SpanType,
@@ -118,16 +118,17 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
-  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
+  groupOccurrence?: number;
   groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
   spanBarHatch?: boolean;
+  toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
 type SpanBarState = {
@@ -428,8 +429,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth, toggleSpanGroup, toggleSiblingSpanGroup, groupType} =
-      this.props;
+    const {
+      span,
+      treeDepth,
+      groupOccurrence,
+      toggleSpanGroup,
+      toggleSiblingSpanGroup,
+      groupType,
+    } = this.props;
 
     let titleFragments: React.ReactNode[] = [];
 
@@ -443,7 +450,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             event.stopPropagation();
             event.preventDefault();
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
-              toggleSiblingSpanGroup?.(span);
+              toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
               toggleSpanGroup && toggleSpanGroup();
             }

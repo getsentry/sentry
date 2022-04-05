@@ -1,12 +1,13 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const GuideActions = Reflux.createActions([
+const GuideActions = createActions([
   'closeGuide',
   'fetchSucceeded',
   'nextStep',
   'toStep',
   'registerAnchor',
   'unregisterAnchor',
+  'setForceHide',
 ]);
 
 export default GuideActions;

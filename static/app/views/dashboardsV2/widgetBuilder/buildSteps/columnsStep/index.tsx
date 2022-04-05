@@ -16,12 +16,11 @@ import {DataSet, getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
+import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  explodedAggregates: QueryFieldValue[];
-  explodedColumns: QueryFieldValue[];
   explodedFields: QueryFieldValue[];
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
@@ -42,8 +41,6 @@ export function ColumnsStep({
   onYAxisOrColumnFieldChange,
   queryErrors,
   explodedFields,
-  explodedColumns,
-  explodedAggregates,
   tags,
 }: Props) {
   return (
@@ -79,8 +76,6 @@ export function ColumnsStep({
               displayType={displayType}
               organization={organization}
               widgetType={widgetType}
-              columns={explodedColumns}
-              aggregates={explodedAggregates}
               fields={explodedFields}
               errors={queryErrors}
               fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
@@ -88,13 +83,11 @@ export function ColumnsStep({
             />
           )}
         </Measurements>
-      ) : (
+      ) : dataSet === DataSet.ISSUES ? (
         <ColumnFields
           displayType={displayType}
           organization={organization}
           widgetType={widgetType}
-          columns={explodedColumns}
-          aggregates={explodedAggregates}
           fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
           fieldOptions={generateIssueWidgetFieldOptions()}
@@ -105,8 +98,18 @@ export function ColumnsStep({
             newQuery.fields = fieldStrings;
             newQuery.aggregates = splitFields.aggregates;
             newQuery.columns = splitFields.columns;
+            newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
+        />
+      ) : (
+        <ReleaseColumnFields
+          displayType={displayType}
+          organization={organization}
+          widgetType={widgetType}
+          explodedFields={explodedFields}
+          queryErrors={queryErrors}
+          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
         />
       )}
     </BuildStep>

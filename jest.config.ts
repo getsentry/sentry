@@ -212,7 +212,7 @@ const config: Config.InitialOptions = {
         tags: {
           branch: GITHUB_PR_REF,
           commit: GITHUB_PR_SHA,
-          gitub_run_attempt: GITHUB_RUN_ATTEMPT,
+          github_run_attempt: GITHUB_RUN_ATTEMPT,
           github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
         },
       },

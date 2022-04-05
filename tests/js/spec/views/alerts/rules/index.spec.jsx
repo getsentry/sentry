@@ -11,7 +11,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe('OrganizationRuleList', () => {
+describe('AlertRulesList', () => {
   const {routerContext, organization, router} = initializeOrg();
   TeamStore.loadInitialData([], false, null);
   let rulesMock;
@@ -218,7 +218,8 @@ describe('OrganizationRuleList', () => {
     userEvent.click(await screen.findByTestId('filter-button'));
 
     // Uncheck myteams
-    userEvent.click(await screen.findByText('My Teams'));
+    const myTeams = await screen.findAllByText('My Teams');
+    userEvent.click(myTeams[1]);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

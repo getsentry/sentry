@@ -122,7 +122,7 @@ const MenuItem = ({
 
     if (to) {
       return (
-        <MenuLink to={to} {...linkProps} title={title}>
+        <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuLink>
@@ -131,7 +131,7 @@ const MenuItem = ({
 
     if (href) {
       return (
-        <MenuAnchor {...linkProps} href={href}>
+        <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuAnchor>
@@ -139,7 +139,7 @@ const MenuItem = ({
     }
 
     return (
-      <MenuTarget role="button" {...linkProps} title={title}>
+      <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
         {icon && <MenuIcon>{icon}</MenuIcon>}
         {children}
       </MenuTarget>

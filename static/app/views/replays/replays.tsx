@@ -1,20 +1,21 @@
+import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
-import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {NewQuery, Organization, PageFilters} from 'sentry/types';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {FieldDateTime} from 'sentry/utils/discover/styles';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
 import {Replay} from './types';
@@ -22,41 +23,59 @@ import {Replay} from './types';
 type Props = AsyncView['props'] &
   WithRouterProps<{orgId: string}> & {
     organization: Organization;
+    selection: PageFilters;
     statsPeriod?: string | undefined; // revisit i'm sure i'm doing statsperiod wrong
   };
 
-type State = AsyncView['state'] & {
-  replayList: Replay[] | null;
-};
+class Replays extends React.Component<Props> {
+  getEventView() {
+    const {location, selection} = this.props;
 
-class Replays extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, statsPeriod, location} = this.props;
-
-    const eventView = EventView.fromSavedQuery({
+    const eventQueryParams: NewQuery = {
       id: '',
       name: '',
       version: 2,
-      fields: ['eventID', 'timestamp'],
-      orderby: '',
-      projects: [2],
-      range: statsPeriod,
-      query: 'event.type:error', // future: change to replay event
-    });
-    const apiPayload = eventView.getEventsAPIPayload(location);
-    return [
-      ['eventData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
-    ];
+      fields: ['eventID', 'timestamp', 'replayId', 'user'],
+      orderby: '-timestamp',
+      environment: selection.environments,
+      projects: selection.projects,
+      query: 'transaction:sentry-replay', // future: change to replay event
+    };
+
+    if (selection.datetime.period) {
+      eventQueryParams.range = selection.datetime.period;
+    }
+    return EventView.fromNewQueryWithLocation(eventQueryParams, location);
   }
+
   getTitle() {
     return `Replays - ${this.props.params.orgId}`;
   }
 
-  renderBody() {
-    const {eventData, replayListPageLinks} = this.state;
+  renderTable(replayList: Array<Replay>) {
     const {organization} = this.props;
+    return replayList?.map(replay => (
+      <React.Fragment key={replay.id}>
+        <Link
+          to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+            project: replay['project.name'],
+            id: replay.id,
+          })}/`}
+        >
+          {replay.replayId}
+        </Link>
+        <div>
+          <span>{replay.user}</span>
+        </div>
+        <div>
+          <FieldDateTime date={replay.timestamp} />
+        </div>
+      </React.Fragment>
+    ));
+  }
 
-    const replayList = eventData.data;
+  render() {
+    const {organization} = this.props;
     return (
       <PageFiltersContainer
         showEnvironmentSelector={false}
@@ -70,25 +89,26 @@ class Replays extends AsyncView<Props, State> {
               </div>
             </HeaderTitle>
           </PageHeader>
-          <Panel>
-            <PanelBody>
-              {replayList?.map(replay => (
-                <PanelItemCentered key={replay.id}>
-                  <StyledLink
-                    to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                      project: replay['project.name'],
-                      id: replay.id,
-                    })}/`}
-                  >
-                    {replay.timestamp}
-                  </StyledLink>
-                </PanelItemCentered>
-              ))}
-            </PanelBody>
-          </Panel>
-          {replayListPageLinks && (
-            <Pagination pageLinks={replayListPageLinks} {...this.props} />
-          )}
+
+          <DiscoverQuery
+            eventView={this.getEventView()}
+            location={this.props.location}
+            orgSlug={organization.slug}
+          >
+            {data => {
+              return (
+                <PanelTable
+                  isLoading={data.isLoading}
+                  isEmpty={data.tableData?.data.length === 0}
+                  headers={['Replay ID', 'User', 'Timestamp']}
+                >
+                  {data.tableData
+                    ? this.renderTable(data.tableData.data as Replay[])
+                    : null}
+                </PanelTable>
+              );
+            }}
+          </DiscoverQuery>
         </PageContent>
       </PageFiltersContainer>
     );
@@ -102,16 +122,4 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
-const PanelItemCentered = styled(PanelItem)`
-  align-items: center;
-  padding: 0;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const StyledLink = styled(Link)`
-  flex: 1;
-  padding: ${space(2)};
-`;
-
-export default withRouter(withOrganization(Replays));
+export default withRouter(withPageFilters(withOrganization(Replays)));
