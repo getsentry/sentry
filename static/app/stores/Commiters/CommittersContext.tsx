@@ -74,7 +74,7 @@ type AddCommitters = {
   type: 'add committers';
 };
 
-export type CommittersState = Record<
+ type CommittersState = Record<
   string,
   {
     committers: Committer[];
