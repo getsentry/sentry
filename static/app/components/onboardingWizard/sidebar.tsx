@@ -39,9 +39,6 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
 
-const doTimeout = (timeout: number) =>
-  new Promise(resolve => setTimeout(resolve, timeout));
-
 const Heading = styled(motion.div)`
   display: flex;
   color: ${p => p.theme.purple300};
@@ -74,8 +71,29 @@ class OnboardingWizardSidebar extends Component<Props> {
   async componentDidMount() {
     // Add a minor delay to marking tasks complete to account for the animation
     // opening of the sidebar panel
-    await doTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+    await this.markCompletion(INITIAL_MARK_COMPLETE_TIMEOUT);
     this.markTasksAsSeen();
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.markCompletionTimeout);
+    window.clearTimeout(this.markCompletionSeenTimeout);
+  }
+
+  markCompletionTimeout: number | undefined = undefined;
+  markCompletionSeenTimeout: number | undefined = undefined;
+
+  markCompletion(time: number): Promise<void> {
+    window.clearTimeout(this.markCompletionTimeout);
+    return new Promise(resolve => {
+      this.markCompletionTimeout = window.setTimeout(resolve, time);
+    });
+  }
+  markCompletionSeen(time: number): Promise<void> {
+    window.clearTimeout(this.markCompletionSeenTimeout);
+    return new Promise(resolve => {
+      this.markCompletionSeenTimeout = window.setTimeout(resolve, time);
+    });
   }
 
   async markTasksAsSeen() {
@@ -86,7 +104,7 @@ class OnboardingWizardSidebar extends Component<Props> {
     // Incrementally mark tasks as seen. This gives the card completion
     // animations time before we move each task into the completed section.
     for (const task of unseenTasks) {
-      await doTimeout(COMPLETION_SEEN_TIMEOUT);
+      await this.markCompletionSeen(COMPLETION_SEEN_TIMEOUT);
 
       const {api, organization} = this.props;
       updateOnboardingTask(api, organization, {

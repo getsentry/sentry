@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
@@ -19,12 +19,16 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       {
         conditions: '',
         fields: [`sum(${SessionMetric.SESSION})`],
+        aggregates: [`sum(${SessionMetric.SESSION})`],
+        columns: [],
         name: 'sessions',
         orderby: '',
       },
       {
         conditions: 'environment:prod',
         fields: [`sum(${SessionMetric.SESSION})`],
+        aggregates: [`sum(${SessionMetric.SESSION})`],
+        columns: [],
         name: 'users',
         orderby: '',
       },
@@ -39,6 +43,8 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       {
         conditions: '',
         fields: [`count_unique(${SessionMetric.USER})`],
+        aggregates: [`count_unique(${SessionMetric.USER})`],
+        columns: [],
         name: 'sessions',
         orderby: '',
       },
@@ -71,7 +77,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={singleQueryWidget}
@@ -113,7 +119,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
@@ -214,7 +220,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, displayType: DisplayType.BIG_NUMBER}}
@@ -264,7 +270,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         }),
       ],
     });
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -287,6 +293,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          groupBy: [],
+          per_page: 20,
+          orderBy: 'sum(sentry.sessions.session)',
         },
       })
     );
@@ -301,6 +310,9 @@ describe('Dashboards > MetricsWidgetQueries', function () {
           project: [1],
           statsPeriod: '14d',
           query: 'environment:prod',
+          groupBy: [],
+          per_page: 20,
+          orderBy: 'sum(sentry.sessions.session)',
         },
       })
     );
@@ -319,7 +331,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div data-test-id="child" />);
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -348,7 +360,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
       }),
     });
 
-    mountWithTheme(
+    render(
       <MetricsWidgetQueries
         api={api}
         widget={{...singleQueryWidget, interval: '1m'}}
@@ -383,7 +395,7 @@ describe('Dashboards > MetricsWidgetQueries', function () {
     });
     const children = jest.fn(() => <div />);
 
-    const {rerender} = mountWithTheme(
+    const {rerender} = render(
       <MetricsWidgetQueries
         api={api}
         widget={singleQueryWidget}

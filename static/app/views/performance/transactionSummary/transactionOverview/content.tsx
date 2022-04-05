@@ -25,6 +25,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
@@ -35,7 +36,6 @@ import {
   VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
-import MetricsSearchBar from '../../metricsSearchBar';
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
   decodeFilterFromLocation,
@@ -60,7 +60,7 @@ import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
 type Props = {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -71,7 +71,6 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  isMetricsData?: boolean;
 };
 
 function SummaryContent({
@@ -86,7 +85,6 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
-  isMetricsData,
 }: Props) {
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -271,26 +269,15 @@ function SummaryContent({
             onChangeFilter={onChangeFilter}
           />
           <SearchBarContainer>
-            {isMetricsData ? (
-              <MetricsSearchBar
-                searchSource="transaction_summary_metrics"
-                orgSlug={organization.slug}
-                projectIds={eventView.project}
-                query={query}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            ) : (
-              <SearchBar
-                searchSource="transaction_summary"
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            )}
+            <SearchBar
+              searchSource="transaction_summary"
+              organization={organization}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
+            />
           </SearchBarContainer>
         </Search>
         <TransactionSummaryCharts
@@ -366,7 +353,6 @@ function SummaryContent({
           totals={totalValues}
           transactionName={transactionName}
           eventView={eventView}
-          isMetricsData={isMetricsData}
         />
         {!isFrontendView && (
           <StatusBreakdown
@@ -382,7 +368,6 @@ function SummaryContent({
           error={error}
           totals={totalValues}
           eventView={eventView}
-          isMetricsData={isMetricsData}
           transactionName={transactionName}
         />
         <SidebarSpacer />

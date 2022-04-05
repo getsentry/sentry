@@ -1,9 +1,10 @@
 import isUndefined from 'lodash/isUndefined';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type HookStoreInterface = {
+interface HookStoreDefinition extends StoreDefinition {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
 
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;
@@ -12,9 +13,9 @@ type HookStoreInterface = {
   // union that it complains is 'too complex'
   hooks: any;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
+const storeConfig: HookStoreDefinition = {
   hooks: {},
 
   init() {
@@ -26,7 +27,7 @@ const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
       this.hooks[hookName] = [];
     }
 
-    this.hooks[hookName]!.push(callback);
+    this.hooks[hookName].push(callback);
     this.trigger(hookName, this.hooks[hookName]);
   },
 
@@ -49,6 +50,6 @@ const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-const HookStore = Reflux.createStore(storeConfig) as Reflux.Store & HookStoreInterface;
 
+const HookStore = createStore(makeSafeRefluxStore(storeConfig));
 export default HookStore;

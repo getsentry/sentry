@@ -27,6 +27,15 @@ from sentry.api.endpoints.broadcast_details import BroadcastDetailsEndpoint
 from sentry.api.endpoints.broadcast_index import BroadcastIndexEndpoint
 from sentry.api.endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from sentry.api.endpoints.chunk import ChunkUploadEndpoint
+from sentry.api.endpoints.codeowners import (
+    ExternalTeamDetailsEndpoint,
+    ExternalTeamEndpoint,
+    ExternalUserDetailsEndpoint,
+    ExternalUserEndpoint,
+    ProjectCodeOwnersDetailsEndpoint,
+    ProjectCodeOwnersEndpoint,
+    ProjectCodeOwnersRequestEndpoint,
+)
 from sentry.api.endpoints.data_scrubbing_selector_suggestions import (
     DataScrubbingSelectorSuggestionsEndpoint,
 )
@@ -37,8 +46,6 @@ from sentry.api.endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from sentry.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
-from sentry.api.endpoints.doc_integrations import DocIntegrationsEndpoint
 from sentry.api.endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from sentry.api.endpoints.event_attachments import EventAttachmentsEndpoint
@@ -46,10 +53,6 @@ from sentry.api.endpoints.event_file_committers import EventFileCommittersEndpoi
 from sentry.api.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.api.endpoints.event_owners import EventOwnersEndpoint
 from sentry.api.endpoints.event_reprocessable import EventReprocessableEndpoint
-from sentry.api.endpoints.external_team import ExternalTeamEndpoint
-from sentry.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
-from sentry.api.endpoints.external_user import ExternalUserEndpoint
-from sentry.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
 from sentry.api.endpoints.filechange import CommitFileChangeEndpoint
 from sentry.api.endpoints.group_activities import GroupActivitiesEndpoint
 from sentry.api.endpoints.group_attachments import GroupAttachmentsEndpoint
@@ -82,6 +85,38 @@ from sentry.api.endpoints.grouping_level_new_issues import GroupingLevelNewIssue
 from sentry.api.endpoints.grouping_levels import GroupingLevelsEndpoint
 from sentry.api.endpoints.index import IndexEndpoint
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.api.endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
+from sentry.api.endpoints.integrations.sentry_apps import (
+    OrganizationSentryAppComponentsEndpoint,
+    OrganizationSentryAppsEndpoint,
+    SentryAppAuthorizationsEndpoint,
+    SentryAppComponentsEndpoint,
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
+    SentryAppInstallationDetailsEndpoint,
+    SentryAppInstallationExternalIssueActionsEndpoint,
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+    SentryAppInstallationExternalIssuesEndpoint,
+    SentryAppInstallationExternalRequestsEndpoint,
+    SentryAppInstallationsEndpoint,
+    SentryAppInteractionEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
+    SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
+)
 from sentry.api.endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -119,9 +154,6 @@ from sentry.api.endpoints.organization_code_mapping_details import (
 from sentry.api.endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
-)
-from sentry.api.endpoints.organization_config_integrations import (
-    OrganizationConfigIntegrationsEndpoint,
 )
 from sentry.api.endpoints.organization_config_repositories import (
     OrganizationConfigRepositoriesEndpoint,
@@ -176,30 +208,21 @@ from sentry.api.endpoints.organization_group_index import OrganizationGroupIndex
 from sentry.api.endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from sentry.api.endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from sentry.api.endpoints.organization_index import OrganizationIndexEndpoint
-from sentry.api.endpoints.organization_integration_details import (
-    OrganizationIntegrationDetailsEndpoint,
-)
 from sentry.api.endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from sentry.api.endpoints.organization_integration_request import (
-    OrganizationIntegrationRequestEndpoint,
-)
 from sentry.api.endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
-)
-from sentry.api.endpoints.organization_integrations import OrganizationIntegrationsEndpoint
-from sentry.api.endpoints.organization_invite_request_details import (
-    OrganizationInviteRequestDetailsEndpoint,
-)
-from sentry.api.endpoints.organization_invite_request_index import (
-    OrganizationInviteRequestIndexEndpoint,
 )
 from sentry.api.endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from sentry.api.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from sentry.api.endpoints.organization_join_request import OrganizationJoinRequestEndpoint
-from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
-from sentry.api.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from sentry.api.endpoints.organization_member import (
+    OrganizationInviteRequestDetailsEndpoint,
+    OrganizationInviteRequestIndexEndpoint,
+    OrganizationJoinRequestEndpoint,
+    OrganizationMemberDetailsEndpoint,
+    OrganizationMemberIndexEndpoint,
+)
 from sentry.api.endpoints.organization_member_issues_assigned import (
     OrganizationMemberIssuesAssignedEndpoint,
 )
@@ -225,8 +248,6 @@ from sentry.api.endpoints.organization_metrics import (
 from sentry.api.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.api.endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from sentry.api.endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from sentry.api.endpoints.organization_plugins import OrganizationPluginsEndpoint
-from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
@@ -269,7 +290,6 @@ from sentry.api.endpoints.organization_request_project_creation import (
 from sentry.api.endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from sentry.api.endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from sentry.api.endpoints.organization_searches import OrganizationSearchesEndpoint
-from sentry.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from sentry.api.endpoints.organization_sessions import OrganizationSessionsEndpoint
 from sentry.api.endpoints.organization_shortid import ShortIdLookupEndpoint
 from sentry.api.endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -298,9 +318,6 @@ from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from sentry.api.endpoints.project_codeowners import ProjectCodeOwnersEndpoint
-from sentry.api.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
-from sentry.api.endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from sentry.api.endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from sentry.api.endpoints.project_create_sample_transaction import (
     ProjectCreateSampleTransactionEndpoint,
@@ -386,27 +403,6 @@ from sentry.api.endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from sentry.api.endpoints.release_deploys import ReleaseDeploysEndpoint
-from sentry.api.endpoints.sentry_app import (
-    OrganizationSentryAppComponentsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
-    SentryAppInteractionEndpoint,
-    SentryAppPublishRequestEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppsEndpoint,
-    SentryAppsStatsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokensEndpoint,
-)
 from sentry.api.endpoints.setup_wizard import SetupWizard
 from sentry.api.endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from sentry.api.endpoints.system_health import SystemHealthEndpoint

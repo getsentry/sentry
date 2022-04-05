@@ -1,5 +1,6 @@
-__all__ = ["Feature", "with_feature"]
+__all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
+import inspect
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -79,3 +80,12 @@ def with_feature(feature):
         return wrapped
 
     return decorator
+
+
+def apply_feature_flag_on_cls(feature_flag):
+    def decorate(cls):
+        for name, fn in inspect.getmembers(cls, inspect.isfunction):
+            setattr(cls, name, with_feature(feature_flag)(fn))
+        return cls
+
+    return decorate

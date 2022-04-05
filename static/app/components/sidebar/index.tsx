@@ -11,8 +11,8 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
+  doesPathHaveNewFilters,
   extractSelectionParameters,
-  getPathsWithNewFilters,
 } from 'sentry/components/organizations/pageFilters/utils';
 import {
   IconChevron,
@@ -116,7 +116,7 @@ function Sidebar({location, organization}: Props) {
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
     if (organization) {
-      if (getPathsWithNewFilters(organization).includes(pathname)) {
+      if (doesPathHaveNewFilters(pathname, organization)) {
         return;
       }
     }
@@ -283,6 +283,21 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const replays = hasOrganization && (
+    <Feature features={['session-replay']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+        }
+        icon={<IconLab size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+      />
+    </Feature>
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -384,6 +399,7 @@ function Sidebar({location, organization}: Props) {
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>
+              <SidebarSection>{replays}</SidebarSection>
 
               <SidebarSection>
                 {activity}

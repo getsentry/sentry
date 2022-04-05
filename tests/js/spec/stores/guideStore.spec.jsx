@@ -31,6 +31,10 @@ describe('GuideStore', function () {
     GuideStore.onRegisterAnchor('issue_stream');
   });
 
+  afterEach(() => {
+    GuideStore.teardown();
+  });
+
   it('should move through the steps in the guide', function () {
     GuideStore.onFetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
@@ -63,6 +67,14 @@ describe('GuideStore', function () {
     GuideStore.onCloseGuide();
     expect(GuideStore.state.currentGuide.guide).toEqual('issue_stream');
     window.location.hash = '';
+  });
+
+  it('should force hide', function () {
+    expect(GuideStore.state.forceHide).toEqual(false);
+    GuideStore.onSetForceHide(true);
+    expect(GuideStore.state.forceHide).toEqual(true);
+    GuideStore.onSetForceHide(false);
+    expect(GuideStore.state.forceHide).toEqual(false);
   });
 
   it('should record analytics events when guide is cued', function () {

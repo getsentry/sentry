@@ -72,14 +72,16 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
 
 /**
  * TODO(davidenwang): Temporarily used for when pages with the GSH live alongside new page filters
+ * @param pathname
  * @param organization
- * @returns list of paths that have the new page filters, these pages
- * should only load the pinned filters, not the whole global selection
+ * @returns true if the pathname has new page filters
  */
-export function getPathsWithNewFilters(organization: Organization): string[] {
-  return (
+export function doesPathHaveNewFilters(pathname: string, organization: Organization) {
+  const newFilterPaths = (
     organization.features.includes('selection-filters-v2')
-      ? ['issues', 'user-feedback', 'alerts']
-      : []
+      ? ['user-feedback', 'alerts', 'monitors', 'issues', 'projects', 'dashboard']
+      : ['user-feedback', 'alerts', 'monitors']
   ).map(route => `/organizations/${organization.slug}/${route}/`);
+
+  return newFilterPaths.some(pageFilterPath => pathname.includes(pageFilterPath));
 }

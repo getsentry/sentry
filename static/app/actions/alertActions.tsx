@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const AlertActions = Reflux.createActions(['addAlert', 'closeAlert']);
+const AlertActions = createActions(['addAlert', 'closeAlert']);
 
 export default AlertActions;

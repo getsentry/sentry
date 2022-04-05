@@ -42,6 +42,7 @@ class DashboardWidgetSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
+            "limit": obj.limit,
             # Default to discover type if null
             "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
             or DashboardWidgetTypes.TYPE_NAMES[0],
@@ -56,8 +57,9 @@ class DashboardWidgetQuerySerializer(Serializer):
             "id": str(obj.id),
             "name": obj.name,
             "fields": obj.fields,
-            "aggregates": obj.aggregates,
-            "columns": obj.columns,
+            "aggregates": obj.aggregates or [],
+            "columns": obj.columns or [],
+            "fieldAliases": obj.field_aliases or [],
             "conditions": str(obj.conditions),
             "orderby": str(obj.orderby),
             "widgetId": str(obj.widget_id),

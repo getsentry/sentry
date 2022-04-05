@@ -16,6 +16,7 @@ import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
   AggregationKey,
+  AGGREGATIONS,
   Column,
   ColumnType,
   DEPRECATED_FIELDS,
@@ -91,10 +92,12 @@ type Props = {
    */
   noFieldsMessage?: string;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
+  skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
 };
 
@@ -322,14 +325,14 @@ class QueryField extends React.Component<Props> {
     const {fieldValue} = this.props;
     let {fieldOptions} = this.props;
 
-    if (fieldValue.kind === 'function') {
+    if (fieldValue?.kind === 'function') {
       const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
       }
     }
 
-    if (fieldValue.kind === 'field') {
+    if (fieldValue?.kind === 'field') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
@@ -340,7 +343,7 @@ class QueryField extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      fieldValue.kind === FieldValueKind.FUNCTION
+      fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
@@ -411,8 +414,14 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {disabled, inFieldLabels, filterAggregateParameters, hideParameterSelector} =
-      this.props;
+    const {
+      disabled,
+      inFieldLabels,
+      filterAggregateParameters,
+      hideParameterSelector,
+      skipParameterPlaceholder,
+    } = this.props;
+
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         if (hideParameterSelector) {
@@ -498,6 +507,10 @@ class QueryField extends React.Component<Props> {
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
 
+    if (skipParameterPlaceholder) {
+      return inputs;
+    }
+
     // Add enough disabled inputs to fill the grid up.
     // We always have 1 input.
     const {gridColumns} = this.props;
@@ -556,7 +569,9 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
       noFieldsMessage,
+      skipParameterPlaceholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -567,7 +582,7 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
@@ -580,7 +595,7 @@ class QueryField extends React.Component<Props> {
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
-    if (fieldValue.kind === FieldValueKind.EQUATION) {
+    if (fieldValue?.kind === FieldValueKind.EQUATION) {
       return (
         <Container
           className={className}
@@ -610,10 +625,33 @@ class QueryField extends React.Component<Props> {
     // if there's more than 2 parameters, set gridColumns to 2 so they go onto the next line instead
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
+
+    let gridColumnsQuantity: undefined | number = undefined;
+
+    if (skipParameterPlaceholder) {
+      // if the selected field is a function and has parameters, we would like to display each value in separate columns.
+      // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
+      if (
+        fieldValue.kind === 'function' &&
+        AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
+      ) {
+        if (
+          containerColumns === 3 &&
+          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
+        ) {
+          gridColumnsQuantity = 2;
+        } else {
+          gridColumnsQuantity = containerColumns;
+        }
+      } else {
+        gridColumnsQuantity = 1;
+      }
+    }
+
     return (
       <Container
         className={className}
-        gridColumns={containerColumns}
+        gridColumns={gridColumnsQuantity ?? containerColumns}
         tripleLayout={gridColumns === 3 && parameters.length > 2}
       >
         {!hidePrimarySelector && (
@@ -656,7 +694,7 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-interface BufferedInputProps extends React.HTMLProps<HTMLInputElement> {
+interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
 }
@@ -708,7 +746,7 @@ class BufferedInput extends React.Component<BufferedInputProps, InputState> {
   };
 
   render() {
-    const {onUpdate: _, as: _as, ...props} = this.props;
+    const {onUpdate: _, ...props} = this.props;
     return (
       <StyledInput
         {...props}

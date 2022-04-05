@@ -1,4 +1,7 @@
 #!/bin/bash
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# thus, renaming this file or any functions can break CI!
+#
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
@@ -14,9 +17,6 @@ if [ -z "${CI+x}" ]; then
 fi
 
 venv_name=".venv"
-
-# NOTE: This file is sourced in CI across different repos (e.g. snuba),
-# so renaming this file or any functions can break CI!
 
 # Check if a command is available
 require() {
@@ -52,8 +52,8 @@ query-apple-m1() {
 }
 
 query-valid-python-version() {
+    python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
-        python_version=$(python3 -V 2>&1 | awk '{print $2}')
         if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
             cat <<EOF
 ${red}${bold}
@@ -63,29 +63,27 @@ You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf 
 ${reset}
 EOF
             return 1
-        fi
-
-        cat <<EOF
+        else
+            cat <<EOF
 ${yellow}${bold}
 You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
 ${reset}
 EOF
-        return 0
-    fi
-
-    python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
-    patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-
-    if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
-        cat <<EOF
-${red}${bold}
-ERROR: You're running a virtualenv with Python ${python_version}.
-We only support >= 3.8.10, < 3.9.
-Either run "rm -rf ${venv_name} && direnv allow" to
-OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
+            return 0
+        fi
+    else
+        minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
+        patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
+        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            cat <<EOF
+    ${red}${bold}
+    ERROR: You're running a virtualenv with Python ${python_version}.
+    We only support >= 3.8.10, < 3.9.
+    Either run "rm -rf ${venv_name} && direnv allow" to
+    OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
-        return 1
+            return 1
+        fi
     fi
 }
 
@@ -162,6 +160,8 @@ node-version-check() {
     node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
+            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
+            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
             exit 1
         )
 }
@@ -204,7 +204,7 @@ apply-migrations() {
 
 create-user() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password
+        sentry createuser --superuser --email foo@tbd.com --no-password  --no-input
     else
         sentry createuser --superuser
     fi
@@ -222,6 +222,8 @@ bootstrap() {
     create-db
     apply-migrations
     create-user
+    # Load mocks requires a super user to exist, thus, we execute after create-user
+    bin/load-mocks
     build-platform-assets
 }
 
@@ -246,6 +248,8 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+    # This ensures that your set up as some data inside of it
+    bin/load-mocks
 }
 
 prerequisites() {

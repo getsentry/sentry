@@ -10,7 +10,7 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -54,10 +54,12 @@ import {
   AlertRuleTriggerType,
   Dataset,
   IncidentRule,
+  TimePeriod,
 } from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -597,6 +599,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
+                onFinished={() => {
+                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                  this.updateDimensions();
+                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -735,11 +742,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           .join('');
                       },
                     }}
-                    onFinished={() => {
-                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                      this.updateDimensions();
-                    }}
                   />
                 )}
               </ChartZoom>
@@ -766,6 +768,19 @@ class MetricChart extends React.PureComponent<Props, State> {
     const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
+    // Fix for 7 days * 1m interval being over the max number of results from events api
+    // 10k events is the current max
+    if (
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.SEVEN_DAYS &&
+      interval === '1m'
+    ) {
+      timePeriod.start = getUtcDateString(
+        // -5 minutes provides a small cushion for rounding up minutes. This might be able to be smaller
+        moment(moment.utc(timePeriod.end).subtract(10000 - 5, 'minutes'))
+      );
+    }
+
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
@@ -779,7 +794,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}

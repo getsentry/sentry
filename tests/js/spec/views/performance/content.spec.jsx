@@ -8,17 +8,20 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, location}) {
+function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <PerformanceContent organization={organization} location={location} />
-    </OrganizationContext.Provider>
+    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+      <OrganizationContext.Provider value={organization}>
+        <PerformanceContent organization={organization} location={location} />
+      </OrganizationContext.Provider>
+    </MEPSettingProvider>
   );
 }
 
@@ -31,6 +34,7 @@ function initializeData(projects, query, features = FEATURES) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: query || {},
       },
     },
@@ -60,6 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     organization,
     router: {
       location: {
+        pathname: '/test',
         query: {
           ...otherTrendsQuery,
           ...query,

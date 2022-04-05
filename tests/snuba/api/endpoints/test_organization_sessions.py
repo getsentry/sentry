@@ -757,6 +757,108 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             ]
 
     @freeze_time(MOCK_DATETIME)
+    def test_snuba_limit_exceeded_groupby_status(self):
+        """Get consistent result when grouping by status"""
+        # 2 * 3 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
+            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+        ):
+
+            response = self.do_request(
+                {
+                    "project": [-1],
+                    "statsPeriod": "3d",
+                    "interval": "1d",
+                    "field": ["sum(session)", "count_unique(user)"],
+                    "groupBy": ["project", "release", "environment", "session.status"],
+                }
+            )
+
+            assert response.status_code == 200, response.content
+            assert result_sorted(response.data)["groups"] == [
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "session.status": "abnormal",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "session.status": "crashed",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                        "session.status": "errored",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "project": self.project1.id,
+                        "session.status": "healthy",
+                        "release": "foo@1.0.0",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 3, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "session.status": "abnormal",
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "session.status": "crashed",
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 0, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                },
+                {
+                    "by": {
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                        "session.status": "errored",
+                    },
+                    "totals": {"sum(session)": 1, "count_unique(user)": 1},
+                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 1]},
+                },
+                {
+                    "by": {
+                        "session.status": "healthy",
+                        "release": "foo@1.0.0",
+                        "project": self.project3.id,
+                        "environment": "production",
+                    },
+                    "totals": {"sum(session)": 1, "count_unique(user)": 0},
+                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 0]},
+                },
+            ]
+
+    @freeze_time(MOCK_DATETIME)
     def test_environment_filter_not_present_in_query(self):
         self.create_environment(name="abc")
         response = self.do_request(
@@ -773,6 +875,51 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_sessions_without_users(self):
+        # The first field defines by which groups additional queries are filtered
+        # But if the first field is the user count, the series should still
+        # contain the session counts even if the project does not track users
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "groupBy": "release",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.0.0"},
+                "series": {"count_unique(user)": [0], "sum(session)": [3]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 3},
+            },
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"count_unique(user)": [0], "sum(session)": [1]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 1},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME + datetime.timedelta(days=2))
+    def test_groupby_no_data(self):
+        # Empty results for everything
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "groupBy": "release",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == []
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())

@@ -1,9 +1,10 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type OrgTypes = Organization | null;
 
@@ -14,7 +15,7 @@ type State = {
   project: Project | null;
 };
 
-type LatestContextStoreInterface = {
+interface LatestContextStoreDefinition extends StoreDefinition {
   get(): State;
   onSetActiveOrganization(organization: OrgTypes): void;
   onSetActiveProject(project: Project | null): void;
@@ -22,7 +23,7 @@ type LatestContextStoreInterface = {
   onUpdateProject(project: Project | null): void;
   reset(): void;
   state: State;
-};
+}
 
 /**
  * Keeps track of last usable project/org this currently won't track when users
@@ -32,7 +33,9 @@ type LatestContextStoreInterface = {
  * Only keep slug so that people don't get the idea to access org/project data
  * here Org/project data is currently in organizationsStore/projectsStore
  */
-const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
+const storeConfig: LatestContextStoreDefinition = {
+  unsubscribeListeners: [],
+
   state: {
     project: null,
     lastProject: null,
@@ -46,11 +49,22 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
 
   init() {
     this.reset();
-    this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
-    this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject);
-    this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
-    this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
-    this.listenTo(OrganizationActions.update, this.onUpdateOrganization);
+
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.setActive, this.onSetActiveProject)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationsActions.update, this.onUpdateOrganization)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(OrganizationActions.update, this.onUpdateOrganization)
+    );
   },
 
   reset() {
@@ -130,7 +144,5 @@ const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
   },
 };
 
-const LatestContextStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  LatestContextStoreInterface;
-
+const LatestContextStore = createStore(makeSafeRefluxStore(storeConfig));
 export default LatestContextStore;

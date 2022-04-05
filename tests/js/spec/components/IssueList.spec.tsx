@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueList} from 'sentry/components/issueList';
 
@@ -16,7 +16,7 @@ describe('IssueList', () => {
       });
     });
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         location={TestStubs.location()}
@@ -37,7 +37,7 @@ describe('IssueList', () => {
       statusCode: 400,
     });
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         location={TestStubs.location()}
@@ -48,7 +48,7 @@ describe('IssueList', () => {
       />
     );
 
-    expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });
 
   it('refetches data on click from error state', async () => {
@@ -61,7 +61,7 @@ describe('IssueList', () => {
 
     const spy = jest.spyOn(api, 'request');
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         location={TestStubs.location()}
@@ -72,7 +72,9 @@ describe('IssueList', () => {
       />
     );
 
-    expect(await screen.findByTestId('loading-error-message')).toBeInTheDocument();
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Retry'));
 
@@ -90,7 +92,7 @@ describe('IssueList', () => {
       body: [TestStubs.Group({id: '1', culprit: 'Stubbed Issue'})],
     });
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         query={{limit: '5'}}
@@ -126,7 +128,7 @@ describe('IssueList', () => {
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         location={TestStubs.location()}
@@ -151,7 +153,7 @@ describe('IssueList', () => {
       body: [],
     });
 
-    mountWithTheme(
+    render(
       <IssueList
         api={api}
         location={TestStubs.location()}

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -20,7 +20,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import {PerformanceLanding} from './landing';
-import {useMetricsSwitch} from './metricsSwitch';
 import {addRoutePerformanceContext, handleTrendsClick} from './utils';
 
 type Props = {
@@ -38,26 +37,22 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {isMetricsData} = useMetricsSwitch();
+  const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
 
   useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-    trackAdvancedAnalyticsEvent('performance_views.overview.view', {
-      organization,
-      show_onboarding: shouldShowOnboarding(),
-    });
-  }, []);
-
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-  }, [selection.projects]);
-
-  useEffect(() => {
+    if (!mounted.current) {
+      trackAdvancedAnalyticsEvent('performance_views.overview.view', {
+        organization,
+        show_onboarding: shouldShowOnboarding(),
+      });
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+      mounted.current = true;
+      return;
+    }
     if (!isEqual(previousDateTime, selection.datetime)) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
@@ -92,9 +87,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
-  const eventView = generatePerformanceEventView(location, projects, {
-    isMetricsData,
-  });
+  const eventView = generatePerformanceEventView(location, projects);
 
   function shouldShowOnboarding() {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.

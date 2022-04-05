@@ -1,6 +1,6 @@
 import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import GroupActions from 'sentry/actions/groupActions';
 import {t} from 'sentry/locale';
@@ -13,6 +13,7 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {duration: 4000});
@@ -45,7 +46,7 @@ class PendingChangeQueue {
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
 
-type Internals = {
+interface InternalDefinition {
   addActivity: (groupId: string, data: Activity, index?: number) => void;
   indexOfActivity: (groupId: string, id: string) => number;
   items: Item[];
@@ -54,9 +55,9 @@ type Internals = {
   removeActivity: (groupId: string, id: string) => number;
   statuses: Record<string, Record<string, boolean>>;
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
-};
+}
 
-type GroupStoreInterface = Reflux.StoreDefinition & {
+interface GroupStoreDefinition extends StoreDefinition, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
@@ -94,9 +95,9 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   ) => void;
   remove: (itemIds: string[]) => void;
   reset: () => void;
-};
+}
 
-const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
+const storeConfig: GroupStoreDefinition = {
   listenables: [GroupActions],
   pendingChanges: new PendingChangeQueue(),
   items: [],
@@ -359,13 +360,20 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
 
   onDeleteSuccess(_changeId, itemIds, _response) {
     itemIds = this._itemIdsOrAll(itemIds);
+
+    if (itemIds.length > 1) {
+      showAlert(t(`Deleted ${itemIds.length} Issues`), 'success');
+    } else {
+      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).join('');
+      showAlert(t(`Deleted ${shortId}`), 'success');
+    }
+
     const itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
-    showAlert(t('The selected events have been scheduled for deletion.'), 'success');
     this.trigger(new Set(itemIds));
   },
 
@@ -427,7 +435,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
         (response && response.merge && item.id === response.merge.parent)
     );
 
-    showAlert(t('The selected events have been scheduled for merge.'), 'success');
+    showAlert(t(`Merged ${mergedIds.length} Issues`), 'success');
     this.trigger(new Set(mergedIds));
   },
 
@@ -511,6 +519,5 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-const GroupStore = Reflux.createStore(storeConfig) as Reflux.Store & GroupStoreInterface;
-
+const GroupStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GroupStore;

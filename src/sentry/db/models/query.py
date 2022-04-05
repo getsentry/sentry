@@ -11,30 +11,47 @@ from django.db.models.signals import post_save
 
 from .utils import resolve_combined_expression
 
-__all__ = ("update", "create_or_update")
+__all__ = (
+    "create_or_update",
+    "update",
+    "update_or_create",
+)
 
 
-def update(self: Model, using: str | None = None, **kwargs: Any) -> int:
+def _handle_value(instance: Model, value: Any) -> Any:
+    if isinstance(value, CombinedExpression):
+        return resolve_combined_expression(instance, value)
+    return value
+
+
+def _handle_key(model: Type[Model], key: str, value: Any) -> str:
+    # XXX(dcramer): we want to support column shortcut on create so we can do
+    #  create_or_update(..., {'project': 1})
+    if not isinstance(value, Model):
+        key_: str = model._meta.get_field(key).attname
+        return key_
+    return key
+
+
+def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
     """
-    assert self.pk, "Cannot update an instance that has not yet been created."
+    assert instance.pk, "Cannot update an instance that has not yet been created."
 
-    using = using or router.db_for_write(self.__class__, instance=self)
+    using = using or router.db_for_write(instance.__class__, instance=instance)
 
-    for field in self._meta.fields:
+    for field in instance._meta.fields:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
-            kwargs[field.name] = field.pre_save(self, False)
+            kwargs[field.name] = field.pre_save(instance, False)
 
     affected = cast(
-        int, self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+        int, instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
     )
     for k, v in kwargs.items():
-        if isinstance(v, CombinedExpression):
-            v = resolve_combined_expression(self, v)
-        setattr(self, k, v)
+        setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(sender=self.__class__, instance=self, created=False)
+        post_save.send(sender=instance.__class__, instance=instance, created=False)
         return affected
     elif affected == 0:
         return affected
@@ -47,6 +64,51 @@ def update(self: Model, using: str | None = None, **kwargs: Any) -> int:
 
 
 update.alters_data = True  # type: ignore
+
+
+def update_or_create(
+    model: Type[Model],
+    using: str | None = None,
+    **kwargs: Any,
+) -> tuple[Model, bool]:
+    """
+    Similar to `get_or_create()`, either updates a row or creates it.
+
+    In order to determine if the row exists, this searches on all of the kwargs
+    besides `defaults`. If the row exists, it is updated with the data in
+    `defaults`. If it doesn't, it is created with the data in `defaults` and the
+    remaining kwargs.
+
+    Returns a tuple of (object, created), where object is the created or updated
+    object and created is a boolean specifying whether a new object was created.
+    """
+
+    defaults = kwargs.pop("defaults", {})
+
+    if not using:
+        using = router.db_for_write(model)
+
+    objects = model.objects.using(using)
+
+    affected = objects.filter(**kwargs).update(**defaults)
+    if affected:
+        return affected, False
+
+    instance = objects.model()
+
+    create_kwargs = kwargs.copy()
+    create_kwargs.update(
+        {_handle_key(model, k, v): _handle_value(instance, v) for k, v in defaults.items()}
+    )
+
+    try:
+        with transaction.atomic(using=using):
+            return objects.create(**create_kwargs), True
+    except IntegrityError:
+        pass
+
+    # Retrying the update() here to preserve behavior in a race condition with a concurrent create().
+    return objects.filter(**kwargs).update(**defaults), False
 
 
 def create_or_update(

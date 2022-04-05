@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Sequence
 
+import sentry_sdk
 from snuba_sdk import AliasedExpression
 
 from sentry.discover.arithmetic import categorize_columns
@@ -15,16 +16,20 @@ def resolve_tags(results: Any, metrics_query: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
 
-    for column in metrics_query.columns:
-        if (
-            isinstance(column, AliasedExpression)
-            and column.exp.subscriptable == "tags"
-            and column.alias
-        ):
-            tags.append(column.alias)
-    for row in results["data"]:
+    with sentry_sdk.start_span(op="mep", description="resolve_tags"):
+        for column in metrics_query.columns:
+            if (
+                isinstance(column, AliasedExpression)
+                and column.exp.subscriptable == "tags"
+                and column.alias
+            ):
+                tags.append(column.alias)
+
         for tag in tags:
-            row[tag] = indexer.reverse_resolve(row[tag])
+            for row in results["data"]:
+                row[tag] = indexer.reverse_resolve(row[tag])
+            if tag in results["meta"]:
+                results["meta"][tag] = "string"
 
     return results
 
@@ -41,6 +46,7 @@ def query(
     auto_fields=False,
     auto_aggregations=False,
     use_aggregate_conditions=False,
+    allow_metric_aggregates=True,
     conditions=None,
     extra_snql_condition=None,
     functions_acl=None,
@@ -61,27 +67,32 @@ def query(
                 auto_fields=False,
                 auto_aggregations=auto_aggregations,
                 use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
                 functions_acl=functions_acl,
                 limit=limit,
                 offset=offset,
             )
-            # Getting the 0th result for now, will need to consolidate multiple query results later
-            results = metrics_query.run_query(referrer + ".metrics-enhanced")
-            results = discover.transform_results(
-                results, metrics_query.function_alias_map, {}, None
-            )
-            results = resolve_tags(results, metrics_query)
-            results["meta"]["isMetricsData"] = True
-            return results
+            with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+                # Getting the 0th result for now, will need to consolidate multiple query results later
+                results = metrics_query.run_query(referrer + ".metrics-enhanced")
+                results = discover.transform_results(
+                    results, metrics_query.function_alias_map, {}, None
+                )
+                results = resolve_tags(results, metrics_query)
+                results["meta"]["isMetricsData"] = True
+                sentry_sdk.set_tag("performance.dataset", "metrics")
+                return results
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery:
+        except IncompatibleMetricsQuery as error:
+            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
+        sentry_sdk.set_tag("performance.dataset", "discover")
         results = discover.query(
             selected_columns,
             query,
@@ -113,6 +124,7 @@ def timeseries_query(
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
+    allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
     use_snql: Optional[bool] = False,
@@ -134,6 +146,7 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 functions_acl=functions_acl,
+                allow_metric_aggregates=allow_metric_aggregates,
             )
             result = metrics_query.run_query(referrer + ".metrics-enhanced")
             result = discover.transform_results(result, metrics_query.function_alias_map, {}, None)
@@ -148,6 +161,7 @@ def timeseries_query(
                 if zerofill_results
                 else result["data"]
             )
+            sentry_sdk.set_tag("performance.dataset", "metrics")
             return SnubaTSResult(
                 {"data": result["data"], "isMetricsData": True},
                 params["start"],
@@ -158,11 +172,13 @@ def timeseries_query(
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery:
+        except IncompatibleMetricsQuery as error:
+            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
+        sentry_sdk.set_tag("performance.dataset", "discover")
         return discover.timeseries_query(
             selected_columns,
             query,

@@ -1,15 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  mountWithTheme,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import IncidentsList from 'sentry/views/alerts/list';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('IncidentsList', function () {
   let routerContext;
@@ -21,13 +16,15 @@ describe('IncidentsList', function () {
   const projects2 = ['c', 'd'];
 
   const createWrapper = (props = {}) => {
-    return mountWithTheme(
-      <IncidentsList
-        params={{orgId: organization.slug}}
-        location={{query: {}, search: ''}}
-        router={router}
-        {...props}
-      />,
+    return render(
+      <OrganizationContext.Provider value={organization}>
+        <IncidentsList
+          params={{orgId: organization.slug}}
+          location={{query: {}, search: ''}}
+          router={router}
+          {...props}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
   };
@@ -99,9 +96,7 @@ describe('IncidentsList', function () {
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    // PageFiltersContainer loads projects + the Projects render-prop component
-    // to load projects for all rows.
-    expect(projectMock).toHaveBeenCalledTimes(2);
+    expect(projectMock).toHaveBeenCalledTimes(1);
 
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),

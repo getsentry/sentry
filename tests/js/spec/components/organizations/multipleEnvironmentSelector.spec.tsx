@@ -1,4 +1,4 @@
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -34,7 +34,13 @@ describe('MultipleEnvironmentSelector', function () {
   ]);
 
   beforeEach(function () {
+    ConfigStore.init();
+    ConfigStore.loadInitialData(TestStubs.Config());
     onUpdate.mockReset();
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
   });
 
   const selectorProps = {
@@ -49,7 +55,7 @@ describe('MultipleEnvironmentSelector', function () {
   function renderSelector(
     props?: Partial<React.ComponentProps<typeof MultipleEnvironmentSelector>>
   ) {
-    return mountWithTheme(<MultipleEnvironmentSelector {...selectorProps} {...props} />, {
+    return render(<MultipleEnvironmentSelector {...selectorProps} {...props} />, {
       context: routerContext,
     });
   }
@@ -276,5 +282,20 @@ describe('MultipleEnvironmentSelector', function () {
     expect(screen.getByLabelText('production')).toBeInTheDocument();
     expect(screen.getByLabelText('staging')).toBeInTheDocument();
     expect(screen.getByLabelText('dev')).toBeInTheDocument();
+  });
+
+  it('can quick select an environment', async function () {
+    renderSelector();
+    await clickMenu();
+
+    // Select something first, we want to make sure that having a changed
+    // selection doesn't effect the quick select
+    userEvent.click(screen.getByRole('checkbox', {name: 'dev'}));
+
+    // Now 'quick select' the production environment
+    userEvent.click(screen.getByText('production'));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith(['production']);
   });
 });

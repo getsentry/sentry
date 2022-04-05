@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import AreaChart from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {getDuration} from 'sentry/utils/formatters';
 

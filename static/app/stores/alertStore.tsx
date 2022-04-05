@@ -1,11 +1,11 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
 import AlertActions from 'sentry/actions/alertActions';
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;
@@ -20,18 +20,20 @@ type Alert = {
   url?: string;
 };
 
-type AlertStoreInterface = CommonStoreInterface<Alert[]> & {
-  init(): void;
-  onAddAlert(alert: Alert): void;
-  onCloseAlert(alert: Alert, duration?: number): void;
-};
-
-type Internals = {
+interface InternalAlertStoreDefinition {
   alerts: Alert[];
   count: number;
-};
+}
+interface AlertStoreDefinition
+  extends CommonStoreDefinition<Alert[]>,
+    InternalAlertStoreDefinition {
+  init(): void;
 
-const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
+  onAddAlert(alert: Alert): void;
+  onCloseAlert(alert: Alert, duration?: number): void;
+}
+
+const storeConfig: AlertStoreDefinition = {
   listenables: AlertActions,
   alerts: [],
   count: 0,
@@ -109,6 +111,5 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   },
 };
 
-const AlertStore = Reflux.createStore(storeConfig) as Reflux.Store & AlertStoreInterface;
-
+const AlertStore = createStore(storeConfig);
 export default AlertStore;

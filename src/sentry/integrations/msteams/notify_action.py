@@ -56,6 +56,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
 
 class MsTeamsNotifyServiceAction(IntegrationEventAction):
+    id = "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
     form_cls = MsTeamsNotifyServiceForm
     label = "Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"

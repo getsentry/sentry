@@ -6,7 +6,7 @@ import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
-import {IconChevron, IconCopy, IconInfo, IconLock} from 'sentry/icons';
+import {IconChevron, IconCopy, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
@@ -147,7 +147,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning" icon={<IconLock size="xs" />}>
+      <AlertComponent type="warning">
         <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
       </AlertComponent>
     );
@@ -175,6 +175,10 @@ const HelpDescription = styled('div')`
   code {
     margin-bottom: 0;
     white-space: pre;
+  }
+
+  button {
+    margin-bottom: ${space(0.5)};
   }
 `;
 

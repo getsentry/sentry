@@ -10,6 +10,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelItem} from 'sentry/components/panels';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -64,6 +65,7 @@ class Monitors extends AsyncView<Props, State> {
   renderBody() {
     const {monitorList, monitorListPageLinks} = this.state;
     const {organization} = this.props;
+
     return (
       <Fragment>
         <PageHeader>
@@ -79,11 +81,14 @@ class Monitors extends AsyncView<Props, State> {
             </Button>
           </HeaderTitle>
         </PageHeader>
-        <StyledSearchBar
-          query={decodeScalar(qs.parse(location.search)?.query, '')}
-          placeholder={t('Search for monitors.')}
-          onSearch={this.handleSearch}
-        />
+        <Filters>
+          <ProjectPageFilter />
+          <SearchBar
+            query={decodeScalar(qs.parse(location.search)?.query, '')}
+            placeholder={t('Search for monitors.')}
+            onSearch={this.handleSearch}
+          />
+        </Filters>
         <Panel>
           <PanelBody>
             {monitorList?.map(monitor => (
@@ -118,10 +123,6 @@ const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
-`;
-
 const PanelItemCentered = styled(PanelItem)`
   align-items: center;
   padding: 0;
@@ -136,6 +137,13 @@ const StyledLink = styled(Link)`
 
 const StyledTimeSince = styled(TimeSince)`
   font-variant-numeric: tabular-nums;
+`;
+
+const Filters = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(auto, 300px) 1fr;
+  gap: ${space(1.5)};
+  margin-bottom: ${space(2)};
 `;
 
 export default withRouter(withOrganization(Monitors));

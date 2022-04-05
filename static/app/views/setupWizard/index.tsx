@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import Button from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,21 +12,36 @@ type Props = {
 
 function SetupWizard({hash = false}: Props) {
   const api = useApi();
+  const closeTimeoutRef = useRef<number | undefined>(undefined);
   const [finished, setFinished] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  });
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(closeTimeoutRef.current);
+    };
+  });
 
   async function checkFinished() {
     try {
       await api.requestPromise(`/wizard/${hash}/`);
     } catch {
       setFinished(true);
-      window.setTimeout(() => window.close(), 10000);
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
     }
   }
 
   useEffect(() => {
-    const poller = window.setInterval(checkFinished, 1000);
-
-    return () => window.clearTimeout(poller);
+    const pollingInterval = window.setInterval(checkFinished, 1000);
+    return () => window.clearInterval(pollingInterval);
   }, []);
 
   return (

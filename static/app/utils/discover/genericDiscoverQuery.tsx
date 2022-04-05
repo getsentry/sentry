@@ -12,10 +12,29 @@ import EventView, {
 import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
+export class QueryError {
+  message: string;
+  constructor(errorMessage: string) {
+    this.message = errorMessage;
+  }
+}
+
 export type GenericChildrenProps<T> = {
-  error: null | string;
+  /**
+   * Error, if not null.
+   */
+  error: null | QueryError;
+  /**
+   * Loading state of this query.
+   */
   isLoading: boolean;
+  /**
+   * Pagelinks, if applicable. Can be provided to the Pagination component.
+   */
   pageLinks: null | string;
+  /**
+   * Data / result.
+   */
   tableData: T | null;
 };
 
@@ -45,6 +64,10 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   /**
+   * Extra query parameters to be added.
+   */
+  queryExtras?: Record<string, string>;
+  /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
    * on the OrganizationEventsV2Endpoint view.
    */
@@ -52,7 +75,7 @@ type BaseDiscoverQueryProps = {
   /**
    * A callback to set an error so that the error can be rendered in parent components
    */
-  setError?: (msg: string | undefined) => void;
+  setError?: (errObject: QueryError | undefined) => void;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -155,6 +178,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
       payload.referrer = referrer;
     }
 
+    Object.assign(payload, props.queryExtras ?? {});
+
     return payload;
   }
 
@@ -209,7 +234,9 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
         tableData,
       }));
     } catch (err) {
-      const error = err?.responseJSON?.detail || t('An unknown error occurred.');
+      const error = new QueryError(
+        err?.responseJSON?.detail || t('An unknown error occurred.')
+      );
       this.setState({
         isLoading: false,
         tableFetchID: undefined,
