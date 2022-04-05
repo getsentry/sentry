@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from types import LambdaType
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Type
 
 from django.http.response import HttpResponseBase
 from django.views import View
@@ -49,7 +49,7 @@ class Pipeline(abc.ABC):
 
     pipeline_name: str
     provider_manager: Any
-    provider_model_cls: Model
+    provider_model_cls: Type[Model]
     session_store_cls = PipelineSessionStore
 
     @classmethod
