@@ -915,6 +915,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.TRANSACTION_FAILURE_COUNT.value,
@@ -923,6 +924,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
             ),
+            is_private=True,
         ),
         SingularEntityDerivedMetric(
             metric_name=DerivedMetricKey.TRANSACTION_FAILURE_RATE.value,
