@@ -6,7 +6,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
@@ -14,9 +13,7 @@ import {TagExplorer} from 'sentry/views/performance/transactionSummary/transacti
 const WrapperComponent = props => {
   return (
     <MEPSettingProvider _isMEPEnabled={false}>
-      <MEPPageSettingProvider>
-        <TagExplorer {...props} />
-      </MEPPageSettingProvider>
+      <TagExplorer {...props} />
     </MEPSettingProvider>
   );
 };
