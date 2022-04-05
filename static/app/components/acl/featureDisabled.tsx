@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -45,10 +45,6 @@ type Props = {
   hideHelpToggle?: boolean;
 };
 
-type State = {
-  showHelp: boolean;
-};
-
 /**
  * DisabledInfo renders a component informing that a feature has been disabled.
  *
@@ -56,55 +52,12 @@ type State = {
  * information about why the feature is disabled, showing the missing feature
  * flag and linking to documentation for managing sentry server feature flags.
  */
-class FeatureDisabled extends React.Component<Props, State> {
-  static defaultProps: Partial<Props> = {
-    message: t('This feature is not enabled on your Sentry installation.'),
-  };
+function FeatureDisabled({features, featureName, message, alert, hideHelpToggle}: Props) {
+  const [showHelp, setShowHelp] = useState(false);
 
-  state: State = {
-    showHelp: false,
-  };
-
-  toggleHelp = (e: React.MouseEvent) => {
-    e.preventDefault();
-    this.setState(state => ({showHelp: !state.showHelp}));
-  };
-
-  renderContent() {
-    const {showHelp} = this.state;
-    const {message, hideHelpToggle, alert} = this.props;
-    const showDescription = hideHelpToggle || showHelp;
-
+  function renderHelp() {
     return (
-      <React.Fragment>
-        <FeatureDisabledMessage>
-          {message}
-          {!hideHelpToggle && !alert && (
-            <ToggleButton priority="link" size="xsmall" onClick={this.toggleHelp}>
-              {t('Help')}
-              <IconChevron direction={showDescription ? 'up' : 'down'} />
-            </ToggleButton>
-          )}
-        </FeatureDisabledMessage>
-        {showDescription && (
-          <HelpDescription
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            {this.renderHelp()}
-          </HelpDescription>
-        )}
-      </React.Fragment>
-    );
-  }
-
-  renderHelp() {
-    const {features, featureName, alert} = this.props;
-
-    return (
-      <React.Fragment>
+      <Fragment>
         <HelpText>
           {tct(
             `Enable this feature on your sentry installation by adding the
@@ -118,7 +71,7 @@ class FeatureDisabled extends React.Component<Props, State> {
           )}
         </HelpText>
         <Clipboard hideUnsupported value={installText(features, featureName)}>
-          <Button
+          <CopyButton
             borderless
             size="xsmall"
             onClick={e => {
@@ -128,7 +81,7 @@ class FeatureDisabled extends React.Component<Props, State> {
             icon={<IconCopy size="xs" />}
           >
             {t('Copy to Clipboard')}
-          </Button>
+          </CopyButton>
         </Clipboard>
         <Pre
           insideAlert={!!alert}
@@ -140,25 +93,47 @@ class FeatureDisabled extends React.Component<Props, State> {
         >
           <code>{installText(features, featureName)}</code>
         </Pre>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
-  render() {
-    const {alert} = this.props;
-
-    if (!alert) {
-      return this.renderContent();
-    }
-
-    const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
-
+  if (!alert) {
+    const showDescription = hideHelpToggle || showHelp;
     return (
-      <AlertComponent type="warning" showIcon expand={this.renderHelp()}>
-        {this.renderContent()}
-      </AlertComponent>
+      <Fragment>
+        <FeatureDisabledMessage>
+          {message ?? t('This feature is not enabled on your Sentry installation.')}
+          {!hideHelpToggle && (
+            <ToggleButton
+              priority="link"
+              size="xsmall"
+              onClick={() => setShowHelp(!showHelp)}
+            >
+              {t('Help')}
+              <IconChevron direction={showDescription ? 'up' : 'down'} />
+            </ToggleButton>
+          )}
+        </FeatureDisabledMessage>
+        {showDescription && (
+          <HelpDescription
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            {renderHelp()}
+          </HelpDescription>
+        )}
+      </Fragment>
     );
   }
+
+  const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
+  return (
+    <AlertComponent type="warning" showIcon expand={renderHelp()}>
+      {message ?? t('This feature is not enabled on your Sentry installation.')}
+    </AlertComponent>
+  );
 }
 
 const FeatureDisabledMessage = styled('div')`
@@ -169,7 +144,6 @@ const FeatureDisabledMessage = styled('div')`
 
 const HelpDescription = styled('div')`
   margin-top: ${space(1)};
-  line-height: ${p => p.theme.text.lineHeightBody};
 
   pre,
   code {
@@ -202,10 +176,12 @@ const ToggleButton = styled(Button)`
   }
 `;
 
+const CopyButton = styled(Button)`
+  margin-left: auto;
+`;
+
 const Pre = styled('pre')<{insideAlert?: boolean}>`
   margin-bottom: 0;
-
-  ${p => p.insideAlert && `background: ${p.theme.yellow100};`}
 `;
 
 export default FeatureDisabled;
