@@ -158,7 +158,7 @@ export function mapPoint(
   };
 }
 
-export function shouldDisplayMissingVitalsAlert(
+export function isMissingVitalsData(
   vitalsData: VitalsData | null,
   allVitals: WebVital[]
 ): boolean {
