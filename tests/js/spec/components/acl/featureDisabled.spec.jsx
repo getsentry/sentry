@@ -50,7 +50,9 @@ describe('FeatureDisabled', function () {
         featureName="Some Feature"
       />
     );
-    fireEvent.click(screen.getByText('Help'));
+    fireEvent.click(
+      screen.getByText('This feature is not enabled on your Sentry installation.')
+    );
     expect(
       screen.getByText(/Enable this feature on your sentry installation/)
     ).toBeInTheDocument();
