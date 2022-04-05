@@ -674,7 +674,6 @@ describe('Modals -> WidgetViewerModal', function () {
         expect.objectContaining({
           data: {
             cursor: undefined,
-            display: 'events',
             environment: [],
             expand: ['owners'],
             limit: 20,
