@@ -127,7 +127,12 @@ describe('Metrics ActionCreator', function () {
     });
 
     it('fetches api and updates store', async function () {
-      fetchMetricsTags(api, orgSlug, [1], [`sum(${SessionMetric.SESSION})`]);
+      fetchMetricsTags({
+        api,
+        orgSlug,
+        projects: [1],
+        fields: [`sum(${SessionMetric.SESSION})`],
+      });
 
       await waitFor(() => expect(MetricsTagStore.reset).toHaveBeenCalledTimes(1));
 
@@ -167,7 +172,7 @@ describe('Metrics ActionCreator', function () {
     });
 
     it('fetches api and updates store', async function () {
-      fetchMetricsFields(api, orgSlug, [1]);
+      fetchMetricsFields({api, orgSlug, projects: [1]});
 
       await waitFor(() => expect(MetricsMetaStore.reset).toHaveBeenCalledTimes(1));
 

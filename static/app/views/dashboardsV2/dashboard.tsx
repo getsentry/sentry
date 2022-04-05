@@ -95,7 +95,7 @@ type State = {
 };
 
 class Dashboard extends Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     const {dashboard, organization} = props;
     const isUsingGrid = organization.features.includes('dashboard-grid-layout');

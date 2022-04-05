@@ -151,7 +151,7 @@ export function WidgetCardChartContainer({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={tableItemLimit}
+        limit={widget.limit ?? tableItemLimit}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (

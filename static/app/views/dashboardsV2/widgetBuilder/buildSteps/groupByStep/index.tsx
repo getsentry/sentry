@@ -15,7 +15,13 @@ interface Props {
   tags: TagCollection;
 }
 
-export function GroupByStep({columns, onGroupByChange, organization, tags}: Props) {
+export function GroupByStep({
+  dataSet,
+  columns,
+  onGroupByChange,
+  organization,
+  tags,
+}: Props) {
   return (
     <BuildStep
       title={t('Group your results')}

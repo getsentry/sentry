@@ -87,12 +87,17 @@ function tagFetchSuccess(tags: MetricsTag[]) {
   MetricsTagActions.loadMetricsTagsSuccess(tags);
 }
 
-export function fetchMetricsTags(
-  api: Client,
-  orgSlug: Organization['slug'],
-  projects?: number[],
-  fields?: string[]
-): Promise<MetricsTag[]> {
+export function fetchMetricsTags({
+  api,
+  orgSlug,
+  fields,
+  projects,
+}: {
+  api: Client;
+  orgSlug: Organization['slug'];
+  fields?: string[];
+  projects?: number[];
+}): Promise<MetricsTag[]> {
   MetricsTagStore.reset();
 
   const promise = api.requestPromise(`/organizations/${orgSlug}/metrics/tags/`, {
@@ -115,11 +120,16 @@ function metaFetchSuccess(metricsMeta: MetricsMeta[]) {
   MetricsMetaActions.loadMetricsMetaSuccess(metricsMeta);
 }
 
-export function fetchMetricsFields(
-  api: Client,
-  orgSlug: Organization['slug'],
-  projects?: number[]
-): Promise<MetricsMeta[]> {
+export function fetchMetricsFields({
+  api,
+  orgSlug,
+  projects,
+}: {
+  api: Client;
+  orgSlug: Organization['slug'];
+  fields?: string[];
+  projects?: number[];
+}): Promise<MetricsMeta[]> {
   MetricsMetaStore.reset();
 
   const promise: Promise<MetricsMeta[]> = api.requestPromise(

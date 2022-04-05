@@ -38,6 +38,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {MetricsContextContainer} from 'sentry/utils/metrics/metricsContext';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withMetricsMeta from 'sentry/utils/withMetricsMeta';
@@ -681,8 +682,24 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         );
 
       case WidgetType.METRICS:
+        const metricFields: string[] = state.queries.reduce((acc, query) => {
+          if (query.fields) {
+            for (const field of query.fields) {
+              const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+              if (fieldParameter && !acc.includes(fieldParameter)) {
+                acc.push(fieldParameter);
+              }
+            }
+          }
+          return acc;
+        }, [] as string[]);
+
         return (
-          <React.Fragment>
+          <MetricsContextContainer
+            projects={querySelection.projects}
+            fields={metricFields}
+            organization={organization}
+          >
             <WidgetQueriesForm
               organization={organization}
               selection={querySelection}
@@ -716,7 +733,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               currentWidgetDragging={false}
               noLazyLoad
             />
-          </React.Fragment>
+          </MetricsContextContainer>
         );
 
       case WidgetType.DISCOVER:
