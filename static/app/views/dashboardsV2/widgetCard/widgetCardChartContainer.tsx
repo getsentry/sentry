@@ -16,6 +16,7 @@ import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
 import {
@@ -90,11 +91,18 @@ export function WidgetCardChartContainer({
       ? query.fields
       : [...query.columns, ...query.aggregates];
     const fieldAliases = query.fieldAliases ?? [];
+    const eventView = eventViewFromWidget(
+      widget.title,
+      widget.queries[0],
+      selection,
+      widget.displayType
+    );
 
     return (
       <StyledSimpleTableChart
         location={location}
         title=""
+        eventView={eventView}
         fields={queryFields}
         fieldAliases={fieldAliases}
         loading={loading}

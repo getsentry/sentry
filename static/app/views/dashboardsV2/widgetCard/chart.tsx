@@ -36,6 +36,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -112,7 +113,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization} = this.props;
+    const {location, widget, organization, selection} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -129,10 +130,17 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const eventView = eventViewFromWidget(
+        widget.title,
+        widget.queries[0],
+        selection,
+        widget.displayType
+      );
 
       return (
         <StyledSimpleTableChart
           key={`table:${result.title}`}
+          eventView={eventView}
           fieldAliases={fieldAliases}
           location={location}
           fields={fields}
