@@ -63,7 +63,8 @@ class RedisQuota(Quota):
 
         results = []
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota"):
+        with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
+            span.set_tag("project.id", project.id)
             pquota = self.get_project_quota(project)
             if pquota[0] is not None:
                 results.append(
@@ -78,7 +79,8 @@ class RedisQuota(Quota):
                     )
                 )
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_organization_quota"):
+        with sentry_sdk.start_span(op="redis.get_quotas.get_organization_quota") as span:
+            span.set_tag("project.organization.id", project.organization.id)
             oquota = self.get_organization_quota(project.organization)
             if oquota[0] is not None:
                 results.append(
@@ -99,7 +101,8 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota"):
+            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota") as span:
+                span.set_tag("key.id", key.id)
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:
                     results.append(
