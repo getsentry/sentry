@@ -17,7 +17,7 @@ from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack import tasks
-from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.models import Rule, RuleStatus
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 
@@ -117,13 +117,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     referrer=referrer,
                     session_id=session_id,
                     is_api_token=request.auth is not None,
-                )
-                self.create_audit_entry(
-                    request=request,
-                    organization=alert_rule.organization,
-                    target_object=alert_rule.id,
-                    event=AuditLogEntryEvent.ALERT_RULE_ADD,
-                    data=alert_rule.get_audit_log_data(),
                 )
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
