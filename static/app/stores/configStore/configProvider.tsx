@@ -1,4 +1,4 @@
-import {useEffect, useReducer} from 'react';
+import {useEffect, useReducer, useRef} from 'react';
 
 import LegacyConfigStore from 'sentry/stores/configStore';
 import {ConfigContext} from 'sentry/stores/configStore/configContext';
@@ -15,12 +15,21 @@ interface ConfigProviderProps {
 }
 
 export function ConfigProvider(props: ConfigProviderProps) {
+  const initialBridgeRefluxValue = useRef<ConfigProviderProps['bridgeReflux']>(
+    props.bridgeReflux
+  );
   const contextValue = useReducer(
     makeBridgableReducer(configReducer, props.bridgeReflux ?? false),
     props.initialValue
   );
 
   useEffect(() => {
+    if (initialBridgeRefluxValue.current !== props.bridgeReflux) {
+      throw new Error(
+        `bridgeReflux must not change between rerenders. This may result in undefined and out of sync behavior between the two stores. bridgeReflux changed from ${initialBridgeRefluxValue.current} -> ${props.bridgeReflux}`
+      );
+    }
+
     if (!props.bridgeReflux) {
       return undefined;
     }
@@ -37,7 +46,7 @@ export function ConfigProvider(props: ConfigProviderProps) {
     return () => {
       unsubscribeListener();
     };
-  }, []);
+  }, [props.bridgeReflux]);
 
   return (
     <ConfigContext.Provider value={contextValue}>{props.children}</ConfigContext.Provider>
