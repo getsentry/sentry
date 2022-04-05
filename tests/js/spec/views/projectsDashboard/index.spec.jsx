@@ -1,5 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as projectsActions from 'sentry/actionCreators/projects';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
@@ -114,6 +114,38 @@ describe('ProjectsDashboard', function () {
       expect(wrapper.find('NoProjectMessage').exists()).toBe(false);
       expect(wrapper.find('TeamSection').exists()).toBe(true);
       expect(wrapper.find('Resources').exists()).toBe(false);
+    });
+
+    it('renders users projects without team section for redesign', function () {
+      const projects = [
+        TestStubs.Project({
+          teams,
+          firstEvent: true,
+        }),
+
+        TestStubs.Project({
+          slug: 'project2',
+          teams,
+          isBookmarked: true,
+          firstEvent: true,
+        }),
+      ];
+
+      const userTeams = [TestStubs.Team({projects})];
+
+      render(
+        <Dashboard
+          teams={userTeams}
+          organization={{...org, features: [...org.features, 'projects-page-redesign']}}
+          params={{orgId: org.slug}}
+        />,
+        {routerContext}
+      );
+
+      expect(screen.getByTestId('join-team')).toBeInTheDocument();
+      expect(screen.getByTestId('create-project')).toBeInTheDocument();
+      expect(screen.queryByTestId('team')).not.toBeInTheDocument();
+      expect(screen.queryByText('Resources')).not.toBeInTheDocument();
     });
 
     it('renders bookmarked projects first in team list', function () {
