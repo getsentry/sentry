@@ -1895,6 +1895,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         selected_columns: Optional[List[str]] = None,
         allow_metric_aggregates: Optional[bool] = False,
         functions_acl: Optional[List[str]] = None,
+        dry_run: Optional[bool] = False,
     ):
         super().__init__(
             params=params,
@@ -1903,6 +1904,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             allow_metric_aggregates=allow_metric_aggregates,
             auto_fields=False,
             functions_acl=functions_acl,
+            dry_run=dry_run,
         )
         if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
@@ -1982,6 +1984,11 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         queries = self.get_snql_query()
+        if self.dry_run:
+            return {
+                "data": [],
+                "meta": [],
+            }
         if queries:
             results = bulk_snql_query(queries, referrer, use_cache)
         else:

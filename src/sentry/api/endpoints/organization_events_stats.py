@@ -170,17 +170,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     use_snql=discover_snql,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                params=params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                comparison_delta=comparison_delta,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_snql=discover_snql,
-            )
+            query_details = {
+                "selected_columns": query_columns,
+                "query": query,
+                "params": params,
+                "rollup": rollup,
+                "referrer": referrer,
+                "zerofill_results": zerofill_results,
+                "comparison_delta": comparison_delta,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": discover_snql,
+            }
+            if not metrics_enhanced:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+            return dataset.timeseries_query(**query_details)
 
         try:
             return Response(
