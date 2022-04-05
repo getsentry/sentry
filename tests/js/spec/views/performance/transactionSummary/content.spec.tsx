@@ -2,7 +2,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -53,12 +52,10 @@ const WrappedComponent = ({
   ...props
 }: React.ComponentProps<typeof SummaryContent>) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={false}>
-      <MEPPageSettingProvider>
-        <OrganizationContext.Provider value={organization}>
-          <SummaryContent organization={organization} {...props} />
-        </OrganizationContext.Provider>
-      </MEPPageSettingProvider>
+    <MEPSettingProvider>
+      <OrganizationContext.Provider value={organization}>
+        <SummaryContent organization={organization} {...props} />
+      </OrganizationContext.Provider>
     </MEPSettingProvider>
   );
 };

@@ -23,9 +23,9 @@ const initializeData = (query = {}, rest = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+    <MEPSettingProvider>
       <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
         <OrganizationContext.Provider value={data.organization}>
           <WidgetContainer

@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {useMEPPageSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
@@ -28,8 +27,6 @@ import {
   spansRouteWithQuery,
 } from '../transactionSpans/utils';
 
-import UnsampledSuspectSpans from './metricEvents/unsampledSuspectSpans';
-
 const SPANS_CURSOR_NAME = 'spansCursor';
 
 type Props = {
@@ -42,12 +39,6 @@ type Props = {
 };
 
 export default function SuspectSpans(props: Props) {
-  const {isMEPEnabled} = useMEPPageSettingContext();
-
-  if (isMEPEnabled) {
-    return <UnsampledSuspectSpans />;
-  }
-
   const {location, organization, eventView, totals, projectId, transactionName} = props;
   const sort = getSuspectSpanSortFromLocation(location, 'spanSort');
   const cursor = decodeScalar(location.query?.[SPANS_CURSOR_NAME]);

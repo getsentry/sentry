@@ -22,7 +22,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {useMEPPageSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import SegmentExplorerQuery, {
   TableData,
   TableDataRow,
@@ -556,9 +556,9 @@ const StyledPagination = styled(Pagination)`
 `;
 
 export const TagExplorer = (props: Props) => {
-  const {isMEPEnabled} = useMEPPageSettingContext();
+  const {hideSinceMetricsOnly} = useMEPSettingContext();
 
-  if (isMEPEnabled) {
+  if (hideSinceMetricsOnly) {
     return null;
   }
 

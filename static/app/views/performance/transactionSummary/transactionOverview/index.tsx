@@ -14,7 +14,6 @@ import {
   QueryFieldValue,
   WebVital,
 } from 'sentry/utils/discover/fields';
-import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -63,17 +62,15 @@ function TransactionOverview(props: Props) {
 
   return (
     <MEPSettingProvider>
-      <MEPPageSettingProvider>
-        <PageLayout
-          location={location}
-          organization={organization}
-          projects={projects}
-          tab={Tab.TransactionSummary}
-          getDocumentTitle={getDocumentTitle}
-          generateEventView={generateEventView}
-          childComponent={OverviewContentWrapper}
-        />
-      </MEPPageSettingProvider>
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.TransactionSummary}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={OverviewContentWrapper}
+      />
     </MEPSettingProvider>
   );
 }

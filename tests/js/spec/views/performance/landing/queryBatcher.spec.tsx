@@ -27,9 +27,9 @@ const BASIC_QUERY_PARAMS = {
   statsPeriod: '14d',
 };
 
-const WrappedComponent = ({data, isMEPEnabled, ...rest}) => {
+const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+    <MEPSettingProvider>
       <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
         <WidgetContainer
           allowedCharts={[

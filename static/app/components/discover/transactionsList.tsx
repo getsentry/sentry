@@ -15,7 +15,6 @@ import {Organization} from 'sentry/types';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
-import {useMEPPageSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -387,12 +386,6 @@ const TransactionsList = (
     limit?: Props['limit'];
   }
 ) => {
-  const {isMEPEnabled} = useMEPPageSettingContext();
-
-  if (isMEPEnabled) {
-    return null;
-  }
-
   return <_TransactionsList {...props} />;
 };
 

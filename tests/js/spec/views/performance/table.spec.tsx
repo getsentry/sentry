@@ -23,9 +23,9 @@ const initializeData = (settings = {}) => {
   });
 };
 
-const WrappedComponent = ({data, isMEPEnabled = false, ...rest}) => {
+const WrappedComponent = ({data, ...rest}) => {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+    <MEPSettingProvider>
       <Table
         organization={data.organization}
         location={data.router.location}

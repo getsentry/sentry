@@ -5,15 +5,12 @@ import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
-import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 const WrapperComponent = props => {
   return (
     <MEPSettingProvider _isMEPEnabled={false}>
-      <MEPPageSettingProvider>
-        <TransactionsList {...props} />
-      </MEPPageSettingProvider>
+      <TransactionsList {...props} />
     </MEPSettingProvider>
   );
 };

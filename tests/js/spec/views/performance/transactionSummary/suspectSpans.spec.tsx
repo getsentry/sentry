@@ -9,11 +9,7 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {MEPPageSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPageSetting';
-import {
-  MEPSetting,
-  MEPSettingProvider,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
@@ -51,8 +47,6 @@ describe('SuspectSpans', function () {
           examples: 1,
         }),
       });
-
-      jest.spyOn(MEPSetting, 'get').mockImplementation(() => false);
     });
 
     afterEach(function () {
@@ -63,16 +57,14 @@ describe('SuspectSpans', function () {
       const initialData = initializeData();
       render(
         <MEPSettingProvider>
-          <MEPPageSettingProvider>
-            <SuspectSpans
-              organization={initialData.organization}
-              location={initialData.router.location}
-              eventView={initialData.eventView}
-              projectId="1"
-              transactionName="Test Transaction"
-              totals={{count: 1}}
-            />
-          </MEPPageSettingProvider>
+          <SuspectSpans
+            organization={initialData.organization}
+            location={initialData.router.location}
+            eventView={initialData.eventView}
+            projectId="1"
+            transactionName="Test Transaction"
+            totals={{count: 1}}
+          />
         </MEPSettingProvider>
       );
 
@@ -84,27 +76,6 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
       expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
       expect(await screen.findByText('Total Self Time')).toBeInTheDocument();
-    });
-
-    it('renders unsampled if MEP is enabled', async function () {
-      jest.spyOn(MEPSetting, 'get').mockImplementation(() => true);
-      const initialData = initializeData();
-      render(
-        <MEPSettingProvider>
-          <MEPPageSettingProvider>
-            <SuspectSpans
-              organization={initialData.organization}
-              location={initialData.router.location}
-              eventView={initialData.eventView}
-              projectId="1"
-              transactionName="Test Transaction"
-              totals={{count: 1}}
-            />
-          </MEPPageSettingProvider>
-        </MEPSettingProvider>
-      );
-
-      expect(await screen.findByText('Switch to sampled')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),

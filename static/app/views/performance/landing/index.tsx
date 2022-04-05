@@ -22,7 +22,6 @@ import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -30,6 +29,7 @@ import {
 import useTeams from 'sentry/utils/useTeams';
 
 import Onboarding from '../onboarding';
+import {MetricsEventsDropdown} from '../transactionSummary/transactionOverview/metricEvents/metricsEventsDropdown';
 import {getTransactionSearchQuery} from '../utils';
 
 import {AllTransactionsView} from './views/allTransactionsView';
@@ -109,8 +109,6 @@ export function PerformanceLanding(props: Props) {
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
-  const {isMEPEnabled, setMEPEnabled} = useMEPSettingContext();
-
   const fnOpenModal = () => {
     openModal(
       modalProps => (
@@ -119,10 +117,8 @@ export function PerformanceLanding(props: Props) {
           organization={organization}
           eventView={eventView}
           projects={projects}
-          isMEPEnabled={isMEPEnabled}
-          onApply={value => {
-            setMEPEnabled(value);
-          }}
+          onApply={() => {}}
+          isMEPEnabled
         />
       ),
       {modalCss, backdrop: 'static'}
@@ -213,6 +209,7 @@ export function PerformanceLanding(props: Props) {
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
+                  <MetricsEventsDropdown />
                 </SearchContainerWithFilter>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
@@ -251,6 +248,6 @@ const SearchContainerWithFilter = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr min-content;
   }
 `;
