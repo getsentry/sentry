@@ -57,6 +57,23 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
+def create_topics(topics: List[str]):
+    """If configured to do so, create topics and make sure that they exist
+
+    topics must be from the same cluster.
+    """
+    if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
+        cluster_names = {settings.KAFKA_TOPICS[topic]["cluster"] for topic in topics}
+        assert len(cluster_names) == 1
+        # This is required for confluent-kafka>=1.5.0, otherwise the topics will
+        # not be automatically created.
+        conf = kafka_config.get_kafka_admin_cluster_options(
+            cluster_names.pop(), override_params={"allow.auto.create.topics": "true"}
+        )
+        admin_client = AdminClient(conf)
+        wait_for_topics(admin_client, topics)
+
+
 class KafkaConsumerFacade(abc.ABC):
     """
     Kafka consumer facade which defines the minimal set of methods to be implemented in order to be used as a consumer
@@ -292,14 +309,7 @@ class BatchingKafkaConsumer:
             },
         )
 
-        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
-            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
-            # not be automatically created.
-            conf = kafka_config.get_kafka_admin_cluster_options(
-                cluster_name, override_params={"allow.auto.create.topics": "true"}
-            )
-            admin_client = AdminClient(conf)
-            wait_for_topics(admin_client, topics)
+        create_topics(topics)
 
         consumer = Consumer(consumer_config)
 
