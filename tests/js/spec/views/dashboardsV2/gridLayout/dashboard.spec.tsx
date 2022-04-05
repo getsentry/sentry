@@ -285,7 +285,7 @@ describe('Dashboards > Dashboard', () => {
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
     });
 
-    it('opens the widget builder when editing with the modal access flag',  function () {
+    it('opens the widget builder when editing with the modal access flag', function () {
       const testData = initializeOrg({
         ...initializeOrg(),
         organization: {
