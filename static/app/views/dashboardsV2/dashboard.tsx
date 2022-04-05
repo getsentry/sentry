@@ -357,11 +357,13 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
     if (
       organization.features.includes('new-widget-builder-experience') &&
-      !organization.features.includes('new-widget-builder-experience-modal-access')
+      (!organization.features.includes('new-widget-builder-experience-modal-access') ||
+        isEditing)
     ) {
       if (paramDashboardId) {
         router.push({
