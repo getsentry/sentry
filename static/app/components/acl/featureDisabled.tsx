@@ -28,10 +28,6 @@ type Props = {
    */
   features: string[];
   /**
-   * A custom message to display. Defaults to a generic disabled message.
-   */
-  message?: string;
-  /**
    * Render the disabled message within a warning Alert. A custom Alert
    * component may be provided.
    *
@@ -43,6 +39,10 @@ type Props = {
    * Do not show the help toggle. The description will always be rendered.
    */
   hideHelpToggle?: boolean;
+  /**
+   * A custom message to display. Defaults to a generic disabled message.
+   */
+  message?: string;
 };
 
 /**
