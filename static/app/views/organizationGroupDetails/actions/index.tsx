@@ -19,11 +19,11 @@ import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
-import DiscoverButton from 'sentry/components/discoverButton';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -113,6 +113,7 @@ class Actions extends Component<Props, State> {
       | 'subscribed'
       | 'mark_reviewed'
       | 'discarded'
+      | 'open_in_discover'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -346,7 +347,6 @@ class Actions extends Component<Props, State> {
 
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
-    const hasDiscoverBasic = organization.features.includes('discover-basic');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
@@ -382,13 +382,24 @@ class Actions extends Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <DiscoverButton
-          disabled={!hasDiscoverBasic}
-          onClick={this.onRedirectDiscover}
-          size="xsmall"
+        <Feature
+          hookName="feature-disabled:open-in-discover"
+          features={['discover-basic']}
+          organization={organization}
         >
-          {t('Open in Discover')}
-        </DiscoverButton>
+          <ActionButton
+            disabled={disabled}
+            to={disabled ? '' : this.getDiscoverUrl()}
+            onClick={() => {
+              this.trackIssueAction('open_in_discover');
+              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
+                organization,
+              });
+            }}
+          >
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+          </ActionButton>
+        </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -406,63 +417,61 @@ class Actions extends Component<Props, State> {
         />
         <Access organization={organization} access={['event:admin']}>
           {({hasAccess}) => (
-            <GuideAnchor target="open_in_discover">
-              <DropdownMenuControlV2
-                triggerProps={{
-                  'aria-label': t('More Actions'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'xsmall',
-                }}
-                items={[
-                  {
-                    key: 'bookmark',
-                    label: bookmarkTitle,
-                    hidden: false,
-                    onAction: this.onToggleBookmark,
-                  },
-                  {
-                    key: 'reprocess',
-                    label: t('Reprocess events'),
-                    hidden: !displayReprocessEventAction(organization.features, event),
-                    onAction: this.onReprocessEvent,
-                  },
-                  {
-                    key: 'delete-issue',
-                    priority: 'danger',
-                    label: t('Delete'),
-                    hidden: !hasAccess,
-                    onAction: () =>
-                      openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-                        <Fragment>
-                          <Body>
-                            {t(
-                              'Deleting this issue is permanent. Are you sure you wish to continue?'
-                            )}
-                          </Body>
-                          <Footer>
-                            <Button onClick={closeModal}>{t('Cancel')}</Button>
-                            <Button
-                              style={{marginLeft: space(1)}}
-                              priority="primary"
-                              onClick={this.onDelete}
-                            >
-                              {t('Delete')}
-                            </Button>
-                          </Footer>
-                        </Fragment>
-                      )),
-                  },
-                  {
-                    key: 'delete-and-discard',
-                    priority: 'danger',
-                    label: t('Delete and discard future events'),
-                    hidden: !hasAccess,
-                    onAction: () => this.openDiscardModal(),
-                  },
-                ]}
-              />
-            </GuideAnchor>
+            <DropdownMenuControlV2
+              triggerProps={{
+                'aria-label': t('More Actions'),
+                icon: <IconEllipsis size="xs" />,
+                showChevron: false,
+                size: 'xsmall',
+              }}
+              items={[
+                {
+                  key: 'bookmark',
+                  label: bookmarkTitle,
+                  hidden: false,
+                  onAction: this.onToggleBookmark,
+                },
+                {
+                  key: 'reprocess',
+                  label: t('Reprocess events'),
+                  hidden: !displayReprocessEventAction(organization.features, event),
+                  onAction: this.onReprocessEvent,
+                },
+                {
+                  key: 'delete-issue',
+                  priority: 'danger',
+                  label: t('Delete'),
+                  hidden: !hasAccess,
+                  onAction: () =>
+                    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+                      <Fragment>
+                        <Body>
+                          {t(
+                            'Deleting this issue is permanent. Are you sure you wish to continue?'
+                          )}
+                        </Body>
+                        <Footer>
+                          <Button onClick={closeModal}>{t('Cancel')}</Button>
+                          <Button
+                            style={{marginLeft: space(1)}}
+                            priority="primary"
+                            onClick={this.onDelete}
+                          >
+                            {t('Delete')}
+                          </Button>
+                        </Footer>
+                      </Fragment>
+                    )),
+                },
+                {
+                  key: 'delete-and-discard',
+                  priority: 'danger',
+                  label: t('Delete and discard future events'),
+                  hidden: !hasAccess,
+                  onAction: () => this.openDiscardModal(),
+                },
+              ]}
+            />
           )}
         </Access>
       </Wrapper>
