@@ -36,7 +36,6 @@ export function setupColorScheme(): void {
 
   // Watch for changes in preferred color scheme
   const lightMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-
   const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   try {

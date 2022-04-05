@@ -1,6 +1,6 @@
-import './less/sentry.less';
+import ConfigStore from 'sentry/stores/configStore';
 
-import ConfigStore from '../static/app/stores/configStore';
+import './less/sentry.less';
 
 ConfigStore.loadInitialData({
   gravatarBaseUrl: 'https://secure.gravatar.com',
