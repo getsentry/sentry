@@ -14,7 +14,7 @@ module.exports = {
   settings: {
     'import/resolver': {
       webpack: {
-        config: path.join(__dirname, '../.storybook/webpack.config.ts'),
+        config: path.join(__dirname, './storybook/webpack.config.ts'),
       },
     },
     'import/extensions': ['.js', '.jsx'],
