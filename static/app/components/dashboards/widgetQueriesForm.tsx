@@ -19,6 +19,7 @@ import {
   getAggregateAlias,
   getColumnsAndAggregatesAsStrings,
   isEquation,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -41,7 +42,7 @@ export const generateOrderOptions = ({
   const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates : [...aggregates, ...columns])
+  (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
     .forEach(field => {
       let alias = getAggregateAlias(field);
@@ -91,12 +92,10 @@ type Props = {
  */
 class WidgetQueriesForm extends React.Component<Props> {
   componentWillUnmount() {
-    if (this.blurTimeout) {
-      window.clearTimeout(this.blurTimeout);
-    }
+    window.clearTimeout(this.blurTimeout);
   }
 
-  blurTimeout: number | null = null;
+  blurTimeout: number | undefined = undefined;
 
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
@@ -134,11 +133,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
-          if (this.blurTimeout) {
-            window.clearTimeout(this.blurTimeout);
-          }
+          window.clearTimeout(this.blurTimeout);
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -163,7 +160,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             window.clearTimeout(this.blurTimeout);
           }
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -191,6 +188,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
       widgetType = WidgetType.DISCOVER,
     } = this.props;
+
     const isMetrics = widgetType === WidgetType.METRICS;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);

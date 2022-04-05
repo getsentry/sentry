@@ -325,10 +325,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
-
-    if (this.blurTimeout) {
-      clearTimeout(this.blurTimeout);
-    }
+    window.clearTimeout(this.blurTimeout);
   }
 
   get initialQuery() {
@@ -339,7 +336,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Tracks the dropdown blur
    */
-  blurTimeout: number | null = null;
+  blurTimeout: number | undefined = undefined;
 
   /**
    * Ref to the search element itself
@@ -446,11 +443,12 @@ class SmartSearchBar extends React.Component<Props, State> {
     // wait before closing dropdown in case blur was a result of clicking a
     // menu option
     const blurHandler = () => {
-      this.blurTimeout = null;
+      this.blurTimeout = undefined;
       this.setState({inputHasFocus: false});
       callIfFunction(this.props.onBlur, e.target.value);
     };
 
+    window.clearTimeout(this.blurTimeout);
     this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
   };
 
@@ -1094,10 +1092,8 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   updateAutoCompleteItems = async () => {
-    if (this.blurTimeout) {
-      window.clearTimeout(this.blurTimeout);
-      this.blurTimeout = null;
-    }
+    window.clearTimeout(this.blurTimeout);
+    this.blurTimeout = undefined;
 
     this.updateAutoCompleteFromAst();
   };

@@ -9,6 +9,7 @@
  */
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
 import {EventedProfile} from './eventedProfile';
 import {ProfileGroup} from './importProfile';
@@ -254,12 +255,19 @@ export function parseChromeTraceArrayFormat(
 
   for (const processId in eventsByProcessAndThreadID) {
     for (const threadId in eventsByProcessAndThreadID[processId]) {
-      profiles.push(
-        buildProfile(
-          processId,
-          threadId,
-          eventsByProcessAndThreadID[processId][threadId] ?? []
-        )
+      wrapWithSpan(
+        () =>
+          profiles.push(
+            buildProfile(
+              processId,
+              threadId,
+              eventsByProcessAndThreadID[processId][threadId] ?? []
+            )
+          ),
+        {
+          op: 'profile.import',
+          description: 'chrometrace',
+        }
       );
     }
   }

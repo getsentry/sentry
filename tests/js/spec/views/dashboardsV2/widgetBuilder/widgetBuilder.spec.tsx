@@ -3,12 +3,13 @@ import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
@@ -172,11 +173,47 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: [
+        {
+          name: SessionMetric.SESSION,
+          type: 'counter',
+          operations: ['sum'],
+        },
+        {
+          name: SessionMetric.SESSION_ERROR,
+          type: 'set',
+          operations: ['count_unique'],
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: `sum(${SessionMetric.SESSION})`,
+      }),
+      match: [
+        MockApiClient.matchQuery({
+          groupBy: [],
+          orderBy: `sum(${SessionMetric.SESSION})`,
+        }),
+      ],
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -1062,6 +1099,50 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('does not error when query conditions field is blurred', async function () {
+    jest.useFakeTimers();
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.BAR,
+      queries: [
+        {
+          name: 'filled in',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
+
+    userEvent.click(await screen.findByLabelText('Add Query'));
+
+    // Triggering the onBlur of the new field should not error
+    userEvent.click(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+    );
+    userEvent.keyboard('{esc}');
+    act(() => {
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
+    });
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1557,6 +1638,37 @@ describe('WidgetBuilder', function () {
           }),
         ]);
       });
+    });
+  });
+
+  describe('Release Widgets', function () {
+    it('sets widgetType to release', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+      userEvent.click(screen.getByLabelText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            // TODO(adam): Update widget type to be 'release'
+            widgetType: 'metrics',
+            queries: [
+              expect.objectContaining({
+                aggregates: ['sum(sentry.sessions.session)'],
+                fields: ['sum(sentry.sessions.session)'],
+              }),
+            ],
+          }),
+        ]);
+      });
+
+      expect(handleSave).toHaveBeenCalledTimes(1);
     });
   });
 
