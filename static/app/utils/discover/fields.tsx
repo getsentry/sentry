@@ -804,7 +804,9 @@ export function parseArguments(functionText: string, columnText: string): string
   // This function attempts to be identical with the similarly named parse_arguments
   // found in src/sentry/search/events/fields.py
   if (
-    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    (functionText !== 'to_other' &&
+      functionText !== 'count_if' &&
+      functionText !== 'spans_histogram') ||
     columnText.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
