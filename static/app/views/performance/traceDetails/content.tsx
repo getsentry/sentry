@@ -31,13 +31,13 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
 import TimeSince from 'sentry/components/timeSince';
-import {IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -72,7 +72,7 @@ type AccType = {
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   dateSelected: boolean;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   meta: TraceMeta | null;
   organization: Organization;
@@ -177,11 +177,11 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
             if (error) {
               return (
-                <Alert type="error" icon={<IconInfo size="md" />}>
+                <Alert type="error" showIcon>
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
-                      {error}
+                      {error: error.message}
                     )}
                   </ErrorLabel>
                 </Alert>
@@ -189,15 +189,15 @@ class TraceDetailsContent extends React.Component<Props, State> {
             }
 
             return (
-              <Alert type="error" icon={<IconInfo size="md" />}>
+              <Alert type="error" showIcon>
                 <ErrorLabel>
                   {t('The trace cannot be shown when all events are errors.')}
                 </ErrorLabel>
 
                 <ErrorMessageContent data-test-id="trace-view-errors">
-                  {tableData.data.map(data => (
+                  {tableData?.data.map(data => (
                     <React.Fragment key={data.id}>
-                      <ErrorDot level={data.level} />
+                      <ErrorDot level={data.level as any} />
                       <ErrorLevel>{data.level}</ErrorLevel>
                       <ErrorTitle>
                         <Link
@@ -345,7 +345,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -355,7 +355,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
@@ -365,7 +365,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" icon={<IconInfo size="sm" />}>
+        <Alert type="info" showIcon>
           <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>

@@ -263,7 +263,15 @@ class VercelIntegration(IntegrationInstallation):
             return client.create_env_variable(vercel_project_id, data)
         except ApiError as e:
             if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
-                return self.update_env_variable(client, vercel_project_id, data)
+                try:
+                    return self.update_env_variable(client, vercel_project_id, data)
+                except ApiError as e:
+                    error_message = (
+                        e.json.get("error", {}).get("message")
+                        if e.json
+                        else f"Could not update environment variable {key}."
+                    )
+                    raise ValidationError({"project_mappings": [error_message]})
             raise
 
     def update_env_variable(self, client, vercel_project_id, data):

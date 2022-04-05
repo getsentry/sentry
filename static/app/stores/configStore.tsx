@@ -1,25 +1,27 @@
 import moment from 'moment-timezone';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {Config} from 'sentry/types';
-import {makeSafeRefluxStore, SafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
-type ConfigStoreInterface = CommonStoreInterface<Config> & {
+interface InternalConfigStore {
+  config: Config;
+}
+
+interface ConfigStoreDefinition
+  extends CommonStoreDefinition<Config>,
+    InternalConfigStore {
   get<K extends keyof Config>(key: K): Config[K];
   getConfig(): Config;
   init(): void;
   loadInitialData(config: Config): void;
   set<K extends keyof Config>(key: K, value: Config[K]): void;
   updateTheme(theme: 'light' | 'dark'): void;
-};
+}
 
-type Internals = {
-  config: Config;
-};
-
-const storeConfig: StoreDefinition & Internals & ConfigStoreInterface = {
+const storeConfig: ConfigStoreDefinition = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -79,7 +81,4 @@ const storeConfig: StoreDefinition & Internals & ConfigStoreInterface = {
   },
 };
 
-const ConfigStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  ConfigStoreInterface;
-
-export default ConfigStore;
+export default createStore(makeSafeRefluxStore(storeConfig));

@@ -16,6 +16,7 @@ import {DataSet, getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
+import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
@@ -82,7 +83,7 @@ export function ColumnsStep({
             />
           )}
         </Measurements>
-      ) : (
+      ) : dataSet === DataSet.ISSUES ? (
         <ColumnFields
           displayType={displayType}
           organization={organization}
@@ -100,6 +101,15 @@ export function ColumnsStep({
             newQuery.fieldAliases = splitFields.fieldAliases;
             onQueryChange(0, newQuery);
           }}
+        />
+      ) : (
+        <ReleaseColumnFields
+          displayType={displayType}
+          organization={organization}
+          widgetType={widgetType}
+          explodedFields={explodedFields}
+          queryErrors={queryErrors}
+          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
         />
       )}
     </BuildStep>

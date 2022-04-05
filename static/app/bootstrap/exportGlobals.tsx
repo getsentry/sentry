@@ -38,8 +38,10 @@ const SentryApp = {
   },
 
   // The following components are used in legacy django HTML views
+  // or in the Sentry sandbox
   ConfigStore: require('sentry/stores/configStore').default,
   HookStore: require('sentry/stores/hookStore').default,
+  GuideActionCreator: require('sentry/actionCreators/guides'),
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,

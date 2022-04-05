@@ -9,7 +9,7 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
@@ -389,9 +389,18 @@ class EventManager:
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
+            if is_reprocessed:
+                # The customer might have changed grouping enhancements since
+                # the event was ingested -> make sure we get the fresh one for reprocessing.
+                grouping_config = get_grouping_config_dict_for_project(project)
+                # Write back grouping config because it might have changed since the
+                # event was ingested.
+                # NOTE: We could do this unconditionally (regardless of `is_processed`).
+                job["data"]["grouping_config"] = grouping_config
+            else:
+                grouping_config = get_grouping_config_dict_for_event_data(
+                    job["event"].data.data, project
+                )
 
         with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
             "event_manager.calculate_event_grouping"
@@ -845,12 +854,12 @@ def _nodestore_save_many(jobs):
 
         if job["group"]:
             event = job["event"]
-            data = event_processing_store.get(
+            unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
             )
-            if data is not None:
-                subkeys["unprocessed"] = data
+            if unprocessed is not None:
+                subkeys["unprocessed"] = unprocessed
 
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
@@ -948,23 +957,30 @@ def _get_event_user_impl(project, data, metrics_tags):
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
+
         try:
-            with transaction.atomic(using=router.db_for_write(EventUser)):
-                euser.save()
-            metrics_tags["created"] = "true"
+            euser, created = EventUser.objects.get_or_create(
+                project_id=euser.project_id,
+                hash=euser.hash,
+                defaults={
+                    "ident": euser.ident,
+                    "email": euser.email,
+                    "username": euser.username,
+                    "ip_address": euser.ip_address,
+                    "name": euser.name,
+                },
+            )
         except IntegrityError:
-            metrics_tags["created"] = "false"
-            try:
-                euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
-            except EventUser.DoesNotExist:
-                metrics_tags["created"] = "lol"
-                # why???
-                e_userid = -1
-            else:
-                if euser.name != (user_data.get("name") or euser.name):
-                    euser.update(name=user_data["name"])
-                e_userid = euser.id
-            cache.set(cache_key, e_userid, 3600)
+            # TODO(michal): This is result of project_id, ident duplicate and
+            # should not be possible since we prioritize ident for hash
+            created = False
+            cache.set(cache_key, -1, 3600)
+        else:
+            if not created and user_data.get("name") and euser.name != user_data.get("name"):
+                euser.update(name=user_data["name"])
+            cache.set(cache_key, euser.id, 3600)
+
+        metrics_tags["created"] = str(created).lower()
     else:
         metrics_tags["cache_hit"] = "true"
 

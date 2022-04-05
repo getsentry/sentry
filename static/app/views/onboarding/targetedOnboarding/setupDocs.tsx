@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,7 +12,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -19,9 +19,9 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
-import FullIntroduction from 'sentry/views/onboarding/components/fullIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
+import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
 import {StepProps} from './types';
 
@@ -111,7 +111,7 @@ function SetupDocs({organization, projects, search}: Props) {
     }
 
     return (
-      <Alert type="warning" icon={<IconInfo size="md" />}>
+      <Alert type="warning" showIcon>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
@@ -130,6 +130,38 @@ function SetupDocs({organization, projects, search}: Props) {
     <DocsWrapper key={platformDocs.html}>
       <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
       {missingExampleWarning()}
+    </DocsWrapper>
+  );
+
+  const loadingError = (
+    <LoadingError
+      message={t('Failed to load documentation for the %s platform.', platform)}
+      onRetry={fetchData}
+    />
+  );
+
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
+
+  return (
+    <React.Fragment>
+      <Wrapper>
+        <TargetedOnboardingSidebar
+          activeProject={project}
+          {...{checkProjectHasFirstEvent, setNewProject}}
+        />
+        <MainContent>
+          <FullIntroduction currentPlatform={currentPlatform} />
+          {getDynamicText({
+            value: !hasError ? docs : loadingError,
+            fixed: testOnlyAlert,
+          })}
+        </MainContent>
+      </Wrapper>
+
       {project && (
         <FirstEventFooter
           project={project}
@@ -154,36 +186,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
-  return (
-    <Wrapper>
-      <TargetedOnboardingSidebar
-        activeProject={project}
-        {...{checkProjectHasFirstEvent, setNewProject}}
-      />
-      <MainContent>
-        <FullIntroduction currentPlatform={currentPlatform} />
-        {getDynamicText({
-          value: !hasError ? docs : loadingError,
-          fixed: testOnlyAlert,
-        })}
-      </MainContent>
-    </Wrapper>
+    </React.Fragment>
   );
 }
 
@@ -256,12 +259,14 @@ DocsWrapper.defaultProps = {
 };
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: fit-content(100%) fit-content(100%);
-  width: max-content;
+  display: flex;
+  flex-direction: row;
   margin: ${space(2)};
+  justify-content: center;
 `;
 
 const MainContent = styled('div')`
-  width: 850px;
+  max-width: 850px;
+  min-width: 0;
+  flex-grow: 1;
 `;

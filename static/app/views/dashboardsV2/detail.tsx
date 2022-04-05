@@ -143,13 +143,6 @@ class DashboardDetail extends Component<Props, State> {
                 'new-widget-builder-experience-modal-access'
               )
             ) {
-              trackAdvancedAnalyticsEvent(
-                'dashboards_views.add_widget_in_builder.opened',
-                {
-                  organization,
-                }
-              );
-
               const widgetIndex = dashboard.widgets.indexOf(widget);
               if (dashboardId) {
                 router.push({
@@ -433,10 +426,6 @@ class DashboardDetail extends Component<Props, State> {
       organization.features.includes('new-widget-builder-experience') &&
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
-      trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.opened', {
-        organization,
-      });
-
       if (dashboardId) {
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,

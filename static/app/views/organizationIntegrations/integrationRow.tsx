@@ -5,7 +5,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import space from 'sentry/styles/space';
@@ -119,21 +118,26 @@ const IntegrationRow = (props: Props) => {
       </FlexContainer>
       {alertText && (
         <AlertContainer>
-          <Alert type="warning" icon={<IconWarning size="sm" />}>
-            <span>{alertText}</span>
-            <ResolveNowButton
-              href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
-              size="xsmall"
-              onClick={() =>
-                trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                  integration_type: convertIntegrationTypeToSnakeCase(type),
-                  integration: slug,
-                  organization,
-                })
-              }
-            >
-              {resolveText || t('Resolve Now')}
-            </ResolveNowButton>
+          <Alert
+            type="warning"
+            showIcon
+            trailingItems={
+              <ResolveNowButton
+                href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                size="xsmall"
+                onClick={() =>
+                  trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+                    integration_type: convertIntegrationTypeToSnakeCase(type),
+                    integration: slug,
+                    organization,
+                  })
+                }
+              >
+                {resolveText || t('Resolve Now')}
+              </ResolveNowButton>
+            }
+          >
+            {alertText}
           </Alert>
         </AlertContainer>
       )}
