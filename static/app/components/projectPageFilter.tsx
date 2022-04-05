@@ -21,6 +21,8 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+type MultipleProjectSelectorProps = React.ComponentProps<typeof MultipleProjectSelector>;
+
 type Props = WithRouterProps & {
   /**
    * Message to display at the bottom of project list
@@ -114,7 +116,10 @@ export function ProjectPageFilter({
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  const customProjectDropdown = ({getActorProps, selectedProjects, isOpen}) => {
+  const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+    selectedProjects,
+    isOpen,
+  }) => {
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
 
@@ -139,13 +144,13 @@ export function ProjectPageFilter({
     ) : (
       <IconProject />
     );
+
     return (
       <PageFilterDropdownButton
         detached
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('projects')}
-        {...getActorProps()}
       >
         <DropdownTitle>
           {icon}

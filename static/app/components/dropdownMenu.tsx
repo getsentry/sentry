@@ -48,11 +48,13 @@ export type GetMenuPropsFn = <E extends Element = Element>(
   opts?: GetMenuArgs<E>
 ) => MenuProps<E>;
 
+export type MenuActions = {
+  close: (event?: React.MouseEvent<Element>) => void;
+  open: (event?: React.MouseEvent<Element>) => void;
+};
+
 type RenderProps = {
-  actions: {
-    close: (event?: React.MouseEvent<Element>) => void;
-    open: (event?: React.MouseEvent<Element>) => void;
-  };
+  actions: MenuActions;
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
   getRootProps: Function;
