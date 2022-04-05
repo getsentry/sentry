@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -23,6 +22,12 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {getFieldOptionConfig} from './metricField';
 
+type MenuOption = {
+  key: string;
+  label: string;
+  header?: boolean;
+};
+
 type Props = Omit<FormField['props'], 'children'> & {
   location: Location;
   organization: Organization;
@@ -35,7 +40,7 @@ type Props = Omit<FormField['props'], 'children'> & {
   inFieldLabels?: boolean;
 };
 
-const menuOptions = [
+const menuOptions: MenuOption[] = [
   {
     label: t('ERRORS'),
     header: true,
@@ -116,12 +121,15 @@ function WizardField({
   ...fieldProps
 }: Props) {
   const selected =
-    menuOptions.find(
-      op =>
-        AlertWizardRuleTemplates[op.key]?.aggregate === location.query.aggregate &&
-        AlertWizardRuleTemplates[op.key]?.dataset === location.query.dataset &&
-        AlertWizardRuleTemplates[op.key]?.dataset === location.query.dataset
-    ) || menuOptions[1];
+    menuOptions.find(op => {
+      const {aggregate, dataset, eventTypes} = AlertWizardRuleTemplates[op.key] || {};
+
+      return (
+        aggregate === location.query.aggregate &&
+        dataset === location.query.dataset &&
+        eventTypes === location.query.eventTypes
+      );
+    }) || menuOptions[1];
 
   return (
     <FormField {...fieldProps}>
@@ -242,20 +250,3 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
       width: ${p.gridColumns * p.columnWidth}px;
     `}
 `;
-
-const PresetButton = styled(Button)<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.textColor};
-      &:hover,
-      &:focus {
-        color: ${p.theme.textColor};
-      }
-    `}
-`;
-
-PresetButton.defaultProps = {
-  priority: 'link',
-  borderless: true,
-};
