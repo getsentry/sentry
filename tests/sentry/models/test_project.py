@@ -203,9 +203,6 @@ class ProjectTest(TestCase):
 
         assert Environment.objects.filter(id=environment.id).exists()
         assert Environment.objects.filter(organization_id=from_org.id, projects=project).exists()
-        assert not Environment.objects.filter(
-            project_id=project.id
-        ).exists()  # project_id deprecated
 
         assert EnvironmentProject.objects.filter(environment=environment, project=project).exists()
         assert ReleaseProjectEnvironment.objects.filter(
@@ -259,8 +256,9 @@ class ProjectTest(TestCase):
         rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
         rule4 = Rule.objects.create(label="rule3", project=project, owner=to_user.actor)
 
-        assert snuba_query
-        assert snuba_query.environment.id is environment.id
+        assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment.id == environment.id
+
         project.transfer_to(organization=to_org)
 
         alert_rule.refresh_from_db()
@@ -270,7 +268,11 @@ class ProjectTest(TestCase):
         rule4.refresh_from_db()
         snuba_query.refresh_from_db()
 
-        assert snuba_query.environment is None
+        assert (
+            Environment.objects.exclude(id=environment.id).count() == 1
+        )  # not the same as the from_org env
+        assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment != environment
         assert alert_rule.organization_id == to_org.id
         assert alert_rule.owner is None
         assert rule1.owner is None

@@ -344,8 +344,15 @@ class Project(Model, PendingDeletionMixin):
 
         # null out environment_id so when the org(and its associated resources) eventually gets deleted
         # the to_org resources aren't referencing to-be-deleted DB objects, blocking the deletion process
-        for alert_rule in list(alert_rules):
-            SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).update(environment_id=None)
+        # alertrule ->  snuba_query -> environmentId
+        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
+            "snuba_query_id", "snuba_query__environment__id"
+        ):
+            SnubaQuery.objects.filter(id=snuba_id).update(
+                environment_id=Environment.get_or_create(
+                    self, name=environment_names.get(environment_id, None)
+                ).id
+            )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
