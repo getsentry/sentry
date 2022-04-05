@@ -52,7 +52,13 @@ type Props = {
  * information about why the feature is disabled, showing the missing feature
  * flag and linking to documentation for managing sentry server feature flags.
  */
-function FeatureDisabled({features, featureName, message, alert, hideHelpToggle}: Props) {
+function FeatureDisabled({
+  features,
+  featureName,
+  alert,
+  hideHelpToggle,
+  message = t('This feature is not enabled on your Sentry installation.'),
+}: Props) {
   const [showHelp, setShowHelp] = useState(false);
 
   function renderHelp() {
@@ -102,7 +108,7 @@ function FeatureDisabled({features, featureName, message, alert, hideHelpToggle}
     return (
       <Fragment>
         <FeatureDisabledMessage>
-          {message ?? t('This feature is not enabled on your Sentry installation.')}
+          {message}
           {!hideHelpToggle && (
             <ToggleButton
               priority="link"
