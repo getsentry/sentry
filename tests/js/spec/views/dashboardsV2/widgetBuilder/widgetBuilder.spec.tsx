@@ -1689,6 +1689,11 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByLabelText(/releases/i));
 
       expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Bar Chart'));
+
+      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
     });
 
     it('displays metrics tags', async function () {
