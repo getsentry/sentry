@@ -298,7 +298,7 @@ class Superuser:
 
         token = get_random_string(12)
 
-        if not self._needs_validation():
+        def enable_and_log_superuser_access():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -310,6 +310,9 @@ class Superuser:
                 "superuser.logged-in",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
             )
+
+        if not self._needs_validation():
+            enable_and_log_superuser_access()
             return
 
         try:
@@ -338,17 +341,7 @@ class Superuser:
                 },
             )
 
-        self._set_logged_in(
-            expires=current_datetime + MAX_AGE,
-            token=token,
-            user=user,
-            current_datetime=current_datetime,
-        )
-
-        logger.info(
-            "superuser.logged-in",
-            extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
-        )
+        enable_and_log_superuser_access()
 
     def set_logged_out(self):
         """
