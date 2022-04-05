@@ -36,6 +36,7 @@ from sentry.models import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
+    DRY_RUN_COLUMNS,
     EQUALITY_OPERATORS,
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
@@ -1488,12 +1489,21 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class MetricsQueryBuilder(QueryBuilder):
-    def __init__(self, *args: Any, allow_metric_aggregates: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        allow_metric_aggregates: Optional[bool] = False,
+        dry_run: Optional[bool] = False,
+        **kwargs: Any,
+    ):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
+        # Don't do any of the actions that would impact performance in anyway
+        # Skips all indexer checks, and won't interact with clickhouse
+        self.dry_run = dry_run
         super().__init__(
             # Dataset is always Metrics
             Dataset.Metrics,
@@ -1511,16 +1521,28 @@ class MetricsQueryBuilder(QueryBuilder):
 
         :param name: The unresolved sentry name.
         """
+        missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+        if self.dry_run:
+            if name in DRY_RUN_COLUMNS:
+                return Column(name)
+            else:
+                raise missing_column
         try:
             return super().column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+            raise missing_column
 
     def aliased_column(self, name: str) -> SelectType:
+        missing_column = IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+        if self.dry_run:
+            if name in DRY_RUN_COLUMNS:
+                return Column(name)
+            else:
+                raise missing_column
         try:
             return super().aliased_column(name)
         except InvalidSearchQuery:
-            raise IncompatibleMetricsQuery(f"Column {name} was not found in metrics indexer")
+            raise missing_column
 
     def resolve_granularity(self) -> Granularity:
         """Granularity impacts metric queries even when they aren't timeseries because the data needs to be
@@ -1625,6 +1647,8 @@ class MetricsQueryBuilder(QueryBuilder):
         return None
 
     def _resolve_tag_value(self, value: str) -> int:
+        if self.dry_run:
+            return -1
         result = indexer.resolve(self.organization_id, value)
         if result is None:
             raise InvalidSearchQuery("Tag value was not found")
@@ -1781,6 +1805,8 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
+        if self.dry_run:
+            return result
         # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
         # goal is to get n=limit results from one query, then use those n results to create a condition for the
         # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't

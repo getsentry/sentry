@@ -17,6 +17,7 @@ from sentry.sentry_metrics import indexer
 class MetricsDatasetConfig(DatasetConfig):
     def __init__(self, builder: MetricsQueryBuilder):
         self.builder = builder
+        self.indexer_cache: Mapping[str, Optional[int]] = {}
 
     @property
     def search_filter_converter(
@@ -39,14 +40,23 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = indexer.resolve(
-            self.builder.organization_id, constants.METRICS_MAP.get(value, value)
-        )
-        if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-
+        metric_id = self.resolve_value(value)
         self.builder.metric_ids.add(metric_id)
         return metric_id
+
+    def resolve_value(self, value: str) -> int:
+        if self.builder.dry_run:
+            return -1
+        if value in self.indexer_cache:
+            return self.indexer_cache[value]
+        value_id = indexer.resolve(
+            self.builder.organization_id, constants.METRICS_MAP.get(value, value)
+        )
+        if value_id is None:
+            raise IncompatibleMetricsQuery(f"Value: {value} could not be resolved")
+
+        self.indexer_cache[value] = value_id
+        return value_id
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -314,11 +324,15 @@ class MetricsDatasetConfig(DatasetConfig):
         return AliasedExpression(self.builder.resolve_column("transaction"), alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
+        if self.builder.dry_run:
+            return field_aliases.dry_run_default(self.builder, constants.TEAM_KEY_TRANSACTION_ALIAS)
         return field_aliases.resolve_team_key_transaction_alias(
             self.builder, resolve_metric_index=True
         )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        if self.builder.dry_run:
+            return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     # Query Filters
@@ -363,7 +377,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(self.builder.organization_id, constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_true is None:
@@ -406,7 +420,7 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        metric_true = indexer.resolve(self.builder.organization_id, constants.METRIC_TRUE_TAG_VALUE)
+        metric_true = self.resolve_value(constants.METRIC_TRUE_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_true is None:
@@ -473,10 +487,7 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [
-            indexer.resolve(self.builder.organization_id, status)
-            for status in constants.NON_FAILURE_STATUS
-        ]
+        statuses = [self.resolve_value(status) for status in constants.NON_FAILURE_STATUS]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -539,7 +550,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         measurement_rating = self.builder.resolve_column("measurement_rating")
 
-        quality_id = indexer.resolve(self.builder.organization_id, quality)
+        quality_id = self.resolve_value(quality)
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

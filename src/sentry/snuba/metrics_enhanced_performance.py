@@ -51,30 +51,39 @@ def query(
     extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
+    dry_run=False,
 ):
-    """ """
-    metrics_compatible = not equations
+    metrics_compatible = not equations or dry_run
 
     if metrics_compatible:
         try:
-            metrics_query = MetricsQueryBuilder(
-                params,
-                query=query,
-                selected_columns=selected_columns,
-                equations=[],
-                orderby=orderby,
-                # Auto fields will add things like id back in if enabled
-                auto_fields=False,
-                auto_aggregations=auto_aggregations,
-                use_aggregate_conditions=use_aggregate_conditions,
-                allow_metric_aggregates=allow_metric_aggregates,
-                functions_acl=functions_acl,
-                limit=limit,
-                offset=offset,
-            )
+            with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
+                metrics_query = MetricsQueryBuilder(
+                    params,
+                    query=query,
+                    selected_columns=selected_columns,
+                    equations=[],
+                    orderby=orderby,
+                    # Auto fields will add things like id back in if enabled
+                    auto_fields=False,
+                    auto_aggregations=auto_aggregations,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    functions_acl=functions_acl,
+                    limit=limit,
+                    offset=offset,
+                    dry_run=dry_run,
+                )
+                if dry_run:
+                    metrics_referrer = referrer + ".dry-run"
+                else:
+                    metrics_referrer = referrer + ".metrics-enhanced"
+                results = metrics_query.run_query(metrics_referrer)
+                if dry_run:
+                    # Query has to reach here to be considered compatible
+                    sentry_sdk.set_tag("query.mep_compatible", True)
+                    return
             with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-                # Getting the 0th result for now, will need to consolidate multiple query results later
-                results = metrics_query.run_query(referrer + ".metrics-enhanced")
                 results = discover.transform_results(
                     results, metrics_query.function_alias_map, {}, None
                 )
@@ -89,6 +98,9 @@ def query(
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
+
+    if dry_run:
+        return {}
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:

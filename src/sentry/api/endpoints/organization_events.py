@@ -65,23 +65,27 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         def data_fn(offset, limit):
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.query(
-                selected_columns=self.get_field_list(organization, request),
-                query=request.GET.get("query"),
-                params=params,
-                equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                auto_fields=True,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_snql=features.has(
+            query_details = {
+                "selected_columns": self.get_field_list(organization, request),
+                "query": request.GET.get("query"),
+                "params": params,
+                "equations": self.get_equation_list(organization, request),
+                "orderby": self.get_orderby(request),
+                "offset": offset,
+                "limit": limit,
+                "referrer": referrer,
+                "auto_fields": True,
+                "auto_aggregations": True,
+                "use_aggregate_conditions": True,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": features.has(
                     "organizations:discover-use-snql", organization, actor=request.user
                 ),
-            )
+            }
+            if not metrics_enhanced:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.query(dry_run=True, **query_details)
+            return dataset.query(**query_details)
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them

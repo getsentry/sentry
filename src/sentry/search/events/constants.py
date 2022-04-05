@@ -191,3 +191,22 @@ METRIC_DURATION_COLUMNS = [
     "measurements.ttfb.requesttime",
     "transaction.duration",
 ]
+# So we can dry run some queries to see how often they'd be compatible
+DRY_RUN_COLUMNS = {
+    METRIC_TOLERATED_TAG_KEY,
+    METRIC_SATISFIED_TAG_KEY,
+    METRIC_MISERABLE_TAG_KEY,
+    METRIC_TRUE_TAG_VALUE,
+    METRIC_FALSE_TAG_VALUE,
+    "environment",
+    "http.method",
+    "measurement_rating",
+    "organization_id",
+    "project.id",
+    "project_id",
+    "release",
+    "timestamp",
+    "transaciton.op",
+    "transaction",
+    "transaction.status",
+}

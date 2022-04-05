@@ -1,6 +1,7 @@
 import datetime
 import re
 from typing import List
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -1554,6 +1555,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
             use_aggregate_conditions=False,
         )
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.sentry_metrics.indexer.resolve", return_value=-1)
+    def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
+        query = MetricsQueryBuilder(
+            self.params,
+            # Include a tag:value search as well since that resolves differently
+            f"project:{self.project.slug} transaction:foo_transaction",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+                "p100(measurements.lcp)",
+                "apdex()",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+            dry_run=True,
+        )
+        query.run_query("test_query")
+        assert not mock_indexer.called
+        assert not mock_query.called
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
