@@ -142,21 +142,18 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderTemplates() {
-    const {organization} = this.props;
     return (
-      <Feature organization={organization} features={['dashboards-template']}>
-        <TemplateContainer>
-          {DASHBOARDS_TEMPLATES.map(dashboard => (
-            <TemplateCard
-              title={dashboard.title}
-              description={dashboard.description}
-              onPreview={() => this.onPreview(dashboard.id)}
-              onAdd={() => this.onAdd(dashboard)}
-              key={dashboard.title}
-            />
-          ))}
-        </TemplateContainer>
-      </Feature>
+      <TemplateContainer>
+        {DASHBOARDS_TEMPLATES.map(dashboard => (
+          <TemplateCard
+            title={dashboard.title}
+            description={dashboard.description}
+            onPreview={() => this.onPreview(dashboard.id)}
+            onAdd={() => this.onAdd(dashboard)}
+            key={dashboard.title}
+          />
+        ))}
+      </TemplateContainer>
     );
   }
 
@@ -284,21 +281,16 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <Title>{t('Dashboards')}</Title>
+                  <StyledTitle>{t('Dashboards')}</StyledTitle>
                   <ButtonBar gap={1.5}>
-                    <Feature
-                      organization={organization}
-                      features={['dashboards-template']}
-                    >
-                      <TemplateSwitch>
-                        {t('Show Templates')}
-                        <Switch
-                          isActive={showTemplates}
-                          size="lg"
-                          toggle={this.toggleTemplates}
-                        />
-                      </TemplateSwitch>
-                    </Feature>
+                    <TemplateSwitch>
+                      {t('Show Templates')}
+                      <Switch
+                        isActive={showTemplates}
+                        size="lg"
+                        toggle={this.toggleTemplates}
+                      />
+                    </TemplateSwitch>
                     <Button
                       data-test-id="dashboard-create"
                       onClick={event => {
@@ -323,6 +315,10 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledTitle = styled(Title)`
+  width: auto;
+`;
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;

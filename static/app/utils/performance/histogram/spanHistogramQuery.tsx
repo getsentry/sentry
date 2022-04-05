@@ -45,6 +45,7 @@ function getHistogramRequestPayload(props: RequestProps) {
   const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
     'sort',
     'per_page',
+    'cursor',
   ]);
   const apiPayload = {...baseApiPayload, ...additionalApiPayload};
   return apiPayload;
