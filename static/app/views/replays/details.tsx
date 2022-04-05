@@ -48,7 +48,7 @@ const EventHeader = ({event}: {event: Event}) => {
   return (
     <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
-        <EventOrGroupTitle data={event} /> <FeatureBadge type="beta" />
+        <EventOrGroupTitle data={event} /> <FeatureBadge type="alpha" />
       </TitleWrapper>
       {message && (
         <MessageWrapper>
@@ -79,14 +79,21 @@ class ReplayDetails extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {
+      location,
+      router,
+      route,
+      organization,
+      params: {eventSlug, orgId},
+    } = this.props;
     return (
       <ReplayLoader
-        eventSlug={this.props.params.eventSlug}
-        location={this.props.location}
-        orgId={this.props.params.orgId}
-        organization={this.props.organization}
-        router={this.props.router}
-        route={this.props.route}
+        eventSlug={eventSlug}
+        location={location}
+        orgId={orgId}
+        organization={organization}
+        router={router}
+        route={route}
       />
     );
   }
