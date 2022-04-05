@@ -43,13 +43,11 @@ export function FilterResultsStep({
   widgetType,
   selection,
 }: Props) {
-  const blurTimeoutRef = useRef<number | null>(null);
+  const blurTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
-      if (blurTimeoutRef.current) {
-        window.clearTimeout(blurTimeoutRef.current);
-      }
+      window.clearTimeout(blurTimeoutRef.current);
     };
   }, []);
 
@@ -63,7 +61,7 @@ export function FilterResultsStep({
         // handler from firing if it is within 200ms, ie from clicking an
         // autocomplete value.
         blurTimeoutRef.current = window.setTimeout(() => {
-          blurTimeoutRef.current = null;
+          blurTimeoutRef.current = undefined;
         }, 200);
 
         const newQuery: WidgetQuery = {
@@ -85,7 +83,6 @@ export function FilterResultsStep({
             ...queries[queryIndex],
             conditions: field,
           };
-
           onQueryChange(queryIndex, newQuery);
         }
       };

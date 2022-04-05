@@ -11,6 +11,7 @@ import MockDate from 'mockdate';
 import * as PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
+// eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 

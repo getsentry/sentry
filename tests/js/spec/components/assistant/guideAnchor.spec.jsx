@@ -140,7 +140,7 @@ describe('GuideAnchor', function () {
     GuideActions.fetchSucceeded(serverGuide);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
     GuideActions.setForceHide(true);
-    expect(await screen.findByText("Let's Get This Over With")).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
     GuideActions.setForceHide(false);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
   });

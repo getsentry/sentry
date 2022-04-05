@@ -43,7 +43,7 @@ type Props = {
 const Code = ({children, className, label}: Props) => {
   const theme = useTheme();
   const codeRef: RefObject<HTMLElement> = createRef();
-  const copyTimeoutRef = useRef<number | null>(null);
+  const copyTimeoutRef = useRef<number | undefined>(undefined);
 
   const [copied, setCopied] = useState(false);
 

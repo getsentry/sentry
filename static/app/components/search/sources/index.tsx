@@ -1,7 +1,7 @@
 import * as React from 'react';
 import flatten from 'lodash/flatten';
 
-import {Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import {Result} from './types';
 
