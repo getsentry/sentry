@@ -40,11 +40,9 @@ type Props = {
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
   const [clientState, setClientState] = useState<ClientState | null>(null);
-  const selectedProjectsSet = clientState
-    ? new Set(
-        clientState.selectedPlatforms.map(platform => clientState.platforms[platform])
-      )
-    : new Set();
+  const selectedProjectsSet = new Set(
+    clientState?.selectedPlatforms.map(platform => clientState.platforms[platform]) || []
+  );
   useEffect(() => {
     fetchClientState(api, organization.slug).then(setClientState);
   }, []);
