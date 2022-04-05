@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
+import {withConfig} from 'sentry/stores/configStore/withConfig';
 import {Config, Organization, Scope} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
-import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (

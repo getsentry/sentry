@@ -7,10 +7,10 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import Field from 'sentry/components/forms/field';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {withConfig} from 'sentry/stores/configStore/withConfig';
 import space from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import withConfig from 'sentry/utils/withConfig';
 import ThresholdControl from 'sentry/views/alerts/incidentRules/triggers/thresholdControl';
 
 import {isSessionAggregate} from '../../utils';
