@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -25,9 +25,9 @@ import {AlertRuleStatus, Incident} from '../../types';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
+  SELECTOR_RELATIVE_PERIODS,
   TIME_WINDOWS,
   TimePeriodType,
-  SELECTOR_RELATIVE_PERIODS,
 } from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
@@ -92,21 +92,10 @@ export default class DetailsBody extends React.Component<Props> {
     const eventType = isCrashFreeAlert(dataset)
       ? null
       : extractEventTypeFilterFromRule(rule);
-    const queryWithEventType = [eventType, query].join(' ').split(' ');
-
-    return queryWithEventType;
+    return [eventType, query].join(' ').split(' ');
   }
 
-  handleTimePeriodChange = (value: string) => {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
-
-  handleTimePeriodChangeNew = (datetime: ChangeData) => {
+  handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
     if (start && end) {
@@ -186,7 +175,7 @@ export default class DetailsBody extends React.Component<Props> {
               start={(timePeriod.custom && timePeriod.start) || null}
               end={(timePeriod.custom && timePeriod.end) || null}
               utc={null}
-              onUpdate={this.handleTimePeriodChangeNew}
+              onUpdate={this.handleTimePeriodChange}
               relativeOptions={SELECTOR_RELATIVE_PERIODS}
               hideUTCPicker
             />
