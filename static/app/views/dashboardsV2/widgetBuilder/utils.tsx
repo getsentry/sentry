@@ -49,7 +49,7 @@ export const displayTypes = {
   [DisplayType.TOP_N]: t('Top 5 Events'),
 };
 
-export type ValidationError = {
+type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
 
