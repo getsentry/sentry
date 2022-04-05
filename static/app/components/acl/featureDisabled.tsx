@@ -176,6 +176,10 @@ const HelpDescription = styled('div')`
     margin-bottom: 0;
     white-space: pre;
   }
+
+  button {
+    margin-bottom: ${space(0.5)};
+  }
 `;
 
 const AlertWrapper = styled('div')`
