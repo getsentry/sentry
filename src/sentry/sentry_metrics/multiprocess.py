@@ -20,6 +20,7 @@ from typing import (
     Union,
 )
 
+import sentry_sdk
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, KafkaProducer
 from arroyo.processing import StreamProcessor
@@ -406,6 +407,7 @@ def process_messages(
     with metrics.timer("metrics_consumer.bulk_record"):
         mapping = indexer.bulk_record(org_strings)
 
+    sentry_sdk.set_extra("mapping", mapping)
     new_messages: List[Message[KafkaPayload]] = []
 
     with metrics.timer("process_messages.reconstruct_messages"):
@@ -419,9 +421,14 @@ def process_messages(
 
             new_tags: MutableMapping[int, int] = {}
 
+            sentry_sdk.set_extra("orginal_tags", tags)
+
             for k, v in tags.items():
-                tag_mappings = mapping.get(org_id, {})
+                tag_mappings: MutableMapping[str, int] = {}
+                tag_mappings.update(mapping.get(org_id, {}))
                 tag_mappings.update(mapping.get(0, {}))
+
+                sentry_sdk.set_extra("tag_mappings", tag_mappings)
 
                 if len(tag_mappings) > 0:
                     try:
