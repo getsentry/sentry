@@ -30,7 +30,7 @@ function makeCommitterStoreKey({
   return `${organizationSlug} ${projectSlug} ${eventId}`;
 }
 
-export function fetchCommitters(
+ function fetchCommitters(
   api: Client,
   params: {eventId: string; organizationSlug: string; projectSlug: string}
 ): Promise<{committers: Committer[]}> {
