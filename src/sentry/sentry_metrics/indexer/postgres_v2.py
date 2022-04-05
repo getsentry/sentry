@@ -250,6 +250,8 @@ class PGStringIndexerV2(Service):
         new_records = []
         for write_pair in db_write_keys.as_tuples():
             organization_id, string = write_pair
+            if string in SHARED_STRINGS:
+                assert organization_id == 0
             new_records.append(
                 StringIndexerTable(organization_id=int(organization_id), string=string)
             )
