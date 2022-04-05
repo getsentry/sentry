@@ -40,6 +40,7 @@ export type TeamInsightsEventParameters = {
       | 'subscribed'
       | 'shared'
       | 'discarded'
+      | 'open_in_discover'
       | ResolutionStatus;
   };
   'issue_details.viewed': IssueDetailsWithAlert;
