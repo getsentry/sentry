@@ -184,7 +184,7 @@ describe('OrganizationMembersList', function () {
 
     // Confirm modal
     const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    modal.find('Button[priority="danger"]').simulate('click');
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -216,7 +216,7 @@ describe('OrganizationMembersList', function () {
 
     // Confirm modal
     const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    modal.find('Button[priority="danger"]').simulate('click');
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -243,7 +243,7 @@ describe('OrganizationMembersList', function () {
 
     // Confirm modal
     const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    modal.find('Button[priority="danger"]').simulate('click');
     await tick();
 
     expect(deleteMock).toHaveBeenCalled();
