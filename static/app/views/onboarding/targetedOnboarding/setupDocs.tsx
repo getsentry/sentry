@@ -46,9 +46,7 @@ function SetupDocs({organization, projects, search}: Props) {
       )
     : new Set();
   useEffect(() => {
-    fetchClientState(api, organization.slug).then((lastState: ClientState) => {
-      setClientState(lastState);
-    });
+    fetchClientState(api, organization.slug).then(setClientState);
   }, []);
 
   const [hasError, setHasError] = useState(false);
@@ -156,7 +154,7 @@ function SetupDocs({organization, projects, search}: Props) {
 
   const loadingError = (
     <LoadingError
-      message={t('Failed to load documentation for the %s platform.', project?.platform)}
+      message={t('Failed to load documentation for the %s platform.', project.platform)}
       onRetry={fetchData}
     />
   );
