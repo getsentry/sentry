@@ -112,7 +112,11 @@ function WidgetQueryFields({
   const filterPrimaryOptions = option => {
     if (widgetType === WidgetType.METRICS) {
       if (displayType === DisplayType.TABLE) {
-        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
+        return [
+          FieldValueKind.FUNCTION,
+          FieldValueKind.TAG,
+          FieldValueKind.NUMERIC_METRICS,
+        ].includes(option.value.kind);
       }
       if (displayType === DisplayType.TOP_N) {
         return option.value.kind === FieldValueKind.TAG;
@@ -132,11 +136,15 @@ function WidgetQueryFields({
       }
     }
 
-    return option.value.kind === FieldValueKind.FUNCTION;
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
   };
 
   const filterMetricsOptions = option => {
-    return option.value.kind === FieldValueKind.FUNCTION;
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
   };
 
   const filterAggregateParameters =

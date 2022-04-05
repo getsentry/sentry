@@ -66,6 +66,12 @@ export function MetricsMeta(additionalMeta = []) {
       operations: ['count_unique'],
       unit: null,
     },
+    {
+      name: 'session.crash_free_rate',
+      type: 'numeric',
+      operations: [],
+      unit: null,
+    },
     ...additionalMeta,
   ];
 }
