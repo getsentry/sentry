@@ -4,6 +4,8 @@ import {mount, shallow as enzymeShallow} from 'enzyme'; // eslint-disable-line n
 
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import configStore from 'sentry/stores/configStore';
+import {ConfigProvider} from 'sentry/stores/configStore/configProvider';
 import {lightTheme} from 'sentry/utils/theme';
 
 /**
@@ -11,14 +13,21 @@ import {lightTheme} from 'sentry/utils/theme';
  * As we are migrating our tests to React Testing Library,
  * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/render` instead.
  */
-export function mountWithTheme(tree, opts) {
-  const WrappingThemeProvider = props => (
+
+const BaseWrappingThemeProviders = props => {
+  return (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={lightTheme}>{props.children}</ThemeProvider>
+      <ThemeProvider theme={lightTheme}>
+        <ConfigProvider initialValue={props.config ?? configStore.config}>
+          {props.children}
+        </ConfigProvider>
+      </ThemeProvider>
     </CacheProvider>
   );
+};
 
-  return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});
+export function mountWithTheme(tree, opts) {
+  return mount(tree, {wrappingComponent: BaseWrappingThemeProviders, ...opts});
 }
 
 /**

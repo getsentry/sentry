@@ -175,13 +175,18 @@ describe('Feature', function () {
       ConfigStore.config = {
         features: new Set(['organizations:create']),
       };
+
       render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
-        context: routerContext,
+        context: {
+          ...routerContext,
+          organization: TestStubs.Organization({features: ['organizations:create']}),
+        },
+        organization: TestStubs.Organization({features: ['organizations:create']}),
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        organization,
+        organization: TestStubs.Organization({features: ['organizations:create']}),
         project,
         features: ['organizations:create'],
         renderDisabled: false,

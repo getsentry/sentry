@@ -6,6 +6,9 @@ import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-li
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import GlobalModal from 'sentry/components/globalModal';
+import configStore from 'sentry/stores/configStore';
+import {ConfigProvider} from 'sentry/stores/configStore/configProvider';
+import type {Config} from 'sentry/types';
 import {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -13,6 +16,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 type ProviderOptions = {
+  config?: Config;
   context?: Record<string, any>;
   organization?: Organization;
 };
@@ -33,16 +37,19 @@ function createProvider(contextDefs: Record<string, any>) {
   };
 }
 
-function makeAllTheProviders({context, organization}: ProviderOptions) {
+function makeAllTheProviders({context, organization, config}: ProviderOptions) {
   const ContextProvider = context ? createProvider(context) : Fragment;
+
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
           <ThemeProvider theme={lightTheme}>
-            <OrganizationContext.Provider value={organization ?? null}>
-              {children}
-            </OrganizationContext.Provider>
+            <ConfigProvider initialValue={config ?? configStore.config}>
+              <OrganizationContext.Provider value={organization ?? null}>
+                {children}
+              </OrganizationContext.Provider>
+            </ConfigProvider>
           </ThemeProvider>
         </CacheProvider>
       </ContextProvider>
