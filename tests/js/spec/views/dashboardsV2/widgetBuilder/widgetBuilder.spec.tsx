@@ -1143,6 +1143,28 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  it('does not wipe column changes when filters are modified', async function () {
+    jest.useFakeTimers();
+
+    // widgetIndex: undefined means creating a new widget
+    renderTestComponent({params: {widgetIndex: undefined}});
+
+    userEvent.click(await screen.findByLabelText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Triggering the onBlur of the filter should not error
+    userEvent.click(
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    );
+    userEvent.keyboard('{enter}');
+    act(() => {
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
+    });
+
+    expect(await screen.findAllByText('project')).toHaveLength(2);
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
