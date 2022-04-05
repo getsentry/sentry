@@ -8,7 +8,12 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
+from sentry.models import (
+    AuditLogEntryEvent,
+    OrganizationMemberTeam,
+    SentryAppComponent,
+    SentryAppInstallation,
+)
 from sentry.models.actor import ACTOR_TYPES
 
 
@@ -73,6 +78,15 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                     status=403,
                 )
             alert_rule = serializer.save()
+
+            self.create_audit_entry(
+                request=request,
+                organization=alert_rule.organization,
+                target_object=alert_rule.id,
+                event=AuditLogEntryEvent.ALERT_RULE_EDIT,
+                data=alert_rule.get_audit_log_data(),
+            )
+
             return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -87,8 +101,18 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 },
                 status=403,
             )
+
+        self.create_audit_entry(
+            request=request,
+            organization=alert_rule.organization,
+            target_object=alert_rule.id,
+            event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+            data=alert_rule.get_audit_log_data(),
+        )
+
         try:
             delete_alert_rule(alert_rule)
+
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(

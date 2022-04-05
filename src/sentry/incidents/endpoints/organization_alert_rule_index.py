@@ -20,7 +20,14 @@ from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
+from sentry.models import (
+    AuditLogEntryEvent,
+    OrganizationMemberTeam,
+    Project,
+    Rule,
+    RuleStatus,
+    Team,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
 
@@ -183,6 +190,14 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
+
+            self.create_audit_entry(
+                request=request,
+                organization=alert_rule.organization,
+                target_object=alert_rule.id,
+                event=AuditLogEntryEvent.ALERT_RULE_ADD,
+                data=alert_rule.get_audit_log_data(),
+            )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

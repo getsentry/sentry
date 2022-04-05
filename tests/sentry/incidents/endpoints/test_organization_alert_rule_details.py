@@ -15,7 +15,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.models import OrganizationMemberTeam
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -175,6 +175,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data == serialize(alert_rule)
         assert resp.data["name"] == "what"
         assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_EDIT, target_object=resp.data["id"]
+        )
+        assert len(audit_log_entry) == 1
 
     def test_sentry_app(self):
         self.create_member(
@@ -499,6 +504,11 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_REMOVE, target_object=self.alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
 
     def test_snapshot_and_create_new_with_same_name(self):
         with self.tasks():

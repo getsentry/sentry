@@ -12,6 +12,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.integrations.slack import tasks
+from sentry.models import AuditLogEntryEvent
 
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
@@ -37,6 +38,14 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             partial=True,
         )
         if serializer.is_valid():
+            self.create_audit_entry(
+                request=request,
+                organization=alert_rule.organization,
+                target_object=alert_rule.id,
+                event=AuditLogEntryEvent.ALERT_RULE_EDIT,
+                data=alert_rule.get_audit_log_data(),
+            )
+
             if get_slack_actions_with_async_lookups(project.organization, request.user, data):
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
@@ -57,6 +66,13 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
     def delete(self, request: Request, project, alert_rule) -> Response:
         try:
+            self.create_audit_entry(
+                request=request,
+                organization=alert_rule.organization,
+                target_object=alert_rule.id,
+                event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+                data=alert_rule.get_audit_log_data(),
+            )
             delete_alert_rule(alert_rule, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
