@@ -105,11 +105,9 @@ describe('TraceDetailsContent', () => {
       const errorContainer = errorText.parentElement;
       expect(errorContainer).not.toBeNull();
 
-      if (errorContainer) {
-        expect(
-          within(errorContainer).getByText('This is a test error')
-        ).toBeInTheDocument();
-      }
+      expect(
+        within(errorContainer!).getByText('This is a test error')
+      ).toBeInTheDocument();
     });
   });
 });
