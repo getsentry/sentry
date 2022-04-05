@@ -177,11 +177,12 @@ describe('Feature', function () {
       };
 
       render(<Feature features={['organizations:create']}>{childrenMock}</Feature>, {
-        context: {
-          ...routerContext,
-          organization: TestStubs.Organization({features: ['organizations:create']}),
-        },
-        organization: TestStubs.Organization({features: ['organizations:create']}),
+        context: TestStubs.routerContext([
+          {
+            organization: TestStubs.Organization({features: ['organizations:create']}),
+            project,
+          },
+        ]),
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
