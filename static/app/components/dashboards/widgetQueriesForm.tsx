@@ -187,6 +187,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
       widgetType = WidgetType.DISCOVER,
     } = this.props;
+
     const isMetrics = widgetType === WidgetType.METRICS;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);

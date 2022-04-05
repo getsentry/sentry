@@ -28,6 +28,7 @@ interface Props {
   onChange: (aggregates: QueryFieldValue[]) => void;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
+  noFieldsMessage?: string;
 }
 
 export function YAxisSelector({
@@ -37,6 +38,7 @@ export function YAxisSelector({
   fieldOptions,
   onChange,
   errors,
+  noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
   const isMetricWidget = widgetType === WidgetType.METRICS;
@@ -87,6 +89,15 @@ export function YAxisSelector({
   const doNotValidateYAxis = displayType === DisplayType.BIG_NUMBER;
 
   function filterPrimaryOptions(option: FieldValueOption) {
+    if (widgetType === WidgetType.METRICS) {
+      if (displayType === DisplayType.TABLE) {
+        return [FieldValueKind.FUNCTION, FieldValueKind.TAG].includes(option.value.kind);
+      }
+      if (displayType === DisplayType.TOP_N) {
+        return option.value.kind === FieldValueKind.TAG;
+      }
+    }
+
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -98,16 +109,6 @@ export function YAxisSelector({
         // If a function returns a specific type, then validate it.
         return isLegalYAxisType(primaryOutput);
       }
-    }
-
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
     }
 
     return option.value.kind === FieldValueKind.FUNCTION;
@@ -185,6 +186,7 @@ export function YAxisSelector({
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters(fieldValue)}
             otherColumns={aggregates}
+            noFieldsMessage={noFieldsMessage}
           />
           {aggregates.length > 1 &&
             (canDelete || fieldValue.kind === FieldValueKind.EQUATION) && (

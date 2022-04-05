@@ -131,7 +131,8 @@ describe('WidgetQueriesForm', function () {
             orderby: field,
           },
         ]}
-      />
+      />,
+      {organization}
     );
     userEvent.click(screen.getByText('sum(sentry.sessions.session) asc'));
     expect(screen.getByText('sum(sentry.sessions.session) desc')).toBeInTheDocument();

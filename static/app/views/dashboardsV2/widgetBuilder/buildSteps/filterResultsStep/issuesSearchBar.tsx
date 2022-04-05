@@ -19,7 +19,7 @@ interface Props {
   searchSource?: string;
 }
 
-function IssuesSearchBar({
+function IssuesSearchBarContainer({
   tags,
   onSearch,
   onBlur,
@@ -57,7 +57,9 @@ function IssuesSearchBar({
   );
 }
 
-export default withIssueTags(IssuesSearchBar);
+const IssuesSearchBar = withIssueTags(IssuesSearchBarContainer);
+
+export {IssuesSearchBar};
 
 const StyledIssueListSearchBar = styled(IssueListSearchBar)`
   flex-grow: 1;

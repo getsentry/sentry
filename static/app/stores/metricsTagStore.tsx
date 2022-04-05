@@ -7,23 +7,24 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
+  /**
+   * This is state for when tags fetched from the API are loaded
+   */
+  loaded: boolean;
   metricsTags: MetricsTagCollection;
 };
 
-type InternalDefinition = {
-  metricsTags: MetricsTagCollection;
-};
-
-interface MetricsTagStoreDefinition
-  extends InternalDefinition,
-    CommonStoreDefinition<State> {
+interface MetricsTagStoreDefinition extends CommonStoreDefinition<State> {
   onLoadSuccess(data: MetricsTag[]): void;
   reset(): void;
 }
 
 const storeConfig: MetricsTagStoreDefinition = {
   unsubscribeListeners: [],
-  metricsTags: {},
+  state: {
+    metricsTags: {},
+    loaded: false,
+  },
 
   init() {
     this.unsubscribeListeners.push(
@@ -32,13 +33,15 @@ const storeConfig: MetricsTagStoreDefinition = {
   },
 
   reset() {
-    this.metricsTags = {};
-    this.trigger(this.metricsTags);
+    this.state = {
+      metricsTags: {},
+      loaded: false,
+    };
+    this.trigger(this.state);
   },
 
   getState() {
-    const {metricsTags} = this;
-    return {metricsTags};
+    return this.state;
   },
 
   onLoadSuccess(data) {
@@ -50,8 +53,12 @@ const storeConfig: MetricsTagStoreDefinition = {
       return acc;
     }, {});
 
-    this.metricsTags = {...this.metricsTags, ...newTags};
-    this.trigger(this.metricsTags);
+    this.state = {
+      metricsTags: {...this.state.metricsTags, ...newTags},
+      loaded: true,
+    };
+
+    this.trigger(this.state);
   },
 };
 

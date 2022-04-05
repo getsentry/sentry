@@ -69,6 +69,7 @@ export function fetchOrganizationTags(
     method: 'GET',
     query,
   });
+
   promise.then(tagFetchSuccess, TagActions.loadTagsError);
 
   return promise;
