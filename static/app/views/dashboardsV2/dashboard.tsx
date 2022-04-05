@@ -176,8 +176,11 @@ class Dashboard extends Component<Props, State> {
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
+
+      if (organization.features.includes('dashboards-metrics')) {
+        fetchMetricsFields(api, organization.slug, selection.projects);
+        fetchMetricsTags(api, organization.slug, selection.projects);
+      }
     }
   }
 
