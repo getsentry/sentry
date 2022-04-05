@@ -30,7 +30,7 @@ type Props = {
   /**
    * A custom message to display. Defaults to a generic disabled message.
    */
-  message: string;
+  message?: string;
   /**
    * Render the disabled message within a warning Alert. A custom Alert
    * component may be provided.
