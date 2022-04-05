@@ -89,11 +89,15 @@ class KeyResult:
 
 class KeyResults:
     def __init__(self) -> None:
+        self.key_results: Sequence[KeyResult] = []
         self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
 
     def add_key_results(self, key_results: Sequence[KeyResult]) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
+
+    def get_key_results(self) -> Sequence[KeyResult]:
+        return self.key_results
 
     def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
         """
@@ -175,8 +179,8 @@ class PGStringIndexerV2(Service):
         Then the work to get the ids (either from cache, db, etc)
             .... # work to add results to KeyResults()
 
-        Those results will be added to `mapped_results`
-            key_results.get_mapped_results()
+        Those results will also be added to the final mapped_results
+            mapped_results = KeyResults()
 
         And any remaining unmapped keys get turned into a new
         KeyCollection for the next step:
@@ -204,26 +208,28 @@ class PGStringIndexerV2(Service):
         )
 
         cache_key_results = KeyResults()
-        cache_key_results.add_key_results(
-            [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None]
-        )
+        cache_key_results_list = [
+            KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None
+        ]
+        cache_key_results.add_key_results(cache_key_results_list)
 
-        mapped_results = cache_key_results.get_mapped_results()
+        mapped_results = KeyResults()
+        mapped_results.add_key_results(cache_key_results_list)
+
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_read_keys.size == 0:
-            return mapped_results
+            return mapped_results.get_mapped_results()
 
         db_read_key_results = KeyResults()
-        db_read_key_results.add_key_results(
-            [
-                KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(db_read_keys)
-            ]
-        )
+        db_read_key_results_list = [
+            KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
+            for db_obj in self._get_db_records(db_read_keys)
+        ]
+        db_read_key_results.add_key_results(db_read_key_results_list)
         new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
 
-        mapped_results.update(db_read_key_results.get_mapped_results())
+        mapped_results.add_key_results(db_read_key_results_list)
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
         metrics.incr(
@@ -239,7 +245,7 @@ class PGStringIndexerV2(Service):
 
         if db_write_keys.size == 0:
             indexer_cache.set_many(new_results_to_cache)
-            return mapped_results
+            return mapped_results.get_mapped_results()
 
         new_records = []
         for write_pair in db_write_keys.as_tuples():
@@ -255,19 +261,17 @@ class PGStringIndexerV2(Service):
             StringIndexerTable.objects.bulk_create(new_records, ignore_conflicts=True)
 
         db_write_key_results = KeyResults()
-        db_write_key_results.add_key_results(
-            [
-                KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(db_write_keys)
-            ]
-        )
+        db_write_key_results_list = [
+            KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
+            for db_obj in self._get_db_records(db_write_keys)
+        ]
+        db_write_key_results.add_key_results(db_write_key_results_list)
 
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
         indexer_cache.set_many(new_results_to_cache)
 
-        mapped_results.update(db_write_key_results.get_mapped_results())
-
-        return mapped_results
+        mapped_results.add_key_results(db_write_key_results_list)
+        return mapped_results.get_mapped_results()
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
