@@ -103,43 +103,45 @@ class FeatureDisabled extends React.Component<Props, State> {
   renderHelp() {
     const {features, featureName, alert} = this.props;
 
-    return [
-      <HelpText>
-        {tct(
-          `Enable this feature on your sentry installation by adding the
+    return (
+      <React.Fragment>
+        <HelpText>
+          {tct(
+            `Enable this feature on your sentry installation by adding the
               following configuration into your [configFile:sentry.conf.py].
               See [configLink:the configuration documentation] for more
               details.`,
-          {
-            configFile: <code />,
-            configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
-          }
-        )}
-      </HelpText>,
-      <Clipboard hideUnsupported value={installText(features, featureName)}>
-        <Button
-          borderless
-          size="xsmall"
+            {
+              configFile: <code />,
+              configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
+            }
+          )}
+        </HelpText>
+        <Clipboard hideUnsupported value={installText(features, featureName)}>
+          <Button
+            borderless
+            size="xsmall"
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            icon={<IconCopy size="xs" />}
+          >
+            {t('Copy to Clipboard')}
+          </Button>
+        </Clipboard>
+        <Pre
+          insideAlert={!!alert}
           onClick={e => {
             e.stopPropagation();
             e.preventDefault();
+            selectText(e.target as HTMLElement);
           }}
-          icon={<IconCopy size="xs" />}
         >
-          {t('Copy to Clipboard')}
-        </Button>
-      </Clipboard>,
-      <Pre
-        insideAlert={!!alert}
-        onClick={e => {
-          e.stopPropagation();
-          e.preventDefault();
-          selectText(e.target as HTMLElement);
-        }}
-      >
-        <code>{installText(features, featureName)}</code>
-      </Pre>,
-    ];
+          <code>{installText(features, featureName)}</code>
+        </Pre>
+      </React.Fragment>
+    );
   }
 
   render() {
@@ -152,7 +154,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning" expand={this.renderHelp()}>
+      <AlertComponent type="warning" showIcon expand={this.renderHelp()}>
         {this.renderContent()}
       </AlertComponent>
     );
