@@ -9,14 +9,12 @@ import {ConfigProvider} from './stores/configStore/configProvider';
 
 function Main() {
   return (
-    <ThemeAndStyleProvider>
-      {LegacyConfigStore.get('demoMode') && <DemoHeader />}
-      <Router history={browserHistory}>
-        <ConfigProvider initialValue={LegacyConfigStore.config} bridgeReflux>
-          {routes()}
-        </ConfigProvider>
-      </Router>
-    </ThemeAndStyleProvider>
+    <ConfigProvider initialValue={LegacyConfigStore.config}>
+      <ThemeAndStyleProvider>
+        {LegacyConfigStore.get('demoMode') && <DemoHeader />}
+        <Router history={browserHistory}>{routes()}</Router>
+      </ThemeAndStyleProvider>
+    </ConfigProvider>
   );
 }
 
