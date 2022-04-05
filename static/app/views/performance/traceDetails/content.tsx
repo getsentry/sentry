@@ -181,7 +181,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
-                      {error}
+                      {error: error.message}
                     )}
                   </ErrorLabel>
                 </Alert>
