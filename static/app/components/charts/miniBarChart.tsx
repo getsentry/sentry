@@ -189,9 +189,9 @@ function MiniBarChart({
         },
       };
 
-  const chartOptions = {
+  const chartOptions: Omit<BarChartProps, 'series'> = {
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       hideDelay,
       valueFormatter: tooltipFormatter
         ? (value: number) => tooltipFormatter(value)

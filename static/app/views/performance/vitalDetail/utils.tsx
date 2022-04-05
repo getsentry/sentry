@@ -2,6 +2,7 @@ import * as React from 'react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {LineChartProps} from 'sentry/components/charts/lineChart';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -194,7 +195,7 @@ export function getVitalChartDefinitions({
     selected: getSeriesSelection(location),
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '5px',
       right: '10px',
@@ -205,7 +206,7 @@ export function getVitalChartDefinitions({
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) =>
         tooltipFormatter(value, vital === WebVital.CLS ? seriesName : yAxis),
     },

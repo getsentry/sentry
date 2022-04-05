@@ -10,13 +10,13 @@ import BaseChart from './baseChart';
 
 type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
-export type LineChartSeries = Series &
+export type HeatmapSeries = Series &
   Omit<HeatmapSeriesOption, 'data' | 'name'> & {
     dataArray?: HeatmapSeriesOption['data'];
   };
 
 type Props = Omit<ChartProps, 'series'> & {
-  series: LineChartSeries[];
+  series: HeatmapSeries[];
   visualMaps: VisualMapComponentOption[];
   seriesOptions?: HeatmapSeriesOption;
 };
