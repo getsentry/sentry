@@ -4,7 +4,7 @@ function isBreadcrumbs(entry: Entry) {
   return entry.type === EntryType.BREADCRUMBS;
 }
 
-export default function mergeBreadcrumbsEntries(events: Event[]) {
+export default function mergeBreadcrumbsEntries(events: Event[]): Entry {
   const allValues = events
     .flatMap(event => event.entries.filter(isBreadcrumbs))
     .flatMap(entry => entry.data.values)
@@ -16,5 +16,5 @@ export default function mergeBreadcrumbsEntries(events: Event[]) {
     data: {
       values: Array.from(deduped).map(value => JSON.parse(value)),
     },
-  } as Entry;
+  };
 }
