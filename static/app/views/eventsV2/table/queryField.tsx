@@ -338,7 +338,7 @@ class QueryField extends React.Component<Props> {
       }
     }
 
-    if (fieldValue?.kind === 'field' || fieldValue.kind === 'calculatedField') {
+    if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
