@@ -299,6 +299,9 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, project, timePeriod, query} = this.props;
+    const transactionFields = ['title', 'count()', 'count_unique(user)'];
+    const errorFields = ['issue', 'title', 'count()', 'count_unique(user)'];
+
     const ctaOpts = {
       orgSlug: orgId,
       projects: [project],
@@ -306,7 +309,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
-      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
+      fields: rule.dataset === 'transactions' ? transactionFields : errorFields,
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
