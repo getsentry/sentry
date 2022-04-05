@@ -370,12 +370,10 @@ describe('EventCauseEmpty', () => {
       url: `/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/committers/`,
       body: {
         committers: [
-          [
-            {
-              commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
-              author: TestStubs.CommitAuthor(),
-            },
-          ],
+          {
+            commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
+            author: TestStubs.CommitAuthor(),
+          },
         ],
       },
     });
