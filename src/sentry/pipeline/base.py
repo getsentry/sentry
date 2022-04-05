@@ -125,7 +125,8 @@ class Pipeline(abc.ABC):
         providers should inherit, or customize the provider method called to
         retrieve the views.
         """
-        return self.provider.get_pipeline_views()
+        views: Sequence[View] = self.provider.get_pipeline_views()
+        return views
 
     def is_valid(self) -> bool:
         _is_valid: bool = self.state.is_valid() and self.state.signature == self.signature

@@ -488,14 +488,16 @@ class AccountConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
         account_id = request.POST.get("account")
         if account_id is not None:
-            state_accounts: Sequence[Mapping[str, Any]] = pipeline.fetch_state(key="accounts")
-            account = self.get_account_from_id(account_id, state_accounts)
+            state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
+                key="accounts"
+            )
+            account = self.get_account_from_id(account_id, state_accounts or [])
             if account is not None:
                 pipeline.bind_state("account", account)
                 return pipeline.next_step()
 
-        state: Mapping[str, Any] = pipeline.fetch_state(key="identity")
-        access_token = state["data"]["access_token"]
+        state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
+        access_token = (state or {}).get("data", {}).get("access_token")
         user = get_user_info(access_token)
 
         accounts = self.get_accounts(access_token, user["uuid"])
