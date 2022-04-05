@@ -15,8 +15,8 @@ from sentry.models import Organization
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
+from ..integrations import IntegrationProvider
 from .constants import INTEGRATION_EXPIRATION_TTL
-from .provider import PipelineProvider
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 
@@ -85,8 +85,8 @@ class Pipeline(abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str) -> PipelineProvider:
-        provider: PipelineProvider = self.provider_manager.get(provider_key)
+    def get_provider(self, provider_key: str) -> IntegrationProvider:
+        provider: IntegrationProvider = self.provider_manager.get(provider_key)
         return provider
 
     def __init__(

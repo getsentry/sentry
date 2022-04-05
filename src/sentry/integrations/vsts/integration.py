@@ -15,7 +15,7 @@ from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.vsts import get_user_info
+from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -486,17 +486,15 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
 class AccountConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
-        if "account" in request.POST:
-            account_id = request.POST.get("account")
-            accounts = pipeline.fetch_state(key="accounts")
-            account = self.get_account_from_id(account_id, accounts)
+        account_id = request.POST.get("account")
+        if account_id is not None:
+            state_accounts: Sequence[Mapping[str, Any]] = pipeline.fetch_state(key="accounts")
+            account = self.get_account_from_id(account_id, state_accounts)
             if account is not None:
-                state = pipeline.fetch_state(key="identity")
-                access_token = state["data"]["access_token"]
                 pipeline.bind_state("account", account)
                 return pipeline.next_step()
 
-        state = pipeline.fetch_state(key="identity")
+        state: Mapping[str, Any] = pipeline.fetch_state(key="identity")
         access_token = state["data"]["access_token"]
         user = get_user_info(access_token)
 
@@ -504,7 +502,7 @@ class AccountConfigView(PipelineView):
         logger.info(
             "vsts.get_accounts",
             extra={
-                "organization_id": pipeline.organization.id,
+                "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
                 "accounts": accounts,
             },
