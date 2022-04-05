@@ -183,16 +183,10 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
 
 def failure_rate_transaction(failure_count_snql, tx_count_snql, alias=None):
     return Function(
-        "multiply",
-        [
-            Function(
-                "divide",
-                # Clickhouse can manage divisions by 0, see:
-                # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions/#dividea-b-a-b-operator
-                [failure_count_snql, tx_count_snql],
-            ),
-            100,
-        ],
+        "divide",
+        # Clickhouse can manage divisions by 0, see:
+        # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions/#dividea-b-a-b-operator
+        [failure_count_snql, tx_count_snql],
         alias=alias,
     )
 

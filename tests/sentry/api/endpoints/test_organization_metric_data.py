@@ -2051,8 +2051,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         group = response.data["groups"][0]
         assert group["by"] == {}
-        assert group["totals"] == {"transaction.failure_rate": 25.0}
-        assert group["series"] == {"transaction.failure_rate": [25.0]}
+        assert group["totals"] == {"transaction.failure_rate": 0.25}
+        assert group["series"] == {"transaction.failure_rate": [0.25]}
 
     def test_failure_rate_without_transactions(self):
         """
