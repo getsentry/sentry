@@ -335,7 +335,7 @@ def devserver(
     for name, cmd in daemons:
         quiet = (
             name not in settings.DEVSERVER_LOGS_ALLOWLIST
-            if hasattr(settings, "DEVSERVER_LOGS_ALLOWLIST")
+            if settings.DEVSERVER_LOGS_ALLOWLIST is not None
             else False
         )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
