@@ -92,6 +92,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
                   }
                   disabled={!canJoinTeam}
                   to={`/settings/${organization.slug}/teams/`}
+                  data-test-id="join-team"
                 >
                   {t('Join a Team')}
                 </Button>
@@ -117,18 +118,20 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
       )}
 
       {hasProjectRedesign ? (
-        <ProjectCardsContainer>
-          <ProjectCards>
-            {projects.map(project => (
-              <ProjectCard
-                data-test-id={project.slug}
-                key={project.slug}
-                project={project}
-                hasProjectAccess={hasProjectAccess}
-              />
-            ))}
-          </ProjectCards>
-        </ProjectCardsContainer>
+        <LazyLoad once debounce={50} height={300} offset={300}>
+          <ProjectCardsContainer>
+            <ProjectCards>
+              {projects.map(project => (
+                <ProjectCard
+                  data-test-id={project.slug}
+                  key={project.slug}
+                  project={project}
+                  hasProjectAccess={hasProjectAccess}
+                />
+              ))}
+            </ProjectCards>
+          </ProjectCardsContainer>
+        </LazyLoad>
       ) : (
         filteredTeams.map((team, index) => (
           <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
