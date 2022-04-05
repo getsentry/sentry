@@ -1,13 +1,18 @@
 import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
-import {Organization, Tag} from 'sentry/types';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {Organization, PageFilters, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileFilters = Record<string, Tag>;
 
-function useProfileFilters(): ProfileFilters {
+interface UseProfileFiltersOptions {
+  selection: PageFilters | undefined;
+}
+
+function useProfileFilters({selection}: UseProfileFiltersOptions): ProfileFilters {
   const api = useApi();
   const organization = useOrganization();
 
@@ -16,16 +21,39 @@ function useProfileFilters(): ProfileFilters {
   useEffect(() => {
     api.clear();
 
-    fetchProfileFilters(api, organization).then(_profileFilters =>
-      setProfileFilters(_profileFilters)
-    );
-  }, [api, organization]);
+    fetchProfileFilters(api, organization, selection).then(_profileFilters => {
+      setProfileFilters(
+        _profileFilters.reduce((filters: ProfileFilters, tag: Tag) => {
+          filters[tag.key] = {
+            ...tag,
+            predefined: true,
+          };
+          return filters;
+        }, {})
+      );
+    });
+  }, [api, organization, selection]);
 
   return profileFilters;
 }
 
-function fetchProfileFilters(_api: Client, _organization: Organization) {
-  return Promise.resolve({}); // TODO fetch from api
+function fetchProfileFilters(
+  api: Client,
+  organization: Organization,
+  selection: PageFilters | undefined
+): Promise<[Tag]> {
+  const query = selection
+    ? {
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
+      }
+    : undefined;
+
+  return api.requestPromise(`/organizations/${organization.slug}/profiling/filters/`, {
+    method: 'GET',
+    query,
+  });
 }
 
 export {useProfileFilters};
