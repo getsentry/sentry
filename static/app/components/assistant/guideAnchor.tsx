@@ -26,7 +26,14 @@ type Props = {
    */
   containerClassName?: string;
   offset?: string;
-  onFinish?: () => void;
+  /**
+   * Trigger when the guide is completed (all steps have been clicked through)
+   */
+  onFinish?: (e: React.MouseEvent) => void;
+  /**
+   * Triggered when any step is completed (including the last step)
+   */
+  onStepComplete?: (e: React.MouseEvent) => void;
   position?: React.ComponentProps<typeof Hovercard>['position'];
   to?: {
     pathname: string;
@@ -101,10 +108,9 @@ class BaseGuideAnchor extends Component<Props, State> {
    */
   handleFinish = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const {onFinish} = this.props;
-    if (onFinish) {
-      onFinish();
-    }
+    this.props.onStepComplete?.(e);
+    this.props.onFinish?.(e);
+
     const {currentGuide, orgId} = this.state;
     if (currentGuide) {
       recordFinish(currentGuide.guide, orgId);
@@ -114,6 +120,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   handleNextStep = (e: React.MouseEvent) => {
     e.stopPropagation();
+    this.props.onStepComplete?.(e);
     nextStep();
   };
 
