@@ -41,7 +41,9 @@ function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
   const [clientState, setClientState] = useState<ClientState | null>(null);
   const selectedProjectsSet = new Set(
-    clientState?.selectedPlatforms.map(platform => clientState.platforms[platform]) || []
+    clientState?.selectedPlatforms.map(
+      platform => clientState.platformToProjectIdMap[platform]
+    ) || []
   );
   useEffect(() => {
     fetchClientState(api, organization.slug).then(setClientState);
@@ -168,12 +170,12 @@ function SetupDocs({organization, projects, search}: Props) {
       <Wrapper>
         <TargetedOnboardingSidebar
           projects={projects}
-          onboardingPlatforms={
+          selectedPlatformToProjectIdMap={
             clientState
               ? Object.fromEntries(
                   clientState.selectedPlatforms.map(platform => [
                     platform,
-                    clientState.platforms[platform],
+                    clientState.platformToProjectIdMap[platform],
                   ])
                 )
               : {}

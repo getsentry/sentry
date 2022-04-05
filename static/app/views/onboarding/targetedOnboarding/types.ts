@@ -27,7 +27,7 @@ export type StepDescriptor = {
 
 export type ClientState = {
   // map from platform id to project id. Contains projects ever created by onboarding.
-  platforms: {[key in PlatformKey]?: string};
+  platformToProjectIdMap: {[key in PlatformKey]?: string};
 
   // Contains platforms currently selected. This is different from `platforms` because
   // a project created by onboarding could be unselected by the user in the future.

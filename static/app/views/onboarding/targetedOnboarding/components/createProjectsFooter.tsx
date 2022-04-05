@@ -50,16 +50,16 @@ export default function CreateProjectsFooter({
       const lastState: ClientState = await fetchClientState(api, organization.slug);
       const responses = await Promise.all(
         platforms
-          .filter(platform => !(lastState.platforms && lastState.platforms[platform]))
+          .filter(platform => !lastState.platformToProjectIdMap[platform])
           .map(platform =>
             createProject(api, organization.slug, teams[0].slug, platform, platform)
           )
       );
       const nextState: ClientState = {
-        platforms: lastState.platforms,
+        platformToProjectIdMap: lastState.platformToProjectIdMap,
         selectedPlatforms: platforms,
       };
-      responses.forEach(p => (nextState.platforms[p.platform] = p.slug));
+      responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       await api.requestPromise(
         `/organizations/${organization.slug}/client-state/onboarding/`,
         {
