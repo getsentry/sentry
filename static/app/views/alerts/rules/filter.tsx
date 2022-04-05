@@ -173,6 +173,7 @@ const Header = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
   max-width: 200px;
+  min-width: 180px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
