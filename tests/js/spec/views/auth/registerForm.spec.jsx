@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import RegisterForm from 'sentry/views/auth/registerForm';
 
 function doLogin(wrapper, apiRequest) {
@@ -72,7 +72,7 @@ describe('Register', function () {
 
     await tick();
 
-    expect(ConfigStore.get('user')).toEqual(userObject);
+    expect(LegacyConfigStore.get('user')).toEqual(userObject);
     expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
   });
 });

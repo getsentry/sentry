@@ -1,11 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'sentry/components/avatar';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Avatar} from 'sentry/types';
 
 const gravatarBaseUrl = 'gravatarBaseUrl';
-const storeConfig = ConfigStore.getConfig();
+const storeConfig = LegacyConfigStore.getConfig();
 
 jest
   .spyOn(ConfigStore, 'getConfig')

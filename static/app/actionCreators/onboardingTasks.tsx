@@ -1,6 +1,6 @@
 import OrganizationActions from 'sentry/actions/organizationActions';
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {OnboardingTask, Organization} from 'sentry/types';
 
 /**
@@ -32,7 +32,7 @@ export async function updateOnboardingTask(
     task => task.task === updatedTask.task
   );
 
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
   const onboardingTasks = hasExistingTask
     ? organization.onboardingTasks.map(task =>
         task.task === updatedTask.task ? {...task, ...updatedTask} : task

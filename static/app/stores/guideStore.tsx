@@ -5,7 +5,7 @@ import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
@@ -204,7 +204,7 @@ const storeConfig: GuideStoreDefinition = {
   },
 
   recordCue(guide) {
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     if (!user) {
       return;
     }
@@ -246,7 +246,7 @@ const storeConfig: GuideStoreDefinition = {
       .sort(guidePrioritySort)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     const assistantThreshold = new Date(2019, 6, 1);
     const userDateJoined = new Date(user?.dateJoined);
 

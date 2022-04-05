@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -118,7 +118,7 @@ describe('getFieldRenderer', function () {
 
   it('can render timestamp.to_day', function () {
     // Set timezone
-    ConfigStore.loadInitialData({
+    LegacyConfigStore.loadInitialData({
       user: {
         options: {
           timezone: 'America/Los_Angeles',

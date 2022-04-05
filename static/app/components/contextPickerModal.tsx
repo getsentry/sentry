@@ -10,7 +10,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import space from 'sentry/styles/space';
@@ -129,7 +129,7 @@ class ContextPickerModal extends Component<Props> {
     latestOrg: string = this.props.organization
   ) => {
     const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
+    const {isSuperuser} = LegacyConfigStore.get('user') || {};
 
     // If no project is needed and theres only 1 org OR
     // if we need a project and there's only 1 project
@@ -295,7 +295,7 @@ class ContextPickerModal extends Component<Props> {
   renderProjectSelectOrMessage() {
     const {organization, projects, comingFromProjectId} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
-    const {isSuperuser} = ConfigStore.get('user') || {};
+    const {isSuperuser} = LegacyConfigStore.get('user') || {};
 
     const projectOptions = [
       {
@@ -350,7 +350,7 @@ class ContextPickerModal extends Component<Props> {
 
   renderIntegrationConfigs() {
     const {integrationConfigs} = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
+    const {isSuperuser} = LegacyConfigStore.get('user') || {};
 
     const options = [
       {
@@ -398,7 +398,7 @@ class ContextPickerModal extends Component<Props> {
       Body,
       integrationConfigs,
     } = this.props;
-    const {isSuperuser} = ConfigStore.get('user') || {};
+    const {isSuperuser} = LegacyConfigStore.get('user') || {};
 
     const shouldShowProjectSelector = organization && needProject && !loading;
 

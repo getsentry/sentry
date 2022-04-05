@@ -14,7 +14,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -35,7 +35,7 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
  */
 function App({children}: Props) {
   const api = useApi();
-  const config = useLegacyStore(ConfigStore);
+  const config = useLegacyStore(LegacyConfigStore);
 
   // Command palette global-shortcut
   useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
@@ -47,7 +47,7 @@ function App({children}: Props) {
   useHotkeys(
     'command+shift+l, ctrl+shift+l',
     e => {
-      ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+      LegacyConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
       e.preventDefault();
     },
     [config.theme]
@@ -117,12 +117,12 @@ function App({children}: Props) {
   }, []);
 
   function clearUpgrade() {
-    ConfigStore.set('needsUpgrade', false);
+    LegacyConfigStore.set('needsUpgrade', false);
   }
 
   function clearNewsletterConsent() {
     const flags = {...config.user.flags, newsletter_consent_prompt: false};
-    ConfigStore.set('user', {...config.user, flags});
+    LegacyConfigStore.set('user', {...config.user, flags});
   }
 
   const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
@@ -170,5 +170,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p => (LegacyConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
 `;

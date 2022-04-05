@@ -1,12 +1,12 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OnboardingWelcome from 'sentry/views/onboarding/welcome';
 
 describe('OnboardingWelcome', function () {
   it('renders', function () {
     const name = 'Rick Snachez';
-    ConfigStore.loadInitialData({user: {name, options: {}}});
+    LegacyConfigStore.loadInitialData({user: {name, options: {}}});
 
     mountWithTheme(<OnboardingWelcome />);
   });

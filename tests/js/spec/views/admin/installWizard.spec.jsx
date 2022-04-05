@@ -1,11 +1,11 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import InstallWizard from 'sentry/views/admin/installWizard';
 
 describe('InstallWizard', function () {
   beforeAll(function () {
-    ConfigStore.set('version', '1.33.7');
+    LegacyConfigStore.set('version', '1.33.7');
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard(),

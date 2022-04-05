@@ -1,10 +1,10 @@
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import OrganizationActions from 'sentry/actions/organizationActions';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
 
   jest.spyOn(OrganizationActions, 'update');
 

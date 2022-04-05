@@ -13,7 +13,7 @@ import * as qs from 'query-string';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 import TestStubFixtures from '../fixtures/js-stubs/types';
 
@@ -65,7 +65,7 @@ const fixtures = loadFixtures('js-stubs', {flatten: true});
 /**
  * Global testing configuration
  */
-ConfigStore.loadInitialData(fixtures.Config());
+LegacyConfigStore.loadInitialData(fixtures.Config());
 
 /**
  * Mocks

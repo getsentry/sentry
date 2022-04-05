@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {DateString} from 'sentry/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
@@ -46,7 +46,7 @@ export function getFormattedDate(
  * Returns user timezone from their account preferences
  */
 export function getUserTimezone(): string {
-  return ConfigStore.get('user')?.options?.timezone;
+  return LegacyConfigStore.get('user')?.options?.timezone;
 }
 
 /**
@@ -225,7 +225,7 @@ export function statsPeriodToDays(
 }
 
 export function use24Hours() {
-  return ConfigStore.get('user')?.options?.clock24Hours;
+  return LegacyConfigStore.get('user')?.options?.clock24Hours;
 }
 
 export function getTimeFormat({displaySeconds = false}: {displaySeconds?: boolean} = {}) {

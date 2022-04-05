@@ -14,7 +14,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {Organization} from 'sentry/types';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -65,8 +65,8 @@ class SettingsIndex extends React.Component<SettingsIndexProps> {
 
   render() {
     const {organization} = this.props;
-    const user = ConfigStore.get('user');
-    const isSelfHosted = ConfigStore.get('isSelfHosted');
+    const user = LegacyConfigStore.get('user');
+    const isSelfHosted = LegacyConfigStore.get('isSelfHosted');
 
     const organizationSettingsUrl =
       (organization && `/settings/${organization.slug}/`) || '';

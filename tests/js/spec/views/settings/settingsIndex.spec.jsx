@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {SettingsIndex} from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {
@@ -26,7 +26,7 @@ describe('SettingsIndex', function () {
   });
 
   it('has different links for self-hosted users', function () {
-    ConfigStore.set('isSelfHosted', true);
+    LegacyConfigStore.set('isSelfHosted', true);
 
     wrapper = mountWithTheme(
       <SettingsIndex
@@ -62,7 +62,7 @@ describe('SettingsIndex', function () {
       api = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
       });
-      ConfigStore.config.isSelfHosted = false;
+      LegacyConfigStore.config.isSelfHosted = false;
       wrapper = mountWithTheme(<SettingsIndex router={TestStubs.router()} params={{}} />);
     });
 

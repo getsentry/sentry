@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Event} from 'sentry/types/event';
 import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
@@ -38,12 +38,12 @@ function renderComponent(event?: Event) {
 
 describe('GroupActions', function () {
   beforeEach(function () {
-    ConfigStore.init();
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
+    LegacyConfigStore.init();
+    jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => []);
   });
 
   afterEach(() => {
-    ConfigStore.teardown();
+    LegacyConfigStore.teardown();
   });
 
   describe('render()', function () {

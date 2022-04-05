@@ -4,7 +4,7 @@ import ActivityAuthor from 'sentry/components/activity/author';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {User} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
 
@@ -18,7 +18,7 @@ type Props = {
 };
 
 const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
-  const activeUser = ConfigStore.get('user');
+  const activeUser = LegacyConfigStore.get('user');
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   return (

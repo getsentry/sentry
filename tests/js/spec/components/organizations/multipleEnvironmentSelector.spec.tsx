@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('MultipleEnvironmentSelector', function () {
   const onUpdate = jest.fn();
@@ -34,13 +34,13 @@ describe('MultipleEnvironmentSelector', function () {
   ]);
 
   beforeEach(function () {
-    ConfigStore.init();
-    ConfigStore.loadInitialData(TestStubs.Config());
+    LegacyConfigStore.init();
+    LegacyConfigStore.loadInitialData(TestStubs.Config());
     onUpdate.mockReset();
   });
 
   afterEach(() => {
-    ConfigStore.teardown();
+    LegacyConfigStore.teardown();
   });
 
   const selectorProps = {
@@ -136,7 +136,10 @@ describe('MultipleEnvironmentSelector', function () {
 
   describe('Superuser My Projects / all environments', function () {
     it('shows env when no team belonging', async function () {
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      LegacyConfigStore.set('user', {
+        ...LegacyConfigStore.get('user'),
+        isSuperuser: true,
+      });
 
       renderSelector({
         selectedProjects: [],
@@ -168,7 +171,10 @@ describe('MultipleEnvironmentSelector', function () {
     it('shows env when belongs one team', async function () {
       // XXX: Ideally, "My Projects" and "All Projects" should be different if a
       // superuser was to belong to at least one project
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      LegacyConfigStore.set('user', {
+        ...LegacyConfigStore.get('user'),
+        isSuperuser: true,
+      });
 
       // This user is member of one project
       renderSelector({
@@ -200,7 +206,10 @@ describe('MultipleEnvironmentSelector', function () {
 
   describe('Superuser All Projects / all environments', function () {
     it('shows env when no team belonging', async function () {
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      LegacyConfigStore.set('user', {
+        ...LegacyConfigStore.get('user'),
+        isSuperuser: true,
+      });
 
       renderSelector({
         selectedProjects: [ALL_ACCESS_PROJECTS],
@@ -232,7 +241,10 @@ describe('MultipleEnvironmentSelector', function () {
     it('shows env when belongs one team', async function () {
       // XXX: Ideally, "My Projects" and "All Projects" should be different if a
       // superuser was to belong to at least one project
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      LegacyConfigStore.set('user', {
+        ...LegacyConfigStore.get('user'),
+        isSuperuser: true,
+      });
 
       renderSelector({
         selectedProjects: [ALL_ACCESS_PROJECTS],

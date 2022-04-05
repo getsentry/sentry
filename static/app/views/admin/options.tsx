@@ -8,7 +8,7 @@ import {
   TextField,
 } from 'sentry/components/forms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 type Section = {
   key: string;
@@ -66,7 +66,7 @@ const definitions: Field[] = [
     help: t('The technical contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => LegacyConfigStore.get('user').email,
   },
   {
     key: 'system.support-email',
@@ -75,7 +75,7 @@ const definitions: Field[] = [
     help: t('The support contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => LegacyConfigStore.get('user').email,
   },
   {
     key: 'system.security-email',
@@ -84,7 +84,7 @@ const definitions: Field[] = [
     help: t('The security contact for this Sentry installation.'),
     // TODO(dcramer): this should not be hardcoded to a component
     component: EmailField,
-    defaultValue: () => ConfigStore.get('user').email,
+    defaultValue: () => LegacyConfigStore.get('user').email,
   },
   {
     key: 'system.rate-limit',

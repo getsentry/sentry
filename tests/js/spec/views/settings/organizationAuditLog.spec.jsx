@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', () => {
@@ -14,7 +14,7 @@ describe('OrganizationAuditLog', () => {
   };
 
   beforeEach(() => {
-    ConfigStore.loadInitialData({user});
+    LegacyConfigStore.loadInitialData({user});
   });
 
   it('renders', () => {

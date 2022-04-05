@@ -7,7 +7,7 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import Tooltip from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {AvatarUser, User} from 'sentry/types';
 import {userDisplayName} from 'sentry/utils/formatters';
 
@@ -36,7 +36,7 @@ const SeenByList = ({
   iconPosition = 'left',
   className,
 }: Props) => {
-  const activeUser = ConfigStore.get('user');
+  const activeUser = LegacyConfigStore.get('user');
   const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
   if (displayUsers.length === 0) {

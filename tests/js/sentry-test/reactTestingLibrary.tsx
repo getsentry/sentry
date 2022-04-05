@@ -6,7 +6,7 @@ import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-li
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import GlobalModal from 'sentry/components/globalModal';
-import configStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {ConfigProvider} from 'sentry/stores/configStore/configProvider';
 import type {Config} from 'sentry/types';
 import {Organization} from 'sentry/types';
@@ -45,7 +45,7 @@ function makeAllTheProviders({context, organization, config}: ProviderOptions) {
       <ContextProvider>
         <CacheProvider value={cache}>
           <ThemeProvider theme={lightTheme}>
-            <ConfigProvider initialValue={config ?? configStore.config}>
+            <ConfigProvider initialValue={config ?? LegacyConfigStore.config}>
               <OrganizationContext.Provider value={organization ?? null}>
                 {children}
               </OrganizationContext.Provider>

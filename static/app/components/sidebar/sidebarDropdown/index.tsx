@@ -15,7 +15,7 @@ import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Config, Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -63,7 +63,7 @@ const SidebarDropdown = ({
   const hasOrgRead = org?.access?.includes('org:read');
   const hasMemberRead = org?.access?.includes('member:read');
   const hasTeamRead = org?.access?.includes('team:read');
-  const canCreateOrg = ConfigStore.get('features').has('organizations:create');
+  const canCreateOrg = LegacyConfigStore.get('features').has('organizations:create');
 
   // Avatar to use: Organization --> user --> Sentry
   const avatar =

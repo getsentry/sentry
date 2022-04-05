@@ -1,6 +1,6 @@
 import {createContext, useMemo} from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {
@@ -25,7 +25,7 @@ interface FlamegraphThemeProviderProps {
 function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
-  const {theme} = useLegacyStore(ConfigStore);
+  const {theme} = useLegacyStore(LegacyConfigStore);
   const flamegraphPreferences = useFlamegraphPreferencesValue();
 
   const activeFlamegraphTheme = useMemo((): FlamegraphTheme => {

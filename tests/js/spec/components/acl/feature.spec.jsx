@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 
 describe('Feature', function () {
@@ -171,8 +171,8 @@ describe('Feature', function () {
       });
     });
 
-    it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = {
+    it('checks LegacyConfigStore.config.features (e.g. `organizations:create`)', function () {
+      LegacyConfigStore.config = {
         features: new Set(['organizations:create']),
       };
 

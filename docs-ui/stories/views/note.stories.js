@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 
 import Note from 'sentry/components/activity/note';
 import SentryTypes from 'sentry/sentryTypes';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -19,7 +19,7 @@ const user = {
 
 const activity = {id: '123', data: {text: 'hello'}, dateCreated: new Date()};
 
-ConfigStore.set('user', {...user, isSuperuser: true, options: {}});
+LegacyConfigStore.set('user', {...user, isSuperuser: true, options: {}});
 ProjectsStore.loadInitialData([
   {
     id: '2',

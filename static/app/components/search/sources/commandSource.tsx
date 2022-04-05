@@ -4,7 +4,7 @@ import {PlainRoute} from 'react-router';
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {toggleLocaleDebug} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
 import {ChildProps, ResultItem} from './types';
@@ -42,7 +42,10 @@ const ACTIONS: Action[] = [
     description: 'Toggle dark mode (superuser only atm)',
     requiresSuperuser: true,
     action: () =>
-      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark'),
+      LegacyConfigStore.set(
+        'theme',
+        LegacyConfigStore.get('theme') === 'dark' ? 'light' : 'dark'
+      ),
   },
 
   {

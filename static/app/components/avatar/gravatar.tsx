@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import {imageStyle, ImageStyleProps} from './styles';
@@ -47,7 +47,7 @@ class Gravatar extends Component<Props, State> {
 
   buildGravatarUrl = () => {
     const {gravatarId, remoteSize, placeholder} = this.props;
-    let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
+    let url = LegacyConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
     const md5 = callIfFunction(this.state.MD5, gravatarId);
     if (md5) {

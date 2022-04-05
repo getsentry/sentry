@@ -6,7 +6,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -1153,7 +1153,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets all projects if superuser', async function () {
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: {
           isSuperuser: true,
         },

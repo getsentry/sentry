@@ -8,7 +8,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,7 +29,7 @@ function NoProjectMessage({
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
 
-  const {isSuperuser} = ConfigStore.get('user');
+  const {isSuperuser} = LegacyConfigStore.get('user');
 
   const orgHasProjects = !!projects?.length;
   const hasProjectAccess =

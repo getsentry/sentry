@@ -1,8 +1,8 @@
 import './less/sentry.less';
 
-import ConfigStore from '../static/app/stores/configStore';
+import LegacyConfigStore from '../static/app/stores/configStore';
 
-ConfigStore.loadInitialData({
+LegacyConfigStore.loadInitialData({
   gravatarBaseUrl: 'https://secure.gravatar.com',
 
   version: {

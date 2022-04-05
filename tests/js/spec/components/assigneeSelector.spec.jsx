@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import AssigneeSelectorComponent, {
   putSessionUserFirst,
 } from 'sentry/components/assigneeSelector';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -133,24 +133,24 @@ describe('AssigneeSelector', function () {
 
   describe('putSessionUserFirst()', function () {
     it('should place the session user at the top of the member list if present', function () {
-      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
+      jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => ({
         id: '2',
         name: 'John Smith',
         email: 'johnsmith@example.com',
       }));
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
-      ConfigStore.get.mockRestore();
+      LegacyConfigStore.get.mockRestore();
     });
 
     it("should return the same member list if the session user isn't present", function () {
-      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
+      jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => ({
         id: '555',
         name: 'Here Comes a New Challenger',
         email: 'guile@mail.us.af.mil',
       }));
 
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
-      ConfigStore.get.mockRestore();
+      LegacyConfigStore.get.mockRestore();
     });
   });
 
@@ -275,7 +275,7 @@ describe('AssigneeSelector', function () {
   });
 
   it('shows invite member button', async function () {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
+    jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => true);
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
@@ -285,7 +285,7 @@ describe('AssigneeSelector', function () {
       .find('InviteMemberLink[data-test-id="invite-member"]')
       .simulate('click');
     expect(openInviteMembersModal).toHaveBeenCalled();
-    ConfigStore.get.mockRestore();
+    LegacyConfigStore.get.mockRestore();
   });
 
   it('filters user by email and selects with keyboard', async function () {

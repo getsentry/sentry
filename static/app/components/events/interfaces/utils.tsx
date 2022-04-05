@@ -5,7 +5,7 @@ import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Frame, PlatformType} from 'sentry/types';
 import {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -214,7 +214,7 @@ export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) 
 }
 
 export function isStacktraceNewestFirst() {
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
   // user may not be authenticated
 
   if (!user) {

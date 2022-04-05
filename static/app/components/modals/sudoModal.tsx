@@ -10,7 +10,7 @@ import Form from 'sentry/components/forms/form';
 import InputField from 'sentry/components/forms/inputField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -84,7 +84,7 @@ class SudoModal extends React.Component<Props, State> {
   renderBodyContent() {
     const {superuser} = this.props;
     const {error} = this.state;
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     if (!user.hasPasswordAuth) {
       return (
         <React.Fragment>

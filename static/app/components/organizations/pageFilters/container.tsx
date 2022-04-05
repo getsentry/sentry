@@ -10,7 +10,7 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageContent} from 'sentry/styles/organization';
@@ -76,7 +76,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  const {isSuperuser} = ConfigStore.get('user');
+  const {isSuperuser} = LegacyConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
 

@@ -18,7 +18,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
 import {IconAdd, IconChevron, IconClose, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -215,7 +215,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
     const {size} = this.props;
-    const sessionUser = ConfigStore.get('user');
+    const sessionUser = LegacyConfigStore.get('user');
 
     return {
       value: {type: 'member', assignee: member},
@@ -306,7 +306,7 @@ class AssigneeSelector extends React.Component<Props, State> {
   renderNewDropdownItems(): ItemsBeforeFilter {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
-    const sessionUser = ConfigStore.get('user');
+    const sessionUser = LegacyConfigStore.get('user');
     const suggestedAssignees = this.renderSuggestedAssigneeNodes() ?? [];
 
     const filteredSessionUser: ItemsBeforeFilter = members.filter(
@@ -578,7 +578,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
     return [];
   }
 
-  const sessionUser = ConfigStore.get('user');
+  const sessionUser = LegacyConfigStore.get('user');
   const sessionUserIndex = members.findIndex(member => member.id === sessionUser?.id);
 
   if (sessionUserIndex === -1) {

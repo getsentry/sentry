@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Organization} from 'sentry/types';
 import {
   ExperimentAssignment,
@@ -118,7 +118,7 @@ function withExperiment<
 
       if (type === ExperimentType.User) {
         const key = experiment as keyof UserExperiments;
-        return ConfigStore.get('user').experiments[key];
+        return LegacyConfigStore.get('user').experiments[key];
       }
 
       return unassignedValue;

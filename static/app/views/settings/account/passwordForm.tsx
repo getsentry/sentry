@@ -7,7 +7,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {PanelAlert, PanelItem} from 'sentry/components/panels';
 import accountPasswordFields from 'sentry/data/forms/accountPassword';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 type OnSubmitSuccess = Parameters<NonNullable<Form['props']['onSubmitSuccess']>>;
 
@@ -22,7 +22,7 @@ function PasswordForm() {
     addErrorMessage('Error changing password');
   }
 
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
 
   return (
     <Form

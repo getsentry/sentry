@@ -2,7 +2,7 @@ import {Component} from 'react';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 type DefaultProps = {
   seconds: boolean;
@@ -87,7 +87,7 @@ class DateTime extends Component<Props> {
       timeAndDate: _timeAndDate,
       ...carriedProps
     } = this.props;
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     const options = user?.options;
     const format = this.getFormat(options);
 

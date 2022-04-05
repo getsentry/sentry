@@ -7,7 +7,7 @@ import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import NavTabs from 'sentry/components/navTabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import {NoteType} from 'sentry/types/alerts';
@@ -274,7 +274,7 @@ class NoteInputContainer extends React.Component<NoteInputContainerProps> {
 
   render() {
     const {projectSlugs} = this.props;
-    const me = ConfigStore.get('user');
+    const me = LegacyConfigStore.get('user');
 
     return (
       <Mentionables me={me} projectSlugs={projectSlugs}>

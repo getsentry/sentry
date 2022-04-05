@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 const SUPERUSER_COOKIE_NAME = 'su';
 
@@ -9,7 +9,7 @@ const SUPERUSER_COOKIE_NAME = 'su';
  * We therefore check both isSuperuser flag AND superuser session cookie.
  */
 export function isActiveSuperuser() {
-  const {isSuperuser} = ConfigStore.get('user') || {};
+  const {isSuperuser} = LegacyConfigStore.get('user') || {};
 
   if (isSuperuser) {
     /**

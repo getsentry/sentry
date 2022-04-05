@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
@@ -72,7 +72,7 @@ describe('NoProjectMessage', function () {
         TestStubs.Project({hasAccess: true, isMember: false}),
       ])
     );
-    ConfigStore.config.user = {isSuperuser: true};
+    LegacyConfigStore.config.user = {isSuperuser: true};
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
         {null}

@@ -1,4 +1,4 @@
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {SentryServiceIncident, SentryServiceStatus} from 'sentry/types';
 
 type IncidentImpact = SentryServiceStatus['indicator'];
@@ -45,7 +45,7 @@ function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageInciden
 }
 
 export async function loadIncidents(): Promise<SentryServiceStatus | null> {
-  const cfg = ConfigStore.get('statuspage');
+  const cfg = LegacyConfigStore.get('statuspage');
   let response: Response | undefined = undefined;
   if (!cfg || !cfg.id) {
     return null;
