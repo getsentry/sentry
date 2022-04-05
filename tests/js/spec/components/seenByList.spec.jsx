@@ -29,7 +29,7 @@ describe('SeenByList', function () {
 
   it('filters out the current user from list of users', function () {
     jest
-      .spyOn(ConfigStore, 'get')
+      .spyOn(LegacyConfigStore, 'get')
       .mockImplementation(() => ({id: '1', email: 'jane@example.com'}));
 
     render(
