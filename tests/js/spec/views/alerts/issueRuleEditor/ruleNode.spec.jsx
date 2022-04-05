@@ -52,7 +52,7 @@ describe('RuleNode', function () {
       },
       //   TODO: Add these fields and test if they implement correctly
       //   exampleMailActionField: {type: 'mailAction'},
-      //   exampleAssigneeield: {type: 'assignee'},
+      //   exampleAssigneeField: {type: 'assignee'},
     },
   });
 

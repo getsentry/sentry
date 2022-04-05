@@ -962,16 +962,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 )
                 source = self.get_sourceview(abs_path)
 
-            if source is None:
-                errors = cache.get_errors(abs_path)
-                if errors:
-                    all_errors.extend(errors)
-                else:
-                    all_errors.append(
-                        {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(abs_path)}
-                    )
+                if source is None:
+                    errors = cache.get_errors(abs_path)
+                    if errors:
+                        all_errors.extend(errors)
+                    else:
+                        all_errors.append(
+                            {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(abs_path)}
+                        )
 
-            if token is not None:
                 # the tokens are zero indexed, so offset correctly
                 new_frame["lineno"] = token.src_line + 1
                 new_frame["colno"] = token.src_col + 1
