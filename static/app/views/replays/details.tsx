@@ -21,6 +21,7 @@ import {getMessage} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
+import mergeBreadcrumbsEntries from './utils/mergeBreadcrumbsEntries';
 import useReplayEvent from './utils/useReplayEvent';
 
 type Props = AsyncView['props'] &
@@ -106,7 +107,6 @@ function getProjectSlug(event: Event) {
 function isReplayEventEntity(entry: Entry) {
   // Starting with an allowlist, might be better to block only a few types (like Tags)
   switch (entry.type) {
-    case EntryType.BREADCRUMBS:
     case EntryType.SPANS:
       return true;
     default:
@@ -129,9 +129,23 @@ function ReplayLoader(props: ReplayLoaderProps) {
     if (!event) {
       return <NotFound />;
     }
+
+    const breadcrumbs = mergeBreadcrumbsEntries(replayEvents || []);
+
     return (
       <React.Fragment>
         <BaseRRWebReplayer events={rrwebEvents} />
+
+        <EventEntry
+          projectSlug={getProjectSlug(event)}
+          // group={group}
+          organization={props.organization}
+          event={event}
+          entry={breadcrumbs}
+          route={props.route}
+          router={props.router}
+        />
+
         {replayEvents?.map(replayEvent => (
           <React.Fragment key={replayEvent.id}>
             <TitleWrapper>ReplayEvent: {replayEvent.id}</TitleWrapper>
