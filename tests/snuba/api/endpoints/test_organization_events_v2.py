@@ -4945,6 +4945,22 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
+    def test_tag_that_looks_like_aggregate(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["tags"] = {"p95": "<5k"}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["p95"],
+            "query": "p95:<5k",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p95"] == "<5k"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     # Poor intentionally omitted for test_measurement_rating_that_does_not_exist

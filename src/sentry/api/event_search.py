@@ -1038,6 +1038,7 @@ default_config = SearchConfig(
     duration_keys={"transaction.duration"},
     percentage_keys={"percentage"},
     text_operator_keys={SEMVER_ALIAS, SEMVER_BUILD_ALIAS},
+    # do not put aggregate functions in this list
     numeric_keys={
         "project_id",
         "project.id",
@@ -1046,15 +1047,6 @@ default_config = SearchConfig(
         "stack.lineno",
         "stack.stack_level",
         "transaction.duration",
-        "apdex",
-        "p75",
-        "p95",
-        "p99",
-        "failure_rate",
-        "count_miserable",
-        "user_misery",
-        "count_miserable_new",
-        "user_miser_new",
     },
     date_keys={
         "start",
