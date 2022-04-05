@@ -160,17 +160,10 @@ class DerivedMetricSnQLTestCase(TestCase):
             all_transactions(org_id, self.metric_ids, "transactions.all"),
             alias="transactions.failure_rate",
         ) == Function(
-            "multiply",
+            "divide",
             [
-                Function(
-                    "divide",
-                    [
-                        expected_failed_txs,
-                        expected_all_txs,
-                    ],
-                    alias=None,
-                ),
-                100,
+                expected_failed_txs,
+                expected_all_txs,
             ],
             alias="transactions.failure_rate",
         )
