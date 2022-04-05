@@ -170,6 +170,8 @@ class OAuthLoginView(PipelineView):
         try:
             request_token = client.get_request_token()
             pipeline.bind_state("request_token", request_token)
+            if not request_token.get("oauth_token"):
+                raise ApiError("Missing oauth_token")
             authorize_url = client.get_authorize_url(request_token)
 
             return self.redirect(authorize_url)
