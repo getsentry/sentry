@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -340,6 +341,31 @@ class Project(Model, PendingDeletionMixin):
                 is_member = actor.resolve().organization_id == organization.id
             if not is_member:
                 rule.update(owner=None)
+
+        # [Rule, AlertRule(SnubaQuery->Environment)]
+        # id -> name
+        environment_names_with_alerts = {
+            **environment_names,
+            **{
+                env_id: env_name
+                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
+                    "snuba_query__environment__id", "snuba_query__environment__name"
+                )
+            },
+        }
+
+        # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
+        # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
+        # the old org
+        # alertrule ->  snuba_query -> environment_id
+        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
+            "snuba_query_id", "snuba_query__environment__id"
+        ):
+            SnubaQuery.objects.filter(id=snuba_id).update(
+                environment_id=Environment.get_or_create(
+                    self, name=environment_names_with_alerts.get(environment_id, None)
+                ).id
+            )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
