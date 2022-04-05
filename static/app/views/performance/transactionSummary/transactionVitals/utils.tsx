@@ -162,22 +162,12 @@ export function isMissingVitalsData(
   vitalsData: VitalsData | null,
   allVitals: WebVital[]
 ): boolean {
-  if (!vitalsData) {
+  if (!vitalsData || allVitals.some(vital => !vitalsData[vital])) {
     return true;
   }
 
-  const isMissingVitalsMeasurement = allVitals.some(vital => !vitalsData[vital]);
-
-  const measurementsWithoutData = Object.keys(vitalsData).filter(key => {
-    const vitalObj = vitalsData[key];
-    const isVitalObjectEmpty = Object.keys(vitalObj).every(
-      measurement => vitalObj[measurement] === null || vitalObj[measurement] === 0
-    );
-
-    return isVitalObjectEmpty;
-  });
-
-  const hasEmptyVitalsMeasurement = measurementsWithoutData.length > 0;
-
-  return isMissingVitalsMeasurement || hasEmptyVitalsMeasurement;
+  const measurementsWithoutCounts = Object.values(vitalsData).filter(
+    vitalObj => vitalObj.total === 0
+  );
+  return measurementsWithoutCounts.length > 0;
 }
