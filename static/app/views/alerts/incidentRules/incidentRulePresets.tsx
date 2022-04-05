@@ -58,6 +58,7 @@ export function makeDefaultCta({
     to: getIncidentRuleDiscoverUrl({
       orgSlug,
       projects,
+      environment: rule.environment,
       rule,
       eventType,
       start,
