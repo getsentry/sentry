@@ -198,11 +198,10 @@ class DeleteOrganizationTest(TestCase):
 
         alert_rule.refresh_from_db()
         assert AlertRule.objects.fetch_for_project(project).exists()
-        assert alert_rule.snuba_query.environment is not environment
-        assert alert_rule.snuba_query.environment is None
+        assert alert_rule.snuba_query.environment != environment
         assert Environment.objects.filter(organization_id=from_org.id).count() == 1
         assert (
-            Environment.objects.filter(organization_id=to_org.id).count() == 0
+            Environment.objects.filter(organization_id=to_org.id).count() == 1
         )  # env should stay with og org
 
         # block until its deleted
@@ -217,7 +216,11 @@ class DeleteOrganizationTest(TestCase):
         assert not Organization.objects.filter(name="from_org").exists()
         assert Organization.objects.filter(name="to_org").exists()
         assert AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert SnubaQuery.objects.filter(id=alert_rule.snuba_query.id, environment_id=None).exists()
+        assert (
+            SnubaQuery.objects.filter(id=alert_rule.snuba_query.id)
+            .exclude(environment=None)
+            .exists()
+        )
 
 
 class ReattemptDeletionsTest(TestCase):
