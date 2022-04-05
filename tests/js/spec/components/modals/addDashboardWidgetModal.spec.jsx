@@ -69,7 +69,10 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
       widget={widget}
       closeModal={() => void 0}
       source={source || types.DashboardWidgetSource.DASHBOARDS}
-    />
+    />,
+    {
+      organization: initialData.organization,
+    }
   );
 }
 

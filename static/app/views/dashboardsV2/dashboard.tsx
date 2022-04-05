@@ -146,7 +146,11 @@ class Dashboard extends Component<Props, State> {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (organization.features.includes('dashboards-metrics')) {
+    if (
+      organization.features.includes('dashboards-metrics') &&
+      !organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-modal-access')
+    ) {
       fetchMetricsFields(api, organization.slug, selection.projects);
       fetchMetricsTags(api, organization.slug, selection.projects);
     }
@@ -176,8 +180,15 @@ class Dashboard extends Component<Props, State> {
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
+
+      if (
+        organization.features.includes('dashboards-metrics') &&
+        !organization.features.includes('new-widget-builder-experience') &&
+        organization.features.includes('new-widget-builder-experience-modal-access')
+      ) {
+        fetchMetricsFields(api, organization.slug, selection.projects);
+        fetchMetricsTags(api, organization.slug, selection.projects);
+      }
     }
   }
 
@@ -185,12 +196,11 @@ class Dashboard extends Component<Props, State> {
     if (this.props.organization.features.includes('dashboard-grid-layout')) {
       window.removeEventListener('resize', this.debouncedHandleResize);
     }
-    if (this.forceCheckTimeout) {
-      window.clearTimeout(this.forceCheckTimeout);
-    }
+
+    window.clearTimeout(this.forceCheckTimeout);
   }
 
-  forceCheckTimeout: number | null = null;
+  forceCheckTimeout: number | undefined = undefined;
 
   debouncedHandleResize = debounce(() => {
     this.setState({
@@ -506,6 +516,7 @@ class Dashboard extends Component<Props, State> {
     // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
     // Unfortunately need to use window.setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
+    window.clearTimeout(this.forceCheckTimeout);
     this.forceCheckTimeout = window.setTimeout(forceCheck, 400);
   };
 
