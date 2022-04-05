@@ -5,7 +5,7 @@ import moment from 'moment';
 import Button from 'sentry/components/button';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -29,7 +29,7 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
     const {data} = this.state;
     const {environment, config, pythonVersion} = data;
 
-    const {version} = ConfigStore.getConfig();
+    const {version} = LegacyConfigStore.getConfig();
 
     return (
       <div>

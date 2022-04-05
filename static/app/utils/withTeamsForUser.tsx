@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Organization, Project, Team, TeamWithProjects} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
@@ -75,7 +75,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     populateTeamsWithProjects(teams: Team[], projects: Project[]) {
-      const {isSuperuser} = ConfigStore.get('user');
+      const {isSuperuser} = LegacyConfigStore.get('user');
       const {projectsByTeam} = getProjectsByTeams(teams, projects, isSuperuser);
       const teamsWithProjects: TeamWithProjects[] = teams.map(team => {
         const teamProjects = projectsByTeam[team.slug] || [];

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Organization, User} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
@@ -57,9 +57,9 @@ interface RoleProps {
 
 function Role({role, organization, children}: RoleProps): React.ReactElement | null {
   const hasRole = React.useMemo(
-    () => checkUserRole(ConfigStore.get('user'), organization, role),
+    () => checkUserRole(LegacyConfigStore.get('user'), organization, role),
     // It seems that this returns a stable reference, but
-    [organization, role, ConfigStore.get('user')]
+    [organization, role, LegacyConfigStore.get('user')]
   );
 
   if (isRenderFunc<ChildrenRenderFn>(children)) {

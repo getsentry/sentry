@@ -19,7 +19,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {Trace} from 'sentry/types/profiling/core';
@@ -158,7 +158,7 @@ function makeScatterChartOptions({
   projects: Project[];
   theme: Theme;
 }) {
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
   const options = user?.options;
 
   const _tooltipFormatter: TooltipComponentFormatterCallback<any> = seriesParams => {

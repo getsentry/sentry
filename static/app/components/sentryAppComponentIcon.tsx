@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {SentryAppComponent} from 'sentry/types';
 
 type Props = {
@@ -17,7 +17,7 @@ const SentryAppComponentIcon = ({sentryAppComponent: {sentryApp}}: Props) => {
   const isDefault = selectedAvatar?.avatarType !== 'upload';
   return (
     <SentryAppAvatarWrapper
-      isDark={ConfigStore.get('theme') === 'dark'}
+      isDark={LegacyConfigStore.get('theme') === 'dark'}
       isDefault={isDefault}
     >
       <SentryAppAvatar sentryApp={sentryApp} size={20} isColor={false} />

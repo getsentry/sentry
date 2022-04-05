@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('TimeRangeSelector', function () {
   let wrapper;
@@ -22,7 +22,7 @@ describe('TimeRangeSelector', function () {
     );
 
   beforeEach(function () {
-    ConfigStore.loadInitialData({
+    LegacyConfigStore.loadInitialData({
       user: {options: {timezone: 'America/New_York'}},
     });
     onChange.mockReset();

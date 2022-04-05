@@ -4,7 +4,7 @@ import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -112,7 +112,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       ...props
     } = this.props;
     const dateObj = getDateObj(date);
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     const options = user ? user.options : null;
     const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
     const tooltip = getDynamicText({

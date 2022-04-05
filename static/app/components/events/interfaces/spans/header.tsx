@@ -14,7 +14,7 @@ import {
   rectOfContent,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
@@ -733,7 +733,7 @@ const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p => (LegacyConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

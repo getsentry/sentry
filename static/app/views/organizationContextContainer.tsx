@@ -15,7 +15,7 @@ import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import space from 'sentry/styles/space';
@@ -78,7 +78,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
 
     const hasOrgId =
       props.params.orgId ||
-      (props.useLastOrganization && ConfigStore.get('lastOrganization'));
+      (props.useLastOrganization && LegacyConfigStore.get('lastOrganization'));
 
     // protect against the case where we finish fetching org details
     // and then `OrganizationsStore` finishes loading:
@@ -125,7 +125,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
     return (
       props.params.orgId ||
       ((props.useLastOrganization &&
-        (ConfigStore.get('lastOrganization') ||
+        (LegacyConfigStore.get('lastOrganization') ||
           props.organizations?.[0]?.slug)) as string)
     );
   }
@@ -251,7 +251,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
       });
     } else if (error) {
       // If user is superuser, open sudo window
-      const user = ConfigStore.get('user');
+      const user = LegacyConfigStore.get('user');
       if (!user || !user.isSuperuser || error.status !== 403) {
         // This `catch` can swallow up errors in development (and tests)
         // So let's log them. This may create some noise, especially the test case where

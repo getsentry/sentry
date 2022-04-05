@@ -21,7 +21,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {
   Group,
@@ -136,7 +136,7 @@ class GroupActivity extends Component<Props, State> {
     const mostRecentActivity = getGroupMostRecentActivity(activities);
     const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
-    const me = ConfigStore.get('user');
+    const me = LegacyConfigStore.get('user');
     const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
       minHeight: 140,

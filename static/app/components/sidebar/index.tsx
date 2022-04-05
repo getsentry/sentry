@@ -31,7 +31,7 @@ import {
   IconTelescope,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -61,7 +61,7 @@ type Props = {
 };
 
 function Sidebar({location, organization}: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const config = useLegacyStore(LegacyConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
 
@@ -489,7 +489,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p => (LegacyConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

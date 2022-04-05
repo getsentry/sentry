@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Access from 'sentry/components/acl/access';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
   const organization = TestStubs.Organization({
@@ -97,7 +97,7 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: null,
       };
 
@@ -110,7 +110,7 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: {isSuperuser: true},
       };
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -124,7 +124,7 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: {isSuperuser: false},
       };
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -151,7 +151,7 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: {isSuperuser: true},
       };
       render(
@@ -176,7 +176,7 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = {
+      LegacyConfigStore.config = {
         user: {isSuperuser: false},
       };
       render(

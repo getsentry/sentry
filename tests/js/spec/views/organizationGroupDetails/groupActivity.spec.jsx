@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import NoteInput from 'sentry/components/activity/note/input';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -16,7 +16,7 @@ describe('GroupActivity', function () {
   beforeEach(function () {
     project = TestStubs.Project();
     act(() => ProjectsStore.loadInitialData([project]));
-    jest.spyOn(ConfigStore, 'get').mockImplementation(key => {
+    jest.spyOn(LegacyConfigStore, 'get').mockImplementation(key => {
       if (key === 'user') {
         return {
           id: '123',

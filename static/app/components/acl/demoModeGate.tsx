@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -26,7 +26,7 @@ type Props = {
 function DemoModeGate(props: Props) {
   const {organization, children, demoComponent = null} = props;
 
-  if (organization?.role === 'member' && ConfigStore.get('demoMode')) {
+  if (organization?.role === 'member' && LegacyConfigStore.get('demoMode')) {
     if (typeof demoComponent === 'function') {
       return demoComponent({children});
     }

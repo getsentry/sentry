@@ -11,7 +11,7 @@ import TextField from 'sentry/components/deprecatedforms/textField';
 import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {AuthConfig} from 'sentry/types';
 import {formFooterClass} from 'sentry/views/auth/login';
@@ -89,7 +89,7 @@ class LoginForm extends Component<Props, State> {
       // TODO(epurkhiser): There is likely more that needs to happen to update
       // the application state after user login.
 
-      ConfigStore.set('user', response.user);
+      LegacyConfigStore.set('user', response.user);
 
       // TODO(epurkhiser): Reconfigure sentry SDK identity
 

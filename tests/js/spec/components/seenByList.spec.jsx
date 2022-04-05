@@ -1,11 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SeenByList from 'sentry/components/seenByList';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('SeenByList', function () {
   beforeEach(function () {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({}));
+    jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => ({}));
   });
 
   it('should return null if seenBy is falsy', function () {

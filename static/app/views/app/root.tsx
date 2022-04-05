@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
@@ -18,7 +18,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
  * in which case we should load their list of organizations and make a decision
  */
 function AppRoot() {
-  const config = useLegacyStore(ConfigStore);
+  const config = useLegacyStore(LegacyConfigStore);
 
   useEffect(() => {
     if (!config.lastOrganization) {

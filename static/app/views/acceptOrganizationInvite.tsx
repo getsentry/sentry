@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -72,7 +72,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
   };
 
   get existingMemberAlert() {
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
 
     return (
       <Alert type="warning" data-test-id="existing-member">

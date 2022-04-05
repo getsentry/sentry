@@ -12,7 +12,7 @@ import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
@@ -110,7 +110,7 @@ export function ProjectPageFilter({
     project => project.isMember
   );
 
-  const {isSuperuser} = ConfigStore.get('user');
+  const {isSuperuser} = LegacyConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 

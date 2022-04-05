@@ -10,7 +10,7 @@ import {
 
 import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -111,7 +111,9 @@ describe('Sidebar', function () {
     });
 
     it('can open "Switch Organization" sub-menu', function () {
-      act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
+      act(
+        () => void LegacyConfigStore.set('features', new Set(['organizations:create']))
+      );
 
       const {container} = renderSidebar();
 

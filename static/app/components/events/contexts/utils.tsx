@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -74,7 +74,7 @@ export function getRelativeTimeFromEventDateCreated(
 // Typescript doesn't have types for DisplayNames yet and that's why the type assertion "any" is needed below.
 // There is currently an open PR that intends to introduce the types https://github.com/microsoft/TypeScript/pull/44022
 export function getFullLanguageDescription(locale: string) {
-  const sentryAppLanguageCode = ConfigStore.get('languageCode');
+  const sentryAppLanguageCode = LegacyConfigStore.get('languageCode');
 
   const [languageAbbreviation, countryAbbreviation] = locale.includes('_')
     ? locale.split('_')

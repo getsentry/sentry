@@ -8,7 +8,7 @@ import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AsyncView from 'sentry/views/asyncView';
@@ -29,7 +29,7 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const urlPrefix = ConfigStore.get('urlPrefix');
+    const urlPrefix = LegacyConfigStore.get('urlPrefix');
 
     return (
       <div>

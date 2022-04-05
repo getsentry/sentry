@@ -2,12 +2,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
 describe('Sudo Modal', function () {
   const setHasPasswordAuth = hasPasswordAuth =>
-    act(() => ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth}));
+    act(() =>
+      LegacyConfigStore.set('user', {...LegacyConfigStore.get('user'), hasPasswordAuth})
+    );
 
   beforeEach(function () {
     Client.clearMockResponses();

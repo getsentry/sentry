@@ -35,7 +35,7 @@ import Truncate from 'sentry/components/truncate';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
@@ -95,7 +95,7 @@ type State = {
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
-  } = ConfigStore.get('user');
+  } = LegacyConfigStore.get('user');
   return momentTimezone.tz(date, timezone).format(format);
 }
 

@@ -6,7 +6,7 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
@@ -56,10 +56,10 @@ describe('OrganizationMembersList', function () {
     },
   });
 
-  jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser);
+  jest.spyOn(LegacyConfigStore, 'get').mockImplementation(() => currentUser);
 
   afterAll(function () {
-    ConfigStore.get.mockRestore();
+    LegacyConfigStore.get.mockRestore();
   });
 
   beforeEach(function () {

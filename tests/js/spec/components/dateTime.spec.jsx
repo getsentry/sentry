@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DateTime from 'sentry/components/dateTime';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {
   const user = {
@@ -12,7 +12,7 @@ describe('DateTime', () => {
     },
   };
   beforeAll(() => {
-    ConfigStore.loadInitialData({user});
+    LegacyConfigStore.loadInitialData({user});
   });
 
   it('renders a date', () => {
@@ -53,12 +53,12 @@ describe('DateTime', () => {
   describe('24 Hours', () => {
     beforeAll(() => {
       user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
+      LegacyConfigStore.set('user', user);
     });
 
     afterAll(() => {
       user.options.clock24Hours = false;
-      ConfigStore.set('user', user);
+      LegacyConfigStore.set('user', user);
     });
 
     it('renders a date', () => {

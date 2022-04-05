@@ -10,7 +10,7 @@ import RadioBooleanField from 'sentry/components/deprecatedforms/radioBooleanFie
 import TextField from 'sentry/components/deprecatedforms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {AuthConfig} from 'sentry/types';
 import {formFooterClass} from 'sentry/views/auth/login';
 
@@ -59,7 +59,7 @@ class RegisterForm extends Component<Props, State> {
 
       // TODO(epurkhiser): There is more we need to do to setup the user. but
       // definitely primarily we need to init our user.
-      ConfigStore.set('user', response.user);
+      LegacyConfigStore.set('user', response.user);
 
       browserHistory.push({pathname: response.nextUri});
     } catch (e) {

@@ -3,7 +3,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByValue} from 'sentry-test/select-new';
 
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -252,7 +252,7 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = {
+    LegacyConfigStore.config = {
       user: {isSuperuser: true},
     };
 
@@ -292,7 +292,7 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = {
+    LegacyConfigStore.config = {
       user: {isSuperuser: false},
     };
 
@@ -329,7 +329,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = {
+    LegacyConfigStore.config = {
       user: {isSuperuser: true},
     };
 

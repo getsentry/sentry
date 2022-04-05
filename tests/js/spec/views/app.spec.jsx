@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
 describe('App', function () {
@@ -39,7 +39,7 @@ describe('App', function () {
   });
 
   it('renders NewsletterConsent', async function () {
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
 
     render(
@@ -57,9 +57,9 @@ describe('App', function () {
   });
 
   it('renders InstallWizard', async function () {
-    ConfigStore.get('user').isSuperuser = true;
-    ConfigStore.set('needsUpgrade', true);
-    ConfigStore.set('version', {current: '1.33.7'});
+    LegacyConfigStore.get('user').isSuperuser = true;
+    LegacyConfigStore.set('needsUpgrade', true);
+    LegacyConfigStore.set('version', {current: '1.33.7'});
 
     render(
       <App params={{orgId: 'org-slug'}}>

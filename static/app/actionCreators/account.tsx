@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {User, UserIdentityConfig} from 'sentry/types';
 
 export async function disconnectIdentity(
@@ -26,7 +26,7 @@ export async function disconnectIdentity(
 }
 
 export function updateUser(user: User) {
-  const previousUser = ConfigStore.get('user');
+  const previousUser = LegacyConfigStore.get('user');
 
   // If the user changed their theme preferences, we should also update
   // the config store
@@ -34,11 +34,11 @@ export function updateUser(user: User) {
     previousUser.options.theme !== user.options.theme &&
     user.options.theme !== 'system'
   ) {
-    ConfigStore.set('theme', user.options.theme);
+    LegacyConfigStore.set('theme', user.options.theme);
   }
 
   // Ideally we'd fire an action but this is gonna get refactored soon anyway
-  ConfigStore.set('user', user);
+  LegacyConfigStore.set('user', user);
 }
 
 export function logout(api: Client) {

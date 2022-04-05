@@ -4,7 +4,7 @@ import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
@@ -67,7 +67,7 @@ describe('OrganizationContextContainer', function () {
 
     TeamActions.loadTeams.mockRestore();
     ProjectActions.loadProjects.mockRestore();
-    ConfigStore.get.mockRestore();
+    LegacyConfigStore.get.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
   });
 
@@ -160,7 +160,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
-    ConfigStore.get.mockImplementation(() => ({
+    LegacyConfigStore.get.mockImplementation(() => ({
       isSuperuser: true,
     }));
     getOrgMock = MockApiClient.addMockResponse({
@@ -193,7 +193,7 @@ describe('OrganizationContextContainer', function () {
     });
 
     // mocking `.get('lastOrganization')`
-    ConfigStore.get.mockImplementation(() => 'last-org');
+    LegacyConfigStore.get.mockImplementation(() => 'last-org');
     wrapper = createWrapper({useLastOrganization: true, params: {}});
     // await dispatching action
     await tick();
@@ -223,7 +223,7 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    ConfigStore.get.mockImplementation(() => '');
+    LegacyConfigStore.get.mockImplementation(() => '');
 
     wrapper = createWrapper({
       useLastOrganization: true,
@@ -253,7 +253,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('uses last organization when no orgId in URL - and fetches org details once', async function () {
-    ConfigStore.get.mockImplementation(() => 'my-last-org');
+    LegacyConfigStore.get.mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
       body: TestStubs.Organization({slug: 'my-last-org'}),

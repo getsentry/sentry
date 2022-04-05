@@ -1,6 +1,6 @@
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {logExperiment} from 'sentry/utils/analytics';
 import withExperiment from 'sentry/utils/withExperiment';
 
@@ -50,7 +50,7 @@ describe('withConfig HoC', function () {
   });
 
   it('injects user experiment assignment', function () {
-    ConfigStore.set('user', {id: 123, experiments: {userExperiment: 2}});
+    LegacyConfigStore.set('user', {id: 123, experiments: {userExperiment: 2}});
 
     const Container = withExperiment(MyComponent, {experiment: 'userExperiment'});
     render(<Container />);

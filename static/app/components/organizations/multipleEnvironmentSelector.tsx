@@ -17,7 +17,7 @@ import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pag
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
@@ -161,7 +161,7 @@ function MultipleEnvironmentSelector({
     didQuickSelect.current = true;
   };
 
-  const config = ConfigStore.getConfig();
+  const config = LegacyConfigStore.getConfig();
 
   const unsortedEnvironments = projects.flatMap(project => {
     const projectId = parseInt(project.id, 10);

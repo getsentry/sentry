@@ -4,7 +4,7 @@ import {mount, shallow as enzymeShallow} from 'enzyme'; // eslint-disable-line n
 
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import configStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {ConfigProvider} from 'sentry/stores/configStore/configProvider';
 import {lightTheme} from 'sentry/utils/theme';
 
@@ -18,7 +18,7 @@ const BaseWrappingThemeProviders = props => {
   return (
     <CacheProvider value={cache}>
       <ThemeProvider theme={lightTheme}>
-        <ConfigProvider initialValue={props.config ?? configStore.config}>
+        <ConfigProvider initialValue={props.config ?? LegacyConfigStore.config}>
           {props.children}
         </ConfigProvider>
       </ThemeProvider>

@@ -1,6 +1,6 @@
 import GuideActions from 'sentry/actions/guideActions';
 import {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
 const api = new Client();
@@ -52,7 +52,7 @@ export function recordFinish(guide: string, orgId: string | null) {
     },
   });
 
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
   if (!user) {
     return;
   }
@@ -76,7 +76,7 @@ export function recordDismiss(guide: string, step: number, orgId: string | null)
     },
   });
 
-  const user = ConfigStore.get('user');
+  const user = LegacyConfigStore.get('user');
   if (!user) {
     return;
   }

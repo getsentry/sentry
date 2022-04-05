@@ -5,7 +5,7 @@ import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -14,7 +14,7 @@ type Props = {
 };
 
 function BaseFooter({className}: Props) {
-  const config = ConfigStore.getConfig();
+  const config = LegacyConfigStore.getConfig();
   return (
     <footer className={className}>
       <LeftLinks>

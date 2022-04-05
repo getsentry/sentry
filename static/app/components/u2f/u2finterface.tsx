@@ -4,7 +4,7 @@ import * as cbor from 'cbor-web';
 
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {ChallengeData, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -270,7 +270,7 @@ class U2fInterface extends React.Component<Props, State> {
 
   renderFailure = () => {
     const {deviceFailure} = this.state;
-    const supportMail = ConfigStore.get('supportEmail');
+    const supportMail = LegacyConfigStore.get('supportEmail');
     const support = supportMail ? (
       <a href={'mailto:' + supportMail}>{supportMail}</a>
     ) : (

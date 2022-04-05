@@ -7,7 +7,7 @@ import {
 
 import GuideActions from 'sentry/actions/guideActions';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 describe('GuideAnchor', function () {
   const serverGuide = [
@@ -18,7 +18,7 @@ describe('GuideAnchor', function () {
   ];
 
   beforeEach(function () {
-    ConfigStore.config = {
+    LegacyConfigStore.config = {
       user: {
         isSuperuser: false,
         dateJoined: new Date(2020, 0, 1),

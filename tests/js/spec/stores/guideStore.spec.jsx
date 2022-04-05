@@ -1,4 +1,4 @@
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 
@@ -14,7 +14,7 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     trackAnalyticsEvent.mockClear();
-    ConfigStore.config = {
+    LegacyConfigStore.config = {
       user,
     };
     GuideStore.init();

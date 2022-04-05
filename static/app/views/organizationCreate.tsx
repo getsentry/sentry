@@ -2,11 +2,11 @@ import {ApiForm, CheckboxField, TextField} from 'sentry/components/forms';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 function OrganizationCreate() {
-  const termsUrl = ConfigStore.get('termsUrl');
-  const privacyUrl = ConfigStore.get('privacyUrl');
+  const termsUrl = LegacyConfigStore.get('termsUrl');
+  const privacyUrl = LegacyConfigStore.get('privacyUrl');
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>

@@ -3,7 +3,7 @@ import MockDate from 'mockdate';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 
 // 2017-10-14T02:38:00.000Z
 // 2017-10-17T02:38:00.000Z
@@ -31,7 +31,7 @@ describe('DateRange', function () {
 
   beforeAll(function () {
     MockDate.set(new Date('2017-10-16T23:41:20.000Z'));
-    ConfigStore.loadInitialData({
+    LegacyConfigStore.loadInitialData({
       user: {options: {timezone: 'America/New_York'}},
     });
   });

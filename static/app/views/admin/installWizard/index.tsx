@@ -7,7 +7,7 @@ import Alert from 'sentry/components/alert';
 import {ApiForm} from 'sentry/components/forms';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -86,7 +86,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
   }
 
   render() {
-    const version = ConfigStore.get('version');
+    const version = LegacyConfigStore.get('version');
     return (
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <Wrapper>

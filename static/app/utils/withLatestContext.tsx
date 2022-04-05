@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import {Organization, OrganizationSummary, Project} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
@@ -60,7 +60,7 @@ function withLatestContext<P extends InjectedLatestContextProps>(
         organization ||
         (organizations && organizations.length
           ? organizations.find(
-              ({slug}) => slug === ConfigStore.get('lastOrganization')
+              ({slug}) => slug === LegacyConfigStore.get('lastOrganization')
             ) || organizations[0]
           : null);
 

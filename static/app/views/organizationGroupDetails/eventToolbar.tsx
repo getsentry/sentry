@@ -13,7 +13,7 @@ import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -68,7 +68,7 @@ class GroupEventToolbar extends Component<Props> {
 
   getDateTooltip() {
     const evt = this.props.event;
-    const user = ConfigStore.get('user');
+    const user = LegacyConfigStore.get('user');
     const options = user?.options ?? {};
     const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
     const dateCreated = moment(evt.dateCreated);
