@@ -89,7 +89,10 @@ export type CommittersAction =
   | StartLoadingCommitters
   | SetCommittersError;
 
-export function committersReducer(state: CommittersState, action: CommittersAction): CommittersState {
+export function committersReducer(
+  state: CommittersState,
+  action: CommittersAction
+): CommittersState {
   switch (action.type) {
     case 'add committers': {
       const key = makeCommitterStoreKey({
