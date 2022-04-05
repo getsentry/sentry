@@ -83,7 +83,7 @@ export type CommittersState = Record<
   }
 >;
 
-export type CommittersAction =
+ type CommittersAction =
   | ResetAction
   | AddCommitters
   | StartLoadingCommitters
