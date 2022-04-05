@@ -2,12 +2,8 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  CommittersProvider,
-  committersReducer,
-  useCommitters,
-  withCommitters,
-} from 'sentry/stores/commiters/committersProvider';
+import {committersReducer} from 'sentry/stores/commiters/committersReducer';
+import {withCommitters} from 'sentry/stores/commiters/withCommitters';
 
 describe('CommitersReducer', () => {
   it('marks committer loading and clears old state', () => {

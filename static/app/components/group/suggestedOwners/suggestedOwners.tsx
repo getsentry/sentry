@@ -7,7 +7,7 @@ import AsyncComponent, {AsyncComponentProps} from 'sentry/components/asyncCompon
 import {
   withCommitters,
   WithCommittersProps,
-} from 'sentry/stores/commiters/committersProvider';
+} from 'sentry/stores/commiters/withCommitters';
 import {
   Actor,
   CodeOwner,
