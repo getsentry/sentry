@@ -1677,6 +1677,20 @@ describe('WidgetBuilder', function () {
       expect(metricsDataset).toBeChecked();
     });
 
+    it('cannot add equation', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+    });
+
     it('displays metrics tags', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
