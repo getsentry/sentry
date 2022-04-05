@@ -96,7 +96,6 @@ describe('CommittersProvider', () => {
 
     expect(screen.getByText(/empty component/)).toBeInTheDocument();
   });
-  
   it('renders with initial state', () => {
     render(
       <CommittersProvider
