@@ -37,6 +37,7 @@ export function configReducer<K extends keyof Config>(
     case 'set config value': {
       // XXX: side effect that bridges reflux and reducer, keeping the two stores in sync
       if (bridgeReflux) {
+        // We need to escape the React lifecycle update or this will result in an "calling setState inside setState error"
         window.setTimeout(() => {
           LegacyConfigStore.set(action.payload.key, action.payload.value);
         });
@@ -46,6 +47,7 @@ export function configReducer<K extends keyof Config>(
     case 'set theme': {
       // XXX: side effect that bridges reflux and reducer, keeping the two stores in sync
       if (bridgeReflux) {
+        // We need to escape the React lifecycle update or this will result in an "calling setState inside setState error"
         window.setTimeout(() => {
           LegacyConfigStore.updateTheme(action.payload);
         });
