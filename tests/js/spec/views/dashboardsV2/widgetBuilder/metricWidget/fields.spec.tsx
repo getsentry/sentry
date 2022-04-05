@@ -117,7 +117,7 @@ describe('generateMetricsWidgetFieldOptions', function () {
         },
       },
       'field:session.crash_free_rate': {
-        label: 'session.crash_free_rate',
+        label: 'session.crash_free_rate()',
         value: {
           kind: 'numeric_metric',
           meta: {
