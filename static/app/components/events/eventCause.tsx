@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {
   withCommitters,
   WithCommittersProps,
-} from 'sentry/stores/Commiters/CommittersContext';
+} from 'sentry/stores/commiters/committersProvider';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';

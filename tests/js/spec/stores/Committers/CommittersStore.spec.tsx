@@ -7,7 +7,7 @@ import {
   committersReducer,
   useCommitters,
   withCommitters,
-} from 'sentry/stores/Commiters/CommittersContext';
+} from 'sentry/stores/commiters/committersProvider';
 
 describe('CommitersReducer', () => {
   it('marks committer loading and clears old state', () => {

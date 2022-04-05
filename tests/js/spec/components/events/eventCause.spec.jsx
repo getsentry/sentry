@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventCause from 'sentry/components/events/eventCause';
-import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
+import {CommittersProvider} from 'sentry/stores/commiters/committersProvider';
 
 describe('EventCause', function () {
   const organization = TestStubs.Organization();

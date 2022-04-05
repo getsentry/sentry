@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
-import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
+import {CommittersProvider} from 'sentry/stores/commiters/committersProvider';
 import MemberListStore from 'sentry/stores/memberListStore';
 
 describe('SuggestedOwners', function () {

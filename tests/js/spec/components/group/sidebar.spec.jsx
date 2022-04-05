@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
-import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
+import {CommittersProvider} from 'sentry/stores/commiters/committersProvider';
 
 describe('GroupSidebar', function () {
   const {organization, project, routerContext} = initializeOrg();

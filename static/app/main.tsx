@@ -5,7 +5,7 @@ import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import routes from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 
-import {CommittersProvider} from './stores/Commiters/CommittersContext';
+import {CommittersProvider} from './stores/commiters/committersProvider';
 
 function Main() {
   return (

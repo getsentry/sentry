@@ -1,6 +1,6 @@
 import {cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
+import {CommittersProvider} from 'sentry/stores/commiters/committersProvider';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import EventDetails from 'sentry/views/performance/transactionDetails';

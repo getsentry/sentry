@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
-import {CommittersProvider} from 'sentry/stores/Commiters/CommittersContext';
+import {CommittersProvider} from 'sentry/stores/commiters/committersProvider';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
