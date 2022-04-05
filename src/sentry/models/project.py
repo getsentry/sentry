@@ -342,6 +342,18 @@ class Project(Model, PendingDeletionMixin):
             if not is_member:
                 rule.update(owner=None)
 
+        # [Rule, AlertRule(SnubaQuery->Environment)]
+        # id -> name
+        environment_names_with_alerts = {
+            **environment_names,
+            **{
+                env_id: env_name
+                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
+                    "snuba_query__environment__id", "snuba_query__environment__name"
+                )
+            },
+        }
+
         # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
         # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
         # the old org
@@ -351,7 +363,7 @@ class Project(Model, PendingDeletionMixin):
         ):
             SnubaQuery.objects.filter(id=snuba_id).update(
                 environment_id=Environment.get_or_create(
-                    self, name=environment_names.get(environment_id, None)
+                    self, name=environment_names_with_alerts.get(environment_id, None)
                 ).id
             )
 
