@@ -232,7 +232,7 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
-      setError={setError}
+      setError={error => setError(error?.message)}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);

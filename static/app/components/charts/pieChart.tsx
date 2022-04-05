@@ -33,12 +33,10 @@ class PieChart extends React.Component<Props> {
   }
 
   componentWillUnmount() {
-    if (this.highlightTimeout) {
-      window.clearTimeout(this.highlightTimeout);
-    }
+    window.clearTimeout(this.highlightTimeout);
   }
 
-  highlightTimeout: number | null = null;
+  highlightTimeout: number | undefined = undefined;
   isInitialSelected = true;
   selected = 0;
   chart = React.createRef<ReactEchartsRef>();
