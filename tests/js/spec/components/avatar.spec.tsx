@@ -8,7 +8,7 @@ const gravatarBaseUrl = 'gravatarBaseUrl';
 const storeConfig = LegacyConfigStore.getConfig();
 
 jest
-  .spyOn(ConfigStore, 'getConfig')
+  .spyOn(LegacyConfigStore, 'getConfig')
   .mockImplementation(() => ({...storeConfig, gravatarBaseUrl}));
 
 describe('Avatar', function () {
