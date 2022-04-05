@@ -13,7 +13,7 @@ import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
-import {createFrameIndex} from './utils';
+import {createFrameIndex, wrapWithSpan} from './utils';
 
 export interface ProfileGroup {
   activeProfileIndex: number;
@@ -23,7 +23,14 @@ export interface ProfileGroup {
 }
 
 export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace,
+  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
+  traceID: string
+): ProfileGroup {
+  return wrapWithSpan(() => _importProfile(input, traceID), {op: 'profiles.import'});
+}
+
+function _importProfile(
+  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
   traceID: string
 ): ProfileGroup {
   if (isJSProfile(input)) {
@@ -56,7 +63,7 @@ function importJSSelfProfile(
 }
 
 function importChromeTrace(
-  input: string | ChromeTrace.ProfileType,
+  input: ChromeTrace.ProfileType,
   traceID: string
 ): ProfileGroup {
   if (isChromeTraceObjectFormat(input)) {
@@ -86,13 +93,25 @@ function importSingleProfile(
   frameIndex: ReturnType<typeof createFrameIndex>
 ): Profile {
   if (isEventedProfile(profile)) {
-    return EventedProfile.FromProfile(profile, frameIndex);
+    return wrapWithSpan(() => EventedProfile.FromProfile(profile, frameIndex), {
+      op: 'profile.import',
+      description: 'evented',
+    });
   }
   if (isSampledProfile(profile)) {
-    return SampledProfile.FromProfile(profile, frameIndex);
+    return wrapWithSpan(() => SampledProfile.FromProfile(profile, frameIndex), {
+      op: 'profile.import',
+      description: 'sampled',
+    });
   }
   if (isJSProfile(profile)) {
-    return JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames));
+    return wrapWithSpan(
+      () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),
+      {
+        op: 'profile.import',
+        description: 'js-self-profile',
+      }
+    );
   }
   throw new Error('Unrecognized trace format');
 }
