@@ -34,8 +34,10 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
         self.metric_value = metric_value
         self.new_status = new_status
 
-    def build(self) -> SlackBody:
-        data = incident_attachment_info(self.incident, self.new_status, self.metric_value)
+    def build(self, unfurl: bool = False) -> SlackBody:
+        data = incident_attachment_info(
+            self.incident, self.new_status, self.metric_value, unfurl=unfurl
+        )
 
         return self._build(
             actions=[],
@@ -52,8 +54,9 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
 def build_incident_attachment(
     incident: Incident,
     metric_value: Optional[int] = None,
+    unfurl: bool = False,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIncidentsMessageBuilder(
         incident, IncidentStatus(incident.status), metric_value
-    ).build()
+    ).build(unfurl=unfurl)
