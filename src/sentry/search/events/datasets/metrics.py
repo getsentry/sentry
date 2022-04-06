@@ -17,7 +17,6 @@ from sentry.sentry_metrics import indexer
 class MetricsDatasetConfig(DatasetConfig):
     def __init__(self, builder: MetricsQueryBuilder):
         self.builder = builder
-        self.indexer_cache: Mapping[str, Optional[int]] = {}
 
     @property
     def search_filter_converter(
@@ -49,13 +48,10 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
-        if value in self.indexer_cache:
-            return self.indexer_cache[value]
         value_id = indexer.resolve(
             self.builder.organization_id, constants.METRICS_MAP.get(value, value)
         )
 
-        self.indexer_cache[value] = value_id
         return value_id
 
     @property
