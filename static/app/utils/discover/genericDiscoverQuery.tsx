@@ -12,10 +12,18 @@ import EventView, {
 import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import RequestError from '../requestError/requestError';
+
 export class QueryError {
   message: string;
-  constructor(errorMessage: string) {
+  private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
+  constructor(errorMessage: string, originalError: any) {
     this.message = errorMessage;
+    this.originalError = originalError;
+  }
+
+  getOriginalError() {
+    return this.originalError;
   }
 }
 
@@ -113,6 +121,10 @@ type ComponentProps<T, P> = {
    */
   getRequestPayload?: (props: Props<T, P>) => any;
   /**
+   * An external hook to parse errors in case there are differences for a specific api.
+   */
+  parseError?: (error: any) => QueryError | null;
+  /**
    * An external hook in addition to the event view check to check if data should be refetched
    */
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
@@ -195,6 +207,32 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     );
   };
 
+  /**
+   * The error type isn't consistent across APIs. We see detail as just string some times, other times as an object.
+   */
+  _parseError = (error: any): QueryError | null => {
+    if (this.props.parseError) {
+      return this.props.parseError(error);
+    }
+
+    if (!error) {
+      return null;
+    }
+
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string') {
+      return new QueryError(detail, error);
+    }
+
+    const message = detail?.message;
+    if (typeof message === 'string') {
+      return new QueryError(message, error);
+    }
+
+    const unknownError = new QueryError(t('An unknown error occurred.'), error);
+    return unknownError;
+  };
+
   fetchData = async () => {
     const {api, beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
       this.props;
@@ -234,9 +272,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
         tableData,
       }));
     } catch (err) {
-      const error = new QueryError(
-        err?.responseJSON?.detail || t('An unknown error occurred.')
-      );
+      const error = this._parseError(err);
       this.setState({
         isLoading: false,
         tableFetchID: undefined,
@@ -244,7 +280,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
         tableData: null,
       });
       if (setError) {
-        setError(error);
+        setError(error ?? undefined);
       }
     }
   };
