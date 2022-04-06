@@ -43,7 +43,6 @@ const AlertMessage = ({alert, system}: Props) => {
 export default AlertMessage;
 
 const StyledAlert = styled(Alert)`
-  padding: ${space(1)} ${space(2)};
   margin: 0;
 `;
 
