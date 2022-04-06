@@ -5,7 +5,10 @@ import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -128,6 +131,13 @@ class QueryList extends React.Component<Props> {
       savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
     if (organization.features.includes('new-widget-builder-experience')) {
+      if (organization.features.includes('new-widget-builder-experience-design')) {
+        openAddToDashboardModal({
+          organization,
+          query: defaultWidgetQuery,
+        });
+        return;
+      }
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
         query: {
