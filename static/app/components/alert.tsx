@@ -222,7 +222,9 @@ const TrailingItemsWrap = styled(TrailingItems)`
   margin-left: ${space(1)};
 `;
 
-const ExpandIcon = styled(IconChevron)<{isExpanded: boolean}>`
+const ExpandIcon = styled(IconChevron, {
+  shouldForwardProp: (p: string) => p !== 'isExpanded',
+})<{isExpanded: boolean}>`
   transform: ${p => (p.isExpanded ? 'rotate(0deg)' : 'rotate(180deg)')};
 `;
 
