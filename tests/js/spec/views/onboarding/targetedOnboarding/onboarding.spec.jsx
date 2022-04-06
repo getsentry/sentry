@@ -32,9 +32,9 @@ describe('Onboarding', function () {
   it('renders the setup docs step', async () => {
     const projects = [
       TestStubs.Project({
-        platform: 'javascript-nextjs',
+        platform: 'javascript',
         id: '4',
-        slug: 'javascript-nextjs-slug',
+        slug: 'javascript-slug',
       }),
       TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
     ];
@@ -50,10 +50,10 @@ describe('Onboarding', function () {
       url: `/organizations/${organization.slug}/client-state/onboarding/`,
       body: {
         platformToProjectIdMap: {
-          'javascript-nextjs': projects[0].slug,
+          javascript: projects[0].slug,
           ruby: projects[1].slug,
         },
-        selectedPlatforms: ['ruby', 'javascript-nextjs'],
+        selectedPlatforms: ['ruby', 'javascript'],
       },
     });
     ProjectsStore.loadInitialData(projects);
