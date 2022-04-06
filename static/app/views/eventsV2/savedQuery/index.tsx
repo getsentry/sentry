@@ -5,7 +5,10 @@ import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -268,6 +271,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
     if (organization.features.includes('new-widget-builder-experience')) {
+      if (organization.features.includes('new-widget-builder-experience-design')) {
+        openAddToDashboardModal({
+          organization,
+          query: defaultWidgetQuery,
+        });
+        return;
+      }
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
         query: {
