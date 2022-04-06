@@ -30,6 +30,7 @@ __all__ = (
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
+    "NotFoundInNamingLayer",
 )
 
 
@@ -59,7 +60,7 @@ TS_COL_GROUP = "bucketed_time"
 
 #: Max number of data points per time series:
 # ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_)+)\)$")
+FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_|\:|\/|\@)+)\)$")
 TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
@@ -198,6 +199,10 @@ class DerivedMetricParseException(DerivedMetricException):
 
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
+    ...
+
+
+class NotFoundInNamingLayer(DerivedMetricException):
     ...
 
 

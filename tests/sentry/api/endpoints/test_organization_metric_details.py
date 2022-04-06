@@ -5,7 +5,7 @@ from unittest.mock import patch
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
-from sentry.snuba.metrics.fields.base import DerivedMetricKey
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_mri, get_reverse_mri
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -14,10 +14,10 @@ MOCKED_DERIVED_METRICS_2.update(
     {
         "derived_metric.multiple_metrics": SingularEntityDerivedMetric(
             metric_name="derived_metric.multiple_metrics",
-            metrics=["metric_foo_doe", "session.all"],
+            metrics=["metric_foo_doe", SessionMRI.ALL.value],
             unit="percentage",
             snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, alias=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value
+                *args, alias=SessionMetricKey.CRASH_FREE_RATE.value
             ),
         )
     }
@@ -28,6 +28,8 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
 
     endpoint = "sentry-api-0-organization-metric-details"
 
+    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x)
+    @patch("sentry.snuba.metrics.datasource.get_reverse_mri", lambda x: x)
     def test_metric_details(self):
         # metric1:
         response = self.get_success_response(
@@ -76,6 +78,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "tags": [],
         }
 
+    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x)
     def test_metric_details_metric_does_not_exist_in_indexer(self):
         response = self.get_response(
             self.organization.slug,
@@ -87,6 +90,11 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             == "Some or all of the metric names in ['foo.bar'] do not exist in the indexer"
         )
 
+    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x if x == "foo.bar" else get_mri(x))
+    @patch(
+        "sentry.snuba.metrics.datasource.get_reverse_mri",
+        lambda x: x if x == "foo.bar" else get_reverse_mri(x),
+    )
     def test_metric_details_metric_does_not_have_data(self):
         indexer.record(self.organization.id, "foo.bar")
         response = self.get_response(
@@ -95,15 +103,16 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         assert response.status_code == 404
 
-        indexer.record(self.organization.id, SessionMetricKey.SESSION.value)
+        indexer.record(self.organization.id, SessionMRI.SESSION.value)
         response = self.get_response(
             self.organization.slug,
-            DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+            SessionMetricKey.CRASH_FREE_RATE.value,
         )
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{DerivedMetricKey.SESSION_CRASH_FREE_RATE.value}'] do not exist in the dataset"
+            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] do not exist in the "
+            f"dataset"
         )
 
     def test_derived_metric_details(self):
@@ -118,10 +127,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         response = self.get_success_response(
             self.organization.slug,
-            DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+            SessionMetricKey.CRASH_FREE_RATE.value,
         )
         assert response.data == {
-            "name": DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
+            "name": SessionMetricKey.CRASH_FREE_RATE.value,
             "type": "numeric",
             "operations": [],
             "unit": "percentage",
@@ -129,8 +138,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         }
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
+    @patch("sentry.snuba.metrics.datasource.get_mri")
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
-    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
+    def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics, mocked_get_mri):
+        mocked_get_mri.return_value = "crash_free_fake"
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         self.store_session(
             self.build_session(
@@ -152,6 +163,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        lambda x: x if x in ["metric_foo_doe", "derived_metric.multiple_metrics"] else get_mri(x),
+    )
+    @patch(
+        "sentry.snuba.metrics.datasource.get_reverse_mri",
+        lambda x: x if x in ["metric_foo_doe", "derived_metric.multiple_metrics"] else get_mri(x),
+    )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):
         """

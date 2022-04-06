@@ -34,6 +34,7 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
+from sentry.snuba.metrics.naming_abstraction_layer import get_mri, get_reverse_mri
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -54,24 +55,27 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> Tuple[Optional[str], str]:
-    derived_metrics = get_derived_metrics(exclude_private=True)
+    derived_metrics_mri = get_derived_metrics(exclude_private=True)
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
         operation = matches[1]
-        metric_name = matches[2]
-        if metric_name in derived_metrics and isinstance(
-            derived_metrics[metric_name], DerivedMetricExpression
+        metric_mri = get_mri(matches[2])
+        if metric_mri in derived_metrics_mri and isinstance(
+            derived_metrics_mri[metric_mri], DerivedMetricExpression
         ):
             raise DerivedMetricParseException(
                 f"Failed to parse {field}. No operations can be applied on this field as it is "
                 f"already a derived metric with an aggregation applied to it."
             )
     except (IndexError, TypeError):
-        if field in derived_metrics and isinstance(derived_metrics[field], DerivedMetricExpression):
+        metric_mri = get_mri(field)
+        if metric_mri in derived_metrics_mri and isinstance(
+            derived_metrics_mri[metric_mri], DerivedMetricExpression
+        ):
             # The isinstance check is there to foreshadow adding raw metric aliases
-            return None, field
+            return None, metric_mri
         raise InvalidField(
             f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', or a supported "
             f"aggregate derived metric like `session.crash_free_rate"
@@ -82,7 +86,7 @@ def parse_field(field: str) -> Tuple[Optional[str], str]:
             f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
         )
 
-    return operation, metric_name
+    return operation, metric_mri
 
 
 def resolve_tags(org_id: int, input_: Any) -> Any:
@@ -166,7 +170,11 @@ class QueryDefinition:
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
 
-        self.fields = {key: parse_field(key) for key in raw_fields}
+        self.fields = {}
+        for key in raw_fields:
+            op, metric_mri = parse_field(key)
+            mri_key = f"{op}({metric_mri})" if op is not None else metric_mri
+            self.fields[mri_key] = (op, metric_mri)
 
         self.orderby = self._parse_orderby(query_params)
         self.limit = self._parse_limit(query_params, paginator_kwargs)
@@ -203,13 +211,14 @@ class QueryDefinition:
         if orderby[0] == "-":
             orderby = orderby[1:]
             direction = Direction.DESC
+
         try:
-            op, metric_name = self.fields[orderby]
+            op, metric_mri = parse_field(orderby)
         except KeyError:
             # orderBy one of the group by fields may be supported in the future
             raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
-        return (op, metric_name), direction
+        return (op, metric_mri), direction
 
     def _parse_limit(self, query_params, paginator_kwargs):
         if self.orderby:
@@ -549,8 +558,7 @@ class SnubaResultConverter:
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
         for op, metric_name in self._set_of_constituent_queries:
-            key = f"{op}({metric_name})" if op else metric_name
-
+            key = f"{op}({metric_name})" if op is not None else metric_name
             default_null_value = metric_object_factory(
                 op, metric_name
             ).generate_default_null_values()
@@ -572,14 +580,15 @@ class SnubaResultConverter:
                 if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
                     tag_data["totals"][key] = cleaned_value
 
-            if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
-                empty_values = len(self._intervals) * [default_null_value]
-                series = tag_data["series"].setdefault(key, empty_values)
+            if self._query_definition.include_series:
+                if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
+                    empty_values = len(self._intervals) * [default_null_value]
+                    series = tag_data["series"].setdefault(key, empty_values)
 
-                if bucketed_time is not None:
-                    series_index = self._timestamp_index[bucketed_time]
-                    if series[series_index] == default_null_value:
-                        series[series_index] = cleaned_value
+                    if bucketed_time is not None:
+                        series_index = self._timestamp_index[bucketed_time]
+                        if series[series_index] == default_null_value:
+                            series[series_index] = cleaned_value
 
     def translate_results(self):
         groups = {}
@@ -609,8 +618,10 @@ class SnubaResultConverter:
 
             for op, metric_name in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_name=metric_name)
+
+                grp_key = f"{op}({metric_name})" if op is not None else metric_name
                 if totals is not None:
-                    totals[metric_name] = metric_obj.run_post_query_function(
+                    totals[grp_key] = metric_obj.run_post_query_function(
                         totals, query_definition=self._query_definition
                     )
 
@@ -618,10 +629,10 @@ class SnubaResultConverter:
                     # Series
                     for idx in range(0, len(self._intervals)):
                         series.setdefault(
-                            metric_name,
+                            grp_key,
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
-                        series[metric_name][idx] = metric_obj.run_post_query_function(
+                        series[grp_key][idx] = metric_obj.run_post_query_function(
                             series, query_definition=self._query_definition, idx=idx
                         )
 
@@ -641,10 +652,21 @@ class SnubaResultConverter:
                 else:
                     operation = None
                     metric_name = key
+
                 if (operation, metric_name) not in self._query_definition_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:
                         del series[key]
+                else:
+                    reversed_mri_key = (
+                        f"{get_reverse_mri(metric_name)}"
+                        if operation is None
+                        else f"{operation}({get_reverse_mri(metric_name)})"
+                    )
+                    if totals is not None:
+                        totals[reversed_mri_key] = totals.pop(key)
+                    if series is not None:
+                        series[reversed_mri_key] = series.pop(key)
 
         return groups

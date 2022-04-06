@@ -163,15 +163,15 @@ FUNCTION_ALIASES = {
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
-    "measurements.fp": "sentry.transactions.measurements.fp",
-    "measurements.fcp": "sentry.transactions.measurements.fcp",
-    "measurements.lcp": "sentry.transactions.measurements.lcp",
-    "measurements.fid": "sentry.transactions.measurements.fid",
-    "measurements.cls": "sentry.transactions.measurements.cls",
-    "measurements.ttfb": "sentry.transactions.measurements.ttfb",
-    "measurements.ttfb.requesttime": "sentry.transactions.measurements.ttfb.requesttime",
-    "transaction.duration": "sentry.transactions.transaction.duration",
-    "user": "sentry.transactions.user",
+    "measurements.fp": "d:transactions/measurements.fp@ms",
+    "measurements.fcp": "d:transactions/measurements.fcp@ms",
+    "measurements.lcp": "d:transactions/measurements.lcp@ms",
+    "measurements.fid": "d:transactions/measurements.fid@ms",
+    "measurements.cls": "d:transactions/measurements.cls@ms",
+    "measurements.ttfb": "d:transactions/measurements.ttfb@ms",
+    "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime",
+    "transaction.duration": "d:transactions/duration@ms",
+    "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51

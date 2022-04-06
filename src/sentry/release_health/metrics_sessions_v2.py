@@ -49,7 +49,6 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey as MetricKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve_tag_key,
@@ -58,6 +57,7 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none, get_timestamps
 from sentry.utils.snuba import raw_snql_query
 
@@ -66,19 +66,19 @@ logger = logging.getLogger(__name__)
 #: Referrers for snuba queries
 #: Referrers must be searchable, so no string interpolation here
 REFERRERS = {
-    MetricKey.USER: {
+    SessionMRI.USER: {
         "series": "release_health.metrics.sessions_v2.user.series",
         "totals": "release_health.metrics.sessions_v2.user.totals",
     },
-    MetricKey.SESSION_DURATION: {
+    SessionMRI.RAW_DURATION: {
         "series": "release_health.metrics.sessions_v2.session.duration.series",
         "totals": "release_health.metrics.sessions_v2.session.duration.totals",
     },
-    MetricKey.SESSION: {
+    SessionMRI.SESSION: {
         "series": "release_health.metrics.sessions_v2.session.series",
         "totals": "release_health.metrics.sessions_v2.session.totals",
     },
-    MetricKey.SESSION_ERROR: {
+    SessionMRI.ERROR: {
         "series": "release_health.metrics.sessions_v2.session.error.series",
         "totals": "release_health.metrics.sessions_v2.session.error.totals",
     },
@@ -180,15 +180,15 @@ class _DataPointKey:
 
     would result in data keys
 
-        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime1>
-        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime1>
-        metric_key=MetricKey.SESSION_DURATION, column=avg, bucketed_time=<datetime2>
-        metric_key=MetricKey.SESSION_DURATION, column=max, bucketed_time=<datetime2>
+        metric_key=SessionMRI.RAW_DURATION, column=avg, bucketed_time=<datetime1>
+        metric_key=SessionMRI.RAW_DURATION, column=max, bucketed_time=<datetime1>
+        metric_key=SessionMRI.RAW_DURATION, column=avg, bucketed_time=<datetime2>
+        metric_key=SessionMRI.RAW_DURATION, column=max, bucketed_time=<datetime2>
         ...
 
     """
 
-    metric_key: MetricKey
+    metric_key: SessionMRI
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
     environment: Optional[int] = None
@@ -199,7 +199,7 @@ class _DataPointKey:
 
 _DataPoints = MutableMapping[_DataPointKey, float]
 _SnubaData = Sequence[MutableMapping[str, Any]]
-_SnubaDataByMetric = List[Tuple[MetricKey, _SnubaData]]
+_SnubaDataByMetric = List[Tuple[SessionMRI, _SnubaData]]
 
 
 class _OutputField(abc.ABC):
@@ -263,7 +263,7 @@ class _SumSessionField(_OutputField):
             started = int(data_points[key])
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
-            errored_key = replace(key, metric_key=MetricKey.SESSION_ERROR, raw_session_status=None)
+            errored_key = replace(key, metric_key=SessionMRI.ERROR, raw_session_status=None)
             individual_errors = int(data_points.get(errored_key, 0))
             aggregated_errors = int(
                 data_points.get(replace(key, raw_session_status="errored_preaggr"), 0)
@@ -451,12 +451,12 @@ def _get_snuba_query_data(
     org_id: int,
     query: QueryDefinition,
     entity_key: EntityKey,
-    metric_key: MetricKey,
+    metric_key: SessionMRI,
     metric_id: int,
     columns: List[SelectableExpression],
     limit_state: _LimitState,
     extra_conditions: Optional[List[Condition]] = None,
-) -> Generator[Tuple[MetricKey, _SnubaData], None, None]:
+) -> Generator[Tuple[SessionMRI, _SnubaData], None, None]:
     """Get data from snuba"""
 
     for query_type in ("totals", "series"):
@@ -494,13 +494,13 @@ def _get_snuba_query_data(
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
+) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[SessionMRI, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
 
     combined_data: _SnubaDataByMetric = []
 
     # Find the field that needs a specific column in a specific metric
-    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
+    metric_to_output_field: MutableMapping[Tuple[SessionMRI, _VirtualColumnName], _OutputField] = {}
 
     # Prevent fields from being fetched multiple times (only used for percentiles)
     columns_fetched: Set[SelectableExpression] = set()
@@ -523,13 +523,13 @@ def _fetch_data_for_field(
     raw_field: SessionsQueryFunction,
     limit_state: _LimitState,
     columns_fetched: Set[SelectableExpression],  # output param
-) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField]]:
+) -> Tuple[_SnubaDataByMetric, MutableMapping[Tuple[SessionMRI, _VirtualColumnName], _OutputField]]:
     tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
     data: _SnubaDataByMetric = []
 
     # Find the field that needs a specific column in a specific metric
-    metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
+    metric_to_output_field: MutableMapping[Tuple[SessionMRI, _VirtualColumnName], _OutputField] = {}
 
     group_by_status = "session.status" in query.raw_groupby
 
@@ -550,7 +550,7 @@ def _fetch_data_for_field(
         )
 
     if "count_unique(user)" == raw_field:
-        metric_id = indexer.resolve(org_id, MetricKey.USER.value)
+        metric_id = indexer.resolve(org_id, SessionMRI.USER.value)
         if metric_id is not None:
             if group_by_status:
                 data.extend(
@@ -558,7 +558,7 @@ def _fetch_data_for_field(
                         org_id,
                         query,
                         EntityKey.MetricsSets,
-                        MetricKey.USER,
+                        SessionMRI.USER,
                         metric_id,
                         [
                             # The order of these columns is important, because
@@ -577,16 +577,16 @@ def _fetch_data_for_field(
                         org_id,
                         query,
                         EntityKey.MetricsSets,
-                        MetricKey.USER,
+                        SessionMRI.USER,
                         metric_id,
                         [Function("uniq", [Column("value")], "value")],
                         limit_state,
                     )
                 )
-            metric_to_output_field[(MetricKey.USER, "value")] = _UserField()
+            metric_to_output_field[(SessionMRI.USER, "value")] = _UserField()
 
     if raw_field in _DURATION_FIELDS:
-        metric_id = indexer.resolve(org_id, MetricKey.SESSION_DURATION.value)
+        metric_id = indexer.resolve(org_id, SessionMRI.RAW_DURATION.value)
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -608,7 +608,7 @@ def _fetch_data_for_field(
                         org_id,
                         query,
                         EntityKey.MetricsDistributions,
-                        MetricKey.SESSION_DURATION,
+                        SessionMRI.RAW_DURATION,
                         metric_id,
                         [snuba_column],
                         limit_state,
@@ -617,12 +617,12 @@ def _fetch_data_for_field(
                 columns_fetched.add(snuba_column)
 
             col = get_virtual_column(raw_field)
-            metric_to_output_field[(MetricKey.SESSION_DURATION, col)] = _SessionDurationField(
+            metric_to_output_field[(SessionMRI.RAW_DURATION, col)] = _SessionDurationField(
                 raw_field, col, group_by_status
             )
 
     if "sum(session)" == raw_field:
-        metric_id = indexer.resolve(org_id, MetricKey.SESSION.value)
+        metric_id = indexer.resolve(org_id, SessionMRI.SESSION.value)
         if metric_id is not None:
             if group_by_status:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -633,7 +633,7 @@ def _fetch_data_for_field(
                         org_id,
                         query,
                         EntityKey.MetricsCounters,
-                        MetricKey.SESSION,
+                        SessionMRI.SESSION,
                         metric_id,
                         [
                             # The order of these columns is important, because
@@ -648,7 +648,7 @@ def _fetch_data_for_field(
                 )
 
                 # 2: session.error
-                error_metric_id = indexer.resolve(org_id, MetricKey.SESSION_ERROR.value)
+                error_metric_id = indexer.resolve(org_id, SessionMRI.ERROR.value)
                 if error_metric_id is not None:
                     # Should not limit session.error to session.status=X,
                     # because that tag does not exist for this metric
@@ -658,7 +658,7 @@ def _fetch_data_for_field(
                             org_id,
                             query,
                             EntityKey.MetricsSets,
-                            MetricKey.SESSION_ERROR,
+                            SessionMRI.ERROR,
                             error_metric_id,
                             [Function("uniq", [Column("value")], "value")],
                             limit_state,
@@ -676,7 +676,7 @@ def _fetch_data_for_field(
                             org_id,
                             query,
                             EntityKey.MetricsCounters,
-                            MetricKey.SESSION,
+                            SessionMRI.SESSION,
                             metric_id,
                             [Function("sum", [Column("value")], "value")],
                             limit_state,
@@ -684,7 +684,7 @@ def _fetch_data_for_field(
                         )
                     )
 
-            metric_to_output_field[(MetricKey.SESSION, "value")] = _SumSessionField()
+            metric_to_output_field[(SessionMRI.SESSION, "value")] = _SumSessionField()
 
     return data, metric_to_output_field
 
@@ -723,13 +723,13 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
                 if col.startswith("sessions_"):
                     # Map column back to metric key
                     new_key = replace(
-                        flat_key, metric_key=MetricKey.SESSION, raw_session_status=col[9:]
+                        flat_key, metric_key=SessionMRI.SESSION, raw_session_status=col[9:]
                     )
                     data_points[new_key] = row.pop(col) or 0
                 elif col.startswith("users_"):
                     # Map column back to metric key
                     new_key = replace(
-                        flat_key, metric_key=MetricKey.USER, raw_session_status=col[6:]
+                        flat_key, metric_key=SessionMRI.USER, raw_session_status=col[6:]
                     )
                     data_points[new_key] = row.pop(col) or 0
 

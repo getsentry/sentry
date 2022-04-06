@@ -10,7 +10,6 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -20,6 +19,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
@@ -246,7 +246,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
     entity_key: EntityKey
-    metric_key: SessionMetricKey
+    metric_key: SessionMRI
     aggregation_func: str
 
     def __init__(
@@ -374,13 +374,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsCounters
-    metric_key: SessionMetricKey = SessionMetricKey.SESSION
+    metric_key: SessionMRI = SessionMRI.SESSION
     aggregation_func: str = "sum"
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsSets
-    metric_key: SessionMetricKey = SessionMetricKey.USER
+    metric_key: SessionMRI = SessionMRI.USER
     aggregation_func: str = "uniq"
 
 

@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.transactions import TransactionMetricKey
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -24,7 +25,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
 
         self.transaction_lcp_metric = indexer.record(
-            self.project.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+            self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
 
     def test_missing_field(self):
@@ -41,7 +42,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         indexer.record(self.project.organization_id, "environment")
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             groupBy="environment",
         )
 
@@ -59,7 +60,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             groupBy="session.status",
             statsPeriod="1h",
             interval="1h",
@@ -80,7 +81,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 )
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             query="session.status:crashed",
             statsPeriod="1h",
             interval="1h",
@@ -91,7 +92,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         query = "release:foo or "
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             groupBy="environment",
             query=query,
         )
@@ -103,7 +104,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         query = "release:myapp@2.0.0"
         response = self.get_success_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             groupBy="environment",
             query=query,
         )
@@ -112,7 +113,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_orderby_unknown(self):
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             orderBy="foo",
         )
         assert response.status_code == 400
@@ -121,7 +122,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """Order by tag is not supported (yet)"""
         response = self.get_response(
             self.project.organization.slug,
-            field=[f"sum({SessionMetricKey.SESSION.value})", "environment"],
+            field=["sum(sentry.sessions.session)", "environment"],
             groupBy="environment",
             orderBy="environment",
         )
@@ -162,7 +163,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_statsperiod_invalid(self):
         response = self.get_response(
             self.project.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="",
         )
         assert response.status_code == 400
@@ -174,7 +175,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         def count_sessions(project_id: Optional[int]) -> int:
             kwargs = dict(
-                field=f"sum({SessionMetricKey.SESSION.value})",
+                field="sum(sentry.sessions.session)",
                 statsPeriod="1h",
                 interval="1h",
             )
@@ -185,7 +186,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groups = response.data["groups"]
             assert len(groups) == 1
 
-            return groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"]
+            return groups[0]["totals"]["sum(sentry.sessions.session)"]
 
         # Request for entire org gives a counter of two:
         assert count_sessions(project_id=None) == 2
@@ -409,7 +410,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         gracefully
         """
         for metric in [
-            TransactionMetricKey.MEASUREMENTS_FCP.value,
+            TransactionMRI.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
             indexer.record(self.organization.id, metric)
@@ -434,7 +435,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         are from the same entity
         """
         org_id = self.organization.id
-        metric_id_fcp = indexer.record(org_id, TransactionMetricKey.MEASUREMENTS_FCP.value)
+        metric_id_fcp = indexer.record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
         transaction_id = indexer.record(org_id, "transaction")
         transaction_1 = indexer.record(org_id, "/foo/")
         transaction_2 = indexer.record(org_id, "/bar/")
@@ -544,7 +545,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "sentry.transactions.user"),
+                    "metric_id": indexer.record(org_id, TransactionMRI.USER.value),
                     "timestamp": int(time.time()),
                     "tags": {tag: value},
                     "type": "s",
@@ -619,7 +620,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ],
             entity="metrics_distributions",
         )
-        user_metric = indexer.record(org_id, "sentry.transactions.user")
+        user_metric = indexer.record(org_id, TransactionMRI.USER.value)
         user_ts = time.time()
         for ts, ranges in [
             (int(user_ts), [range(4, 5), range(6, 11)]),
@@ -715,16 +716,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     )
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="4m",
             interval="1m",
             groupBy="release",
-            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
+            orderBy="-sum(sentry.sessions.session)",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 2, 3, 4]
+            assert group["series"]["sum(sentry.sessions.session)"] == [1, 2, 3, 4]
 
         assert len(response.data["groups"]) == 1
 
@@ -744,17 +745,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"sum({SessionMetricKey.SESSION.value})",
-                f"count_unique({SessionMetricKey.USER.value})",
+                "sum(sentry.sessions.session)",
+                "count_unique(sentry.sessions.user)",
             ],
             statsPeriod="4m",
             interval="1m",
-            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
+            orderBy="-sum(sentry.sessions.session)",
             per_page=1,  # limit to a single page
         )
 
         for group in response.data["groups"]:
-            assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [3, 6, 9, 12]
+            assert group["series"]["sum(sentry.sessions.session)"] == [3, 6, 9, 12]
 
         assert len(response.data["groups"]) == 1
 
@@ -827,7 +828,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             statsPeriod="1h",
             interval="1h",
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             groupBy=["project_id"],
         )
 
@@ -843,7 +844,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for group in groups:
             expected_count = expected[group["by"]["project_id"]]
             totals = group["totals"]
-            assert totals == {f"sum({SessionMetricKey.SESSION.value})": expected_count}
+            assert totals == {"sum(sentry.sessions.session)": expected_count}
 
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
@@ -855,7 +856,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             groupBy=["foo"],
@@ -867,7 +868,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             groupBy=["bar"],
@@ -890,13 +891,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             )
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="4m",
             interval="1m",
         )
         group = response.data["groups"][0]
-        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 4
-        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [1, 1, 1, 1]
+        assert group["totals"]["sum(sentry.sessions.session)"] == 4
+        assert group["series"]["sum(sentry.sessions.session)"] == [1, 1, 1, 1]
 
     def test_unknown_filter(self):
         """Use a tag key/value in filter that does not exist in the indexer"""
@@ -905,7 +906,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             query="foo:123",  # Unknown tag key
@@ -914,23 +915,23 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             query="release:123",  # Unknown tag value is fine.
         )
         groups = response.data["groups"]
         assert len(groups) == 1
-        assert groups[0]["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
-        assert groups[0]["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
+        assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
+        assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
     def test_request_too_granular(self):
         response = self.get_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="24h",
             interval="5m",
-            orderBy=f"-sum({SessionMetricKey.SESSION.value})",
+            orderBy="-sum(sentry.sessions.session)",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
@@ -944,19 +945,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             includeTotals="0",
         )
 
         assert response.data["groups"] == [
-            {"by": {}, "series": {f"sum({SessionMetricKey.SESSION.value})": [1.0]}}
+            {"by": {}, "series": {"sum(sentry.sessions.session)": [1.0]}}
         ]
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({SessionMetricKey.SESSION.value})",
+            field="sum(sentry.sessions.session)",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -974,22 +975,26 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.login_as(user=self.user)
         org_id = self.organization.id
-        self.session_duration_metric = indexer.record(
-            org_id, SessionMetricKey.SESSION_DURATION.value
-        )
-        self.session_metric = indexer.record(org_id, SessionMetricKey.SESSION.value)
-        self.session_user_metric = indexer.record(org_id, SessionMetricKey.USER.value)
-        self.session_error_metric = indexer.record(org_id, SessionMetricKey.SESSION_ERROR.value)
+        self.session_duration_metric = indexer.record(org_id, SessionMRI.RAW_DURATION.value)
+        self.session_metric = indexer.record(org_id, SessionMRI.SESSION.value)
+        self.session_user_metric = indexer.record(org_id, SessionMRI.USER.value)
+        self.session_error_metric = indexer.record(org_id, SessionMRI.ERROR.value)
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
         self.transaction_lcp_metric = indexer.record(
-            self.organization.id, TransactionMetricKey.MEASUREMENTS_LCP.value
+            self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.fields.base.get_reverse_mri")
+    @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
-    def test_derived_metric_incorrectly_defined_as_singular_entity(self, mocked_derived_metrics):
+    def test_derived_metric_incorrectly_defined_as_singular_entity(
+        self, mocked_derived_metrics, mocked_get_mri, mocked_reverse_mri
+    ):
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
+        mocked_get_mri.return_value = "crash_free_fake"
+        mocked_reverse_mri.return_value = "crash_free_fake"
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -1074,22 +1079,25 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
+            field=["session.crash_free_rate", "sum(sentry.sessions.session)"],
             statsPeriod="6m",
             interval="6m",
             orderBy="-session.crash_free_rate",
         )
         group = response.data["groups"][0]
         assert group["totals"]["session.crash_free_rate"] is None
-        assert group["totals"][f"sum({SessionMetricKey.SESSION.value})"] == 0
-        assert group["series"][f"sum({SessionMetricKey.SESSION.value})"] == [0]
+        assert group["totals"]["sum(sentry.sessions.session)"] == 0
+        assert group["series"]["sum(sentry.sessions.session)"] == [0]
         assert group["series"]["session.crash_free_rate"] == [None]
 
     def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
-            field=["session.crash_free_rate", f"sum({SessionMetricKey.SESSION.value})"],
+            field=[
+                SessionMetricKey.CRASH_FREE_RATE.value,
+                "sum(sentry.sessions.session)",
+            ],
             statsPeriod="6m",
             interval="6m",
             groupBy=["release"],
@@ -1100,7 +1108,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_incorrect_crash_free_rate(self):
         response = self.get_response(
             self.organization.slug,
-            field=["sum(session.crash_free_rate)"],
+            field=[f"sum({SessionMetricKey.CRASH_FREE_RATE.value})"],
             statsPeriod="6m",
             interval="1m",
         )
@@ -1163,7 +1171,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.errored"],
+            field=[SessionMetricKey.ERRORED.value],
             statsPeriod="6m",
             interval="1m",
         )
@@ -1970,7 +1978,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Note: everything is a string here on purpose to ensure we parse ints properly
         response = self.get_success_response(
             self.organization.slug,
-            field=f"histogram({SessionMetricKey.SESSION_DURATION.value})",
+            field="histogram(sentry.sessions.session.duration)",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -1981,14 +1989,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "totals": {f"histogram({SessionMetricKey.SESSION_DURATION.value})": hist},
+                "totals": {"histogram(sentry.sessions.session.duration)": hist},
             }
         ]
 
         # Using derived alias `session.duration` which has a filter on `exited` session.status
         response = self.get_success_response(
             self.organization.slug,
-            field="histogram(session.duration)",
+            field=f"histogram({SessionMetricKey.DURATION.value})",
             statsPeriod="1h",
             interval="1h",
             includeSeries="0",
@@ -1999,6 +2007,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.data["groups"] == [
             {
                 "by": {},
-                "totals": {"histogram(session.duration)": hist},
+                "totals": {f"histogram({SessionMetricKey.DURATION.value})": hist},
             }
         ]

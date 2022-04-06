@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, MutableMapping, Optional, Set
 
-from sentry.sentry_metrics.sessions import SessionMetricKey
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
 
 from .base import StringIndexer
 
@@ -13,13 +13,13 @@ _STRINGS = (
     "healthy",
     "production",
     "release",
-    SessionMetricKey.SESSION_DURATION.value,
+    SessionMRI.RAW_DURATION.value,
     "session.status",
-    SessionMetricKey.SESSION.value,
+    SessionMRI.SESSION.value,
     "staging",
-    SessionMetricKey.USER.value,
+    SessionMRI.USER.value,
     "init",
-    SessionMetricKey.SESSION_ERROR.value,
+    SessionMRI.ERROR.value,
     "abnormal",
     "exited",
 )

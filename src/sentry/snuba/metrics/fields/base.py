@@ -4,7 +4,6 @@ import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -29,7 +28,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
@@ -48,6 +46,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
+from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_reverse_mri
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -75,7 +74,6 @@ __all__ = (
     "SingularEntityDerivedMetric",
     "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
-    "DerivedMetricKey",
 )
 
 SnubaDataType = Dict[str, Any]
@@ -138,7 +136,7 @@ def _get_entity_of_metric_name(projects: Sequence[Project], metric_name: str) ->
         if data:
             return entity_key
 
-    raise InvalidParams(f"Raw metric {metric_name} does not exit")
+    raise InvalidParams(f"Raw metric {get_reverse_mri(metric_name)} does not exit")
 
 
 def org_id_from_projects(projects: Sequence[Project]) -> int:
@@ -474,7 +472,8 @@ class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressio
     def _raise_entity_validation_exception(self, func_name: str) -> None:
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
-            f"{self.__class__.__name__} {self.metric_name} with a `projects` attribute."
+            f"{self.__class__.__name__} "
+            f"{get_reverse_mri(self.metric_name)} with a `projects` attribute."
         )
 
 
@@ -525,7 +524,8 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
             raise MetricDoesNotExistException()
         if len(entities) != 1 or entities == {None}:
             raise DerivedMetricParseException(
-                f"Derived Metric {self.metric_name} cannot be calculated from a single entity"
+                f"Derived Metric "
+                f"{get_reverse_mri(self.metric_name)} cannot be calculated from a single entity"
             )
         return entities.pop()
 
@@ -639,7 +639,8 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
     ) -> List[OrderBy]:
         raise NotSupportedOverCompositeEntityException(
-            f"It is not possible to orderBy field {self.metric_name} as it does not "
+            f"It is not possible to orderBy field "
+            f"{get_reverse_mri(self.metric_name)} as it does not "
             f"have a direct mapping to a query alias"
         )
 
@@ -735,99 +736,77 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         return self.post_query_func(*compute_func_args)
 
 
-class DerivedMetricKey(Enum):
-    SESSION_ALL = "session.all"
-    SESSION_ALL_USER = "session.all_user"
-    SESSION_ABNORMAL = "session.abnormal"
-    SESSION_ABNORMAL_USER = "session.abnormal_user"
-    SESSION_CRASHED = "session.crashed"
-    SESSION_CRASHED_USER = "session.crashed_user"
-    SESSION_ERRORED_PREAGGREGATED = "session.errored_preaggregated"
-    SESSION_ERRORED_SET = "session.errored_set"
-    SESSION_ERRORED = "session.errored"
-    SESSION_ERRORED_USER_ALL = "session.errored_user_all"
-    SESSION_CRASHED_AND_ABNORMAL_USER = "session.crashed_and_abnormal_user"
-    SESSION_ERRORED_USER = "session.errored_user"
-    SESSION_HEALTHY = "session.healthy"
-    SESSION_HEALTHY_USER = "session.healthy_user"
-    SESSION_CRASH_FREE_RATE = "session.crash_free_rate"
-    SESSION_CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
-    SESSION_DURATION = "session.duration"
-
-
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
 #  values
 DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
     derived_metric.metric_name: derived_metric
     for derived_metric in [
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ALL.value,
-            metrics=[SessionMetricKey.SESSION.value],
+            metric_name=SessionMRI.ALL.value,
+            metrics=[SessionMRI.SESSION.value],
             unit="sessions",
             snql=lambda *_, org_id, metric_ids, alias=None: all_sessions(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ALL_USER.value,
-            metrics=[SessionMetricKey.USER.value],
+            metric_name=SessionMRI.ALL_USER.value,
+            metrics=[SessionMRI.USER.value],
             unit="users",
             snql=lambda *_, org_id, metric_ids, alias=None: all_users(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ABNORMAL.value,
-            metrics=[SessionMetricKey.SESSION.value],
+            metric_name=SessionMRI.ABNORMAL.value,
+            metrics=[SessionMRI.SESSION.value],
             unit="sessions",
             snql=lambda *_, org_id, metric_ids, alias=None: abnormal_sessions(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ABNORMAL_USER.value,
-            metrics=[SessionMetricKey.USER.value],
+            metric_name=SessionMRI.ABNORMAL_USER.value,
+            metrics=[SessionMRI.USER.value],
             unit="users",
             snql=lambda *_, org_id, metric_ids, alias=None: abnormal_users(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_CRASHED.value,
-            metrics=[SessionMetricKey.SESSION.value],
+            metric_name=SessionMRI.CRASHED.value,
+            metrics=[SessionMRI.SESSION.value],
             unit="sessions",
             snql=lambda *_, org_id, metric_ids, alias=None: crashed_sessions(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_CRASHED_USER.value,
-            metrics=[SessionMetricKey.USER.value],
+            metric_name=SessionMRI.CRASHED_USER.value,
+            metrics=[SessionMRI.USER.value],
             unit="users",
             snql=lambda *_, org_id, metric_ids, alias=None: crashed_users(
                 org_id, metric_ids, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_CRASH_FREE_RATE.value,
-            metrics=[DerivedMetricKey.SESSION_CRASHED.value, DerivedMetricKey.SESSION_ALL.value],
+            metric_name=SessionMRI.CRASH_FREE_RATE.value,
+            metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(
-                *args, alias="session.crash_free_rate"
-            ),
+            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_CRASH_FREE_USER_RATE.value,
+            metric_name=SessionMRI.CRASH_FREE_USER_RATE.value,
             metrics=[
-                DerivedMetricKey.SESSION_CRASHED_USER.value,
-                DerivedMetricKey.SESSION_ALL_USER.value,
+                SessionMRI.CRASHED_USER.value,
+                SessionMRI.ALL_USER.value,
             ],
             unit="percentage",
             snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
-            metrics=[SessionMetricKey.SESSION.value],
+            metric_name=SessionMRI.ERRORED_PREAGGREGATED.value,
+            metrics=[SessionMRI.SESSION.value],
             unit="sessions",
             snql=lambda *_, org_id, metric_ids, alias=None: errored_preaggr_sessions(
                 org_id, metric_ids, alias=alias
@@ -835,8 +814,8 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             is_private=True,
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ERRORED_SET.value,
-            metrics=[SessionMetricKey.SESSION_ERROR.value],
+            metric_name=SessionMRI.ERRORED_SET.value,
+            metrics=[SessionMRI.ERROR.value],
             unit="sessions",
             snql=lambda *_, org_id, metric_ids, alias=None: sessions_errored_set(
                 metric_ids, alias=alias
@@ -844,17 +823,17 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             is_private=True,
         ),
         CompositeEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ERRORED.value,
+            metric_name=SessionMRI.ERRORED.value,
             metrics=[
-                DerivedMetricKey.SESSION_ERRORED_PREAGGREGATED.value,
-                DerivedMetricKey.SESSION_ERRORED_SET.value,
+                SessionMRI.ERRORED_PREAGGREGATED.value,
+                SessionMRI.ERRORED_SET.value,
             ],
             unit="sessions",
             post_query_func=lambda *args: sum([*args]),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
-            metrics=[SessionMetricKey.USER.value],
+            metric_name=SessionMRI.ERRORED_USER_ALL.value,
+            metrics=[SessionMRI.USER.value],
             unit="users",
             snql=lambda *_, org_id, metric_ids, alias=None: errored_all_users(
                 org_id, metric_ids, alias=alias
@@ -862,39 +841,39 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             is_private=True,
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+            metric_name=SessionMRI.CRASHED_AND_ABNORMAL_USER.value,
             metrics=[
-                DerivedMetricKey.SESSION_CRASHED_USER.value,
-                DerivedMetricKey.SESSION_ABNORMAL_USER.value,
+                SessionMRI.CRASHED_USER.value,
+                SessionMRI.ABNORMAL_USER.value,
             ],
             unit="users",
             snql=lambda *args, org_id, metric_ids, alias=None: addition(*args, alias=alias),
             is_private=True,
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_ERRORED_USER.value,
+            metric_name=SessionMRI.ERRORED_USER.value,
             metrics=[
-                DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
-                DerivedMetricKey.SESSION_CRASHED_AND_ABNORMAL_USER.value,
+                SessionMRI.ERRORED_USER_ALL.value,
+                SessionMRI.CRASHED_AND_ABNORMAL_USER.value,
             ],
             unit="users",
             snql=lambda *args, org_id, metric_ids, alias=None: subtraction(*args, alias=alias),
             post_query_func=lambda *args: max(0, *args),
         ),
         CompositeEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_HEALTHY.value,
+            metric_name=SessionMRI.HEALTHY.value,
             metrics=[
-                DerivedMetricKey.SESSION_ALL.value,
-                DerivedMetricKey.SESSION_ERRORED.value,
+                SessionMRI.ALL.value,
+                SessionMRI.ERRORED.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
         ),
         SingularEntityDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_HEALTHY_USER.value,
+            metric_name=SessionMRI.HEALTHY_USER.value,
             metrics=[
-                DerivedMetricKey.SESSION_ALL_USER.value,
-                DerivedMetricKey.SESSION_ERRORED_USER_ALL.value,
+                SessionMRI.ALL_USER.value,
+                SessionMRI.ERRORED_USER_ALL.value,
             ],
             unit="users",
             snql=lambda *args, org_id, metric_ids, alias=None: subtraction(*args, alias=alias),
@@ -921,8 +900,8 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_name: derived_alias
     for derived_alias in [
         AliasedDerivedMetric(
-            metric_name=DerivedMetricKey.SESSION_DURATION.value,
-            raw_metric_name=SessionMetricKey.SESSION_DURATION.value,
+            metric_name=SessionMRI.DURATION.value,
+            raw_metric_name=SessionMRI.RAW_DURATION.value,
             filters=lambda *_, org_id: session_duration_filters(org_id),
         )
     ]
