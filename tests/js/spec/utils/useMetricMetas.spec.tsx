@@ -1,6 +1,7 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
 import {useMetricMetas} from 'sentry/utils/useMetricMetas';
 
 function TestComponent({other}: {other: string}) {
@@ -15,10 +16,17 @@ function TestComponent({other}: {other: string}) {
 }
 
 describe('useMetricMetas', function () {
-  it('works', async function () {
-    const organization = TestStubs.Organization();
+  const {organization, project} = initializeOrg();
+  let metricsTagsMock: jest.Mock | undefined = undefined;
+  let metricsMetaMock: jest.Mock | undefined = undefined;
 
-    MockApiClient.addMockResponse({
+  beforeEach(function () {
+    metricsTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/tags/`,
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+
+    metricsMetaMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/metrics/meta/`,
       body: [
         {
@@ -33,17 +41,49 @@ describe('useMetricMetas', function () {
         },
       ],
     });
+  });
 
-    jest.spyOn(MetricsMetaStore, 'trigger');
-
-    render(<TestComponent other="value" />, {organization});
+  it('works', async function () {
+    render(
+      <MetricsProvider organization={organization} projects={[project.id]}>
+        <TestComponent other="value" />
+      </MetricsProvider>
+    );
 
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
 
-    expect(MetricsMetaStore.trigger).toHaveBeenCalledTimes(1);
+    expect(metricsTagsMock).toHaveBeenCalledTimes(1);
+    expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
     expect(await screen.findByText('sentry.sessions.session')).toBeInTheDocument();
     expect(screen.getByText('sentry.sessions.session.error')).toBeInTheDocument();
+  });
+
+  it('skip load', async function () {
+    render(
+      <MetricsProvider organization={organization} projects={[project.id]} skipLoad>
+        <TestComponent other="value" />
+      </MetricsProvider>
+    );
+
+    // Should forward props.
+    expect(screen.getByText('value')).toBeInTheDocument();
+
+    expect(metricsTagsMock).not.toHaveBeenCalled();
+    expect(metricsMetaMock).not.toHaveBeenCalled();
+
+    expect(screen.queryByText('sentry.sessions.session')).not.toBeInTheDocument();
+    expect(screen.queryByText('sentry.sessions.session.error')).not.toBeInTheDocument();
+  });
+
+  it('throw when provider is not set', function () {
+    try {
+      render(<TestComponent other="value" />);
+    } catch (error) {
+      expect(error.message).toEqual(
+        'useMetricMetas called but MetricsProvider is not set.'
+      );
+    }
   });
 });

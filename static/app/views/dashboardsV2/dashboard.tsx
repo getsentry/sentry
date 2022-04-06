@@ -16,7 +16,6 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
@@ -141,15 +140,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidMount() {
-    const {isEditing, organization, api, selection, newWidget} = this.props;
+    const {isEditing, organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
     }
 
-    if (organization.features.includes('dashboards-metrics')) {
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
-    }
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
@@ -164,7 +159,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   async componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection, isEditing, newWidget} = this.props;
+    const {selection, isEditing, newWidget} = this.props;
 
     // Load organization tags when going into edit mode.
     // We use tags on the add widget modal.
@@ -176,11 +171,6 @@ class Dashboard extends Component<Props, State> {
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-
-      if (organization.features.includes('dashboards-metrics')) {
-        fetchMetricsFields(api, organization.slug, selection.projects);
-        fetchMetricsTags(api, organization.slug, selection.projects);
-      }
     }
   }
 
@@ -326,6 +316,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
+
     if (!!!isEditing) {
       handleUpdateWidgetList(nextList);
     }

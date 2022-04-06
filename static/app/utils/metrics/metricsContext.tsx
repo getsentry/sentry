@@ -6,24 +6,24 @@ import {MetricsMetaCollection, MetricsTagCollection, Organization} from 'sentry/
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
-export type MetricsContextProps =
-  | {
-      metas: MetricsMetaCollection;
-      tags: MetricsTagCollection;
-    }
-  | undefined;
+interface ChildProps {
+  metas: MetricsMetaCollection;
+  tags: MetricsTagCollection;
+}
+
+export type MetricsContextProps = ChildProps | undefined;
 
 const MetricsContext = createContext<MetricsContextProps>(undefined);
 
 type ProviderProps = {
-  children: React.ReactNode;
+  children: React.ReactNode | ((props: ChildProps) => React.ReactNode);
   organization: Organization;
   fields?: string[];
   projects?: number[];
   skipLoad?: boolean;
 };
 
-function MetricsContextContainer({
+function MetricsProvider({
   children,
   projects,
   fields,
@@ -96,8 +96,10 @@ function MetricsContextContainer({
   }
 
   return (
-    <MetricsContext.Provider value={{metas, tags}}>{children}</MetricsContext.Provider>
+    <MetricsContext.Provider value={{metas, tags}}>
+      {typeof children === 'function' ? children({metas, tags}) : children}
+    </MetricsContext.Provider>
   );
 }
 
-export {MetricsContextContainer, MetricsContext};
+export {MetricsProvider, MetricsContext};

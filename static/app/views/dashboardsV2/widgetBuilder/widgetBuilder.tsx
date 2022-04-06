@@ -37,7 +37,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsContextContainer} from 'sentry/utils/metrics/metricsContext';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -920,11 +920,11 @@ function WidgetBuilder({
           <Body>
             <MainWrapper>
               <Main>
-                <MetricsContextContainer
+                <MetricsProvider
                   organization={organization}
                   projects={selection.projects}
                   fields={metricFields}
-                  skipLoad={state.dataSet !== DataSet.RELEASE}
+                  skipLoad={!widgetBuilderNewDesign}
                 >
                   <BuildSteps symbol="colored-numeric">
                     <VisualizationStep
@@ -1029,7 +1029,7 @@ function WidgetBuilder({
                       />
                     )}
                   </BuildSteps>
-                </MetricsContextContainer>
+                </MetricsProvider>
               </Main>
               <Footer
                 goBackLocation={previousLocation}

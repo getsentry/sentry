@@ -26,8 +26,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DateString,
-  MetricsMetaCollection,
-  MetricsTagCollection,
   Organization,
   PageFilters,
   SelectValue,
@@ -38,11 +36,9 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsContextContainer} from 'sentry/utils/metrics/metricsContext';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
-import withMetricsMeta from 'sentry/utils/withMetricsMeta';
-import withMetricsTags from 'sentry/utils/withMetricsTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'sentry/views/dashboardsV2/data';
@@ -91,8 +87,6 @@ export type DashboardWidgetModalOptions = {
 type Props = ModalRenderProps &
   DashboardWidgetModalOptions & {
     api: Client;
-    metricsMeta: MetricsMetaCollection;
-    metricsTags: MetricsTagCollection;
     organization: Organization;
     selection: PageFilters;
     tags: TagCollection;
@@ -613,33 +607,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     );
   }
 
-  renderWidgetQueryForm() {
-    const {
-      organization,
-      selection,
-      tags,
-      metricsTags,
-      metricsMeta,
-      start,
-      end,
-      statsPeriod,
-    } = this.props;
+  renderWidgetQueryForm(
+    querySelection: PageFilters,
+    metricsWidgetFieldOptions: ReturnType<typeof generateMetricsWidgetFieldOptions>
+  ) {
+    const {organization, tags} = this.props;
     const state = this.state;
     const errors = state.errors;
 
-    // Construct PageFilters object using statsPeriod/start/end props so we can
-    // render widget graph using saved timeframe from Saved/Prebuilt Query
-    const querySelection: PageFilters = statsPeriod
-      ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
-      : start && end
-      ? {...selection, datetime: {start, end, period: null, utc: null}}
-      : selection;
-
     const issueWidgetFieldOptions = generateIssueWidgetFieldOptions();
-    const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-      Object.values(metricsMeta),
-      Object.values(metricsTags).map(({key}) => key)
-    );
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({
         organization,
@@ -682,24 +658,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         );
 
       case WidgetType.METRICS:
-        const metricFields: string[] = state.queries.reduce((acc, query) => {
-          if (query.fields) {
-            for (const field of query.fields) {
-              const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
-              if (fieldParameter && !acc.includes(fieldParameter)) {
-                acc.push(fieldParameter);
-              }
-            }
-          }
-          return acc;
-        }, [] as string[]);
-
         return (
-          <MetricsContextContainer
-            projects={querySelection.projects}
-            fields={metricFields}
-            organization={organization}
-          >
+          <React.Fragment>
             <WidgetQueriesForm
               organization={organization}
               selection={querySelection}
@@ -733,9 +693,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               currentWidgetDragging={false}
               noLazyLoad
             />
-          </MetricsContextContainer>
+          </React.Fragment>
         );
-
       case WidgetType.DISCOVER:
       default:
         return (
@@ -798,6 +757,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       onUpdateWidget,
       onAddLibraryWidget,
       source,
+      selection,
+      start,
+      end,
+      statsPeriod,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
@@ -824,6 +787,26 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (showMetricsDatasetSelector) {
       datasetChoices.push(MetricsDataset);
     }
+
+    // Construct PageFilters object using statsPeriod/start/end props so we can
+    // render widget graph using saved timeframe from Saved/Prebuilt Query
+    const querySelection: PageFilters = statsPeriod
+      ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
+      : start && end
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      : selection;
+
+    const metricFields: string[] = state.queries.reduce((acc, query) => {
+      if (query.fields) {
+        for (const field of query.fields) {
+          const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+          if (fieldParameter && !acc.includes(fieldParameter)) {
+            acc.push(fieldParameter);
+          }
+        }
+      }
+      return acc;
+    }, [] as string[]);
 
     return (
       <React.Fragment>
@@ -903,7 +886,23 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               />
             </React.Fragment>
           )}
-          {this.renderWidgetQueryForm()}
+          <MetricsProvider
+            projects={querySelection.projects}
+            fields={metricFields}
+            organization={organization}
+            skipLoad={!organization.features.includes('dashboards-metrics')}
+          >
+            {({metas: metricsMeta, tags: metricsTags}) => {
+              const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
+                Object.values(metricsMeta),
+                Object.values(metricsTags).map(({key}) => key)
+              );
+              return this.renderWidgetQueryForm(
+                querySelection,
+                metricsWidgetFieldOptions
+              );
+            }}
+          </MetricsProvider>
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -960,6 +959,4 @@ const StyledFieldLabel = styled(FieldLabel)`
   display: inline-flex;
 `;
 
-export default withApi(
-  withPageFilters(withTags(withMetricsMeta(withMetricsTags(AddDashboardWidgetModal))))
-);
+export default withApi(withPageFilters(withTags(AddDashboardWidgetModal)));

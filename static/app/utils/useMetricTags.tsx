@@ -6,7 +6,7 @@ export function useMetricTags() {
   const metricsContext = useContext(MetricsContext);
 
   if (!metricsContext) {
-    throw new Error('useMetricTags called but MetricsContext is not set.');
+    throw new Error('useMetricTags called but MetricsProvider is not set.');
   }
 
   return {

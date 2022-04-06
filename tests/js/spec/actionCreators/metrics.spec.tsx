@@ -1,15 +1,5 @@
-import {waitFor} from 'sentry-test/reactTestingLibrary';
-
-import {
-  doMetricsRequest,
-  fetchMetricsFields,
-  fetchMetricsTags,
-} from 'sentry/actionCreators/metrics';
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
-import MetricsTagActions from 'sentry/actions/metricTagActions';
+import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {Client} from 'sentry/api';
-import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
-import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 
 describe('Metrics ActionCreator', function () {
@@ -108,83 +98,6 @@ describe('Metrics ActionCreator', function () {
           }),
         })
       );
-    });
-  });
-
-  describe('fetchMetricsTags', function () {
-    let mock;
-    const tags = [{key: 'release'}, {key: 'environment'}];
-
-    beforeEach(function () {
-      MockApiClient.clearMockResponses();
-      mock = MockApiClient.addMockResponse({
-        url: `/organizations/${orgSlug}/metrics/tags/`,
-        body: tags,
-      });
-      jest.restoreAllMocks();
-      jest.spyOn(MetricsTagActions, 'loadMetricsTagsSuccess');
-      jest.spyOn(MetricsTagStore, 'reset');
-    });
-
-    it('fetches api and updates store', async function () {
-      fetchMetricsTags({
-        api,
-        orgSlug,
-        projects: [1],
-        fields: [`sum(${SessionMetric.SESSION})`],
-      });
-
-      await waitFor(() => expect(MetricsTagStore.reset).toHaveBeenCalledTimes(1));
-
-      expect(mock).toHaveBeenCalledTimes(1);
-      expect(mock).toHaveBeenLastCalledWith(
-        `/organizations/${orgSlug}/metrics/tags/`,
-        expect.objectContaining({
-          query: {metric: ['sum(sentry.sessions.session)'], project: [1]},
-        })
-      );
-      expect(MetricsTagActions.loadMetricsTagsSuccess).toHaveBeenCalledTimes(1);
-      expect(MetricsTagActions.loadMetricsTagsSuccess).toHaveBeenCalledWith(tags);
-    });
-  });
-
-  describe('fetchMetricsFields', function () {
-    let mock;
-    const meta = [
-      {name: 'sentry.sessions.session', type: 'counter', operations: ['sum'], unit: null},
-      {
-        name: 'sentry.sessions.user',
-        type: 'set',
-        operations: ['count_unique'],
-        unit: null,
-      },
-    ];
-
-    beforeEach(function () {
-      MockApiClient.clearMockResponses();
-      mock = MockApiClient.addMockResponse({
-        url: `/organizations/${orgSlug}/metrics/meta/`,
-        body: meta,
-      });
-      jest.restoreAllMocks();
-      jest.spyOn(MetricsMetaActions, 'loadMetricsMetaSuccess');
-      jest.spyOn(MetricsMetaStore, 'reset');
-    });
-
-    it('fetches api and updates store', async function () {
-      fetchMetricsFields({api, orgSlug, projects: [1]});
-
-      await waitFor(() => expect(MetricsMetaStore.reset).toHaveBeenCalledTimes(1));
-
-      expect(mock).toHaveBeenCalledTimes(1);
-      expect(mock).toHaveBeenLastCalledWith(
-        `/organizations/${orgSlug}/metrics/meta/`,
-        expect.objectContaining({
-          query: {project: [1]},
-        })
-      );
-      expect(MetricsMetaActions.loadMetricsMetaSuccess).toHaveBeenCalledTimes(1);
-      expect(MetricsMetaActions.loadMetricsMetaSuccess).toHaveBeenCalledWith(meta);
     });
   });
 });

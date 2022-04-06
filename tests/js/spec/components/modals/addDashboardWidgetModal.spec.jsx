@@ -9,8 +9,6 @@ import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new'
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
-import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
-import MetricsTagStore from 'sentry/stores/metricsTagStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import * as types from 'sentry/views/dashboardsV2/types';
@@ -18,6 +16,9 @@ import * as types from 'sentry/views/dashboardsV2/types';
 jest.mock('sentry/actionCreators/modal', () => ({
   openDashboardWidgetLibraryModal: jest.fn(),
 }));
+
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -117,8 +118,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
-  const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
-  const metricsMeta = TestStubs.MetricsMeta();
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
@@ -129,10 +128,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
-    act(() => {
-      MetricsTagStore.onLoadSuccess(metricsTags);
-    });
-    MetricsMetaStore.onLoadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -171,6 +166,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.MetricsField({field: SessionMetric.USER}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: TestStubs.MetricsMeta(),
     });
   });
 
@@ -368,33 +367,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
     expect(widget.queries[0].aggregates).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
-  });
-
-  it('metrics do not have equation', async function () {
-    mountModalWithRtl({
-      initialData,
-      widget: {
-        displayType: 'table',
-        widgetType: 'metrics',
-        queries: [
-          {
-            id: '9',
-            name: 'errors',
-            conditions: 'event.type:error',
-            fields: ['sdk.name', 'count()'],
-            columns: ['sdk.name'],
-            aggregates: ['count()'],
-            orderby: '',
-          },
-        ],
-      },
-    });
-
-    // Select line chart display
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
-
-    expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
   });
 
   it('additional fields get added to new seach filters', async function () {
@@ -1114,6 +1086,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     expect(wrapper.find('SelectPicker').at(1).props().value.value).toEqual('bar');
+    await tick();
     wrapper.unmount();
   });
 
@@ -1142,6 +1115,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('WidgetQueriesForm').props().queries[0].orderby).toEqual(
       '-count_unique_user'
     );
+    await tick();
     wrapper.unmount();
   });
 
@@ -1321,6 +1295,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
   });
+
   describe('Metrics Widgets', function () {
     it('renders the dataset selector', async function () {
       initialData.organization.features = [
@@ -1328,16 +1303,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
+      expect(await screen.findByText('Data Set')).toBeInTheDocument();
 
-      expect(screen.getByText('Data Set')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
@@ -1345,7 +1320,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
       expect(screen.getByText('Health (Releases, sessions)')).toBeInTheDocument();
-      wrapper.unmount();
     });
 
     it('maintains the selected dataset when display type is changed', async function () {
@@ -1354,14 +1328,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
 
       const metricsDataset = screen.getByLabelText(/release/i);
       expect(metricsDataset).not.toBeChecked();
@@ -1371,8 +1347,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
       expect(metricsDataset).toBeChecked();
-
-      wrapper.unmount();
     });
 
     it('displays metrics tags', async function () {
@@ -1381,15 +1355,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
@@ -1403,8 +1381,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
-
-      wrapper.unmount();
     });
 
     it('displays the correct options for area chart', async function () {
@@ -1413,15 +1389,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1434,7 +1414,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByText('count_unique(…)'));
       expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
-      wrapper.unmount();
     });
 
     it('makes the appropriate metrics call', async function () {
@@ -1443,14 +1422,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'discover-query',
         'dashboards-metrics',
       ];
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1470,8 +1454,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           },
         })
       );
-
-      wrapper.unmount();
     });
 
     it('can select derived metric fields', async function () {
@@ -1481,14 +1463,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         'dashboards-metrics',
       ];
       const addWidgetMock = jest.fn();
-      const wrapper = mountModalWithRtl({
+
+      mountModalWithRtl({
         initialData,
         onAddWidget: addWidgetMock,
         onUpdateWidget: addWidgetMock,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/release/i));
 
       await selectEvent.select(screen.getByText('sum(…)'), /session.crash_free_rate/);
       expect(screen.getByText('session.crash_free_rate()')).toBeInTheDocument();
@@ -1531,29 +1518,34 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           })
         )
       );
-
-      wrapper.unmount();
     });
 
     it('displays no metrics message', async function () {
+      // ensure that we have no metrics fields
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/metrics/meta/`,
+        body: [],
+      });
+
       initialData.organization.features = [
         'performance-view',
         'discover-query',
         'dashboards-metrics',
       ];
 
-      // ensure that we have no metrics fields
-      MetricsMetaStore.reset();
-
-      const wrapper = mountModalWithRtl({
+      mountModalWithRtl({
         initialData,
         onAddWidget: () => undefined,
         onUpdateWidget: () => undefined,
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
+      expect(
+        await screen.findByRole('heading', {name: 'Add Widget'})
+      ).toBeInTheDocument();
+
       // change data set to metrics
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+      userEvent.click(screen.getByLabelText(/release/i));
 
       // open visualization select
       userEvent.click(screen.getByText('Table'));
@@ -1565,7 +1557,33 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       // there's correct empty message
       expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
-      wrapper.unmount();
+    });
+
+    it('metrics do not have equation', async function () {
+      mountModalWithRtl({
+        initialData,
+        widget: {
+          displayType: 'table',
+          widgetType: 'metrics',
+          queries: [
+            {
+              id: '9',
+              name: 'errors',
+              conditions: 'event.type:error',
+              fields: ['sdk.name', 'count()'],
+              columns: ['sdk.name'],
+              aggregates: ['count()'],
+              orderby: '',
+            },
+          ],
+        },
+      });
+
+      // Select line chart display
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
     });
   });
 });

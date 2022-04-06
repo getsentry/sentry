@@ -125,13 +125,6 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
-      if (!!query.orderby) {
-        return {
-          ...query,
-          orderby: getAggregateAlias(query.orderby),
-        };
-      }
-
       const orderBy =
         getAggregateAlias(queries[0].orderby) ||
         (widgetType === WidgetType.ISSUE
@@ -145,7 +138,9 @@ export function normalizeQueries({
 
       // Issues data set doesn't support order by descending
       query.orderby =
-        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
+          ? `-${String(orderBy)}`
+          : String(orderBy);
 
       return query;
     });
