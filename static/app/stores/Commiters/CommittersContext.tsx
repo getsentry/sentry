@@ -225,7 +225,7 @@ export function withCommitters<P extends WithCommittersProps>(
         },
       });
 
-      let unmounted = false;
+      let shouldCancelRequest = false;
 
       fetchCommitters(api, {
         organizationSlug: props.organization.slug,
@@ -233,7 +233,7 @@ export function withCommitters<P extends WithCommittersProps>(
         eventId: props.event.id,
       })
         .then(response => {
-          if (unmounted) {
+          if (shouldCancelRequest) {
             return;
           }
 
@@ -248,7 +248,7 @@ export function withCommitters<P extends WithCommittersProps>(
           });
         })
         .catch(() => {
-          if (unmounted) {
+          if (shouldCancelRequest) {
             return;
           }
           dispatch({
@@ -262,7 +262,7 @@ export function withCommitters<P extends WithCommittersProps>(
         });
 
       return () => {
-        unmounted = true;
+        shouldCancelRequest = true;
       };
     }, [props.group, props.organization.slug, props.project.slug, props.event.id]);
 
