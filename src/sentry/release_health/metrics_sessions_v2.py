@@ -416,10 +416,7 @@ def _get_snuba_queries(
     columns: List[SelectableExpression],
     extra_conditions: Optional[List[Condition]] = None,
 ) -> Iterable[Tuple[MetricKey, _QueryType, Query]]:
-    """Get snuba queries required for this metric.
-    In case of the intial query, get the data right away, so other queries can use its
-    output as a filter.
-    """
+    """Get snuba queries required for this metric."""
 
     for query_type in (_QueryType.TOTALS, _QueryType.SERIES):
         snuba_query = _get_snuba_query(
