@@ -379,7 +379,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
-        assignees = rule.strip().split()[1:]
+        assignees = [i for i in re.split(r"(?<!\\)\s", rule.strip()) if i][1:]
         for assignee in assignees:
             if "/" not in assignee:
                 if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
@@ -408,7 +408,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
             result += f"{rule}\n"
             continue
 
-        path, *code_owners = (x.strip() for x in rule.split())
+        path, *code_owners = (i for i in re.split(r"(?<!\\)\s", rule.strip()) if i)
         # Escape invalid paths https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners#syntax-exceptions
         # Check if path has whitespace
         # Check if path has '#' not as first character
