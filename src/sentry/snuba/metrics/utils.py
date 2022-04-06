@@ -30,7 +30,6 @@ __all__ = (
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
-    "NotFoundInNamingLayer",
 )
 
 
@@ -199,10 +198,6 @@ class DerivedMetricParseException(DerivedMetricException):
 
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
-    ...
-
-
-class NotFoundInNamingLayer(DerivedMetricException):
     ...
 
 
