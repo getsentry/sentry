@@ -217,6 +217,9 @@ class DebugFilesUploadTest(APITestCase):
         response = self.client.get(url + "?id=" + download_id)
         assert response.get("Content-Type") == "application/octet-stream"
 
+        # we need to read the content or we leave a bad stream behind
+        assert b"".join(response.streaming_content)
+
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
         user = self.create_user("bar@localhost")
