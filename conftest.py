@@ -29,12 +29,18 @@ def enable_file_tracking():
     original_socket = socket.socket
     handle_stacks = {}
 
+    def _handle_key(handle):
+        return handle.fileno()
+
     class patched_catch_unraisable_exception(unraisableexception.catch_unraisable_exception):
         def _hook(self, ur):
             super()._hook(ur)
             try:
-                stack, handle_repr = handle_stacks[ur.object.fileno()]
+                stack, handle_repr = handle_stacks[_handle_key(ur.object)]
             except Exception:
+                import pprint
+
+                pprint.pprint(handle_stacks)
                 return
 
             for idx, line in enumerate(stack):
@@ -49,11 +55,20 @@ def enable_file_tracking():
     unraisableexception.catch_unraisable_exception = patched_catch_unraisable_exception
 
     def _track_handle(handle):
-        def on_collect(val):
-            handle_stacks.pop(val.fileno(), None)
+        try:
+            key = _handle_key(handle)
+        except Exception:
+            pass
+        else:
+            handle_stacks[key] = (
+                traceback.format_stack(sys._getframe(2)),
+                repr(handle),
+            )
 
-        handle_stacks[handle.fileno()] = (traceback.format_stack(sys._getframe(2)), repr(handle))
-        weakref.ref(handle, on_collect)
+            def cleanup(x):
+                handle_stacks.pop(key, None)
+
+            weakref.ref(handle, cleanup)
 
     def _open(*args, **kwargs):
         handle = original_open(*args, **kwargs)

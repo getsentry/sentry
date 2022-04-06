@@ -17,6 +17,7 @@ class StaticMediaTest(TestCase):
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
+        assert b"".join(response.streaming_content)
 
     @override_settings(DEBUG=False)
     def test_versioned(self):
@@ -27,6 +28,7 @@ class StaticMediaTest(TestCase):
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
+        assert b"".join(response.streaming_content)
 
         url = "/_static/a43db3b08ddd4918972f80739f15344b/sentry/js/ads.js"
         response = self.client.get(url)
@@ -35,6 +37,7 @@ class StaticMediaTest(TestCase):
         assert response["Vary"] == "Accept-Encoding"
         assert response["Access-Control-Allow-Origin"] == "*"
         assert "Content-Encoding" not in response
+        assert b"".join(response.streaming_content)
 
         with override_settings(DEBUG=True):
             response = self.client.get(url)
@@ -42,6 +45,7 @@ class StaticMediaTest(TestCase):
             assert response["Cache-Control"] == NEVER_CACHE
             assert response["Vary"] == "Accept-Encoding"
             assert response["Access-Control-Allow-Origin"] == "*"
+            assert b"".join(response.streaming_content)
 
     @override_settings(DEBUG=False)
     def test_frontend_app_assets(self):
@@ -67,6 +71,7 @@ class StaticMediaTest(TestCase):
                 assert response["Vary"] == "Accept-Encoding"
                 assert response["Access-Control-Allow-Origin"] == "*"
                 assert "Content-Encoding" not in response
+                assert not b"".join(response.streaming_content)
 
             with override_settings(DEBUG=True):
                 response = self.client.get(url)
@@ -74,6 +79,7 @@ class StaticMediaTest(TestCase):
                 assert response["Cache-Control"] == NEVER_CACHE
                 assert response["Vary"] == "Accept-Encoding"
                 assert response["Access-Control-Allow-Origin"] == "*"
+                assert not b"".join(response.streaming_content)
         finally:
             try:
                 os.unlink(os.path.join(dist_path, "test.js"))
@@ -89,6 +95,7 @@ class StaticMediaTest(TestCase):
         assert response["Vary"] == "Accept-Encoding"
         assert "Access-Control-Allow-Origin" not in response
         assert "Content-Encoding" not in response
+        assert b"".join(response.streaming_content)
 
     def test_404(self):
         url = "/_static/sentry/app/thisfiledoesnotexistlol.js"
@@ -101,6 +108,7 @@ class StaticMediaTest(TestCase):
         assert response.status_code == 200, response
         assert response["Vary"] == "Accept-Encoding"
         assert "Content-Encoding" not in response
+        assert b"".join(response.streaming_content)
 
         try:
             open("src/sentry/static/sentry/js/ads.js.gz", "a").close()
@@ -110,11 +118,13 @@ class StaticMediaTest(TestCase):
             assert response.status_code == 200, response
             assert response["Vary"] == "Accept-Encoding"
             assert "Content-Encoding" not in response
+            assert b"".join(response.streaming_content)
 
             response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")
             assert response.status_code == 200, response
             assert response["Vary"] == "Accept-Encoding"
             assert response["Content-Encoding"] == "gzip"
+            assert not b"".join(response.streaming_content)
         finally:
             try:
                 os.unlink("src/sentry/static/sentry/js/ads.js.gz")
