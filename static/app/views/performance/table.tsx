@@ -403,7 +403,7 @@ class _Table extends React.Component<Props, State> {
               eventView={sortedEventView}
               orgSlug={organization.slug}
               location={location}
-              setError={setError}
+              setError={error => setError(error?.message)}
               referrer="api.performance.landing-table"
               transactionName={transaction}
               transactionThreshold={transactionThreshold}

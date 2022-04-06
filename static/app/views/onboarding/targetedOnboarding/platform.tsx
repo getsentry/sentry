@@ -33,8 +33,8 @@ function OnboardingPlatform(props: StepProps) {
           )}
         </p>
         <MultiPlatformPicker noAutoFilter source="targeted-onboarding" {...props} />
-        <CreateProjectsFooter {...props} />
       </motion.div>
+      <CreateProjectsFooter {...props} />
     </Wrapper>
   );
 }
@@ -43,4 +43,6 @@ export default OnboardingPlatform;
 
 const Wrapper = styled('div')`
   max-width: 850px;
+  margin-left: auto;
+  margin-right: auto;
 `;

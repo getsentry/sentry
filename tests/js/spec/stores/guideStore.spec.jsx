@@ -69,6 +69,14 @@ describe('GuideStore', function () {
     window.location.hash = '';
   });
 
+  it('should force hide', function () {
+    expect(GuideStore.state.forceHide).toEqual(false);
+    GuideStore.onSetForceHide(true);
+    expect(GuideStore.state.forceHide).toEqual(true);
+    GuideStore.onSetForceHide(false);
+    expect(GuideStore.state.forceHide).toEqual(false);
+  });
+
   it('should record analytics events when guide is cued', function () {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.onFetchSucceeded(data);

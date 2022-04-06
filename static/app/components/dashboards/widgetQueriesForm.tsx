@@ -19,6 +19,7 @@ import {
   getAggregateAlias,
   getColumnsAndAggregatesAsStrings,
   isEquation,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
@@ -41,7 +42,7 @@ export const generateOrderOptions = ({
   const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates : [...aggregates, ...columns])
+  (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
     .forEach(field => {
       let alias = getAggregateAlias(field);
@@ -53,7 +54,7 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: alias});
+        options.push({label, value: isMetrics ? field : alias});
         return;
       }
 
@@ -90,7 +91,11 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
-  blurTimeout: number | null = null;
+  componentWillUnmount() {
+    window.clearTimeout(this.blurTimeout);
+  }
+
+  blurTimeout: number | undefined = undefined;
 
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
@@ -128,8 +133,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          window.clearTimeout(this.blurTimeout);
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -150,8 +156,11 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -179,6 +188,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
       widgetType = WidgetType.DISCOVER,
     } = this.props;
+
     const isMetrics = widgetType === WidgetType.METRICS;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
@@ -257,31 +267,33 @@ class WidgetQueriesForm extends React.Component<Props> {
               ? fieldStrings
               : fieldStrings.map(field => getAggregateAlias(field));
             queries.forEach((widgetQuery, queryIndex) => {
-              const descending = widgetQuery.orderby.startsWith('-');
-              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFields = defined(widgetQuery.fields)
-                ? widgetQuery.fields
-                : [...widgetQuery.columns, ...widgetQuery.aggregates];
-              const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(field =>
-                isMetrics ? field : getAggregateAlias(field)
-              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
               newQuery.aggregates = aggregates;
               newQuery.columns = columns;
-              if (
-                !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-                widgetQuery.orderby !== ''
-              ) {
-                if (prevAggregateAliasFieldStrings.length === fields.length) {
-                  // The Field that was used in orderby has changed. Get the new field.
-                  newQuery.orderby = `${descending && '-'}${
-                    aggregateAliasFieldStrings[
-                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-                    ]
-                  }`;
-                } else {
-                  newQuery.orderby = '';
+              if (defined(widgetQuery.orderby)) {
+                const descending = widgetQuery.orderby.startsWith('-');
+                const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+                const prevAggregateAliasFields = defined(widgetQuery.fields)
+                  ? widgetQuery.fields
+                  : [...widgetQuery.columns, ...widgetQuery.aggregates];
+                const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
+                  field => (isMetrics ? field : getAggregateAlias(field))
+                );
+                if (
+                  !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+                  widgetQuery.orderby !== ''
+                ) {
+                  if (prevAggregateAliasFieldStrings.length === fields.length) {
+                    // The Field that was used in orderby has changed. Get the new field.
+                    newQuery.orderby = `${descending && '-'}${
+                      aggregateAliasFieldStrings[
+                        prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                      ]
+                    }`;
+                  } else {
+                    newQuery.orderby = '';
+                  }
                 }
               }
               onChange(queryIndex, newQuery);

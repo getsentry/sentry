@@ -3,7 +3,6 @@ import {createStore, StoreDefinition} from 'reflux';
 
 import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
-import {Client} from 'sentry/api';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
@@ -11,8 +10,6 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
 } from 'sentry/utils/makeSafeRefluxStore';
 
 function guidePrioritySort(a: Guide, b: Guide) {
@@ -39,6 +36,10 @@ export type GuideStoreState = {
    */
   currentStep: number;
   /**
+   * Hides guides that normally would be shown
+   */
+  forceHide: boolean;
+  /**
    * We force show a guide if the URL contains #assistant
    */
   forceShow: boolean;
@@ -61,6 +62,7 @@ export type GuideStoreState = {
 };
 
 const defaultState: GuideStoreState = {
+  forceHide: false,
   guides: [],
   anchors: new Set(),
   currentGuide: null,
@@ -71,26 +73,25 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-type GuideStoreInterface = {
+interface GuideStoreDefinition extends StoreDefinition {
   browserHistoryListener: null | (() => void);
 
   onFetchSucceeded(data: GuidesServerData): void;
   onRegisterAnchor(target: string): void;
+  onSetForceHide(forceHide: boolean): void;
   onUnregisterAnchor(target: string): void;
   recordCue(guide: string): void;
   state: GuideStoreState;
   updatePrevGuide(nextGuide: Guide | null): void;
-};
+}
 
-const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition = {
+const storeConfig: GuideStoreDefinition = {
   state: defaultState,
   unsubscribeListeners: [],
   browserHistoryListener: null,
 
   init() {
     this.state = defaultState;
-
-    this.api = new Client();
 
     this.unsubscribeListeners.push(
       this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded)
@@ -105,6 +106,9 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
     );
     this.unsubscribeListeners.push(
       this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(GuideActions.setForceHide, this.onSetForceHide)
     );
     this.unsubscribeListeners.push(
       this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
@@ -194,6 +198,11 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
     this.updateCurrentGuide();
   },
 
+  onSetForceHide(forceHide) {
+    this.state.forceHide = forceHide;
+    this.trigger(this.state);
+  },
+
   recordCue(guide) {
     const user = ConfigStore.get('user');
     if (!user) {
@@ -279,7 +288,5 @@ const storeConfig: StoreDefinition & GuideStoreInterface & SafeStoreDefinition =
   },
 };
 
-const GuideStore = createStore(makeSafeRefluxStore(storeConfig)) as SafeRefluxStore &
-  GuideStoreInterface;
-
+const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
 export default GuideStore;

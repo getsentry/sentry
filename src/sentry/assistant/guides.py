@@ -43,10 +43,6 @@ GUIDES = {
         "id": 20,
         "required_targets": ["project_transaction_threshold_override"],
     },
-    "percentage_based_alerts": {
-        "id": 21,
-        "required_targets": ["percentage_based_alerts"],
-    },
     "semver": {"id": 22, "required_targets": ["releases_search"]},
     "release_stages": {"id": 23, "required_targets": ["release_stages"]},
 }

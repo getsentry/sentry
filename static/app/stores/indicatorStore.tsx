@@ -1,13 +1,19 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
 import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
-type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
+interface InternalDefinition {
+  items: any[];
+  lastId: number;
+}
+interface IndicatorStoreDefinition
+  extends CommonStoreDefinition<Indicator[]>,
+    InternalDefinition {
   /**
    * When this method is called directly via older parts of the application,
    * we want to maintain the old behavior in that it is replaced (and not queued up)
@@ -52,17 +58,9 @@ type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
    * Remove an indicator
    */
   remove(indicator: Indicator): void;
-};
+}
 
-type Internals = {
-  items: any[];
-  lastId: number;
-};
-
-const storeConfig: StoreDefinition &
-  Internals &
-  IndicatorStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: IndicatorStoreDefinition = {
   items: [],
   lastId: 0,
   unsubscribeListeners: [],
@@ -146,7 +144,5 @@ const storeConfig: StoreDefinition &
   },
 };
 
-const IndicatorStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  IndicatorStoreInterface;
-
+const IndicatorStore = createStore(makeSafeRefluxStore(storeConfig));
 export default IndicatorStore;

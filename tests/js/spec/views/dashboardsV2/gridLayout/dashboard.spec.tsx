@@ -241,20 +241,25 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Edit mode', () => {
     let widgets: Widget[];
-    const mount = dashboard => {
+    const mount = (
+      dashboard,
+      mockedOrg = initialData.organization,
+      mockedRouter = initialData.router,
+      mockedLocation = initialData.location
+    ) => {
       const getDashboardComponent = () => (
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
-          organization={initialData.organization}
+          organization={mockedOrg}
           isEditing
           onUpdate={newWidgets => {
             widgets.splice(0, widgets.length, ...newWidgets);
           }}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          router={initialData.router}
-          location={initialData.location}
+          router={mockedRouter}
+          location={mockedLocation}
           widgetLimitReached={false}
         />
       );
@@ -278,6 +283,40 @@ describe('Dashboards > Dashboard', () => {
       userEvent.click(screen.getByLabelText('Duplicate Widget'));
       rerender();
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+    });
+
+    it('opens the widget builder when editing with the modal access flag', function () {
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          features: [
+            'dashboards-basic',
+            'dashboards-edit',
+            'dashboard-grid-layout',
+            'new-widget-builder-experience',
+            'new-widget-builder-experience-design',
+          ],
+        },
+      });
+      const dashboardWithOneWidget = {
+        ...mockDashboard,
+        widgets: [newWidget],
+      };
+
+      mount(
+        dashboardWithOneWidget,
+        testData.organization,
+        testData.router,
+        testData.router.location
+      );
+
+      userEvent.click(screen.getByLabelText('Edit Widget'));
+
+      expect(testData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
+        })
+      );
     });
   });
 });

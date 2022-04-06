@@ -1,4 +1,4 @@
-export type MetricsType = 'set' | 'counter' | 'distribution';
+export type MetricsType = 'set' | 'counter' | 'distribution' | 'numeric';
 
 export type MetricsOperation =
   | 'sum'

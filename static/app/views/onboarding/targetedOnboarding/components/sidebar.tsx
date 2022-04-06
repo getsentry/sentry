@@ -33,22 +33,18 @@ function Sidebar({
         isActive={isActive}
         onClick={() => setNewProject(project.id)}
       >
-        <IconWrapper>
-          <PlatformIcon platform={project.platform || 'other'} size={36} />
-        </IconWrapper>
+        <PlatformIcon platform={project.platform || 'other'} size={36} />
         <MiddleWrapper>
           <NameWrapper>{name}</NameWrapper>
-          <SubHeader errorReceived={errorReceived}>
+          <SubHeader errorReceived={errorReceived} data-test-id="sidebar-error-indicator">
             {errorReceived ? t('Error Received') : t('Waiting for error')}
           </SubHeader>
         </MiddleWrapper>
-        <IconWrapper>
-          {errorReceived ? (
-            <IconCheckmark isCircled color="green400" />
-          ) : (
-            isActive && <WaitingIndicator />
-          )}
-        </IconWrapper>
+        {errorReceived ? (
+          <StyledIconCheckmark isCircled color="green400" />
+        ) : (
+          isActive && <WaitingIndicator />
+        )}
       </ProjectWrapper>
     );
   };
@@ -70,8 +66,9 @@ const Title = styled('span')`
 `;
 
 const ProjectWrapper = styled('div')<{isActive: boolean}>`
-  display: grid;
-  grid-template-columns: fit-content(100%) 230px fit-content(100%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   background-color: ${p => p.isActive && p.theme.gray100};
   padding: ${space(2)};
   cursor: pointer;
@@ -91,8 +88,12 @@ const indicatorAnimation: Variants = {
 
 const WaitingIndicator = styled(motion.div)`
   margin: 0 6px;
+  flex-shrink: 0;
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+`;
+const StyledIconCheckmark = styled(IconCheckmark)`
+  flex-shrink: 0;
 `;
 
 WaitingIndicator.defaultProps = {
@@ -100,12 +101,10 @@ WaitingIndicator.defaultProps = {
   transition: testableTransition(),
 };
 
-const IconWrapper = styled('div')`
-  margin: auto;
-`;
-
 const MiddleWrapper = styled('div')`
   margin: 0 ${space(1)};
+  flex-grow: 1;
+  overflow: hidden;
 `;
 
 const NameWrapper = styled('div')`
@@ -122,4 +121,8 @@ const Wrapper = styled('div')`
   @media (max-width: 1150px) {
     display: none;
   }
+  flex-basis: 240px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 240px;
 `;

@@ -2,7 +2,7 @@ import logging
 import sys
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Dict, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, Dict, FrozenSet, Mapping, MutableMapping, Optional, Sequence
 from urllib.request import Request
 
 from django.views import View
@@ -295,7 +295,7 @@ class IntegrationInstallation:
         """
         return []
 
-    def update_organization_config(self, data: Mapping[str, Any]) -> None:
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         """
         Update the configuration field for an organization integration.
         """
