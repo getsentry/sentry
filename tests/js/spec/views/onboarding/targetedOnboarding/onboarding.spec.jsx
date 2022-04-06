@@ -6,10 +6,6 @@ import Onboarding from 'sentry/views/onboarding/targetedOnboarding/onboarding';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Onboarding', function () {
-  beforeEach(function () {
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders the welcome page', function () {
     const {organization, router, routerContext} = initializeOrg({
       router: {
