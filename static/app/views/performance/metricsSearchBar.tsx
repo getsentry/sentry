@@ -79,7 +79,7 @@ function MetricsSearchBar({
     );
   }
 
-  const supportedTags = tags.reduce((acc, {key}) => {
+  const supportedTags = Object.values(tags).reduce((acc, {key}) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});

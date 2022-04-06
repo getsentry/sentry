@@ -1,4 +1,4 @@
-import {Frame} from 'sentry/types';
+import type {Frame} from './event';
 
 export enum STACK_VIEW {
   RAW = 'raw',
