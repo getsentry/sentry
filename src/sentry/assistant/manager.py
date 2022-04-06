@@ -3,16 +3,14 @@ class AssistantManager:
         self._guides = {}
 
     def add(self, guides):
-        for k, v in guides.items():
-            self._guides[k] = v
+        for guide_key, id in guides.items():
+            self._guides[guide_key] = id
 
     def get_valid_ids(self):
-        return list(v["id"] for k, v in self._guides.items())
+        return list(self._guides.values())
 
     def get_guide_id(self, guide):
-        guide = self._guides.get(guide)
-        if guide:
-            return guide.get("id")
+        return self._guides.get(guide)
 
     def all(self):
         return self._guides
