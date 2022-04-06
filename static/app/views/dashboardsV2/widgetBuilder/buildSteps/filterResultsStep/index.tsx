@@ -60,6 +60,7 @@ export function FilterResultsStep({
         // this, we set a timer in our onSearch handler to block our onBlur
         // handler from firing if it is within 200ms, ie from clicking an
         // autocomplete value.
+        window.clearTimeout(blurTimeoutRef.current);
         blurTimeoutRef.current = window.setTimeout(() => {
           blurTimeoutRef.current = undefined;
         }, 200);
