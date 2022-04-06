@@ -327,16 +327,14 @@ class Quota(Service):
     def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
 
-        abuse_window = options.get("project-abuse-quota.window")
+        # Use the old, deprecated option if it's set.
+        abuse_window = options.get("getsentry.rate-limit.window")
 
-        if not abuse_window:
-            # Compatibility fallback.
-            abuse_window = options.get("getsentry.rate-limit.window")
-
-        if not abuse_window:
-            # Relay isn't effective at enforcing 1s windows.
-            # 10 seconds has worked well.
-            abuse_window = 10
+        # The registered default for both options is 10,
+        # so we use that to detect if we need to use the new option.
+        # (Relay isn't effective at enforcing 1s windows - 10 seconds has worked well.)
+        if abuse_window == 10:
+            abuse_window = options.get("project-abuse-quota.window")
 
         # compat_options were previously present in getsentry
         # for errors and transactions.

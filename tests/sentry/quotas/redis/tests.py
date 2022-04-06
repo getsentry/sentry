@@ -137,8 +137,7 @@ class RedisQuotaTest(TestCase):
 
         # Compatibility.
         self.organization.update_option("getsentry.rate-limit.project-errors", 1)
-        self.organization.update_option("getsentry.rate-limit.window", 60)
-        # Shouldn't change.
+        # Shouldn't change because the new options are set.
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -153,11 +152,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 10
         assert quotas[0].reason_code == "project_abuse_limit"
 
-        self.organization.delete_option("project-abuse-quota.error-limit")
+        # Disabling this limit with 0 should result in using the legacy
+        # getsentry.rate-limit.project-errors = 1.
+        self.organization.update_option("project-abuse-quota.error-limit", 0)
 
+        # Also, set the legacy option to a nondefault value, which should be used.
+        self.organization.update_option("getsentry.rate-limit.window", 60)
         self.organization.refresh_from_db()
 
-        # Same thing except limit = 1*60 now ver a window of 60.
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -168,7 +170,7 @@ class RedisQuotaTest(TestCase):
             DataCategory.ERROR,
             DataCategory.SECURITY,
         }
-        # breakpoint()  # TODO: hmmm not sure why it remains the same
+        breakpoint()
         assert quotas[0].limit == 60
         assert quotas[0].window == 60
         assert quotas[0].reason_code == "project_abuse_limit"
