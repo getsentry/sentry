@@ -118,6 +118,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     # cleanup
     shutil.rmtree(config_path)
     _remove_container_if_exists(docker_client, container_name)
+    docker_client.close()
 
 
 @pytest.fixture(scope="function")
@@ -144,7 +145,8 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    return {"url": relay_server_setup["url"]}
+    yield {"url": relay_server_setup["url"]}
+    docker_client.close()
 
 
 def adjust_settings_for_relay_tests(settings):

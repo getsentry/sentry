@@ -5,6 +5,7 @@ from collections import OrderedDict
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
+TRACK_FILES = False
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
@@ -15,6 +16,55 @@ def pytest_configure(config):
     # XXX(dcramer): Kombu throws a warning due to transaction.commit_manually
     # being used
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
+
+
+if TRACK_FILES:
+    import builtins
+    import socket
+    import traceback
+    import weakref
+
+    original_open = open
+    original_socket = socket.socket
+    handles = {}
+
+    def _open(*args, **kwargs):
+        handle = original_open(*args, **kwargs)
+
+        def on_collect(val):
+            handles.pop(val.fileno(), None)
+
+        handles[handle.fileno()] = traceback.format_stack()
+        weakref.ref(handle, on_collect)
+        return handle
+
+    def _socket(*args, **kwargs):
+        handle = original_socket(*args, **kwargs)
+
+        def on_collect(val):
+            handles.pop(val.fileno(), None)
+
+        handles[handle.fileno()] = traceback.format_stack()
+        weakref.ref(handle, on_collect)
+        return handle
+
+    def _unraisablehook(ur):
+        try:
+            handle = handles.get(ur.object.fileno())
+        except Exception:
+            pass
+        else:
+            if handle:
+                sys.stderr.write("%s\n")
+                sys.stderr.write("".join(handle))
+        if _old_hook:
+            _old_hook(ur)
+
+    builtins.open = _open
+    socket.socket = _socket
+
+    _old_hook = sys.unraisablehook
+    sys.unraisablehook = _unraisablehook
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
