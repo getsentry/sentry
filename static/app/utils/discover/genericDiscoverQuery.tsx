@@ -12,8 +12,6 @@ import EventView, {
 import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import RequestError from '../requestError/requestError';
-
 export class QueryError {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
