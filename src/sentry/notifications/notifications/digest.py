@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from sentry import features
+from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
     get_digest_as_context,
@@ -80,7 +81,8 @@ class DigestNotification(ProjectNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_reference(self) -> Any:
+    @property
+    def reference(self) -> Model | None:
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:

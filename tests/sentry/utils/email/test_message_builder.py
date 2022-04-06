@@ -191,7 +191,6 @@ class MessageBuilderTest(TestCase):
             body="hello world",
             html_body="<b>hello world</b>",
             reference=self.activity,
-            reply_reference=self.group,
         )
         msg.send(["foo@example.com"])
 
@@ -246,7 +245,6 @@ class MessageBuilderTest(TestCase):
             body="hello world",
             html_body="<b>hello world</b>",
             reference=self.activity,
-            reply_reference=self.group,
         )
         results = msg.get_built_messages(["foo@example.com"])
         assert len(results) == 1
