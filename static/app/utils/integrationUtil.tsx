@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
@@ -201,19 +202,19 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
   const iconSize = size || 'md';
   switch (integrationType) {
     case 'bitbucket':
-      return <IconBitbucket size={iconSize} />;
+      return <StyledBitbucket size={iconSize} />;
     case 'gitlab':
-      return <IconGitlab size={iconSize} />;
+      return <StyledGitlab size={iconSize} />;
     case 'github':
     case 'github_enterprise':
-      return <IconGithub size={iconSize} />;
+      return <StyledGithub size={iconSize} />;
     case 'jira':
     case 'jira_server':
-      return <IconJira size={iconSize} />;
+      return <StyledJira size={iconSize} />;
     case 'vsts':
-      return <IconVsts size={iconSize} />;
+      return <StyledVsts size={iconSize} />;
     default:
-      return <IconGeneric size={iconSize} />;
+      return <StyledGeneric size={iconSize} />;
   }
 };
 
@@ -260,3 +261,27 @@ export const sentryNameToOption = ({id, name}): Result => ({
   value: id,
   label: name,
 });
+
+const StyledJira = styled(IconJira)`
+  flex-shrink: 0;
+`;
+
+const StyledBitbucket = styled(IconBitbucket)`
+  flex-shrink: 0;
+`;
+
+const StyledGitlab = styled(IconGitlab)`
+  flex-shrink: 0;
+`;
+
+const StyledGithub = styled(IconGithub)`
+  flex-shrink: 0;
+`;
+
+const StyledVsts = styled(IconVsts)`
+  flex-shrink: 0;
+`;
+
+const StyledGeneric = styled(IconGeneric)`
+  flex-shrink: 0;
+`;
