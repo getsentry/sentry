@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
-import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -14,29 +13,16 @@ interface InternalDefinition {
 interface IndicatorStoreDefinition
   extends CommonStoreDefinition<Indicator[]>,
     InternalDefinition {
-  /**
-   * When this method is called directly via older parts of the application,
-   * we want to maintain the old behavior in that it is replaced (and not queued up)
-   *
-   * @param message Toast message to be displayed
-   * @param type One of ['error', 'success', '']
-   * @param options Options object
-   */
-  add(
-    message: string,
-    type?: Indicator['type'],
-    options?: Indicator['options']
-  ): Indicator;
-  addError(message?: string): Indicator;
+  addError(message?: React.ReactNode): Indicator;
   /**
    * Alias for add()
    */
   addMessage(
-    message: string,
+    message: React.ReactNode,
     type: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
-  addSuccess(message: string): Indicator;
+  addSuccess(message: React.ReactNode): Indicator;
   /**
    * Appends a message to be displayed in list of indicators
    *
@@ -45,7 +31,7 @@ interface IndicatorStoreDefinition
    * @param options Options object
    */
   append(
-    message: string,
+    message: React.ReactNode,
     type: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
@@ -58,6 +44,19 @@ interface IndicatorStoreDefinition
    * Remove an indicator
    */
   remove(indicator: Indicator): void;
+  /**
+   * When this method is called directly via older parts of the application,
+   * we want to maintain the old behavior in that it is replaced (and not queued up)
+   *
+   * @param message Toast message to be displayed
+   * @param type One of ['error', 'success', '']
+   * @param options Options object
+   */
+  replace(
+    message: React.ReactNode,
+    type?: Indicator['type'],
+    options?: Indicator['options']
+  ): Indicator;
 }
 
 const storeConfig: IndicatorStoreDefinition = {
@@ -68,19 +67,14 @@ const storeConfig: IndicatorStoreDefinition = {
   init() {
     this.items = [];
     this.lastId = 0;
-
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.append, this.append));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.replace, this.add));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.remove, this.remove));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.clear, this.clear));
   },
 
   addSuccess(message) {
-    return this.add(message, 'success', {duration: 2000});
+    return this.replace(message, 'success', {duration: 2000});
   },
 
   addError(message = t('An error occurred')) {
-    return this.add(message, 'error', {duration: 2000});
+    return this.replace(message, 'error', {duration: 2000});
   },
 
   addMessage(message, type, {append, ...options} = {}) {
@@ -112,11 +106,8 @@ const storeConfig: IndicatorStoreDefinition = {
     });
   },
 
-  add(message, type = 'loading', options = {}) {
-    return this.addMessage(message, type, {
-      ...options,
-      append: false,
-    });
+  replace(message, type = 'loading', options = {}) {
+    return this.addMessage(message, type, {...options, append: false});
   },
 
   clear() {

@@ -1,11 +1,10 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import IndicatorActions from 'sentry/actions/indicatorActions';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 import space from 'sentry/styles/space';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
@@ -32,12 +31,12 @@ export type Indicator = {
 
 // Removes a single indicator
 export function removeIndicator(indicator: Indicator) {
-  IndicatorActions.remove(indicator);
+  IndicatorStore.remove(indicator);
 }
 
 // Clears all indicators
 export function clearIndicators() {
-  IndicatorActions.clear();
+  IndicatorStore.clear();
 }
 
 // Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
@@ -68,7 +67,7 @@ export function addMessage(
   // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
   // because we are firing an action. You can just add a new message and it will, by default,
   // replace active indicator
-  IndicatorActions[action](msg, type, {...rest, duration});
+  IndicatorStore[action](msg, type, {...rest, duration});
 }
 
 function addMessageWithType(type: IndicatorType) {

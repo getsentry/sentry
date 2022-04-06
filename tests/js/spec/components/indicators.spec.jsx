@@ -32,7 +32,7 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
     // when "type" is empty, we should treat it as loading state
 
-    act(() => void IndicatorStore.add('Loading'));
+    act(() => void IndicatorStore.replace('Loading'));
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(container).toHaveTextContent('Loading');
   });
@@ -43,7 +43,7 @@ describe('Indicators', function () {
     // when "type" is empty, we should treat it as loading state
     let indicator;
     act(() => {
-      indicator = IndicatorStore.add('Loading');
+      indicator = IndicatorStore.replace('Loading');
     });
 
     expect(container).toHaveTextContent('Loading');
@@ -57,11 +57,11 @@ describe('Indicators', function () {
   it('adds and replaces toast by calling IndicatorStore directly', function () {
     const {container} = render(<Indicators />);
 
-    act(() => void IndicatorStore.add('Loading'));
+    act(() => void IndicatorStore.replace('Loading'));
     expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    act(() => void IndicatorStore.add('success', 'success'));
+    act(() => void IndicatorStore.replace('success', 'success'));
     expect(container).toHaveTextContent('success');
   });
 
