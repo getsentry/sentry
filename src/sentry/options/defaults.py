@@ -392,9 +392,10 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
 # Abuse quotas.
-# Don't limit by default, base values and organization overrides are configured
+# Don't limit by default (0), base values and organization overrides are configured
 # in prod. The limits are per second, applied across a window. The actual quota
 # is then `window * limit`.
+# If the limit is negative, then it means completely blocked.
 register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
 register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)

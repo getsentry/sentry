@@ -379,9 +379,16 @@ class Quota(Service):
                     if limit:
                         break
             if limit:
+                # Negative limits mean reject-all.
+                if limit < 0:
+                    limit = 0
+                    id = None
+                    abuse_window = None
+                else:
+                    limit *= abuse_window
                 yield QuotaConfig(
                     id=id,
-                    limit=limit * abuse_window,
+                    limit=limit,
                     scope=QuotaScope.PROJECT,
                     categories=categories,
                     window=abuse_window,

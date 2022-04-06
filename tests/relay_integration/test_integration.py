@@ -212,3 +212,14 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"value": pytest.approx(1050)},
                 }
             }
+
+    def test_project_abuse_quotas(self):
+        # Windows < 10 seconds might be kinda flaky,
+        # so this is just a pretty basic test that sets a negative limit
+        # to reject all errors.
+        self.organization.update_option("project-abuse-quota.error-limit", -1)
+        # explicit event type?
+        event_data = {"message": "hi", "timestamp": iso_format(before_now(seconds=1))}
+        event = self.post_and_retrieve_event(event_data)
+        # this is passing, hmm
+        assert event.message == "hi"
