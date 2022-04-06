@@ -1,11 +1,8 @@
-import {useContext} from 'react';
+import {Location, Query} from 'history';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-export function useLocation() {
-  const route = useContext(RouteContext);
-  if (route === null) {
-    throw new Error('useLocation called outside of routes provider');
-  }
-  return route?.location;
+export function useLocation<Q extends Query>(): Location<Q> {
+  const route = useRouteContext();
+  return route.location;
 }

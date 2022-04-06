@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -31,8 +30,28 @@ describe('useRoutes', () => {
         <Route path="/" component={HomePage} />
       </Router>
     );
-    expect(typeof routes).toBe('object');
     expect(routes.length).toEqual(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});
+  });
+
+  it('throws error when called outside of routes provider', function () {
+    try {
+      const memoryHistory = createMemoryHistory();
+      memoryHistory.push('/');
+
+      render(
+        <Router history={memoryHistory}>
+          <Route
+            path="/"
+            component={() => {
+              const _routes = useRoutes();
+              return null;
+            }}
+          />
+        </Router>
+      );
+    } catch (error) {
+      expect(error.message).toBe('useRoutes called outside of routes provider');
+    }
   });
 });

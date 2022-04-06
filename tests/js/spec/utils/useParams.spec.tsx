@@ -62,7 +62,6 @@ describe('useParams', () => {
           <Route path="/:slug" component={HomePage} />
         </Router>
       );
-      expect(typeof params).toBe('object');
       expect(params).toEqual({slug: 'sentry'});
     });
   });

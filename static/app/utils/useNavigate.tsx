@@ -1,6 +1,6 @@
-import {useContext} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 type NavigateOptions = {
   replace?: boolean;
@@ -8,21 +8,36 @@ type NavigateOptions = {
 };
 
 export function useNavigate() {
-  const route = useContext(RouteContext);
-  if (route === null) {
-    throw new Error('useNavigate called outside of routes provider');
-  }
-  const navigator = route?.router;
+  const route = useRouteContext();
 
-  const navigate = (to: string | number, options: NavigateOptions = {}) => {
-    if (typeof to === 'number') {
-      navigator.go(to);
-      return;
-    }
-    (!!options.replace ? navigator.replace : navigator.push)({
-      pathname: to,
-      state: options.state,
-    });
-  };
+  const navigator = route.router;
+  const activeRef = useRef(false);
+  useEffect(() => {
+    activeRef.current = true;
+  });
+  const navigate = useCallback(
+    (to: string | number, options: NavigateOptions = {}) => {
+      if (!activeRef.current) {
+        throw new Error(
+          `You should call navigate() in a React.useEffect(), not when your component is first rendered.`
+        );
+      }
+      if (typeof to === 'number') {
+        return navigator.go(to);
+      }
+
+      const nextState = {
+        pathname: to,
+        state: options.state,
+      };
+
+      if (options.replace) {
+        return navigator.replace(nextState);
+      }
+
+      return navigator.push(nextState);
+    },
+    [navigator]
+  );
   return navigate;
 }
