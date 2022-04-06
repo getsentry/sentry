@@ -38,7 +38,6 @@ import {defined, percent, valueIsEqual} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -47,12 +46,10 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
-  IssueDisplayOptions,
   Query,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 
 const defaultProps = {
   statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -60,7 +57,6 @@ const defaultProps = {
   withChart: true,
   useFilteredStats: false,
   useTintRow: true,
-  display: DEFAULT_DISPLAY,
   narrowGroups: false,
 };
 
@@ -69,7 +65,6 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   customStatsPeriod?: TimePeriodType;
-  display?: IssueDisplayOptions;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
   index?: number;
@@ -346,7 +341,6 @@ class StreamGroup extends React.Component<Props, State> {
       useFilteredStats,
       useTintRow,
       customStatsPeriod,
-      display,
       queryFilterDescription,
       narrowGroups,
     } = this.props;
@@ -369,18 +363,6 @@ class StreamGroup extends React.Component<Props, State> {
     const showSecondaryPoints = Boolean(
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
-
-    const showSessions = display === IssueDisplayOptions.SESSIONS;
-    // calculate a percentage count based on session data if the user has selected sessions display
-    const primaryPercent =
-      showSessions &&
-      data.sessionCount &&
-      formatPercentage(Number(primaryCount) / Number(data.sessionCount));
-    const secondaryPercent =
-      showSessions &&
-      data.sessionCount &&
-      secondaryCount &&
-      formatPercentage(Number(secondaryCount) / Number(data.sessionCount));
 
     return (
       <Wrapper
@@ -449,18 +431,10 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              {primaryPercent ? (
-                                <PrimaryPercent>{primaryPercent}</PrimaryPercent>
-                              ) : (
-                                <PrimaryCount value={primaryCount} />
+                              <PrimaryCount value={primaryCount} />
+                              {secondaryCount !== undefined && useFilteredStats && (
+                                <SecondaryCount value={secondaryCount} />
                               )}
-                              {secondaryCount !== undefined &&
-                                useFilteredStats &&
-                                (secondaryPercent ? (
-                                  <SecondaryPercent>{secondaryPercent}</SecondaryPercent>
-                                ) : (
-                                  <SecondaryCount value={secondaryCount} />
-                                ))}
                             </div>
                           </span>
                           {useFilteredStats && (
@@ -474,11 +448,7 @@ class StreamGroup extends React.Component<Props, State> {
                                       {queryFilterDescription ??
                                         t('Matching search filters')}
                                     </MenuItemText>
-                                    {primaryPercent ? (
-                                      <MenuItemPercent>{primaryPercent}</MenuItemPercent>
-                                    ) : (
-                                      <MenuItemCount value={data.filtered.count} />
-                                    )}
+                                    <MenuItemCount value={data.filtered.count} />
                                   </StyledMenuItem>
                                   <MenuItem divider />
                                 </React.Fragment>
@@ -486,11 +456,7 @@ class StreamGroup extends React.Component<Props, State> {
 
                               <StyledMenuItem to={this.getDiscoverUrl()}>
                                 <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                                {secondaryPercent ? (
-                                  <MenuItemPercent>{secondaryPercent}</MenuItemPercent>
-                                ) : (
-                                  <MenuItemCount value={secondaryPercent || data.count} />
-                                )}
+                                <MenuItemCount value={data.count} />
                               </StyledMenuItem>
 
                               {data.lifetime && (
@@ -670,10 +636,6 @@ const PrimaryCount = styled(Count)`
   ${p => primaryStatStyle(p.theme)};
 `;
 
-const PrimaryPercent = styled('div')`
-  ${p => primaryStatStyle(p.theme)};
-`;
-
 const secondaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
   font-variant-numeric: tabular-nums;
@@ -687,10 +649,6 @@ const secondaryStatStyle = (theme: Theme) => css`
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
-`;
-
-const SecondaryPercent = styled('div')`
   ${p => secondaryStatStyle(p.theme)}
 `;
 
@@ -736,10 +694,6 @@ const MenuItemCount = styled(({value, ...p}) => (
 ))`
   ${menuItemStatStyles};
   color: ${p => p.theme.subText};
-`;
-
-const MenuItemPercent = styled('div')`
-  ${menuItemStatStyles};
 `;
 
 const MenuItemText = styled('div')`

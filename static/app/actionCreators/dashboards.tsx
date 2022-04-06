@@ -8,6 +8,7 @@ import {
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboardsV2/types';
+import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
@@ -22,7 +23,8 @@ export function fetchDashboards(api: Client, orgSlug: string) {
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -51,7 +53,8 @@ export function createDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -91,7 +94,8 @@ export function fetchDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -121,7 +125,8 @@ export function updateDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -146,7 +151,8 @@ export function deleteDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }
