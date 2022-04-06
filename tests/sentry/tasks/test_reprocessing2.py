@@ -190,7 +190,7 @@ def test_basic(
     if change_groups:
         assert tombstone_calls == [
             (
-                (2, [old_event.event_id]),
+                (default_project.id, [old_event.event_id]),
                 {
                     "from_timestamp": old_event.datetime,
                     "old_primary_hash": old_event.get_primary_hash(),
