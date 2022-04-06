@@ -372,32 +372,32 @@ def _filter_option_to_config_setting(flt, setting):
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
-        "sentry.transactions.user",
-        "sentry.transactions.transaction.duration",
+        "transaction.user",
+        "transaction.duration",
     ]
 )
 
 
 ALL_MEASUREMENT_METRICS = frozenset(
     [
-        "sentry.transactions.measurements.fp",
-        "sentry.transactions.measurements.fcp",
-        "sentry.transactions.measurements.lcp",
-        "sentry.transactions.measurements.fid",
-        "sentry.transactions.measurements.cls",
-        "sentry.transactions.measurements.ttfb",
-        "sentry.transactions.measurements.ttfb.requesttime",
-        "sentry.transactions.measurements.app_start_cold",
-        "sentry.transactions.measurements.app_start_warm",
-        "sentry.transactions.measurements.frames_total",
-        "sentry.transactions.measurements.frames_slow",
-        "sentry.transactions.measurements.frames_frozen",
-        "sentry.transactions.measurements.frames_slow_rate",
-        "sentry.transactions.measurements.frames_frozen_rate",
-        "sentry.transactions.measurements.stall_count",
-        "sentry.transactions.measurements.stall_total_time",
-        "sentry.transactions.measurements.stall_longest_time",
-        "sentry.transactions.measurements.stall_percentage",
+        "transaction.measurements.fcp"
+        "transaction.measurements.lcp"
+        "transaction.measurements.app_start_cold"
+        "transaction.measurements.app_start_warm"
+        "transaction.measurements.cls"
+        "transaction.measurements.fid"
+        "transaction.measurements.fp"
+        "transaction.measurements.frames_frozen"
+        "transaction.measurements.frames_frozen_rate"
+        "transaction.measurements.frames_slow"
+        "transaction.measurements.frames_slow_rate"
+        "transaction.measurements.frames_total"
+        "transaction.measurements.stall_count"
+        "transaction.measurements.stall_longest_time"
+        "transaction.measurements.stall_percentage"
+        "transaction.measurements.stall_total_time"
+        "transaction.measurements.ttfb"
+        "transaction.measurements.ttfb.requesttime"
     ]
 )
 
