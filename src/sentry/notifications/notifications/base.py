@@ -32,22 +32,6 @@ class BaseNotification(abc.ABC):
         self.organization = organization
 
     @property
-    def org_slug(self) -> str:
-        slug: str = self.organization.slug
-        return slug
-
-    @property
-    def org_name(self) -> str:
-        name: str = self.organization.name
-        return name
-
-    @property
-    def fine_tuning_key(self) -> str | None:
-        if self.notification_setting_type is None:
-            return None
-        return get_notification_setting_type_name(self.notification_setting_type)
-
-    @property
     def from_email(self) -> str | None:
         return None
 
@@ -180,14 +164,15 @@ class BaseNotification(abc.ABC):
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
-        # settings url is dependant on the provider so we know which provider is sending them into Sentry
+        # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             team = Team.objects.get(id=recipient.id)
-            url_str = f"/settings/{self.org_slug}/teams/{team.slug}/notifications/"
+            url_str = f"/settings/{self.organization.slug}/teams/{team.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.fine_tuning_key:
-                url_str += f"{self.fine_tuning_key}/"
+            fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+            if fine_tuning_key:
+                url_str += f"{fine_tuning_key}/"
         return str(
             urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
         )
