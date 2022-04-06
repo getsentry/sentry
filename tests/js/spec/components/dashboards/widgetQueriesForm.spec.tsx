@@ -3,6 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
@@ -119,19 +120,21 @@ describe('WidgetQueriesForm', function () {
   it('does not show metrics tags in orderby', function () {
     const field = `sum(${SessionMetric.SESSION})`;
     render(
-      <TestComponent
-        widgetType={WidgetType.METRICS}
-        queries={[
-          {
-            conditions: '',
-            fields: [field, 'release'],
-            columns: ['release'],
-            aggregates: [field],
-            name: '',
-            orderby: field,
-          },
-        ]}
-      />,
+      <MetricsProvider organization={organization}>
+        <TestComponent
+          widgetType={WidgetType.METRICS}
+          queries={[
+            {
+              conditions: '',
+              fields: [field, 'release'],
+              columns: ['release'],
+              aggregates: [field],
+              name: '',
+              orderby: field,
+            },
+          ]}
+        />
+      </MetricsProvider>,
       {organization}
     );
     userEvent.click(screen.getByText('sum(sentry.sessions.session) asc'));
