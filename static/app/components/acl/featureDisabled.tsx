@@ -105,16 +105,7 @@ function FeatureDisabled({
             </ToggleButton>
           )}
         </FeatureDisabledMessage>
-        {showDescription && (
-          <HelpDescription
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            {renderHelp()}
-          </HelpDescription>
-        )}
+        {showDescription && <HelpDescription>{renderHelp()}</HelpDescription>}
       </Fragment>
     );
   }
