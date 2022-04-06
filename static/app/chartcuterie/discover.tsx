@@ -372,7 +372,7 @@ discoverCharts.push({
 
     stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((s, i) => {
+      .forEach((s, i) => {
         const dataMiddleIndex = Math.floor(s.data.length / 2);
         const current = s.data.slice(dataMiddleIndex);
         const previous = s.data.slice(0, dataMiddleIndex);
