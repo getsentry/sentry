@@ -28,8 +28,6 @@ class Provider(PipelineProvider):
     including its configuration and basic identity management.
     """
 
-    name = None
-
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
 

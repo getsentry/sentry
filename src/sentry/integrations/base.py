@@ -123,11 +123,6 @@ class IntegrationProvider(PipelineProvider):  # type: ignore
     it provides (such as extensions provided).
     """
 
-    # a unique identifier (e.g. 'slack').
-    # Used to lookup sibling classes and the ``key`` used when creating
-    # Integration objects.
-    key: Optional[str] = None
-
     # a unique identifier to use when creating the ``Integration`` object.
     # Only needed when you want to create the above object with something other
     # than ``key``. See: VstsExtensionIntegrationProvider.
@@ -136,9 +131,6 @@ class IntegrationProvider(PipelineProvider):  # type: ignore
     # Whether this integration should show up in the list on the Organization
     # Integrations page.
     visible = True
-
-    # a human readable name (e.g. 'Slack')
-    name: Optional[str] = None
 
     # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.
