@@ -8,6 +8,7 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
@@ -153,7 +154,7 @@ export function ProjectPageFilter({
         highlighted={desyncedFilters.has('projects')}
       >
         <DropdownTitle>
-          {icon}
+          <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
           <TitleContainer>{title}</TitleContainer>
           {selectedProjects.length > projectsToShow.length && (
             <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
@@ -167,7 +168,7 @@ export function ProjectPageFilter({
     <PageFilterDropdownButton showChevron={false} disabled>
       <DropdownTitle>
         <IconProject />
-        {t('Loading\u2026')}
+        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
       </DropdownTitle>
     </PageFilterDropdownButton>
   );

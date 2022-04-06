@@ -5,6 +5,7 @@ import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -67,7 +68,9 @@ function EnvironmentPageFilter({
         highlighted={desyncedFilters.has('environments')}
       >
         <DropdownTitle>
-          <IconWindow />
+          <PageFilterPinIndicator filter="environments">
+            <IconWindow />
+          </PageFilterPinIndicator>
           <TitleContainer>
             {summary}
             {!!value.length && value.length > environmentsToShow.length && (
@@ -83,7 +86,7 @@ function EnvironmentPageFilter({
     <PageFilterDropdownButton showChevron={false} disabled>
       <DropdownTitle>
         <IconWindow />
-        {t('Loading\u2026')}
+        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
       </DropdownTitle>
     </PageFilterDropdownButton>
   );
@@ -118,7 +121,6 @@ const TitleContainer = styled('div')`
 
 const DropdownTitle = styled('div')`
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
 `;

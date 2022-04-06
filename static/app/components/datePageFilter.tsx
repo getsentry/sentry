@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
@@ -10,6 +11,7 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = Omit<
@@ -56,11 +58,13 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         detached
         hideBottomBorder={false}
         isOpen={isOpen}
-        icon={<IconCalendar />}
         highlighted={desyncedFilters.has('datetime')}
         {...getActorProps()}
       >
         <DropdownTitle>
+          <PageFilterPinIndicator filter="datetime">
+            <IconCalendar />
+          </PageFilterPinIndicator>
           <TitleContainer>{label}</TitleContainer>
         </DropdownTitle>
       </PageFilterDropdownButton>
@@ -75,7 +79,6 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       relative={period}
       utc={utc}
       onUpdate={handleUpdate}
-      label={<IconCalendar color="textColor" />}
       customDropdownButton={customDropdownButton}
       showPin
       {...props}
@@ -99,11 +102,11 @@ const TitleContainer = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   flex: 1 1 0%;
+  margin-left: ${space(1)};
 `;
 
 const DropdownTitle = styled('div')`
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
 `;
