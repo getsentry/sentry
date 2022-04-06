@@ -110,7 +110,7 @@ class IntegrationFeatures(Enum):
     DEPLOYMENT = "deployment"
 
 
-class IntegrationProvider(PipelineProvider, abc.ABC):
+class IntegrationProvider(PipelineProvider, abc.ABC):  # type: ignore
     """
     An integration provider describes a third party that can be registered within Sentry.
 

@@ -20,11 +20,15 @@ dummy_provider_config = {
 class DummySAML2Provider(SAML2Provider):
     name = "dummy"
 
+    def get_saml_setup_pipeline(self):
+        pass
+
 
 class SAML2ProviderTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization()
-        self.auth_provider = AuthProvider.objects.create(provider="saml2", organization=self.org)
+        self.auth_provider = AuthProvider.objects.create(
+            provider="saml2", organization=self.organization
+        )
         self.provider = DummySAML2Provider(key=self.auth_provider.provider)
         super().setUp()
 
