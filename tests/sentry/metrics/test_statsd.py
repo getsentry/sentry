@@ -8,6 +8,9 @@ class StatsdMetricsBackendTest(TestCase):
     def setUp(self):
         self.backend = StatsdMetricsBackend(prefix="sentrytest.")
 
+    def tearDown(self):
+        self.backend.close()
+
     @patch("statsd.StatsClient.incr")
     def test_incr(self, mock_incr):
         self.backend.incr("foo")

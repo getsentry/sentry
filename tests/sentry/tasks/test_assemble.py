@@ -92,7 +92,9 @@ class AssembleDifTest(BaseAssembleTest):
         for reference, checksum in files:
             blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            assert blob.getfile().read(len(ref_bytes)) == ref_bytes
+            f = blob.getfile()
+            assert f.read(len(ref_bytes)) == ref_bytes
+            f.close()
             FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
@@ -141,7 +143,9 @@ class AssembleDifTest(BaseAssembleTest):
         for reference, checksum in files:
             blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            assert blob.getfile().read(len(ref_bytes)) == ref_bytes
+            f = blob.getfile()
+            assert f.read(len(ref_bytes)) == ref_bytes
+            f.close()
             FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(

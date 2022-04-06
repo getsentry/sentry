@@ -12,6 +12,9 @@ class MetricsBackend(local):
             prefix = settings.SENTRY_METRICS_PREFIX
         self.prefix = prefix
 
+    def close(self):
+        pass
+
     def _get_key(self, key):
         if self.prefix:
             return f"{self.prefix}{key}"
