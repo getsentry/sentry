@@ -171,11 +171,22 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
     return _dist_count_aggregation_on_tx_status_factory(
         org_id,
         exclude_tx_statuses=[
+            # See statuses in https://docs.sentry.io/product/performance/metrics/#failure-rate
             TransactionStatusTagValue.OK.value,
             TransactionStatusTagValue.CANCELLED.value,
             TransactionStatusTagValue.UNKNOWN.value,
         ],
         metric_ids=metric_ids,
+        alias=alias,
+    )
+
+
+def failure_rate_transaction(failure_count_snql, tx_count_snql, alias=None):
+    return Function(
+        "divide",
+        # Clickhouse can manage divisions by 0, see:
+        # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions/#dividea-b-a-b-operator
+        [failure_count_snql, tx_count_snql],
         alias=alias,
     )
 

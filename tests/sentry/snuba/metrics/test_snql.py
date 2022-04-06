@@ -18,7 +18,7 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.fields.snql import failure_count_transaction
+from sentry.snuba.metrics.fields.snql import failure_count_transaction, failure_rate_transaction
 from sentry.testutils import TestCase
 
 
@@ -104,7 +104,7 @@ class DerivedMetricSnQLTestCase(TestCase):
     def test_dist_count_aggregation_on_tx_status(self):
         org_id = 1985
 
-        assert all_transactions(org_id, self.metric_ids, "transactions.all") == Function(
+        expected_all_txs = Function(
             "countIf",
             [
                 Column("value"),
@@ -119,10 +119,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             ],
             alias="transactions.all",
         )
+        assert all_transactions(org_id, self.metric_ids, "transactions.all") == expected_all_txs
 
-        assert failure_count_transaction(
-            org_id, self.metric_ids, "transactions.failed"
-        ) == Function(
+        expected_failed_txs = Function(
             "countIf",
             [
                 Column("value"),
@@ -150,6 +149,23 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             ],
             alias="transactions.failed",
+        )
+        assert (
+            failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+            == expected_failed_txs
+        )
+
+        assert failure_rate_transaction(
+            failure_count_transaction(org_id, self.metric_ids, "transactions.failed"),
+            all_transactions(org_id, self.metric_ids, "transactions.all"),
+            alias="transactions.failure_rate",
+        ) == Function(
+            "divide",
+            [
+                expected_failed_txs,
+                expected_all_txs,
+            ],
+            alias="transactions.failure_rate",
         )
 
     def test_percentage_in_snql(self):
