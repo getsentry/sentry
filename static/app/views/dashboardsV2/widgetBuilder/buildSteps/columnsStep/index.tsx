@@ -47,21 +47,21 @@ export function ColumnsStep({
     <BuildStep
       title={t('Choose your columns')}
       description={
-        dataSet !== DataSet.ISSUES
+        dataSet === DataSet.ISSUES
           ? tct(
-              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
               {
-                functionLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
-                ),
                 tagFieldLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),
               }
             )
           : tct(
-              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
+              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
               {
+                functionLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                ),
                 tagFieldLink: (
                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
                 ),

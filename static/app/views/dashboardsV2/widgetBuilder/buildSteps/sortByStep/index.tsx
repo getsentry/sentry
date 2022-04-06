@@ -78,16 +78,16 @@ export function SortByStep({
           <SortBySelectors
             widgetType={widgetType}
             sortByOptions={
-              dataSet === DataSet.EVENTS
-                ? generateOrderOptions({
+              dataSet === DataSet.ISSUES
+                ? generateIssueWidgetOrderOptions(
+                    organization.features.includes('issue-list-trend-sort')
+                  )
+                : generateOrderOptions({
                     widgetType,
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
                   })
-                : generateIssueWidgetOrderOptions(
-                    organization.features.includes('issue-list-trend-sort')
-                  )
             }
             values={{
               sortDirection:

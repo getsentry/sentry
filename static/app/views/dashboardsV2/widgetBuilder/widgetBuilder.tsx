@@ -109,7 +109,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
-      orderby: '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
     },
   };
 }
@@ -118,6 +118,12 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.METRICS]: DataSet.RELEASE,
+};
+
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASE]: WidgetType.METRICS,
 };
 
 interface RouteParams {
@@ -335,8 +341,7 @@ function WidgetBuilder({
       const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
-        widgetType:
-          prevState.dataSet === DataSet.EVENTS ? WidgetType.DISCOVER : WidgetType.ISSUE,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
         widgetBuilderNewDesign,
       });
 
@@ -469,7 +474,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]);
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
