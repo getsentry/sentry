@@ -9,8 +9,7 @@ class TestChartRenderer(AcceptanceTestCase):
         }
 
         with self.options(options):
-            resp = self.browser.get("debug/chart-renderer/")
-            assert b"".join(resp.streaming_content)
+            self.browser.get("debug/chart-renderer/")
 
         images = self.browser.elements(selector="img")
         assert len(images) > 0
