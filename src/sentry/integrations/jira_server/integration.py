@@ -185,7 +185,7 @@ class OAuthLoginView(PipelineView):
         pipeline.bind_state("request_token", request_token)
         if not request_token.get("oauth_token"):
             logger.info(
-                "identity.bitbucket-server.oauth-token",
+                "identity.jira-server.oauth-token",
                 extra={"url": config.get("url")},
             )
             return pipeline.error("Missing oauth_token")
