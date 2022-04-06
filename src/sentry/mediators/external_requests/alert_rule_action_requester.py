@@ -74,7 +74,7 @@ class AlertRuleActionRequester(Mediator):
         return {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
-            "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
+            "Sentry-Hook-Signature": self.sentry_app.build_signature(self.body),
         }
 
     @memoize
