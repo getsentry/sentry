@@ -543,7 +543,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 : 2
             )
           );
-
+    console.log({source: source !== WidgetType.ISSUE && source !== WidgetType.METRICS});
     return (
       <div className={className}>
         {this.renderGhost({gridColumns, singleColumn})}

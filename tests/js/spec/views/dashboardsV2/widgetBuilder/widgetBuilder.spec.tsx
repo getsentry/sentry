@@ -16,6 +16,7 @@ import {
   DisplayType,
   MAX_WIDGETS,
   Widget,
+  WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
@@ -558,9 +559,9 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'Custom Widget',
-          displayType: 'line',
+          displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
           queries: [
             {
               conditions: '',
@@ -601,9 +602,9 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'Custom Widget',
-          displayType: 'line',
+          displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
           queries: [
             {
               name: '',
@@ -802,7 +803,7 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'sdk usage',
-          displayType: 'table',
+          displayType: DisplayType.TABLE,
           interval: '5m',
           queries: [
             {
@@ -814,7 +815,7 @@ describe('WidgetBuilder', function () {
               orderby: '',
             },
           ],
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
         }),
       ]);
     });
@@ -1541,9 +1542,9 @@ describe('WidgetBuilder', function () {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
             title: 'Custom Widget',
-            displayType: 'table',
+            displayType: DisplayType.TABLE,
             interval: '5m',
-            widgetType: 'issue',
+            widgetType: WidgetType.ISSUE,
             queries: [
               {
                 conditions: '',
@@ -1802,7 +1803,7 @@ describe('WidgetBuilder', function () {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
             // TODO(adam): Update widget type to be 'release'
-            widgetType: 'metrics',
+            widgetType: WidgetType.METRICS,
             queries: [
               expect.objectContaining({
                 aggregates: [`sum(${SessionMetric.SESSION})`],
@@ -1815,6 +1816,48 @@ describe('WidgetBuilder', function () {
       });
 
       expect(handleSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not display "add an equation" button', async function () {
+      const widget: Widget = {
+        title: 'Metrics Widget',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.METRICS,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['sdk.name', 'count()'],
+            columns: ['sdk.name'],
+            aggregates: ['count()'],
+            orderby: '-sdk.name',
+          },
+        ],
+        interval: '1d',
+        id: '1',
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Select line chart display
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
     });
 
     it('render release data set disabled when the display type is world map', async function () {
