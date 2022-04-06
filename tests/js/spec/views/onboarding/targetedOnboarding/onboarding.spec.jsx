@@ -91,7 +91,7 @@ describe('Onboarding', function () {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
-      body: '',
+      body: null,
     });
     ProjectsStore.loadInitialData(projects);
     render(
