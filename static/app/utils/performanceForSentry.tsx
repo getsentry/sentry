@@ -38,6 +38,8 @@ class LongTaskObserver {
     try {
       LongTaskObserver.currentId = id;
       if (LongTaskObserver.observer) {
+        LongTaskObserver.observer.disconnect();
+        LongTaskObserver.observer.observe({entryTypes: ['longtask']});
         return LongTaskObserver.observer;
       }
       if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
