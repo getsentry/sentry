@@ -39,7 +39,7 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = self.resolve_value(value)
+        metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
         self.builder.metric_ids.add(metric_id)
@@ -48,9 +48,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
-        value_id = indexer.resolve(
-            self.builder.organization_id, constants.METRICS_MAP.get(value, value)
-        )
+        value_id = indexer.resolve(self.builder.organization_id, value)
 
         return value_id
 
