@@ -39,7 +39,7 @@ export function fetchClientState(api: Client, orgSlug: string): Promise<ClientSt
     .requestPromise(`/organizations/${orgSlug}/client-state/onboarding/`)
     .then(lastState => {
       // Set default values
-      lastState.platform = lastState.platform || {};
+      lastState.platformToProjectIdMap = lastState.platformToProjectIdMap || {};
       lastState.selectedPlatforms = lastState.selectedPlatforms || [];
       return lastState;
     });
