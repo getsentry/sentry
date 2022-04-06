@@ -1,12 +1,14 @@
 import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 
 import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type Props = {
+import Slider from './slider';
+import SliderAndInputWrapper from './sliderAndInputWrapper';
+import SliderLabel from './sliderLabel';
+
+type SliderProps = {
   name: string;
 
   /**
@@ -53,7 +55,10 @@ type Props = {
     event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
   ) => void;
 
-  onChange?: (value: Props['value'], event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (
+    value: SliderProps['value'],
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
 
   /**
    * Placeholder for custom input
@@ -84,7 +89,7 @@ function RangeSlider({
   forwardRef,
   showLabel = true,
   ...props
-}: Props) {
+}: SliderProps) {
   const [sliderValue, setSliderValue] = useState(
     allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
   );
@@ -109,7 +114,7 @@ function RangeSlider({
     setSliderValue(value);
   }
 
-  function getActualValue(newSliderValue: Props['value']): Props['value'] {
+  function getActualValue(newSliderValue: SliderProps['value']): SliderProps['value'] {
     if (!allowedValues) {
       return newSliderValue;
     }
@@ -166,7 +171,9 @@ function RangeSlider({
   return (
     <div className={className} ref={forwardRef}>
       {!showCustomInput && showLabel && (
-        <Label htmlFor={name}>{formatLabel?.(actualValue) ?? displayValue}</Label>
+        <SliderLabel htmlFor={name}>
+          {formatLabel?.(actualValue) ?? displayValue}
+        </SliderLabel>
       )}
       <SliderAndInputWrapper showCustomInput={showCustomInput}>
         <Slider
@@ -196,7 +203,7 @@ function RangeSlider({
 }
 
 const RangeSliderContainer = reactFowardRef(function RangeSliderContainer(
-  props: Props,
+  props: SliderProps,
   ref: React.Ref<any>
 ) {
   return <RangeSlider {...props} forwardRef={ref} />;
@@ -204,173 +211,4 @@ const RangeSliderContainer = reactFowardRef(function RangeSliderContainer(
 
 export default RangeSliderContainer;
 
-export const Slider = styled('input')<{hasLabel: boolean}>`
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-appearance: none;
-  width: 100%;
-  background: transparent;
-  margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * (p.hasLabel ? 2 : 1)}px;
-
-  &::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.border};
-    border-radius: 3px;
-    border: 0;
-  }
-
-  &::-moz-range-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.border};
-    border-radius: 3px;
-    border: 0;
-  }
-
-  &::-ms-track {
-    width: 100%;
-    height: 3px;
-    cursor: pointer;
-    background: ${p => p.theme.border};
-    border-radius: 3px;
-    border: 0;
-  }
-
-  &::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.background};
-    height: 17px;
-    width: 17px;
-    border-radius: 50%;
-    background: ${p => p.theme.active};
-    cursor: pointer;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-appearance: none;
-    margin-top: -7px;
-    border: 0;
-    transition: background 0.1s, box-shadow 0.1s;
-  }
-
-  &::-moz-range-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.background};
-    height: 17px;
-    width: 17px;
-    border-radius: 50%;
-    background: ${p => p.theme.active};
-    cursor: pointer;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-appearance: none;
-    margin-top: -7px;
-    border: 0;
-    transition: background 0.1s, box-shadow 0.1s;
-  }
-
-  &::-ms-thumb {
-    box-shadow: 0 0 0 3px ${p => p.theme.background};
-    height: 17px;
-    width: 17px;
-    border-radius: 50%;
-    background: ${p => p.theme.active};
-    cursor: pointer;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-appearance: none;
-    margin-top: -7px;
-    border: 0;
-    transition: background 0.1s, box-shadow 0.1s;
-  }
-
-  &::-ms-fill-lower {
-    background: ${p => p.theme.border};
-    border: 0;
-    border-radius: 50%;
-  }
-
-  &::-ms-fill-upper {
-    background: ${p => p.theme.border};
-    border: 0;
-    border-radius: 50%;
-  }
-
-  &:focus {
-    outline: none;
-
-    &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.border};
-    }
-
-    &::-ms-fill-upper {
-      background: ${p => p.theme.border};
-    }
-
-    &::-ms-fill-lower {
-      background: ${p => p.theme.border};
-    }
-  }
-
-  &[disabled] {
-    &::-webkit-slider-thumb {
-      background: ${p => p.theme.border};
-      cursor: default;
-    }
-
-    &::-moz-range-thumb {
-      background: ${p => p.theme.border};
-      cursor: default;
-    }
-
-    &::-ms-thumb {
-      background: ${p => p.theme.border};
-      cursor: default;
-    }
-
-    &::-webkit-slider-runnable-track {
-      cursor: default;
-    }
-
-    &::-moz-range-track {
-      cursor: default;
-    }
-
-    &::-ms-track {
-      cursor: default;
-    }
-  }
-
-  &:not([disabled])::-webkit-slider-runnable-track:hover {
-    background: ${p => p.theme.activeHover};
-  }
-  &:not([disabled])::-moz-range-thumb:hover {
-    background: ${p => p.theme.activeHover};
-  }
-  &:not([disabled])::-ms-thumb:hover {
-    background: ${p => p.theme.activeHover};
-  }
-
-  &:focus::-webkit-slider-thumb,
-  &.focus-visible::-webkit-slider-thumb {
-    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
-  }
-  &:focus::-moz-range-thumb,
-  &.focus-visible::-moz-range-thumb {
-    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
-  }
-  &:focus::-ms-thumb,
-  &.focus-visible::-ms-thumb {
-    box-shadow: ${p => p.theme.background} 0 0 0 3px, ${p => p.theme.focus} 0 0 0 6px;
-  }
-`;
-
-const Label = styled('label')`
-  font-size: 14px;
-  margin-bottom: ${p => p.theme.grid}px;
-  color: ${p => p.theme.subText};
-`;
-
-const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`
-  display: grid;
-  align-items: center;
-  grid-auto-flow: column;
-  grid-template-columns: 4fr ${p => p.showCustomInput && '1fr'};
-  gap: ${space(1)};
-`;
+export type {SliderProps};

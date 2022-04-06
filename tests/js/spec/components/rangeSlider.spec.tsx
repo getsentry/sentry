@@ -7,9 +7,9 @@ describe('RangeSlider', function () {
     const wrapper = mountWithTheme(
       <RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />
     );
-    expect(wrapper.find('Label').text()).toBe('5');
+    expect(wrapper.find('SliderLabel').text()).toBe('5');
     wrapper.find('Slider').simulate('input', {target: {value: 7}});
-    expect(wrapper.find('Label').text()).toBe('7');
+    expect(wrapper.find('SliderLabel').text()).toBe('7');
   });
 
   it('can use formatLabel', function () {
@@ -57,10 +57,10 @@ describe('RangeSlider', function () {
     );
 
     // With `allowedValues` sliderValue will be the index to value in `allowedValues`
-    expect(wrapper.find('Label').text()).toBe('1000');
+    expect(wrapper.find('SliderLabel').text()).toBe('1000');
 
     wrapper.find('Slider').simulate('input', {target: {value: 0}});
-    expect(wrapper.find('Label').text()).toBe('0');
+    expect(wrapper.find('SliderLabel').text()).toBe('0');
 
     // onChange will callback with a value from `allowedValues`
     expect(onChange).toHaveBeenCalledWith(0, expect.anything());
@@ -80,7 +80,7 @@ describe('RangeSlider', function () {
     );
 
     wrapper.find('Slider').simulate('input', {target: {value: -1}});
-    expect(wrapper.find('Label').text()).toBe('Invalid value');
+    expect(wrapper.find('SliderLabel').text()).toBe('Invalid value');
 
     // onChange will callback with a value from `allowedValues`
     expect(onChange).toHaveBeenCalledWith(undefined, expect.anything());
