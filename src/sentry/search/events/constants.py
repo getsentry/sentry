@@ -206,7 +206,7 @@ DRY_RUN_COLUMNS = {
     "project_id",
     "release",
     "timestamp",
-    "transaciton.op",
+    "transaction.op",
     "transaction",
     "transaction.status",
 }

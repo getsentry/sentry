@@ -5796,7 +5796,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
-    @mock.patch("sentry.search.events.builder.MetricsQueryBuilder")
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.MetricsQueryBuilder")
     def test_failed_dry_run_does_not_error(self, mock_builder):
         mock_builder.side_effect = InvalidSearchQuery("Something bad")
         query = {
@@ -5805,7 +5805,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert mock_builder.call_count == 1
+        assert len(mock_builder.mock_calls) == 1
         assert mock_builder.call_args.kwargs["dry_run"]
 
         mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
@@ -5815,5 +5815,5 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert mock_builder.call_count == 2
+        assert len(mock_builder.mock_calls) == 2
         assert mock_builder.call_args.kwargs["dry_run"]
