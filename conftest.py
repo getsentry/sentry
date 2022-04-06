@@ -5,7 +5,6 @@ from collections import OrderedDict
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
-TRACK_FILES = False
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
@@ -18,53 +17,60 @@ def pytest_configure(config):
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
 
-if TRACK_FILES:
+def enable_file_tracking():
     import builtins
     import socket
     import traceback
     import weakref
 
+    from _pytest import unraisableexception
+
     original_open = open
     original_socket = socket.socket
-    handles = {}
+    handle_stacks = {}
+
+    class patched_catch_unraisable_exception(unraisableexception.catch_unraisable_exception):
+        def _hook(self, ur):
+            super()._hook(ur)
+            try:
+                stack, handle_repr = handle_stacks[ur.object.fileno()]
+            except Exception:
+                return
+
+            for idx, line in enumerate(stack):
+                if "pytest_runtest_call" in line:
+                    stack = stack[idx + 1 :]
+                    break
+
+            if stack:
+                sys.stderr.write(f"\n\nHandle {handle_repr} Traceback (most recent call last):\n")
+                sys.stderr.write("".join(stack))
+
+    unraisableexception.catch_unraisable_exception = patched_catch_unraisable_exception
+
+    def _track_handle(handle):
+        def on_collect(val):
+            handle_stacks.pop(val.fileno(), None)
+
+        handle_stacks[handle.fileno()] = (traceback.format_stack(sys._getframe(2)), repr(handle))
+        weakref.ref(handle, on_collect)
 
     def _open(*args, **kwargs):
         handle = original_open(*args, **kwargs)
-
-        def on_collect(val):
-            handles.pop(val.fileno(), None)
-
-        handles[handle.fileno()] = traceback.format_stack()
-        weakref.ref(handle, on_collect)
+        _track_handle(handle)
         return handle
 
     def _socket(*args, **kwargs):
         handle = original_socket(*args, **kwargs)
-
-        def on_collect(val):
-            handles.pop(val.fileno(), None)
-
-        handles[handle.fileno()] = traceback.format_stack()
-        weakref.ref(handle, on_collect)
+        _track_handle(handle)
         return handle
-
-    def _unraisablehook(ur):
-        try:
-            handle = handles.get(ur.object.fileno())
-        except Exception:
-            pass
-        else:
-            if handle:
-                sys.stderr.write("%s\n")
-                sys.stderr.write("".join(handle))
-        if _old_hook:
-            _old_hook(ur)
 
     builtins.open = _open
     socket.socket = _socket
 
-    _old_hook = sys.unraisablehook
-    sys.unraisablehook = _unraisablehook
+
+if os.environ.get("SENTRY_TEST_TRACK_FILES") == "1":
+    enable_file_tracking()
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
