@@ -50,7 +50,7 @@ function ViewEditDashboard(props: Props) {
         query: pick(location.query, ALLOWED_PARAMS),
       });
     }
-  }, [api, orgSlug, dashboardId]);
+  }, [api, orgSlug, dashboardId, location.query]);
 
   return (
     <DashboardBasicFeature organization={organization}>

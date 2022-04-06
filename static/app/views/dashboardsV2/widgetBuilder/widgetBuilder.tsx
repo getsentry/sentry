@@ -277,8 +277,15 @@ function WidgetBuilder({
   }, []);
 
   useEffect(() => {
-    if (notDashboardsOrigin) {
+    if (notDashboardsOrigin && !widgetBuilderNewDesign) {
       fetchDashboards();
+    }
+
+    if (widgetBuilderNewDesign) {
+      setState({
+        ...state,
+        selectedDashboard: {label: dashboard.title, value: dashboard.id},
+      });
     }
   }, [source]);
 
@@ -724,18 +731,10 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
+    debugger;
     if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
-      if (
-        !state.selectedDashboard ||
-        !(
-          state.dashboards.find(
-            ({title, id}) =>
-              title === state.selectedDashboard?.label &&
-              id === state.selectedDashboard?.value
-          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
-        )
-      ) {
+      if (!state.selectedDashboard) {
         setState({
           ...state,
           errors: {...state.errors, dashboard: t('This field may not be blank')},
@@ -780,6 +779,7 @@ function WidgetBuilder({
   }
 
   function submitFromSelectedDashboard(widgetData: Widget) {
+    debugger;
     if (!state.selectedDashboard) {
       return;
     }
@@ -839,7 +839,7 @@ function WidgetBuilder({
   }
 
   function isFormInvalid() {
-    if (notDashboardsOrigin && !state.selectedDashboard) {
+    if (notDashboardsOrigin && !state.selectedDashboard && !widgetBuilderNewDesign) {
       return true;
     }
 
@@ -993,7 +993,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                     />
                   )}
-                  {notDashboardsOrigin && (
+                  {notDashboardsOrigin && !widgetBuilderNewDesign && (
                     <DashboardStep
                       error={state.errors?.dashboard}
                       dashboards={state.dashboards}

@@ -60,6 +60,8 @@ function AddToDashboardModal({
     alert('Stay');
   }
 
+  const canSubmit = selectedDashboardId !== null;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -116,14 +118,16 @@ function AddToDashboardModal({
         <ButtonBar gap={1.5}>
           <Button
             onClick={handleAddAndStayInDiscover}
-            disabled={selectedDashboardId === null}
+            disabled={!canSubmit}
+            title={canSubmit ? undefined : t('Select a dashboard')}
           >
             {t('Add + Stay in Discover')}
           </Button>
           <Button
             priority="primary"
             onClick={handleGoToBuilder}
-            disabled={selectedDashboardId === null}
+            disabled={!canSubmit}
+            title={canSubmit ? undefined : t('Select a dashboard')}
           >
             {t('Open in Widget Builder')}
           </Button>
