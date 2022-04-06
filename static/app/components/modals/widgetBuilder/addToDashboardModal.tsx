@@ -16,15 +16,25 @@ import {DashboardListItem, MAX_WIDGETS} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 export type AddToDashboardModalProps = {
+  appleSauce: any;
   iconColor: string;
   onConfirm: () => void;
   organization: Organization;
+  router: any;
   widget: WidgetTemplate;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
-function AddToDashboardModal({Header, Body, Footer, closeModal, organization}: Props) {
+function AddToDashboardModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  organization,
+  appleSauce,
+  router,
+}: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
@@ -32,6 +42,23 @@ function AddToDashboardModal({Header, Body, Footer, closeModal, organization}: P
   useEffect(() => {
     fetchDashboards(api, organization.slug).then(setDashboards);
   }, []);
+
+  function handleGoToBuilder() {
+    const pathname =
+      selectedDashboardId === 'new'
+        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
+        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
+
+    router.push({
+      pathname,
+      query: appleSauce,
+    });
+    closeModal();
+  }
+
+  function handleAddAndStayInDiscover() {
+    alert('Stay');
+  }
 
   return (
     <Fragment>
@@ -87,8 +114,17 @@ function AddToDashboardModal({Header, Body, Footer, closeModal, organization}: P
 
       <Footer>
         <ButtonBar gap={1.5}>
-          <Button onClick={() => alert('Stay')}>{t('Add + Stay in Discover')}</Button>
-          <Button priority="primary" onClick={() => alert('Go')}>
+          <Button
+            onClick={handleAddAndStayInDiscover}
+            disabled={selectedDashboardId === null}
+          >
+            {t('Add + Stay in Discover')}
+          </Button>
+          <Button
+            priority="primary"
+            onClick={handleGoToBuilder}
+            disabled={selectedDashboardId === null}
+          >
             {t('Open in Widget Builder')}
           </Button>
         </ButtonBar>

@@ -135,6 +135,18 @@ class QueryList extends React.Component<Props> {
         openAddToDashboardModal({
           organization,
           query: defaultWidgetQuery,
+          appleSauce: {
+            ...location.query,
+            source: DashboardWidgetSource.DISCOVERV2,
+            start: eventView.start,
+            end: eventView.end,
+            statsPeriod: eventView.statsPeriod,
+            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+            defaultTableColumns: defaultTableFields,
+            defaultTitle,
+            displayType,
+          },
+          router,
         });
         return;
       }
