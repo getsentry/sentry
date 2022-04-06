@@ -17,7 +17,7 @@ import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyti
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
-export type Props = {
+type Props = {
   integration: Integration;
   onDisable: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;

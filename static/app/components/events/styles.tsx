@@ -12,7 +12,7 @@ export const DataSection = styled('div')`
   /* Padding aligns with Layout.Body */
   padding: ${space(3)} ${space(2)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     padding: ${space(3)} ${space(4)} ${space(3)};
   }
 `;
