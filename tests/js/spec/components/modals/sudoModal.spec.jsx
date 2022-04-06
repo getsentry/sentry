@@ -18,7 +18,7 @@ describe('Sudo Modal', function () {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
     Client.addMockResponse({
