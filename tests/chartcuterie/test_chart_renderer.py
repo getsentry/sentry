@@ -9,7 +9,8 @@ class TestChartRenderer(AcceptanceTestCase):
         }
 
         with self.options(options):
-            self.browser.get("debug/chart-renderer/")
+            resp = self.browser.get("debug/chart-renderer/")
+            assert b"".join(resp.streaming_content)
 
         images = self.browser.elements(selector="img")
         assert len(images) > 0
@@ -20,6 +21,6 @@ class TestChartRenderer(AcceptanceTestCase):
 
             # Ensure our chart images actually look like pngs
             assert resp.status_code == 200
-            assert next(resp.streaming_content)[:4] == b"\x89PNG"
+            assert b"".join(resp.streaming_content)[:4] == b"\x89PNG"
 
         self.browser.snapshot("chart renderer debug view via chartcuterie")
