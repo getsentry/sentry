@@ -134,14 +134,14 @@ export function normalizeQueries({
 
       const orderBy =
         getAggregateAlias(queries[0].orderby) ||
-        (widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
+        (widgetType === WidgetType.ISSUE
+          ? IssueSortOptions.DATE
+          : generateOrderOptions({
+              widgetType: widgetType ?? WidgetType.DISCOVER,
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
-            })[0].value
-          : IssueSortOptions.DATE);
+            })[0].value);
 
       // Issues data set doesn't support order by descending
       query.orderby =

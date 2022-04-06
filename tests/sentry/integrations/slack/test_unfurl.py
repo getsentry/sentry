@@ -94,11 +94,13 @@ class UnfurlTest(TestCase):
             ),
         ]
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
-
         assert (
-            unfurls[links[0].url]
-            == SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build()
+            links[0].url
+            == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.identifier}/"
         )
+        assert unfurls[links[0].url] == SlackIncidentsMessageBuilder(
+            incident, IncidentStatus.CLOSED
+        ).build(unfurl=True)
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):

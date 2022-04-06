@@ -20,15 +20,21 @@ import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 type Props = {
+  target: string;
   /**
    * Hovercard renders the container
    */
   containerClassName?: string;
   offset?: string;
-  onFinish?: () => void;
-  // Shouldn't target be mandatory?
+  /**
+   * Trigger when the guide is completed (all steps have been clicked through)
+   */
+  onFinish?: (e: React.MouseEvent) => void;
+  /**
+   * Triggered when any step is completed (including the last step)
+   */
+  onStepComplete?: (e: React.MouseEvent) => void;
   position?: React.ComponentProps<typeof Hovercard>['position'];
-  target?: string;
   to?: {
     pathname: string;
     query: Query;
@@ -51,7 +57,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   componentDidMount() {
     const {target} = this.props;
-    target && registerAnchor(target);
+    registerAnchor(target);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -69,7 +75,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   componentWillUnmount() {
     const {target} = this.props;
-    target && unregisterAnchor(target);
+    unregisterAnchor(target);
     this.unsubscribe();
   }
 
@@ -82,8 +88,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
-      (data.currentGuide?.steps[data.currentStep]?.target === this.props.target ??
-        false) &&
+      data.currentGuide?.steps[data.currentStep]?.target === this.props.target &&
       !data.forceHide;
 
     this.setState({
@@ -103,10 +108,9 @@ class BaseGuideAnchor extends Component<Props, State> {
    */
   handleFinish = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const {onFinish} = this.props;
-    if (onFinish) {
-      onFinish();
-    }
+    this.props.onStepComplete?.(e);
+    this.props.onFinish?.(e);
+
     const {currentGuide, orgId} = this.state;
     if (currentGuide) {
       recordFinish(currentGuide.guide, orgId);
@@ -116,6 +120,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
   handleNextStep = (e: React.MouseEvent) => {
     e.stopPropagation();
+    this.props.onStepComplete?.(e);
     nextStep();
   };
 
