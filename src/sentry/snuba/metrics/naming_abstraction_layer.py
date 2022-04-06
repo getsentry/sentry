@@ -121,4 +121,7 @@ def get_reverse_mri(internal_name: Union[Enum, str]):
 
     if isinstance(internal_name, Enum):
         internal_name = internal_name.value
-    return REVERSE_NAME_MAPPING_LAYER[internal_name]
+    try:
+        return REVERSE_NAME_MAPPING_LAYER[internal_name]
+    except KeyError:
+        raise InvalidField(f"Unable to find a mri reverse mapping for '{internal_name}'.")
