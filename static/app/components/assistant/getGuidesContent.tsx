@@ -274,6 +274,29 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'new_page_filters',
+      requiredTargets: ['new_page_filter_button'],
+      expectedTargets: ['new_page_filter_pin'],
+      dateThreshold: new Date('2022-04-05'),
+      steps: [
+        {
+          title: t('Selection Filters have moved!'),
+          target: 'new_page_filter_button',
+          description: t(
+            'Selection filters have teleported from the top of the page to live closer to the content they are filtering on!'
+          ),
+          nextText: t('Tell me more'),
+        },
+        {
+          title: t('Explicit memory'),
+          target: 'new_page_filter_pin',
+          description: t(
+            'Selection filters will no longer be implicitly be remembered between sessions. You can now "Pin" a filter to remember it'
+          ),
+        },
+      ],
+    },
   ];
 }
 
