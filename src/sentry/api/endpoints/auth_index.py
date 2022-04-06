@@ -15,7 +15,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
-from sentry.utils import auth, json
+from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.functional import extract_lazy_object
 
@@ -196,7 +196,9 @@ class AuthIndexEndpoint(Endpoint):
         try:
             # Must use the httprequest object instead of request
             auth.login(request._request, request.user)
+            metrics.incr("sudo_modal.success")
         except auth.AuthUserPasswordExpired:
+            metrics.incr("sudo_modal.failure")
             return Response(
                 {
                     "code": "password-expired",
@@ -206,7 +208,9 @@ class AuthIndexEndpoint(Endpoint):
             )
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
+            metrics.incr("superuser_modal.attempt")
             request.superuser.set_logged_in(request.user)
+            metrics.incr("superuser_modal.success")
 
         request.user = request._request.user
 
