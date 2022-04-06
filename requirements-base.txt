@@ -31,6 +31,7 @@ lxml==4.6.5
 maxminddb==2.0.3
 mistune==0.8.4
 mmh3==3.0.0
+packaging==21.3
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.12.0
