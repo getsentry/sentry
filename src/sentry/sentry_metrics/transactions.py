@@ -1,11 +1,12 @@
-""" Base module for transactions-related metrics """
+"""Base module for transaction-related metrics"""
 from enum import Enum
 
 
 class TransactionMetricKey(Enum):
-    """Identifier for a transaction-related metric
+    """
+    Identifier for a transaction-related metric.
 
-    Values are metric names as submitted by Relay.
+    The values are the metric names sumbitted by Relay.
     """
 
     USER = "transaction.user"
@@ -32,3 +33,23 @@ class TransactionMetricKey(Enum):
     BREAKDOWNS_DB = "spans.db"
     BREAKDOWNS_BROWSER = "spans.browser"
     BREAKDOWNS_RESOURCE = "spans.resource"
+    FAILURE_RATE = "transaction.failure_rate"
+
+
+class TransactionTagsKey(Enum):
+    """Identifier for a transaction-related tag."""
+
+    TRANSACTION_STATUS = "transaction.status"
+
+
+class TransactionStatusTagValue(Enum):
+    """
+    Identifier value for a transaction status tag.
+
+    Note that only a subset of values is represented in this enum, not all values.
+    """
+
+    OK = "ok"
+    CANCELLED = "cancelled"
+    UNKNOWN = "unknown"
+    ABORTED = "aborted"

@@ -9,7 +9,11 @@ from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import TransactionMetricKey
+from sentry.sentry_metrics.transactions import (
+    TransactionMetricKey,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
@@ -981,6 +985,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = indexer.record(org_id, SessionMRI.ERROR.value)
         self.session_status_tag = indexer.record(org_id, "session.status")
         self.release_tag = indexer.record(self.organization.id, "release")
+        self.tx_metric = indexer.record(org_id, TransactionMRI.DURATION.value)
+        self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
         self.transaction_lcp_metric = indexer.record(
             self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
@@ -1827,6 +1833,125 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy_user"] == 0
         assert group["series"]["session.healthy_user"] == [0]
+
+    def test_private_transactions_derived_metric(self):
+        for field in ["transaction.all", "transaction.failure_count"]:
+            response = self.get_response(
+                self.organization.slug,
+                field=[field],
+                statsPeriod="1m",
+                interval="1m",
+            )
+
+            assert response.data["detail"] == (
+                f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', "
+                "or a supported aggregate derived metric like `session.crash_free_rate"
+            )
+
+    def test_failure_rate_transaction(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_rate"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.failure_rate": 0.25}
+        assert group["series"] == {"transaction.failure_rate": [0.25]}
+
+    def test_failure_rate_without_transactions(self):
+        """
+        Ensures the absence of transactions isn't an issue to calculate the rate.
+
+        The `nan` a division by 0 may produce must not be in the response, yet
+        they are an issue in javascript:
+        ```
+        $ node
+        Welcome to Node.js v16.13.1.
+        Type ".help" for more information.
+        > JSON.parse('NaN')
+        Uncaught SyntaxError: Unexpected token N in JSON at position 0
+        > JSON.parse('nan')
+        Uncaught SyntaxError: Unexpected token a in JSON at position 1
+        ```
+        """
+        # Not sending buckets means no project is created automatically. We need
+        # a project without transaction data, so create one:
+        self.project
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_rate"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert response.data["groups"] == []
 
     def test_request_private_derived_metric(self):
         for private_name in [

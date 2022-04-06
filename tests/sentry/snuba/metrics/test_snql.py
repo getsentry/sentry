@@ -1,11 +1,13 @@
 from snuba_sdk import Column, Function
 
+from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
     abnormal_sessions,
     abnormal_users,
     addition,
     all_sessions,
+    all_transactions,
     all_users,
     crashed_sessions,
     crashed_users,
@@ -16,6 +18,7 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
+from sentry.snuba.metrics.fields.snql import failure_count_transaction, failure_rate_transaction
 from sentry.testutils import TestCase
 
 
@@ -96,6 +99,73 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             ],
             alias,
+        )
+
+    def test_dist_count_aggregation_on_tx_status(self):
+        org_id = 1985
+
+        expected_all_txs = Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "in",
+                    [
+                        Column(name="metric_id"),
+                        list(self.metric_ids),
+                    ],
+                    alias=None,
+                ),
+            ],
+            alias="transactions.all",
+        )
+        assert all_transactions(org_id, self.metric_ids, "transactions.all") == expected_all_txs
+
+        expected_failed_txs = Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "in",
+                            [Column(name="metric_id"), list(self.metric_ids)],
+                        ),
+                        Function(
+                            "notIn",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)}]"
+                                ),
+                                [
+                                    resolve_weak(org_id, TransactionStatusTagValue.OK.value),
+                                    resolve_weak(org_id, TransactionStatusTagValue.CANCELLED.value),
+                                    resolve_weak(org_id, TransactionStatusTagValue.UNKNOWN.value),
+                                ],
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias="transactions.failed",
+        )
+        assert (
+            failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+            == expected_failed_txs
+        )
+
+        assert failure_rate_transaction(
+            failure_count_transaction(org_id, self.metric_ids, "transactions.failed"),
+            all_transactions(org_id, self.metric_ids, "transactions.all"),
+            alias="transactions.failure_rate",
+        ) == Function(
+            "divide",
+            [
+                expected_failed_txs,
+                expected_all_txs,
+            ],
+            alias="transactions.failure_rate",
         )
 
     def test_percentage_in_snql(self):

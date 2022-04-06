@@ -176,17 +176,23 @@ class Dashboard extends Component<Props, State> {
     }
     if (!isEqual(prevProps.selection.projects, selection.projects)) {
       this.fetchMemberList();
-      fetchMetricsFields(api, organization.slug, selection.projects);
-      fetchMetricsTags(api, organization.slug, selection.projects);
+
+      if (organization.features.includes('dashboards-metrics')) {
+        fetchMetricsFields(api, organization.slug, selection.projects);
+        fetchMetricsTags(api, organization.slug, selection.projects);
+      }
     }
   }
 
   componentWillUnmount() {
-    const {organization} = this.props;
-    if (organization.features.includes('dashboard-grid-layout')) {
+    if (this.props.organization.features.includes('dashboard-grid-layout')) {
       window.removeEventListener('resize', this.debouncedHandleResize);
     }
+
+    window.clearTimeout(this.forceCheckTimeout);
   }
+
+  forceCheckTimeout: number | undefined = undefined;
 
   debouncedHandleResize = debounce(() => {
     this.setState({
@@ -351,11 +357,13 @@ class Dashboard extends Component<Props, State> {
       location,
       paramDashboardId,
       handleAddCustomWidget,
+      isEditing,
     } = this.props;
 
     if (
       organization.features.includes('new-widget-builder-experience') &&
-      !organization.features.includes('new-widget-builder-experience-modal-access')
+      (!organization.features.includes('new-widget-builder-experience-modal-access') ||
+        isEditing)
     ) {
       if (paramDashboardId) {
         router.push({
@@ -502,7 +510,8 @@ class Dashboard extends Component<Props, State> {
     // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
     // Unfortunately need to use window.setTimeout since React Grid Layout animates widgets into view when layout changes
     // RGL doesn't provide a handler for post animation layout change
-    window.setTimeout(forceCheck, 400);
+    window.clearTimeout(this.forceCheckTimeout);
+    this.forceCheckTimeout = window.setTimeout(forceCheck, 400);
   };
 
   handleBreakpointChange = (newBreakpoint: string) => {

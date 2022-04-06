@@ -618,8 +618,8 @@ class SnubaResultConverter:
 
             for op, metric_name in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_name=metric_name)
-
                 grp_key = f"{op}({metric_name})" if op is not None else metric_name
+
                 if totals is not None:
                     totals[grp_key] = metric_obj.run_post_query_function(
                         totals, query_definition=self._query_definition

@@ -1,3 +1,6 @@
+import * as Sentry from '@sentry/react';
+
+import {defined} from 'sentry/utils';
 import {Frame} from 'sentry/utils/profiling/frame';
 
 type FrameIndex = Record<string | number, Frame>;
@@ -93,4 +96,25 @@ export function memoizeVariadicByReference<Arguments, Value>(
     cache.value = fn(...args);
     return cache.value;
   };
+}
+
+export function wrapWithSpan<T>(fn: () => T, options?): T {
+  const sentryScope = Sentry.getCurrentHub().getScope();
+  const parentSpan = sentryScope?.getSpan();
+
+  if (!defined(sentryScope) || !defined(parentSpan)) {
+    return fn();
+  }
+
+  const sentrySpan = parentSpan.startChild(options);
+  sentryScope.setSpan(sentrySpan);
+  try {
+    return fn();
+  } catch (error) {
+    sentrySpan.setStatus('internal_error');
+    throw error;
+  } finally {
+    sentrySpan.finish();
+    sentryScope.setSpan(parentSpan);
+  }
 }

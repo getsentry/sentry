@@ -128,4 +128,20 @@ describe('GuideAnchor', function () {
     expect(screen.queryByTestId('guide-container')).not.toBeInTheDocument();
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
+
+  it('if forceHide is true, do not render guide', async function () {
+    render(
+      <div>
+        <GuideAnchor target="issue_title" />
+        <GuideAnchor target="exception" />
+      </div>
+    );
+
+    GuideActions.fetchSucceeded(serverGuide);
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
+    GuideActions.setForceHide(true);
+    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
+    GuideActions.setForceHide(false);
+    expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
+  });
 });

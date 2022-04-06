@@ -36,17 +36,24 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_users,
     addition,
     all_sessions,
+    all_transactions,
     all_users,
     crashed_sessions,
     crashed_users,
     errored_all_users,
     errored_preaggr_sessions,
+    failure_count_transaction,
+    failure_rate_transaction,
     percentage,
     session_duration_filters,
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_reverse_mri
+from sentry.snuba.metrics.naming_abstraction_layer import (
+    SessionMRI,
+    TransactionMRI,
+    get_reverse_mri,
+)
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -878,6 +885,33 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="users",
             snql=lambda *args, org_id, metric_ids, alias=None: subtraction(*args, alias=alias),
             post_query_func=lambda *args: max(0, *args),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.ALL.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: all_transactions(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.FAILURE_COUNT.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.FAILURE_RATE.value,
+            metrics=[
+                TransactionMRI.FAILURE_COUNT.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda *args, org_id, metric_ids, alias=None: failure_rate_transaction(
+                *args, alias=alias
+            ),
         ),
     ]
 }

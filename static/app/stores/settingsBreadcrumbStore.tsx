@@ -1,31 +1,28 @@
 import {PlainRoute} from 'react-router';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
   title: string;
 };
 
-type SettingsBreadcrumbStoreInterface = {
+interface SettingsBreadcrumbStoreDefinition extends StoreDefinition {
   getPathMap(): Internals['pathMap'];
   init(): void;
   onTrimMappings(routes: PlainRoute<any>[]): void;
   onUpdateRouteMap(update: UpdateData): void;
   reset(): void;
-};
+}
 
 type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: StoreDefinition &
-  Internals &
-  SettingsBreadcrumbStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: SettingsBreadcrumbStoreDefinition = {
   pathMap: {},
   unsubscribeListeners: [],
 
@@ -63,7 +60,5 @@ const storeConfig: StoreDefinition &
   },
 };
 
-const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SettingsBreadcrumbStoreInterface;
-
+const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SettingsBreadcrumbStore;

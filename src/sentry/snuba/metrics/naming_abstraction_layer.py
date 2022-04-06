@@ -62,9 +62,13 @@ class TransactionMRI(Enum):
     BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.browser"
     BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.resource"
 
+    # Derived
+    ALL = "e:transactions/all@none"
+    FAILURE_COUNT = "e:transactions/failure_count@none"
+    FAILURE_RATE = "e:transaction/failure_rate@pct"
+
 
 def create_name_mapping_layers():
-
     # ToDo(ahmed): Hack this out once the FE changes their mappings
     # Backwards Compat
     NAMING_MAPPING_LAYER.update(

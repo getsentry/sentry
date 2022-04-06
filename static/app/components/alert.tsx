@@ -9,7 +9,7 @@ import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  expand?: React.ReactNode[];
+  expand?: React.ReactNode;
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
@@ -24,6 +24,10 @@ const IconWrapper = styled('div')`
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
   margin-right: ${space(1)};
   align-items: center;
+`;
+
+const ContentWrapper = styled('div')`
+  width: 100%;
 `;
 
 const TrailingItems = styled('div')`
@@ -48,7 +52,6 @@ const alertStyles = ({
 
   return css`
     display: flex;
-    flex-direction: column;
     margin: 0 0 ${space(2)};
     padding: ${space(1.5)} ${space(2)};
     font-size: ${theme.fontSizeMedium};
@@ -71,6 +74,11 @@ const alertStyles = ({
     a:not([role='button']):hover {
       text-decoration-color: ${theme.subText};
       text-decoration-style: solid;
+    }
+
+    pre {
+      background: ${alertColors.backgroundLight};
+      margin: ${space(0.5)} 0 0;
     }
 
     ${IconWrapper} {
@@ -109,12 +117,7 @@ const MessageContainer = styled('div')`
 
 const ExpandContainer = styled('div')`
   display: grid;
-  grid-template-columns: minmax(${space(4)}, 1fr) 30fr 1fr;
-  grid-template-areas: '. details details';
-  padding-top: ${space(1.5)};
-`;
-const DetailsContainer = styled('div')`
-  grid-area: details;
+  padding-top: ${space(1)};
 `;
 
 const ExpandIcon = styled(props => (
@@ -137,7 +140,7 @@ const Alert = styled(
     ...props
   }: AlertProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const showExpand = expand && expand.length;
+    const showExpand = defined(expand);
     const showExpandItems = showExpand && isExpanded;
 
     const getIcon = () => {
@@ -160,21 +163,23 @@ const Alert = styled(
         className={classNames(type ? `ref-${type}` : '', className)}
         {...props}
       >
-        <MessageContainer>
-          {showIcon && <IconWrapper>{getIcon()}</IconWrapper>}
-          <StyledTextBlock>{children}</StyledTextBlock>
-          {(showExpand || defined(trailingItems)) && (
-            <TrailingItems>
-              {trailingItems}
-              {showExpand && <ExpandIcon isExpanded={isExpanded} />}
-            </TrailingItems>
+        {showIcon && <IconWrapper>{getIcon()}</IconWrapper>}
+        <ContentWrapper>
+          <MessageContainer>
+            <StyledTextBlock>{children}</StyledTextBlock>
+            {(showExpand || defined(trailingItems)) && (
+              <TrailingItems>
+                {trailingItems}
+                {showExpand && <ExpandIcon isExpanded={isExpanded} />}
+              </TrailingItems>
+            )}
+          </MessageContainer>
+          {showExpandItems && (
+            <ExpandContainer>
+              {Array.isArray(expand) ? expand.map(item => item) : expand}
+            </ExpandContainer>
           )}
-        </MessageContainer>
-        {showExpandItems && (
-          <ExpandContainer>
-            <DetailsContainer>{(expand || []).map(item => item)}</DetailsContainer>
-          </ExpandContainer>
-        )}
+        </ContentWrapper>
       </div>
     );
   }

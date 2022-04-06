@@ -9,35 +9,12 @@
  */
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
+import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
 import {EventedProfile} from './eventedProfile';
 import {ProfileGroup} from './importProfile';
 
 export class ChromeTraceProfile extends EventedProfile {}
-
-export function isChromeTraceFormat(input: any): input is ChromeTrace.ProfileType {
-  return isChromeTraceArrayFormat(input) || isChromeTraceObjectFormat(input);
-}
-
-function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectFormat {
-  return typeof input === 'object' && 'traceEvents' in input;
-}
-
-function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ArrayFormat {
-  // @TODO we need to check if the profile actually includes the v8 profile nodes.
-  return Array.isArray(input);
-}
-
-export function importChromeTrace(input: string | ChromeTrace.ProfileType): ProfileGroup {
-  if (isChromeTraceObjectFormat(input)) {
-    throw new Error('Chrometrace object format is not yet supported');
-  }
-  if (isChromeTraceArrayFormat(input)) {
-    return parseChromeTraceArrayFormat(input);
-  }
-
-  throw new Error('Failed to parse trace input format');
-}
 
 type ProcessId = number;
 type ThreadId = number;
@@ -270,26 +247,34 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
 }
 
 export function parseChromeTraceArrayFormat(
-  input: ChromeTrace.ArrayFormat
+  input: ChromeTrace.ArrayFormat,
+  traceID: string
 ): ProfileGroup {
   const profiles: Profile[] = [];
   const eventsByProcessAndThreadID = splitEventsByProcessAndTraceId(input);
 
   for (const processId in eventsByProcessAndThreadID) {
     for (const threadId in eventsByProcessAndThreadID[processId]) {
-      profiles.push(
-        buildProfile(
-          processId,
-          threadId,
-          eventsByProcessAndThreadID[processId][threadId] ?? []
-        )
+      wrapWithSpan(
+        () =>
+          profiles.push(
+            buildProfile(
+              processId,
+              threadId,
+              eventsByProcessAndThreadID[processId][threadId] ?? []
+            )
+          ),
+        {
+          op: 'profile.import',
+          description: 'chrometrace',
+        }
       );
     }
   }
 
   return {
     name: 'chrometrace',
-    traceID: '',
+    traceID,
     activeProfileIndex: 0,
     profiles,
   };

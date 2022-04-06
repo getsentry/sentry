@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -8,7 +8,6 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -40,7 +39,6 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     id: 'welcome',
     title: t('Welcome'),
     Component: TargetedOnboardingWelcome,
-    centered: true,
     cornerVariant: 'top-right',
   },
   {
@@ -64,31 +62,41 @@ function Onboarding(props: Props) {
     organization,
     params: {step: stepId},
   } = props;
+  const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(cornerVariantTimeoutRed.current);
+    };
+  }, []);
+
   const stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
   const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+
   if (!stepObj || stepIndex === -1) {
     return <div>Can't find</div>;
   }
 
   const cornerVariantControl = useAnimation();
-  const [containerHasFooter, setContainerHasFooter] = React.useState<boolean>(false);
+  const updateCornerVariant = () => {
+    // TODO: find better way to delay the corner animation
+    window.clearTimeout(cornerVariantTimeoutRed.current);
+
+    cornerVariantTimeoutRed.current = window.setTimeout(
+      () => cornerVariantControl.start(activeStepIndex === 0 ? 'top-right' : 'top-left'),
+      1000
+    );
+  };
+
+  useEffect(updateCornerVariant, []);
+
+  const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
     setContainerHasFooter(stepObj.hasFooter ?? false);
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  React.useEffect(updateAnimationState, []);
-  const [platforms, setPlatforms] = React.useState<PlatformKey[]>([]);
-
-  const addPlatform = (platform: PlatformKey) => {
-    setPlatforms([...platforms, platform]);
-  };
-
-  const removePlatform = (platform: PlatformKey) => {
-    setPlatforms(platforms.filter(p => p !== platform));
-  };
-
-  const clearPlatforms = () => setPlatforms([]);
+  useEffect(updateAnimationState, []);
 
   const goToStep = (step: StepDescriptor) => {
     if (step.cornerVariant !== stepObj.cornerVariant) {
@@ -135,7 +143,7 @@ function Onboarding(props: Props) {
   };
 
   return (
-    <OnboardingWrapper data-test-id="targeted-onboarding">
+    <main data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header>
         <LogoSvg />
@@ -157,11 +165,7 @@ function Onboarding(props: Props) {
           onClick={handleGoBack}
         />
         <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
-          <OnboardingStep
-            centered={stepObj.centered}
-            key={stepObj.id}
-            data-test-id={`onboarding-step-${stepObj.id}`}
-          >
+          <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
                 active
@@ -171,11 +175,7 @@ function Onboarding(props: Props) {
                 organization={props.organization}
                 search={props.location.search}
                 {...{
-                  platforms,
-                  addPlatform,
-                  removePlatform,
                   genSkipOnboardingLink,
-                  clearPlatforms,
                 }}
               />
             )}
@@ -183,26 +183,16 @@ function Onboarding(props: Props) {
         </AnimatePresence>
         <AdaptivePageCorners animateVariant={cornerVariantControl} />
       </Container>
-    </OnboardingWrapper>
+    </main>
   );
 }
 
-const OnboardingWrapper = styled('main')`
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-`;
-
 const Container = styled('div')<{hasFooter: boolean}>`
-  display: flex;
-  justify-content: center;
   position: relative;
   background: ${p => p.theme.background};
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
-  flex-grow: 1;
   padding-bottom: ${p => p.hasFooter && '72px'};
   margin-bottom: ${p => p.hasFooter && '72px'};
 `;
@@ -225,14 +215,7 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  ${p =>
-    p.centered &&
-    `justify-content: center;
-     align-items: center;`};
-`;
+const OnboardingStep = styled(motion.div)``;
 
 OnboardingStep.defaultProps = {
   initial: 'initial',
