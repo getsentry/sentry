@@ -311,7 +311,6 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           // Flip rule thresholdType to opposite
           thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
-          hideControl={hasAlertWizardV3}
           comparisonType={comparisonType}
           aggregate={aggregate}
           resolveThreshold={resolveThreshold}
