@@ -17,11 +17,15 @@ dummy_provider_config = {
 }
 
 
+class DummySAML2Provider(SAML2Provider):
+    name = "dummy"
+
+
 class SAML2ProviderTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()
         self.auth_provider = AuthProvider.objects.create(provider="saml2", organization=self.org)
-        self.provider = SAML2Provider(key=self.auth_provider.provider)
+        self.provider = DummySAML2Provider(key=self.auth_provider.provider)
         super().setUp()
 
     def test_build_config_adds_attributes(self):
