@@ -12,6 +12,7 @@ from .installation.index import SentryAppInstallationsEndpoint
 from .interaction import SentryAppInteractionEndpoint
 from .internal_app_token.details import SentryInternalAppTokenDetailsEndpoint
 from .internal_app_token.index import SentryInternalAppTokensEndpoint
+from .organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .publish_request import SentryAppPublishRequestEndpoint
 from .requests import SentryAppRequestsEndpoint
 from .stats.details import SentryAppStatsEndpoint
@@ -19,6 +20,7 @@ from .stats.index import SentryAppsStatsEndpoint
 
 __all__ = (
     "OrganizationSentryAppComponentsEndpoint",
+    "OrganizationSentryAppsEndpoint",
     "SentryAppAuthorizationsEndpoint",
     "SentryAppComponentsEndpoint",
     "SentryAppDetailsEndpoint",

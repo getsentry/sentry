@@ -49,7 +49,6 @@ function EnvironmentPageFilter({
 
   const customDropdownButton: EnvironmentSelectorProps['customDropdownButton'] = ({
     isOpen,
-    getActorProps,
     value,
   }) => {
     const environmentsToShow =
@@ -66,7 +65,6 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
-        {...getActorProps()}
       >
         <DropdownTitle>
           <IconWindow />

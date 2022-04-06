@@ -37,6 +37,7 @@ import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -71,7 +72,7 @@ type AccType = {
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   dateSelected: boolean;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   meta: TraceMeta | null;
   organization: Organization;
@@ -180,7 +181,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                   <ErrorLabel>
                     {tct(
                       'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: [error]',
-                      {error}
+                      {error: error.message}
                     )}
                   </ErrorLabel>
                 </Alert>
@@ -194,9 +195,9 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 </ErrorLabel>
 
                 <ErrorMessageContent data-test-id="trace-view-errors">
-                  {tableData.data.map(data => (
+                  {tableData?.data.map(data => (
                     <React.Fragment key={data.id}>
-                      <ErrorDot level={data.level} />
+                      <ErrorDot level={data.level as any} />
                       <ErrorLevel>{data.level}</ErrorLevel>
                       <ErrorTitle>
                         <Link

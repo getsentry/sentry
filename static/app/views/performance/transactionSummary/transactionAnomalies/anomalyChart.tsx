@@ -2,7 +2,7 @@ import {InjectedRouter, withRouter} from 'react-router';
 import {Location} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {DateString} from 'sentry/types';
@@ -35,19 +35,18 @@ const _AnomalyChart = (props: Props) => {
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
   const {utc} = normalizeDateTimeParams(location.query);
 
-  const legend = {
-    right: 10,
-    top: 5,
-    data: [t('High Confidence'), t('Low Confidence')],
-  };
-
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
+    legend: {
+      right: 10,
+      top: 5,
+      data: [t('High Confidence'), t('Low Confidence')],
+    },
     seriesOptions: {
       showSymbol: false,
     },
     height,
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: tooltipFormatter,
     },
     xAxis: undefined,
@@ -68,7 +67,7 @@ const _AnomalyChart = (props: Props) => {
       utc={utc === 'true'}
     >
       {zoomRenderProps => (
-        <LineChart {...zoomRenderProps} series={data} legend={legend} {...chartOptions} />
+        <LineChart {...zoomRenderProps} series={data} {...chartOptions} />
       )}
     </ChartZoom>
   );
