@@ -9,6 +9,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -5794,3 +5795,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
+
+    @mock.patch("sentry.search.events.builder.MetricsQueryBuilder")
+    def test_failed_dry_run_does_not_error(self, mock_builder):
+        mock_builder.side_effect = InvalidSearchQuery("Something bad")
+        query = {
+            "field": ["count()"],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert mock_builder.call_count == 1
+        assert mock_builder.call_args.kwargs["dry_run"]
+
+        mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
+        query = {
+            "field": ["count()"],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert mock_builder.call_count == 2
+        assert mock_builder.call_args.kwargs["dry_run"]
