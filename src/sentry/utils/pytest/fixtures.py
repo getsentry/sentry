@@ -373,7 +373,7 @@ def _print_insta_diff(reference_file, a, b):
 @pytest.fixture
 def call_snuba(settings):
     def inner(endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
+        return requests.post(settings.SENTRY_SNUBA + endpoint, timeout=5)
 
     return inner
 
