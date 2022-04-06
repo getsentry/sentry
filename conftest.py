@@ -69,8 +69,7 @@ def enable_file_tracking():
     socket.socket = _socket
 
 
-if os.environ.get("SENTRY_TEST_TRACK_FILES") == "1":
-    enable_file_tracking()
+enable_file_tracking()
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures
