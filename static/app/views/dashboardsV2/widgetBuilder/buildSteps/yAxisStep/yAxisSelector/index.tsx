@@ -197,7 +197,7 @@ export function YAxisSelector({
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-          {widgetType !== WidgetType.METRICS && (
+          {!isMetricWidget && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}
         </Actions>
