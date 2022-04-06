@@ -153,15 +153,16 @@ class MessageBuilder:
 
         subject = force_text(self.subject)
 
-        if isinstance(self.reference, Activity):
-            self.reference = self.reference.group
+        reference = self.reference
+        if isinstance(reference, Activity):
+            reference = reference.group
             subject = f"Re: {subject}"
 
-        if isinstance(self.reference, Group):
+        if isinstance(reference, Group):
             thread, created = GroupEmailThread.objects.get_or_create(
                 email=to,
-                group=self.reference,
-                defaults={"project": self.reference.project, "msgid": message_id},
+                group=reference,
+                defaults={"project": reference.project, "msgid": message_id},
             )
             if not created:
                 headers.setdefault("In-Reply-To", thread.msgid)
