@@ -46,6 +46,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
+    failure_rate_transaction,
     percentage,
     session_duration_filters,
     sessions_errored_set,
@@ -759,6 +760,7 @@ class DerivedMetricKey(Enum):
 
     TRANSACTION_ALL = "transaction.all"
     TRANSACTION_FAILURE_COUNT = "transaction.failure_count"
+    TRANSACTION_FAILURE_RATE = "transaction.failure_rate"
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -920,6 +922,17 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="transactions",
             snql=lambda *_, org_id, metric_ids, alias=None: failure_count_transaction(
                 org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=DerivedMetricKey.TRANSACTION_FAILURE_RATE.value,
+            metrics=[
+                DerivedMetricKey.TRANSACTION_FAILURE_COUNT.value,
+                DerivedMetricKey.TRANSACTION_ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda *args, org_id, metric_ids, alias=None: failure_rate_transaction(
+                *args, alias=alias
             ),
         ),
     ]
