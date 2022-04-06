@@ -141,9 +141,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(1, 30),
-            RateLimitCategory.USER: RateLimit(1, 30),
-            RateLimitCategory.ORGANIZATION: RateLimit(1, 30),
+            RateLimitCategory.IP: RateLimit(10, 1),
+            RateLimitCategory.USER: RateLimit(10, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
         },
         "PUT": {
             RateLimitCategory.IP: RateLimit(5, 5),

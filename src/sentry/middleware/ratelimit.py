@@ -23,8 +23,6 @@ DEFAULT_ERROR_MESSAGE = (
     "{limit} requests in {window} seconds"
 )
 
-rate_limit_logger = logging.getLogger("sentry.django.ratelimiter")
-
 
 class RatelimitMiddleware:
     """Middleware that applies a rate limit to every endpoint.
@@ -50,12 +48,6 @@ class RatelimitMiddleware:
             finish_request(rate_limit_data.rate_limit_key, rate_limit_data.rate_limit_uid)
         return response
 
-    def _debug_log(self, request):
-        metrics = {}
-        metrics["path"] = request.path
-        metrics["resolved"] = str(resolve(request.path))
-        rate_limit_logger.info("sentry.ratelimiter", extra=metrics)
-
     def process_request(self, request: Request) -> Tuple[HttpResponse | None, RateLimitData]:
         rate_limit_data: RateLimitData = None
         rate_limit_uid = None
@@ -68,7 +60,6 @@ class RatelimitMiddleware:
             rate_limit_uid = uuid.uuid4().hex
             # in deprecated django middleware the view function is passed in to process_view
             # but we can still access it this way through the request
-            self._debug_log(request)
             view_func = resolve(request.path).func
             rate_limit_key = get_rate_limit_key(view_func, request)
             if rate_limit_key is None:
