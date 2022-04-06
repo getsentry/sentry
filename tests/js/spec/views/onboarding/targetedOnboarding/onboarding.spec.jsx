@@ -34,9 +34,9 @@ describe('Onboarding', function () {
       TestStubs.Project({
         platform: 'javascript-nextjs',
         id: '4',
-        slug: 'javascript-nextjs',
+        slug: 'javascript-nextjs-slug',
       }),
-      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby'}),
+      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
     ];
     const {organization, router, routerContext} = initializeOrg({
       projects,
