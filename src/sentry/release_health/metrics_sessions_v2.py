@@ -305,6 +305,41 @@ class _SessionDurationField(_OutputField):
             ]
 
 
+def _get_group_conditions(
+    groupby: Collection[Column],
+    defining_rows: _SnubaData,
+) -> Optional[List[Condition]]:
+    """Create a filter based on the groups that are present in defining_rows
+
+    Return None if no groups can be found.
+    """
+    if not groupby:
+        return []
+
+    # Only "totals" queries may set the limiting conditions:
+    assert Column(TS_COL_GROUP) not in groupby
+
+    groupby = list(groupby)  # Make sure groupby has a fixed order
+    groups = [{column.name: row[column.name] for column in groupby} for row in defining_rows]
+
+    if not groups:
+        # Unable to determine grouping conditions, get them from next query.
+        return None
+
+    # Create conditions from the groups in group by
+    group_values = [Function("tuple", [row[column.name] for column in groupby]) for row in groups]
+
+    return [
+        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
+        Condition(Function("tuple", groupby), Op.IN, group_values)
+    ] + [
+        # These conditions are redundant but might lead to better query performance
+        # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+        Condition(column, Op.IN, [row[column.name] for row in groups])
+        for column in groupby
+    ]
+
+
 def _get_snuba_query(
     org_id: int,
     query: QueryDefinition,
@@ -400,41 +435,6 @@ def _get_snuba_queries(
             yield (metric_key, query_type, snuba_query)
 
 
-def _get_group_conditions(
-    groupby: Collection[Column],
-    defining_rows: _SnubaData,
-) -> Optional[List[Condition]]:
-    """Create a filter based on the groups that are present in defining_rows
-
-    Return None if no groups can be found.
-    """
-    if not groupby:
-        return []
-
-    # Only "totals" queries may set the limiting conditions:
-    assert Column(TS_COL_GROUP) not in groupby
-
-    groupby = list(groupby)  # Make sure groupby has a fixed order
-    groups = [{column.name: row[column.name] for column in groupby} for row in defining_rows]
-
-    if not groups:
-        # Unable to determine grouping conditions, get them from next query.
-        return None
-
-    # Create conditions from the groups in group by
-    group_values = [Function("tuple", [row[column.name] for column in groupby]) for row in groups]
-
-    return [
-        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        Condition(Function("tuple", groupby), Op.IN, group_values)
-    ] + [
-        # These conditions are redundant but might lead to better query performance
-        # Eg. [release IN [1, 3]], [environment IN [2, 4]]
-        Condition(column, Op.IN, [row[column.name] for row in groups])
-        for column in groupby
-    ]
-
-
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
@@ -454,10 +454,10 @@ def _fetch_data(
         all_queries.extend(queries)
         metric_to_output_field.update(field_map)
 
-    combined_data: _SnubaDataByMetric = []
+    all_data: _SnubaDataByMetric = []
 
     group_conditions: Optional[List[Column]] = None if query.raw_groupby else []
-    secondary_queries = []
+    bulk_queries = []
     for metric_key, query_type, snuba_query in all_queries:
         if group_conditions is None:
             if query_type == _QueryType.SERIES:
@@ -467,20 +467,20 @@ def _fetch_data(
 
             # Initialize group_conditions
             snuba_data = raw_snql_query(snuba_query, referrer="metrics_sessions_v2.initial")["data"]
-            combined_data.append((metric_key, snuba_data))
+            all_data.append((metric_key, snuba_data))
             group_conditions = _get_group_conditions(snuba_query.groupby, snuba_data)
         else:
             where = (snuba_query.where or []) + group_conditions
             snuba_query = replace(snuba_query, where=where, orderby=None, limit=Limit(SNUBA_LIMIT))
-            secondary_queries.append((metric_key, snuba_query))
+            bulk_queries.append((metric_key, snuba_query))
 
-    if secondary_queries:
-        metric_keys, queries = zip(*secondary_queries)
+    if bulk_queries:
+        metric_keys, queries = zip(*bulk_queries)
         secondary_results = bulk_snql_query(queries, referrer="metrics_sessions_v2.bulk")
         results = zip(metric_keys, [result["data"] for result in secondary_results])
-        combined_data.extend(results)
+        all_data.extend(results)
 
-    return combined_data, metric_to_output_field
+    return all_data, metric_to_output_field
 
 
 def _fetch_queries_for_field(
