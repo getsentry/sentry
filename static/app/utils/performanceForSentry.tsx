@@ -4,7 +4,7 @@ import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
 
-const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
+const MIN_UPDATE_SPAN_TIME = 5; // Frame boundary @ 60fps
 
 /**
  * Callback for React Profiler https://reactjs.org/docs/profiler.html
