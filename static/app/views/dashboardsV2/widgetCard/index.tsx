@@ -17,6 +17,8 @@ import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -55,7 +57,10 @@ type Props = WithRouterProps & {
   windowWidth?: number;
 };
 
-class WidgetCard extends React.Component<Props> {
+type State = {seriesData?: Series[]; tableData?: TableDataWithTitle[]};
+
+class WidgetCard extends React.Component<Props, State> {
+  state: State = {};
   renderToolbar() {
     const {
       onEdit,
@@ -131,6 +136,8 @@ class WidgetCard extends React.Component<Props> {
       index,
     } = this.props;
 
+    const {seriesData, tableData} = this.state;
+
     if (isEditing) {
       return null;
     }
@@ -150,9 +157,21 @@ class WidgetCard extends React.Component<Props> {
         router={router}
         location={location}
         index={index}
+        seriesData={seriesData}
+        tableData={tableData}
       />
     );
   }
+
+  setData = ({
+    tableResults,
+    timeseriesResults,
+  }: {
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+  }) => {
+    this.setState({seriesData: timeseriesResults, tableData: tableResults});
+  };
 
   render() {
     const {
@@ -187,6 +206,7 @@ class WidgetCard extends React.Component<Props> {
               renderErrorMessage={renderErrorMessage}
               tableItemLimit={tableItemLimit}
               windowWidth={windowWidth}
+              onDataFetched={this.setData}
             />
           ) : (
             <LazyLoad once resize height={200}>
@@ -199,6 +219,7 @@ class WidgetCard extends React.Component<Props> {
                 renderErrorMessage={renderErrorMessage}
                 tableItemLimit={tableItemLimit}
                 windowWidth={windowWidth}
+                onDataFetched={this.setData}
               />
             </LazyLoad>
           )}

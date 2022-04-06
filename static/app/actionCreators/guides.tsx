@@ -2,16 +2,17 @@ import GuideActions from 'sentry/actions/guideActions';
 import {Client} from 'sentry/api';
 import LegacyConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {run} from 'sentry/utils/apiSentryClient';
 
 const api = new Client();
 
-export function fetchGuides() {
-  api.request('/assistant/?v2', {
-    method: 'GET',
-    success: data => {
-      GuideActions.fetchSucceeded(data);
-    },
-  });
+export async function fetchGuides() {
+  try {
+    const data = await api.requestPromise('/assistant/');
+    GuideActions.fetchSucceeded(data);
+  } catch (error) {
+    run(Sentry => Sentry.captureException(error));
+  }
 }
 
 export function registerAnchor(target: string) {
