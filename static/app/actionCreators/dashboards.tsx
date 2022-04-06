@@ -4,7 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
-import {flattenErrors} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 
 export function createDashboard(
   api: Client,

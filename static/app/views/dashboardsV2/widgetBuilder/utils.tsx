@@ -19,6 +19,8 @@ import {
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {FlatValidationError, ValidationError} from '../utils';
+
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
@@ -49,14 +51,6 @@ export const displayTypes = {
   [DisplayType.TOP_N]: t('Top 5 Events'),
 };
 
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
-};
-
 export function mapErrors(
   data: ValidationError,
   update: FlatValidationError
@@ -79,30 +73,6 @@ export function mapErrors(
     }
   });
 
-  return update;
-}
-
-export function flattenErrors(
-  data: ValidationError,
-  update: FlatValidationError
-): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    if (typeof value === 'string') {
-      update[key] = value;
-      return;
-    }
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-      return;
-    }
-    if (Array.isArray(value) && typeof value[0] === 'object') {
-      (value as ValidationError[]).map(item => flattenErrors(item, update));
-    } else {
-      flattenErrors(value as ValidationError, update);
-    }
-  });
   return update;
 }
 
