@@ -66,7 +66,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const api = useApi();
   const [state, setState] = useState<State>({
     fetchError: undefined,
-    fetching: false,
+    fetching: true,
     event: undefined,
     replayEvents: undefined,
     rrwebEvents: undefined,
@@ -105,7 +105,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       range: '14d',
       query: `transaction:sentry-replay-event`,
     });
-    replayEventsView.additionalConditions.addFilterValues('rootReplayId', [eventId]);
+    replayEventsView.additionalConditions.addFilterValues('replayId', [eventId]);
     const replayEventsQuery = replayEventsView.getEventsAPIPayload(location);
 
     const replayEventList = await api.requestPromise(
