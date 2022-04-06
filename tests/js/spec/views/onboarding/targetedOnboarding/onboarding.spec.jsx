@@ -28,11 +28,16 @@ describe('Onboarding', function () {
   it('renders the setup docs step', async () => {
     const projects = [
       TestStubs.Project({
-        platform: 'javascript',
+        platform: 'javascript-react',
         id: '4',
-        slug: 'javascript-slug',
+        slug: 'javascript-reactslug',
       }),
       TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
+      TestStubs.Project({
+        platform: 'javascript-nextjs',
+        id: '6',
+        slug: 'javascript-nextslug',
+      }),
     ];
     const {organization, router, routerContext} = initializeOrg({
       projects,
@@ -49,7 +54,7 @@ describe('Onboarding', function () {
           javascript: projects[0].slug,
           ruby: projects[1].slug,
         },
-        selectedPlatforms: ['ruby', 'javascript'],
+        selectedPlatforms: ['ruby', 'javascript-nextjs'],
       },
     });
     ProjectsStore.loadInitialData(projects);
@@ -62,6 +67,7 @@ describe('Onboarding', function () {
       }
     );
     expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
+    MockApiClient.clearMockResponses();
   });
   it('renders the select platform step', function () {
     const {organization, router, routerContext} = initializeOrg({
