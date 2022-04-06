@@ -2,17 +2,24 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
+from tests.sentry.api.endpoints.test_organization_metrics import (
+    MOCKED_DERIVED_METRICS,
+    mocked_mri_resolver,
+)
 
 
 class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tags"
 
-    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x)
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
+    )
     def test_metric_tags(self):
         response = self.get_success_response(
             self.organization.slug,

@@ -8,7 +8,10 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
+from tests.sentry.api.endpoints.test_organization_metrics import (
+    MOCKED_DERIVED_METRICS,
+    mocked_mri_resolver,
+)
 
 MOCKED_DERIVED_METRICS_2 = copy.deepcopy(MOCKED_DERIVED_METRICS)
 MOCKED_DERIVED_METRICS_2.update(
@@ -29,8 +32,14 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
 
     endpoint = "sentry-api-0-organization-metric-details"
 
-    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x)
-    @patch("sentry.snuba.metrics.datasource.get_reverse_mri", lambda x: x)
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
+    )
+    @patch(
+        "sentry.snuba.metrics.datasource.get_reverse_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_reverse_mri),
+    )
     def test_metric_details(self):
         # metric1:
         response = self.get_success_response(
@@ -79,7 +88,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             "tags": [],
         }
 
-    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x)
+    @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["foo.bar"], get_mri))
     def test_metric_details_metric_does_not_exist_in_indexer(self):
         response = self.get_response(
             self.organization.slug,
@@ -91,10 +100,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             == "Some or all of the metric names in ['foo.bar'] do not exist in the indexer"
         )
 
-    @patch("sentry.snuba.metrics.datasource.get_mri", lambda x: x if x == "foo.bar" else get_mri(x))
+    @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["foo.bar"], get_mri))
     @patch(
         "sentry.snuba.metrics.datasource.get_reverse_mri",
-        lambda x: x if x == "foo.bar" else get_reverse_mri(x),
+        mocked_mri_resolver(["foo.bar"], get_reverse_mri),
     )
     def test_metric_details_metric_does_not_have_data(self):
         indexer.record(self.organization.id, "foo.bar")
@@ -112,8 +121,8 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] do not exist in the "
-            f"dataset"
+            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] "
+            f"do not exist in the dataset"
         )
 
     def test_derived_metric_details(self):
@@ -166,11 +175,11 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS_2)
     @patch(
         "sentry.snuba.metrics.datasource.get_mri",
-        lambda x: x if x in ["metric_foo_doe", "derived_metric.multiple_metrics"] else get_mri(x),
+        mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
         "sentry.snuba.metrics.datasource.get_reverse_mri",
-        lambda x: x if x in ["metric_foo_doe", "derived_metric.multiple_metrics"] else get_mri(x),
+        mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_reverse_mri),
     )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):

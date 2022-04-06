@@ -64,6 +64,10 @@ MOCKED_DERIVED_METRICS.update(
 )
 
 
+def mocked_mri_resolver(metric_names, mri_func):
+    return lambda x: x if x in metric_names else mri_func(x)
+
+
 @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
 class SingleEntityDerivedMetricTestCase(TestCase):
     def setUp(self):
@@ -74,7 +78,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     )
     @mock.patch(
         "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        lambda x: x if x == "crash_free_fake" else get_reverse_mri(x),
+        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
     )
     def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(self):
         """
@@ -112,7 +116,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     )
     @mock.patch(
         "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        lambda x: x if x == "crash_free_fake" else get_reverse_mri(x),
+        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
     )
     def test_generate_select_snql_of_derived_metric(self):
         """
@@ -258,7 +262,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     )
     @mock.patch(
         "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        lambda x: x if x == "crash_free_fake" else get_reverse_mri(x),
+        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
     )
     def test_generate_order_by_clause(self):
         for derived_metric_name in MOCKED_DERIVED_METRICS.keys():

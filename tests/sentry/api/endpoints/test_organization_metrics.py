@@ -31,6 +31,10 @@ MOCKED_DERIVED_METRICS.update(
 )
 
 
+def mocked_mri_resolver(metric_names, mri_func):
+    return lambda x: x if x in metric_names else mri_func(x)
+
+
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -121,7 +125,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
 
     @patch(
         "sentry.snuba.metrics.datasource.get_reverse_mri",
-        lambda x: x if x in ["metric1", "metric2", "metric3"] else get_reverse_mri(x),
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_reverse_mri),
     )
     def test_metrics_index(self):
         """
