@@ -138,7 +138,9 @@ const OnboardingButtonBar = styled(ButtonBar)`
   justify-self: end;
 `;
 
-const AnimatedText = styled(motion.div)<{errorReceived: boolean}>`
+const AnimatedText = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'errorReceived',
+})<{errorReceived: boolean}>`
   margin-left: ${space(1)};
   color: ${p =>
     p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};

@@ -12,7 +12,7 @@ from sentry.utils import json, redis
 STATE_CATEGORIES = {
     "onboarding": {
         "ttl": 30 * 24 * 60 * 60,  # the time in seconds that the state will be persisted
-        "scope": "member",  # Can be "org" or "member"
+        "scope": "org",  # Can be "org" or "member"
         "max_payload_size": 1024,
     }
 }
