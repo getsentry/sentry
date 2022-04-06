@@ -713,8 +713,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
-    const hasAlertWizardV3 =
-      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
