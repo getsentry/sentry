@@ -5798,22 +5798,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     @mock.patch("sentry.snuba.metrics_enhanced_performance.MetricsQueryBuilder")
     def test_failed_dry_run_does_not_error(self, mock_builder):
-        mock_builder.side_effect = InvalidSearchQuery("Something bad")
-        query = {
-            "field": ["count()"],
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(mock_builder.mock_calls) == 1
-        assert mock_builder.call_args.kwargs["dry_run"]
+        with self.feature("organizations:performance-dry-run-mep"):
+            mock_builder.side_effect = InvalidSearchQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 1
+            assert mock_builder.call_args.kwargs["dry_run"]
 
-        mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
-        query = {
-            "field": ["count()"],
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(mock_builder.mock_calls) == 2
-        assert mock_builder.call_args.kwargs["dry_run"]
+            mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 2
+            assert mock_builder.call_args.kwargs["dry_run"]
