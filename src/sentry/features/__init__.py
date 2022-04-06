@@ -105,6 +105,7 @@ default_manager.add("organizations:performance-span-histogram-view", Organizatio
 default_manager.add("organizations:performance-autogroup-sibling-spans", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
+default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:trends-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)

@@ -51,30 +51,39 @@ def query(
     extra_snql_condition=None,
     functions_acl=None,
     use_snql=False,
+    dry_run=False,
 ):
-    """ """
-    metrics_compatible = not equations
+    metrics_compatible = not equations or dry_run
 
     if metrics_compatible:
         try:
-            metrics_query = MetricsQueryBuilder(
-                params,
-                query=query,
-                selected_columns=selected_columns,
-                equations=[],
-                orderby=orderby,
-                # Auto fields will add things like id back in if enabled
-                auto_fields=False,
-                auto_aggregations=auto_aggregations,
-                use_aggregate_conditions=use_aggregate_conditions,
-                allow_metric_aggregates=allow_metric_aggregates,
-                functions_acl=functions_acl,
-                limit=limit,
-                offset=offset,
-            )
+            with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
+                metrics_query = MetricsQueryBuilder(
+                    params,
+                    query=query,
+                    selected_columns=selected_columns,
+                    equations=[],
+                    orderby=orderby,
+                    # Auto fields will add things like id back in if enabled
+                    auto_fields=False,
+                    auto_aggregations=auto_aggregations,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    functions_acl=functions_acl,
+                    limit=limit,
+                    offset=offset,
+                    dry_run=dry_run,
+                )
+                if dry_run:
+                    metrics_referrer = referrer + ".dry-run"
+                else:
+                    metrics_referrer = referrer + ".metrics-enhanced"
+                results = metrics_query.run_query(metrics_referrer)
+                if dry_run:
+                    # Query has to reach here to be considered compatible
+                    sentry_sdk.set_tag("query.mep_compatible", True)
+                    return
             with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-                # Getting the 0th result for now, will need to consolidate multiple query results later
-                results = metrics_query.run_query(referrer + ".metrics-enhanced")
                 results = discover.transform_results(
                     results, metrics_query.function_alias_map, {}, None
                 )
@@ -84,11 +93,17 @@ def query(
                 return results
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
-            raise error
+            if not dry_run:
+                raise error
+            else:
+                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
+
+    if dry_run:
+        return {}
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
@@ -128,6 +143,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
     use_snql: Optional[bool] = False,
+    dry_run: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -138,43 +154,62 @@ def timeseries_query(
     if comparison_delta is None and not equations:
         metrics_compatible = True
 
-    if metrics_compatible:
+    if metrics_compatible or dry_run:
         try:
-            metrics_query = TimeseriesMetricQueryBuilder(
-                params,
-                rollup,
-                query=query,
-                selected_columns=columns,
-                functions_acl=functions_acl,
-                allow_metric_aggregates=allow_metric_aggregates,
-            )
-            result = metrics_query.run_query(referrer + ".metrics-enhanced")
-            result = discover.transform_results(result, metrics_query.function_alias_map, {}, None)
-            result["data"] = (
-                discover.zerofill(
-                    result["data"],
+            with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
+                metrics_query = TimeseriesMetricQueryBuilder(
+                    params,
+                    rollup,
+                    query=query,
+                    selected_columns=columns,
+                    functions_acl=functions_acl,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    dry_run=dry_run,
+                )
+                if dry_run:
+                    metrics_referrer = referrer + ".dry-run"
+                else:
+                    metrics_referrer = referrer + ".metrics-enhanced"
+                result = metrics_query.run_query(metrics_referrer)
+                if dry_run:
+                    # Query has to reach here to be considered compatible
+                    sentry_sdk.set_tag("query.mep_compatible", True)
+                    return
+            with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+                result = discover.transform_results(
+                    result, metrics_query.function_alias_map, {}, None
+                )
+                result["data"] = (
+                    discover.zerofill(
+                        result["data"],
+                        params["start"],
+                        params["end"],
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"]
+                )
+                sentry_sdk.set_tag("performance.dataset", "metrics")
+                return SnubaTSResult(
+                    {"data": result["data"], "isMetricsData": True},
                     params["start"],
                     params["end"],
                     rollup,
-                    "time",
                 )
-                if zerofill_results
-                else result["data"]
-            )
-            sentry_sdk.set_tag("performance.dataset", "metrics")
-            return SnubaTSResult(
-                {"data": result["data"], "isMetricsData": True},
-                params["start"],
-                params["end"],
-                rollup,
-            )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
-            raise error
+            if not dry_run:
+                raise error
+            else:
+                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
+
+    if dry_run:
+        return {}
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:

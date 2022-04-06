@@ -1,3 +1,5 @@
+from typing import Any
+
 import sentry_sdk
 from snuba_sdk import Function
 
@@ -8,6 +10,14 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics import indexer
 from sentry.utils.numbers import format_grouped_length
+
+
+def dry_run_default(builder: QueryBuilder, alias: str, *args: Any, **kwargs: Any) -> SelectType:
+    """It doesn't really matter what we return here, the query won't be run
+
+    This is so we can easily swap to something when we're dry running to prevent hitting postgres at all
+    """
+    return Function("toUInt64", [0], alias)
 
 
 def resolve_team_key_transaction_alias(
