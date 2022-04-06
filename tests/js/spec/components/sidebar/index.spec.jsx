@@ -250,7 +250,7 @@ describe('Sidebar', function () {
     userEvent.click(screen.getByTestId('sidebar-collapse'));
 
     // Check that the organization name is no longer visible
-    await waitForElementToBeRemoved(() => screen.queryByText(organization.name));
+    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
 
     // Un-collapse he sidebar and make sure the org name is visible again
     userEvent.click(screen.getByTestId('sidebar-collapse'));
