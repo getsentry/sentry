@@ -229,18 +229,19 @@ def _fetch_tags_or_values_per_ids(
     """
     assert len({p.organization_id for p in projects}) == 1
 
+    metric_mris = None
     if metric_names is not None:
-        metric_names = [get_mri(metric_name) for metric_name in metric_names]
+        metric_mris = [get_mri(metric_name) for metric_name in metric_names]
 
         # ToDo(ahmed): Hack out private derived metrics logic
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
             get_derived_metrics(exclude_private=True).keys()
         )
-        if set(metric_names).intersection(private_derived_metrics) != set():
+        if set(metric_mris).intersection(private_derived_metrics) != set():
             raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_names)
+        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_mris)
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -281,11 +282,7 @@ def _fetch_tags_or_values_per_ids(
     # error message
     if not tag_or_value_ids_per_metric_id:
         if metric_names:
-            error_str = (
-                f"The following metrics "
-                f"{[get_reverse_mri(metric_name) for metric_name in metric_names]} do not exist "
-                f"in the dataset"
-            )
+            error_str = f"The following metrics {metric_names} do not exist in the dataset"
         else:
             error_str = "Dataset contains no metric data for your project selection"
         raise InvalidParams(error_str)
@@ -307,7 +304,7 @@ def _fetch_tags_or_values_per_ids(
         # SingularEntityDerivedMetric actually span a single entity
         _validate_requested_derived_metrics_in_input_metrics(
             projects,
-            metric_names=metric_names,
+            metric_names=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
 
