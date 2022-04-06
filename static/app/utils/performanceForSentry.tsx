@@ -1,4 +1,5 @@
 import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
+import {captureException} from '@sentry/react';
 import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
@@ -29,6 +30,89 @@ export function onRenderCallback(
   }
 }
 
+class LongTaskObserver {
+  private static observer: PerformanceObserver;
+  private static longTaskCount = 0;
+  private static currentId: string;
+  static getPerformanceObserver(id: string): PerformanceObserver | null {
+    try {
+      LongTaskObserver.currentId = id;
+      if (LongTaskObserver.observer) {
+        return LongTaskObserver.observer;
+      }
+      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
+        return null;
+      }
+      const transaction: any = getCurrentSentryReactTransaction();
+
+      const timeOrigin = browserPerformanceTimeOrigin / 1000;
+
+      const observer = new PerformanceObserver(function (list) {
+        const perfEntries = list.getEntries();
+
+        if (!transaction) {
+          return;
+        }
+        perfEntries.forEach(entry => {
+          const startSeconds = timeOrigin + entry.startTime / 1000;
+          LongTaskObserver.longTaskCount++;
+          transaction.startChild({
+            description: `Long Task - ${LongTaskObserver.currentId}`,
+            op: `ui.sentry.long-task`,
+            startTimestamp: startSeconds,
+            endTimestamp: startSeconds + entry.duration / 1000,
+          });
+        });
+      });
+      transaction.registerBeforeFinishCallback(t => {
+        if (!browserPerformanceTimeOrigin) {
+          return;
+        }
+
+        t.setTag('longTaskCount', LongTaskObserver.longTaskCount);
+      });
+
+      if (!observer || !observer.observe) {
+        return null;
+      }
+      LongTaskObserver.observer = observer;
+      LongTaskObserver.observer.observe({entryTypes: ['longtask']});
+
+      return LongTaskObserver.observer;
+    } catch (e) {
+      captureException(e);
+      // Defensive try catch.
+    }
+    return null;
+  }
+}
+
+export const ProfilerWithTasks = ({id, children}: {children: ReactNode; id: string}) => {
+  useEffect(() => {
+    let observer;
+    try {
+      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
+        return () => {};
+      }
+      observer = LongTaskObserver.getPerformanceObserver(id);
+    } catch (e) {
+      captureException(e);
+      // Defensive since this is auxiliary code.
+    }
+    return () => {
+      if (observer && observer.disconnect) {
+        observer.disconnect();
+      }
+    };
+  }, []);
+
+  return (
+    <Profiler id={id} onRender={onRenderCallback}>
+      {children}
+    </Profiler>
+  );
+};
+
 export const VisuallyCompleteWithData = ({
   id,
   hasData,
@@ -48,29 +132,7 @@ export const VisuallyCompleteWithData = ({
       if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
         return () => {};
       }
-      const timeOrigin = browserPerformanceTimeOrigin / 1000;
-
-      observer = new PerformanceObserver(function (list) {
-        const perfEntries = list.getEntries();
-
-        const transaction = getCurrentSentryReactTransaction();
-        if (!transaction) {
-          return;
-        }
-        perfEntries.forEach(entry => {
-          const startSeconds = timeOrigin + entry.startTime / 1000;
-          longTaskCount.current++;
-          transaction.startChild({
-            description: `Long Task - ${id}`,
-            op: `ui.long-task`,
-            startTimestamp: startSeconds,
-            endTimestamp: startSeconds + entry.duration / 1000,
-          });
-        });
-      });
-      if (observer && observer.observe) {
-        observer.observe({entryTypes: ['longtask']});
-      }
+      observer = LongTaskObserver.getPerformanceObserver(id);
     } catch (_) {
       // Defensive since this is auxiliary code.
     }
