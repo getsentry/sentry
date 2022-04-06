@@ -89,6 +89,10 @@ describe('Onboarding', function () {
         firstEvent: false,
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/javascript-nextslug/docs/javascript-nextjs/`,
+      body: '',
+    });
     ProjectsStore.loadInitialData(projects);
     render(
       <OrganizationContext.Provider value={organization}>
