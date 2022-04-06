@@ -1,4 +1,13 @@
-class PipelineProvider:
+from __future__ import annotations
+
+import abc
+from typing import TYPE_CHECKING, Sequence
+
+if TYPE_CHECKING:
+    from sentry.pipeline.views.base import PipelineView
+
+
+class PipelineProvider(abc.ABC):
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -7,13 +16,29 @@ class PipelineProvider:
     def __init__(self):
         self.config = {}
 
-    def get_pipeline_views(self):
+    @property
+    @abc.abstractmethod
+    def key(self) -> str:
+        """
+        A unique identifier (e.g. 'slack'). Used to lookup sibling classes and
+        the `key` used when creating Integration objects.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """A human readable name (e.g. 'Slack')."""
+        pass
+
+    @abc.abstractmethod
+    def get_pipeline_views(self) -> Sequence[PipelineView]:
         """
         Returns a list of instantiated views which implement the PipelineView
         interface. Each view will be dispatched in order.
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
-        raise NotImplementedError
+        pass
 
     def update_config(self, config):
         """

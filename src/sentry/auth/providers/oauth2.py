@@ -1,5 +1,7 @@
+import abc
 import logging
 from time import time
+from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 
@@ -118,7 +120,7 @@ class OAuth2Callback(AuthView):
         return helper.next_step()
 
 
-class OAuth2Provider(Provider):
+class OAuth2Provider(Provider, abc.ABC):
     client_id = None
     client_secret = None
 
@@ -134,8 +136,9 @@ class OAuth2Provider(Provider):
             OAuth2Callback(client_id=self.get_client_id(), client_secret=self.get_client_secret()),
         ]
 
-    def get_refresh_token_url(self):
-        raise NotImplementedError
+    @abc.abstractmethod
+    def get_refresh_token_url(self) -> str:
+        pass
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -153,15 +156,19 @@ class OAuth2Provider(Provider):
             data["refresh_token"] = payload["refresh_token"]
         return data
 
-    def build_identity(self, state):
-        # data = state['data']
-        # return {
-        #     'id': '',
-        #     'email': '',
-        #     'name': '',
-        #     'data': self.get_oauth_data(data),
-        # }
-        raise NotImplementedError
+    @abc.abstractmethod
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Example implementation:
+        data = state['data']
+        return {
+            'id': '',
+            'email': '',
+            'name': '',
+            'data': self.get_oauth_data(data),
+        }
+        """
+        pass
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not
