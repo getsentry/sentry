@@ -170,9 +170,10 @@ class BaseNotification(abc.ABC):
             url_str = f"/settings/{self.organization.slug}/teams/{team.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
-            if fine_tuning_key:
-                url_str += f"{fine_tuning_key}/"
+            if self.notification_setting_type:
+                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+                if fine_tuning_key:
+                    url_str += f"{fine_tuning_key}/"
         return str(
             urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
         )
