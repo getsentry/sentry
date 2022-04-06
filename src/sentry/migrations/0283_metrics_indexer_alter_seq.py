@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.RunSQL(
             """
-            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 5000;
+            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 65536;
             ALTER SEQUENCE sentry_stringindexer_id_seq RESTART;
             """,
             hints={"tables": ["sentry_stringindexer"]},
