@@ -1,3 +1,4 @@
+import abc
 from urllib.parse import urlparse
 
 from django.contrib import messages
@@ -203,7 +204,7 @@ class Attributes:
     LAST_NAME = "last_name"
 
 
-class SAML2Provider(Provider):
+class SAML2Provider(Provider, abc.ABC):
     """
     Base SAML2 Authentication provider. SAML style authentication plugins
     should implement this.
@@ -256,6 +257,7 @@ class SAML2Provider(Provider):
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
+    @abc.abstractmethod
     def get_saml_setup_pipeline(self):
         """
         Return a list of AuthViews to setup the SAML provider.
@@ -263,7 +265,7 @@ class SAML2Provider(Provider):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        raise NotImplementedError
+        pass
 
     def attribute_mapping(self):
         """

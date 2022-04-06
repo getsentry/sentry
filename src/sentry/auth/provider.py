@@ -1,3 +1,4 @@
+import abc
 import logging
 from collections import namedtuple
 
@@ -22,7 +23,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_text(self.id)
 
 
-class Provider(PipelineProvider):
+class Provider(PipelineProvider, abc.ABC):
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.

@@ -1,14 +1,16 @@
+import abc
 import logging
 
 from sentry.pipeline import PipelineProvider
 
 
-class Provider(PipelineProvider):
+class Provider(PipelineProvider, abc.ABC):
     """
     A provider indicates how identity authenticate should happen for a given service.
     """
 
     def __init__(self, **config):
+        super().__init__()
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")
 
