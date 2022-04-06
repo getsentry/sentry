@@ -6,6 +6,10 @@ import Onboarding from 'sentry/views/onboarding/targetedOnboarding/onboarding';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Onboarding', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders the welcome page', function () {
     const {organization, router, routerContext} = initializeOrg({
       router: {
@@ -25,10 +29,14 @@ describe('Onboarding', function () {
     expect(screen.getByLabelText('Start')).toBeInTheDocument();
     expect(screen.getByLabelText('Invite Team')).toBeInTheDocument();
   });
-  it('renders the setup docs step', function () {
+  it('renders the setup docs step', async () => {
     const projects = [
-      TestStubs.Project({platform: 'javascript-nextjs', id: '4'}),
-      TestStubs.Project({platform: 'ruby', id: '5'}),
+      TestStubs.Project({
+        platform: 'javascript-nextjs',
+        id: '4',
+        slug: 'javascript-nextjs',
+      }),
+      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby'}),
     ];
     const {organization, router, routerContext} = initializeOrg({
       projects,
@@ -36,6 +44,16 @@ describe('Onboarding', function () {
         params: {
           step: 'setup-docs',
         },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/client-state/onboarding/`,
+      body: {
+        platformToProjectIdMap: {
+          'javascript-nextjs': projects[0].slug,
+          ruby: projects[1].slug,
+        },
+        selectedPlatforms: ['ruby', 'javascript-nextjs'],
       },
     });
     ProjectsStore.loadInitialData(projects);
@@ -47,7 +65,7 @@ describe('Onboarding', function () {
         context: routerContext,
       }
     );
-    expect(screen.getAllByTestId('sidebar-error-indicator')).toHaveLength(2);
+    expect(await screen.findAllByTestId('sidebar-error-indicator')).toHaveLength(2);
   });
   it('renders the select platform step', function () {
     const {organization, router, routerContext} = initializeOrg({
