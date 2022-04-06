@@ -80,7 +80,7 @@ function PlatformPicker(props: PlatformPickerProps) {
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
     const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top in the order they appear in the poplar liist
+      // for the all category, put popular ones at the top in the order they appear in the popular list
       if (category === 'all') {
         if (isPopular(a) && isPopular(b)) {
           // if both popular, maintain ordering from popular list
