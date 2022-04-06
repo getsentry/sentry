@@ -793,8 +793,7 @@ describe('WidgetBuilder', function () {
 
     // Add a column, and choose a value,
     userEvent.click(screen.getByLabelText('Add a Column'));
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'trace{enter}');
+    await selectEvent.select(screen.getByText('(Required)'), 'trace');
 
     // Save widget
     userEvent.click(screen.getByLabelText('Update Widget'));
@@ -1363,10 +1362,11 @@ describe('WidgetBuilder', function () {
 
       // Selector "sortBy"
       expect(screen.getAllByText('title')).toHaveLength(2);
-      userEvent.click(screen.getAllByText('title')[1]);
 
-      userEvent.click(screen.getByText('Select a dashboard'));
-      userEvent.click(screen.getByText('+ Create New Dashboard'));
+      await selectEvent.select(
+        screen.getByText('Select a dashboard'),
+        '+ Create New Dashboard'
+      );
 
       // Saves the widget
       userEvent.click(screen.getByText('Add Widget'));
@@ -2011,8 +2011,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
       userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
       userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
 
@@ -2025,8 +2024,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       userEvent.click(screen.getByText('Line Chart'));
       userEvent.click(screen.getByText('Area Chart'));
@@ -2105,8 +2103,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       userEvent.click(screen.getByText('Limit to 5 results'));
       userEvent.click(screen.getByText('Limit to 2 results'));
@@ -2131,8 +2128,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
