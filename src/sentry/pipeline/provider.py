@@ -4,8 +4,8 @@ import abc
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 if TYPE_CHECKING:
-    from sentry.pipeline.views.base import PipelineView
     from sentry.pipeline import Pipeline
+    from sentry.pipeline.views.base import PipelineView
 
 
 class PipelineProvider(abc.ABC):
