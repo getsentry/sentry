@@ -1,4 +1,4 @@
-import {useEffect, useReducer} from 'react';
+import {useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -43,27 +43,6 @@ type MetricsProviderProps = {
   skipLoad?: boolean;
 };
 
-type MetricsReducerAction =
-  | {payload: MetricsContextValue['metas']; type: 'add metas'}
-  | {payload: MetricsTagCollection; type: 'add tags'};
-
-function MetricsReducer(
-  state: MetricsContextValue,
-  action: MetricsReducerAction
-): MetricsContextValue {
-  switch (action.type) {
-    case 'add metas': {
-      return {...state, metas: action.payload};
-    }
-    case 'add tags': {
-      return {...state, tags: action.payload};
-    }
-    default: {
-      return state;
-    }
-  }
-}
-
 export function MetricsProvider({
   children,
   projects,
@@ -72,7 +51,7 @@ export function MetricsProvider({
   skipLoad = false,
 }: MetricsProviderProps) {
   const api = useApi();
-  const [state, dispatch] = useReducer(MetricsReducer, {metas: {}, tags: {}});
+  const [state, setState] = useState({metas: {}, tags: {}});
 
   useEffect(() => {
     if (!skipLoad) {
@@ -87,7 +66,7 @@ export function MetricsProvider({
           return;
         }
 
-        dispatch({type: 'add metas', payload: response});
+        setState(oldState => ({...oldState, metas: response}));
       })
       .catch(e => {
         if (shouldCancelRequest) {
@@ -117,7 +96,7 @@ export function MetricsProvider({
           return;
         }
 
-        dispatch({type: 'add tags', payload: response});
+        setState(oldState => ({...oldState, tags: response}));
       })
       .catch(e => {
         if (shouldCancelRequest) {
