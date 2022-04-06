@@ -4,6 +4,11 @@ export type GuideStep = {
    */
   description: React.ReactNode;
   /**
+   * Step is tied to an anchor target. If the anchor doesn't exist, the step
+   * will not be shown.
+   */
+  target: string;
+  /**
    * Disables dismissal
    */
   cantDismiss?: boolean;
@@ -16,13 +21,6 @@ export type GuideStep = {
    * Label for the next button
    */
   nextText?: string;
-  /**
-   * Step is tied to an anchor target. If the anchor doesn't exist, the step
-   * will not be shown. If the anchor exists but is of type "invisible", it will
-   * not be pinged but will be scrolled to. Otherwise the anchor will be pinged
-   * and scrolled to.
-   */
-  target?: string;
   /**
    * The main title of the step
    */
@@ -41,6 +39,12 @@ type BaseGuide = {
    * Show the guide to users who've joined before the date threshold
    */
   dateThreshold?: Date;
+  /**
+   * Anchors that are expected to appear when the step is reached. This may be
+   * useful when a previous step triggers an element which includes the next
+   * anchor.
+   */
+  expectedTargets?: string[];
   /**
    * When dismissing a guide on the same page, all subsequent guides
    * will be marked as seen.

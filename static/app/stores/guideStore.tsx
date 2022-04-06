@@ -266,12 +266,16 @@ const storeConfig: GuideStoreDefinition = {
       });
     }
 
+    // Remove steps that are missing anchors, unless the anchor is included in
+    // the expectedTargets and will appear at the step.
     const nextGuide =
       guideOptions.length > 0
         ? {
             ...guideOptions[0],
             steps: guideOptions[0].steps.filter(
-              step => step.target && anchors.has(step.target)
+              step =>
+                anchors.has(step.target) ||
+                guideOptions[0]?.expectedTargets?.includes(step.target)
             ),
           }
         : null;
