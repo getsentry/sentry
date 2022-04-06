@@ -1,5 +1,5 @@
 ---
-created: '2022-03-29T08:56:52.712372Z'
+created: '2022-04-06T18:23:32.512583Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -14,30 +14,30 @@ breakdownsV2:
 transactionMetrics:
   extractCustomTags: []
   extractMetrics:
-  - sentry.transactions.transaction.duration
-  - sentry.transactions.user
-  - sentry.transactions.measurements.app_start_cold
-  - sentry.transactions.measurements.app_start_warm
-  - sentry.transactions.measurements.cls
-  - sentry.transactions.measurements.fcp
-  - sentry.transactions.measurements.fid
-  - sentry.transactions.measurements.fp
-  - sentry.transactions.measurements.frames_frozen
-  - sentry.transactions.measurements.frames_frozen_rate
-  - sentry.transactions.measurements.frames_slow
-  - sentry.transactions.measurements.frames_slow_rate
-  - sentry.transactions.measurements.frames_total
-  - sentry.transactions.measurements.lcp
-  - sentry.transactions.measurements.stall_count
-  - sentry.transactions.measurements.stall_longest_time
-  - sentry.transactions.measurements.stall_percentage
-  - sentry.transactions.measurements.stall_total_time
-  - sentry.transactions.measurements.ttfb
-  - sentry.transactions.measurements.ttfb.requesttime
-  - sentry.transactions.breakdowns.span_ops.ops.http
-  - sentry.transactions.breakdowns.span_ops.ops.db
-  - sentry.transactions.breakdowns.span_ops.ops.browser
-  - sentry.transactions.breakdowns.span_ops.ops.resource
+  - transaction.duration
+  - transaction.user
+  - transaction.measurements.app_start_cold
+  - transaction.measurements.app_start_warm
+  - transaction.measurements.cls
+  - transaction.measurements.fcp
+  - transaction.measurements.fid
+  - transaction.measurements.fp
+  - transaction.measurements.frames_frozen
+  - transaction.measurements.frames_frozen_rate
+  - transaction.measurements.frames_slow
+  - transaction.measurements.frames_slow_rate
+  - transaction.measurements.frames_total
+  - transaction.measurements.lcp
+  - transaction.measurements.stall_count
+  - transaction.measurements.stall_longest_time
+  - transaction.measurements.stall_percentage
+  - transaction.measurements.stall_total_time
+  - transaction.measurements.ttfb
+  - transaction.measurements.ttfb.requesttime
+  - transaction.breakdowns.span_ops.ops.http
+  - transaction.breakdowns.span_ops.ops.db
+  - transaction.breakdowns.span_ops.ops.browser
+  - transaction.breakdowns.span_ops.ops.resource
   satisfactionThresholds:
     projectThreshold:
       metric: duration
