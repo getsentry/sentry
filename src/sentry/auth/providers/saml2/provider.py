@@ -88,7 +88,7 @@ class SAML2LoginView(AuthView):
 # (sentry) (the typical case) and the Identity Provider. In the second case,
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
-# auth_provider_login, but with support for initing the auth flow.
+# auth_provider_login, but with support for initializing the auth flow.
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, organization_slug):

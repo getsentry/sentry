@@ -29,7 +29,7 @@ class SAML2ProviderTest(TestCase):
 
         assert "attribute_mapping" in config
 
-    def test_buld_config_with_provider_attributes(self):
+    def test_build_config_with_provider_attributes(self):
         with mock.patch.object(self.provider, "attribute_mapping") as attribute_mapping:
             config = self.provider.build_config({})
 
