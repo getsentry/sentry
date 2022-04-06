@@ -11,6 +11,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -119,28 +120,30 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <PageFiltersContainer
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
-        >
-          <PerformanceLanding
-            eventView={eventView}
-            setError={setError}
-            handleSearch={handleSearch}
-            handleTrendsClick={() => handleTrendsClick({location, organization})}
-            shouldShowOnboarding={shouldShowOnboarding()}
-            organization={organization}
-            location={location}
-            projects={projects}
-            selection={selection}
-          />
-        </PageFiltersContainer>
+        <MEPSettingProvider>
+          <PageFiltersContainer
+            defaultSelection={{
+              datetime: {
+                start: null,
+                end: null,
+                utc: false,
+                period: DEFAULT_STATS_PERIOD,
+              },
+            }}
+          >
+            <PerformanceLanding
+              eventView={eventView}
+              setError={setError}
+              handleSearch={handleSearch}
+              handleTrendsClick={() => handleTrendsClick({location, organization})}
+              shouldShowOnboarding={shouldShowOnboarding()}
+              organization={organization}
+              location={location}
+              projects={projects}
+              selection={selection}
+            />
+          </PageFiltersContainer>
+        </MEPSettingProvider>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );
