@@ -8,6 +8,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
+from enum import Enum
 from typing import (
     Any,
     Collection,
@@ -83,6 +84,11 @@ _DURATION_FIELDS = (
     "avg(session.duration)",
     "max(session.duration)",
 ) + _DURATION_PERCENTILES
+
+
+class _QueryType(Enum):
+    TOTALS = "totals"
+    SERIES = "series"
 
 
 @dataclass(frozen=True)
@@ -178,7 +184,7 @@ class _DataPointKey:
 
 _DataPoints = MutableMapping[_DataPointKey, float]
 _SnubaData = Sequence[MutableMapping[str, Any]]
-_SnubaQueryByMetric = List[Tuple[MetricKey, Query]]
+_SnubaQueryByMetric = List[Tuple[MetricKey, _QueryType, Query]]
 _SnubaDataByMetric = List[Tuple[MetricKey, _SnubaData]]
 
 
@@ -374,31 +380,36 @@ def _get_snuba_queries(
     metric_id: int,
     columns: List[SelectableExpression],
     extra_conditions: Optional[List[Condition]] = None,
-) -> Iterable[Tuple[MetricKey, Query]]:
+) -> Iterable[Tuple[MetricKey, _QueryType, Query]]:
     """Get snuba queries required for this metric.
     In case of the intial query, get the data right away, so other queries can use its
     output as a filter.
     """
 
-    for query_type in ("totals", "series"):
+    for query_type in (_QueryType.TOTALS, _QueryType.SERIES):
         snuba_query = _get_snuba_query(
             org_id,
             query,
             entity_key,
             metric_id,
             columns,
-            series=query_type == "series",
+            series=query_type == _QueryType.SERIES,
             extra_conditions=extra_conditions or [],
         )
         if snuba_query is not None:
-            yield (metric_key, snuba_query)
+            yield (metric_key, query_type, snuba_query)
 
 
 def _get_group_conditions(
     groupby: Collection[Column],
     defining_rows: _SnubaData,
-) -> List[Condition]:
-    """Create a filter based on the groups that are present in defining_rows"""
+) -> Optional[List[Condition]]:
+    """Create a filter based on the groups that are present in defining_rows
+
+    Return None if no groups can be found.
+    """
+    if not groupby:
+        return []
 
     # Only "totals" queries may set the limiting conditions:
     assert Column(TS_COL_GROUP) not in groupby
@@ -406,8 +417,9 @@ def _get_group_conditions(
     groupby = list(groupby)  # Make sure groupby has a fixed order
     groups = [{column.name: row[column.name] for column in groupby} for row in defining_rows]
 
-    if not groupby:
-        return []
+    if not groups:
+        # Unable to determine grouping conditions, get them from next query.
+        return None
 
     # Create conditions from the groups in group by
     group_values = [Function("tuple", [row[column.name] for column in groupby]) for row in groups]
@@ -438,27 +450,35 @@ def _fetch_data(
     columns_fetched: Set[SelectableExpression] = set()
 
     for raw_field in query.raw_fields:
-        data, field_map = _fetch_queries_for_field(org_id, query, raw_field, columns_fetched)
-        all_queries.extend(data)
+        queries, field_map = _fetch_queries_for_field(org_id, query, raw_field, columns_fetched)
+        all_queries.extend(queries)
         metric_to_output_field.update(field_map)
 
     combined_data: _SnubaDataByMetric = []
 
     group_conditions: Optional[List[Column]] = None if query.raw_groupby else []
     secondary_queries = []
-    for metric_key, snuba_query in all_queries:
+    for metric_key, query_type, snuba_query in all_queries:
         if group_conditions is None:
+            if query_type == _QueryType.SERIES:
+                # This means the corresponding totals query did not initialize
+                # groups, so it did not have any data. No need to query series.
+                continue
+
             # Initialize group_conditions
             snuba_data = raw_snql_query(snuba_query, referrer="metrics_sessions_v2.initial")["data"]
+            combined_data.append((metric_key, snuba_data))
             group_conditions = _get_group_conditions(snuba_query.groupby, snuba_data)
         else:
             where = (snuba_query.where or []) + group_conditions
             snuba_query = replace(snuba_query, where=where, orderby=None, limit=Limit(SNUBA_LIMIT))
-            secondary_queries.append(snuba_query)
+            secondary_queries.append((metric_key, snuba_query))
 
     if secondary_queries:
-        secondary_results = bulk_snql_query(secondary_queries, referrer="metrics_sessions_v2.bulk")
-        combined_data.extend([result["data"] for result in secondary_results])
+        metric_keys, queries = zip(*secondary_queries)
+        secondary_results = bulk_snql_query(queries, referrer="metrics_sessions_v2.bulk")
+        results = zip(metric_keys, [result["data"] for result in secondary_results])
+        combined_data.extend(results)
 
     return combined_data, metric_to_output_field
 
@@ -474,7 +494,7 @@ def _fetch_queries_for_field(
 ]:
     tag_key_session_status = resolve_tag_key(org_id, "session.status")
 
-    snuba_queries: List[Tuple[MetricKey, Query]] = []
+    snuba_queries: List[Tuple[MetricKey, _QueryType, Query]] = []
 
     # Find the field that needs a specific column in a specific metric
     metric_to_output_field: MutableMapping[Tuple[MetricKey, _VirtualColumnName], _OutputField] = {}
@@ -626,7 +646,7 @@ def _fetch_queries_for_field(
     return snuba_queries, metric_to_output_field
 
 
-def _flatten_data(org_id: int, data: _SnubaQueryByMetric) -> _DataPoints:
+def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
     """Unite snuba data from multiple queries into a single key-value map for easier access"""
     data_points = {}
 

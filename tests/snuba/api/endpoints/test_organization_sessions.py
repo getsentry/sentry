@@ -672,6 +672,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         expected = self.expected_duration_values
 
         groups = result_sorted(response.data)["groups"]
+        print(groups)
         assert len(groups) == 1, groups
         group = groups[0]
 
