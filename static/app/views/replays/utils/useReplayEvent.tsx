@@ -174,6 +174,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       // endTimestamp by using the timestamp of the final span
       const mergedReplayEvent = {
         ...replayEvents[0],
+        breakdowns: null,
         entries: [{type: EntryType.SPANS, data: spans}],
         // This is probably better than taking the end timestamp of the last `replayEvent`
         endTimestamp: spans[spans.length - 1]?.timestamp,
