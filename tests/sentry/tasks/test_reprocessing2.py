@@ -114,12 +114,11 @@ def test_basic(
 ):
     from sentry import eventstream
 
-    tombstone_calls = 0
+    tombstone_calls = []
     old_tombstone_fn = eventstream.tombstone_events_unsafe
 
     def tombstone_called(*args, **kwargs):
-        nonlocal tombstone_calls
-        tombstone_calls += 1
+        tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
     monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
@@ -189,9 +188,18 @@ def test_basic(
     # Old event is actually getting tombstoned
     assert not get_event_by_processing_counter("x0")
     if change_groups:
-        assert tombstone_calls == 1
+        assert tombstone_calls == [
+            (
+                (2, [old_event.event_id]),
+                {
+                    "from_timestamp": old_event.datetime,
+                    "old_primary_hash": old_event.get_primary_hash(),
+                    "to_timestamp": old_event.datetime,
+                },
+            )
+        ]
     else:
-        assert tombstone_calls == 0
+        assert not tombstone_calls
 
 
 @pytest.mark.django_db

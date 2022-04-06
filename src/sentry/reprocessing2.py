@@ -367,6 +367,8 @@ def buffered_delete_old_primary_hash(
 
                 from sentry import eventstream
 
+                assert primary_hash is not None
+
                 # In the worst case scenario, a group will have a 1:1 mapping of primary hashes to
                 # events, which means 1 insert per event.
                 # The overall performance of this will be marginally better than the unbatched version
@@ -374,7 +376,7 @@ def buffered_delete_old_primary_hash(
                 eventstream.tombstone_events_unsafe(
                     project_id,
                     event_ids,
-                    old_primary_hash=old_primary_hash,
+                    old_primary_hash=primary_hash,
                     from_timestamp=from_date,
                     to_timestamp=to_date,
                 )
