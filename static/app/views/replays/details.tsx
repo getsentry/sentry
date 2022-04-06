@@ -103,16 +103,6 @@ function getProjectSlug(event: Event) {
   return event.projectSlug || event['project.name']; // seems janky
 }
 
-// function isReplayEventEntity(entry: Entry) {
-// // Starting with an allowlist, might be better to block only a few types (like Tags)
-// switch (entry.type) {
-// case EntryType.SPANS:
-// return true;
-// default:
-// return false;
-// }
-// }
-
 function ReplayLoader(props: ReplayLoaderProps) {
   const orgSlug = props.orgId;
 
