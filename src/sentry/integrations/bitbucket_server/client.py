@@ -54,8 +54,6 @@ class BitbucketServerSetupClient(ApiClient):
         Step 2 of the oauth flow.
         Get a URL that the user can verify our request token at.
         """
-        if not request_token.get("oauth_token"):
-            raise ApiError("Missing oauth_token")
         return self.authorize_url.format(self.base_url, request_token["oauth_token"])
 
     def get_access_token(self, request_token, verifier):
