@@ -43,7 +43,8 @@ from sentry.snuba.metrics.fields.snql import (
     percentage,
     sessions_errored_set,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 
 
 @dataclass

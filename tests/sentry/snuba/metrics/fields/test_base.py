@@ -6,7 +6,6 @@ import pytest
 from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -31,6 +30,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
+from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 

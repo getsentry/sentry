@@ -8,7 +8,8 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import percentage
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 

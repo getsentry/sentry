@@ -8,13 +8,9 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
-from sentry.sentry_metrics.transactions import (
-    TransactionMetricKey,
-    TransactionStatusTagValue,
-    TransactionTagsKey,
-)
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS

@@ -61,7 +61,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp

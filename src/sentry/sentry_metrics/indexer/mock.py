@@ -2,8 +2,7 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, MutableMapping, Optional, Set
 
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
-
+from ...snuba.metrics.naming_layer.mri import SessionMRI
 from .base import StringIndexer
 
 _STRINGS = (

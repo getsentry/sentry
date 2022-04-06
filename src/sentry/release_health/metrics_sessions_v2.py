@@ -57,7 +57,7 @@ from sentry.sentry_metrics.utils import (
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, QueryDefinition, finite_or_none, get_timestamps
 from sentry.utils.snuba import raw_snql_query
 

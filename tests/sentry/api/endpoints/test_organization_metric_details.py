@@ -3,9 +3,10 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI, get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 

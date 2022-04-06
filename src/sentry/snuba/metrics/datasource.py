@@ -22,7 +22,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
-from sentry.snuba.metrics.naming_abstraction_layer import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,

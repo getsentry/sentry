@@ -19,7 +19,7 @@ from sentry.sentry_metrics.multiprocess import (
     ProduceStep,
     process_messages,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 

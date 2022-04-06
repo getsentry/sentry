@@ -34,7 +34,7 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,

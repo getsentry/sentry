@@ -49,11 +49,8 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import (
-    SessionMRI,
-    TransactionMRI,
-    get_reverse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mapping import get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,

@@ -10,7 +10,7 @@ from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTrigge
 from sentry.models import Integration
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now

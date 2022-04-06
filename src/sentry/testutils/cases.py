@@ -124,7 +124,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_abstraction_layer import SessionMRI
+from ..snuba.metrics.naming_layer.mri import SessionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures

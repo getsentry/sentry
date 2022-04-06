@@ -11,7 +11,7 @@ from sentry.snuba.entity_subscription import (
     TransactionsEntitySubscription,
     get_entity_subscription_for_dataset,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 

@@ -14,7 +14,7 @@ from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
 )
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,

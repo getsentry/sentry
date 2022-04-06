@@ -19,7 +19,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.naming_abstraction_layer import SessionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases

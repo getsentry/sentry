@@ -1,12 +1,31 @@
-"""Base module for transaction-related metrics"""
 from enum import Enum
+
+
+class SessionMetricKey(Enum):
+    """
+    These are the public facing names of the API and only the transaction names listed here are
+    queryable in the API.
+    """
+
+    DURATION = "session.duration"
+    ALL = "session.all"
+    ABNORMAL = "session.abnormal"
+    CRASHED = "session.crashed"
+    ERRORED = "session.errored"
+    HEALTHY = "session.healthy"
+    CRASH_FREE_RATE = "session.crash_free_rate"
+    ALL_USER = "session.all_user"
+    ABNORMAL_USER = "session.abnormal_user"
+    CRASHED_USER = "session.crashed_user"
+    ERRORED_USER = "session.errored_user"
+    HEALTHY_USER = "session.healthy_user"
+    CRASH_FREE_USER_RATE = "session.crash_free_user_rate"
 
 
 class TransactionMetricKey(Enum):
     """
-    Identifier for a transaction-related metric.
-
-    The values are the metric names sumbitted by Relay.
+    These are the public facing names of the API and only the transaction names listed here are
+    queryable in the API.
     """
 
     USER = "transaction.user"
