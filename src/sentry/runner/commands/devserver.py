@@ -333,7 +333,12 @@ def devserver(
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
+        quiet = (
+            name not in settings.DEVSERVER_LOGS_ALLOWLIST
+            if settings.DEVSERVER_LOGS_ALLOWLIST is not None
+            else False
+        )
+        manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)
