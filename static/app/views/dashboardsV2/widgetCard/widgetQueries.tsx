@@ -141,10 +141,10 @@ type Props = {
   cursor?: string;
   limit?: number;
   onDataFetched?: (results: {
+    pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-  pagination?: boolean;
 };
 
 type State = {
@@ -257,16 +257,8 @@ class WidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
-    const {
-      selection,
-      api,
-      organization,
-      widget,
-      limit,
-      cursor,
-      pagination,
-      onDataFetched,
-    } = this.props;
+    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
+      this.props;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -278,7 +270,7 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: limit ?? DEFAULT_TABLE_LIMIT,
-        ...(!!!pagination ? {noPagination: true} : {cursor}),
+        cursor,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
@@ -318,8 +310,9 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        const pageLinks = resp?.getResponseHeader('Link');
 
-        onDataFetched?.({tableResults});
+        onDataFetched?.({tableResults, pageLinks: pageLinks ?? undefined});
 
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
@@ -330,7 +323,7 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             tableResults,
-            pageLinks: resp?.getResponseHeader('Link'),
+            pageLinks,
           };
         });
       } catch (err) {

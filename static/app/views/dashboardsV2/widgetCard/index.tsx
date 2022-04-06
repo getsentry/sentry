@@ -18,7 +18,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -57,7 +57,13 @@ type Props = WithRouterProps & {
   windowWidth?: number;
 };
 
-type State = {seriesData?: Series[]; tableData?: TableDataWithTitle[]};
+type State = {
+  issuesData?: TableDataRow[];
+  pageLinks?: string;
+  seriesData?: Series[];
+  tableData?: TableDataWithTitle[];
+  totalIssuesCount?: string;
+};
 
 class WidgetCard extends React.Component<Props, State> {
   state: State = {};
@@ -136,7 +142,7 @@ class WidgetCard extends React.Component<Props, State> {
       index,
     } = this.props;
 
-    const {seriesData, tableData} = this.state;
+    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
 
     if (isEditing) {
       return null;
@@ -159,6 +165,9 @@ class WidgetCard extends React.Component<Props, State> {
         index={index}
         seriesData={seriesData}
         tableData={tableData}
+        issuesData={issuesData}
+        pageLinks={pageLinks}
+        totalIssuesCount={totalIssuesCount}
       />
     );
   }
@@ -166,11 +175,23 @@ class WidgetCard extends React.Component<Props, State> {
   setData = ({
     tableResults,
     timeseriesResults,
+    issuesResults,
+    totalIssuesCount,
+    pageLinks,
   }: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    totalIssuesCount?: string;
   }) => {
-    this.setState({seriesData: timeseriesResults, tableData: tableResults});
+    this.setState({
+      seriesData: timeseriesResults,
+      tableData: tableResults,
+      issuesData: issuesResults,
+      totalIssuesCount,
+      pageLinks,
+    });
   };
 
   render() {

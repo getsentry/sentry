@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
@@ -29,13 +29,16 @@ type Props = {
   widgetLimitReached: boolean;
   index?: string;
   isPreview?: boolean;
+  issuesData?: TableDataRow[];
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  pageLinks?: string;
   seriesData?: Series[];
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
+  totalIssuesCount?: string;
 };
 
 function WidgetCardContextMenu({
@@ -54,6 +57,9 @@ function WidgetCardContextMenu({
   index,
   seriesData,
   tableData,
+  issuesData,
+  pageLinks,
+  totalIssuesCount,
 }: Props) {
   if (!showContextMenu) {
     return null;
@@ -104,7 +110,14 @@ function WidgetCardContextMenu({
                 size="zero"
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
-                  (seriesData || tableData) && setData({seriesData, tableData});
+                  (seriesData || tableData || issuesData) &&
+                    setData({
+                      seriesData,
+                      tableData,
+                      issuesData,
+                      pageLinks,
+                      totalIssuesCount,
+                    });
                   openWidgetViewerPath(index);
                 }}
               />
@@ -210,7 +223,14 @@ function WidgetCardContextMenu({
               size="zero"
               icon={<IconExpand size="xs" />}
               onClick={() => {
-                (seriesData || tableData) && setData({seriesData, tableData});
+                (seriesData || tableData || issuesData) &&
+                  setData({
+                    seriesData,
+                    tableData,
+                    issuesData,
+                    pageLinks,
+                    totalIssuesCount,
+                  });
                 openWidgetViewerPath(widget.id ?? index);
               }}
             />
