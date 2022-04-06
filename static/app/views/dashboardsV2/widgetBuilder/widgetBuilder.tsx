@@ -283,14 +283,17 @@ function WidgetBuilder({
   }, []);
 
   useEffect(() => {
-    if (notDashboardsOrigin && !widgetBuilderNewDesign) {
+    if (notDashboardsOrigin) {
       fetchDashboards();
     }
 
     if (widgetBuilderNewDesign) {
       setState({
         ...state,
-        selectedDashboard: {label: dashboard.title, value: dashboard.id},
+        selectedDashboard: {
+          label: dashboard.title,
+          value: dashboard.id === '' ? 'new' : dashboard.id,
+        },
       });
     }
   }, [source]);
@@ -736,7 +739,7 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    if (notDashboardsOrigin) {
+    if (notDashboardsOrigin && !widgetBuilderNewDesign) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
       if (!state.selectedDashboard) {
         setState({
@@ -773,12 +776,12 @@ function WidgetBuilder({
 
     try {
       const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
+      setState(prevState => ({...prevState, dashboards, loading: false}));
     } catch (error) {
       const errorMessage = t('Unable to fetch dashboards');
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
+      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
