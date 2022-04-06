@@ -664,6 +664,13 @@ class RuleTestCase(TestCase):
         assert rule.passes(event, state) is False
 
 
+def exhaust_response(resp):
+    # Access the attribute to ensure the response closes properly
+    if hasattr(resp, "streaming_content"):
+        for item in resp.streaming_content:
+            pass
+
+
 class PermissionTestCase(TestCase):
     def setUp(self):
         super().setUp()
@@ -677,11 +684,13 @@ class PermissionTestCase(TestCase):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
+        exhaust_response(resp)
 
     def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
+        exhaust_response(resp)
 
     def assert_member_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "member", **kwargs)

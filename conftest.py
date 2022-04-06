@@ -30,7 +30,12 @@ def enable_file_tracking():
     handle_stacks = {}
 
     def _handle_key(handle):
-        return handle.fileno()
+        # reach through the handle to the innermost piece
+        if hasattr(handle, "buffer") and hasattr(handle.buffer, "fileno"):
+            handle = handle.buffer
+        if hasattr(handle, "raw") and hasattr(handle.raw, "fileno"):
+            handle = handle.raw
+        return (id(handle), handle.fileno())
 
     class patched_catch_unraisable_exception(unraisableexception.catch_unraisable_exception):
         def _hook(self, ur):
@@ -38,9 +43,6 @@ def enable_file_tracking():
             try:
                 stack, handle_repr = handle_stacks[_handle_key(ur.object)]
             except Exception:
-                import pprint
-
-                pprint.pprint(handle_stacks)
                 return
 
             for idx, line in enumerate(stack):

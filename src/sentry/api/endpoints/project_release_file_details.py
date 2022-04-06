@@ -26,6 +26,19 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
+class PassThroughClose:
+    def __init__(self, inner, outer):
+        self._inner = inner
+        self._outer = outer
+
+    def close(self):
+        self._inner.close()
+        self._outer.close()
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
 def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
     index = read_artifact_index(release, dist)
     if index is None:
@@ -67,12 +80,13 @@ class ReleaseFileDetailsMixin:
 
         # Do not use ReleaseFileCache here, we view download as a singular event
         archive_file = ReleaseFile.objects.get(release_id=release.id, ident=archive_ident)
-        archive = ZipFile(archive_file.file.getfile())
+        real_fp = archive_file.file.getfile()
+        archive = ZipFile(real_fp)
         fp = archive.open(entry["filename"])
         headers = entry.get("headers", {})
 
         response = FileResponse(
-            fp,
+            PassThroughClose(fp, real_fp),
             content_type=headers.get("content-type", "application/octet-stream"),
         )
         response["Content-Length"] = entry["size"]
