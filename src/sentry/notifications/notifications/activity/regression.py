@@ -12,7 +12,7 @@ from .base import GroupActivityNotification
 
 
 class RegressionActivityNotification(GroupActivityNotification):
-    referrer_base = "regression-activity"
+    metrics_key = "regression_activity"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -35,9 +35,6 @@ class RegressionActivityNotification(GroupActivityNotification):
             html_params["version"] = f'<a href="{version_url}">{escape(self.version_parsed)}</a>'
 
         return message, params, html_params
-
-    def get_category(self) -> str:
-        return "regression_activity_email"
 
     def get_notification_title(self) -> str:
         text = "Issue marked as regression"

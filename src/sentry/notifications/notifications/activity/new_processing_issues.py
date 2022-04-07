@@ -12,7 +12,7 @@ from .base import ActivityNotification
 
 
 class NewProcessingIssuesActivityNotification(ActivityNotification):
-    referrer_base = "new-processing-issues-activity"
+    metrics_key = "new_processing_issues_activity"
     template_path = "sentry/emails/activity/new_processing_issues"
 
     def __init__(self, activity: Activity) -> None:
@@ -52,9 +52,6 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
 
     def get_title(self) -> str:
         return self.get_subject()
-
-    def get_category(self) -> str:
-        return "new_processing_issues_activity_email"
 
     def get_notification_title(self) -> str:
         project_url = absolute_uri(

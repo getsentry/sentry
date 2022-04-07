@@ -29,9 +29,6 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
     def get_type(self) -> str:
         return "organization.invite-request"
 
-    def get_category(self) -> str:
-        return "organization_invite_request"
-
     @property
     def members_url(self) -> str:
         url: str = absolute_uri(reverse("sentry-organization-members", args=[self.org_slug]))

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class NoteActivityNotification(GroupActivityNotification):
     message_builder = "SlackNotificationsMessageBuilder"
-    referrer_base = "note-activity"
+    metrics_key = "note_activity"
     template_path = "sentry/emails/activity/note"
 
     def get_activity_name(self) -> str:
@@ -18,9 +18,6 @@ class NoteActivityNotification(GroupActivityNotification):
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return str(self.activity.data["text"]), {}, {}
-
-    def get_category(self) -> str:
-        return "note_activity_email"
 
     def get_title(self) -> str:
         author = self.activity.user.get_display_name()

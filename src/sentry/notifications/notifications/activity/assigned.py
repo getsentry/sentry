@@ -8,7 +8,7 @@ from .base import GroupActivityNotification
 
 
 class AssignedActivityNotification(GroupActivityNotification):
-    referrer_base = "assigned-activity"
+    metrics_key = "assigned_activity"
 
     def get_activity_name(self) -> str:
         return "Assigned"
@@ -57,9 +57,6 @@ class AssignedActivityNotification(GroupActivityNotification):
                 )
 
         raise NotImplementedError("Unknown Assignee Type ")
-
-    def get_category(self) -> str:
-        return "assigned_activity_email"
 
     def build_notification_title(self) -> tuple[str, str]:
         activity = self.activity

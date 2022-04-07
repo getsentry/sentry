@@ -28,9 +28,8 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
-    referrer_base = "alert-rule"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     template_path = "sentry/emails/error"
 
     def __init__(
@@ -56,9 +55,6 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
         )
-
-    def get_category(self) -> str:
-        return "issue_alert_email"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())

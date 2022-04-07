@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
-    headers = {
-        "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
-    }
+    headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
     if isinstance(notification, ProjectNotification):
         headers["X-Sentry-Project"] = notification.project.slug
 

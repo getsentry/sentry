@@ -24,9 +24,6 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
-    metrics_key: str = ""
-    analytics_event: str = ""
-    referrer_base: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -51,8 +48,23 @@ class BaseNotification(abc.ABC):
     def from_email(self) -> str | None:
         return None
 
-    def get_category(self) -> str:
-        raise NotImplementedError
+    @property
+    def analytics_event(self) -> str | None:
+        """
+        Override this property with the desired name of an analytics event and
+        it will be recorded in `notify()`. Otherwise, only the generic analytics
+        will be recorded by the providers.
+        """
+        return None
+
+    @property
+    @abc.abstractmethod
+    def metrics_key(self) -> str:
+        """
+        When we want to collect analytics about this type of notification, we
+        will use this key. This MUST be snake_case.
+        """
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -164,7 +176,7 @@ class BaseNotification(abc.ABC):
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         # referrer needs the provider and recipient
-        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
