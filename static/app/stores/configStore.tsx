@@ -47,9 +47,9 @@ const storeConfig: ConfigStoreDefinition = {
    * the auto switching of color schemes without affecting manual toggle
    */
   updateTheme(theme) {
-    if (this.config.user?.options.theme !== 'system') {
-      return;
-    }
+    // if (this.config.user?.options.theme !== 'system') {
+    //   return;
+    // }
 
     this.set('theme', theme);
   },

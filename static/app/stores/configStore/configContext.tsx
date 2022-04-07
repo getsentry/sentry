@@ -2,6 +2,9 @@ import {createContext} from 'react';
 
 import {ConfigAction, ConfigState} from './configReducer';
 
-export const ConfigContext = createContext<
-  [ConfigState, React.Dispatch<ConfigAction<keyof ConfigState>>] | null
->(null);
+export type ConfigContextValue = [
+  ConfigState,
+  React.Dispatch<ConfigAction<keyof ConfigState>>
+];
+
+export const ConfigContext = createContext<ConfigContextValue | null>(null);

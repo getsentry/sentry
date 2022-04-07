@@ -1,41 +1,20 @@
-import {useEffect, useReducer, useRef} from 'react';
+import {useEffect, useReducer, useCallback, useMemo} from 'react';
 
 import LegacyConfigStore from 'sentry/stores/configStore';
-import {ConfigContext} from 'sentry/stores/configStore/configContext';
-import {
-  configReducer,
-  makeBridgableReducer,
-} from 'sentry/stores/configStore/configReducer';
+import {ConfigContext, ConfigContextValue} from 'sentry/stores/configStore/configContext';
+import {configReducer} from 'sentry/stores/configStore/configReducer';
 import {Config} from 'sentry/types';
 
 interface ConfigProviderProps {
   children: React.ReactNode;
   initialValue: Config;
-  bridgeReflux?: boolean;
 }
 
 export function ConfigProvider(props: ConfigProviderProps) {
-  const initialBridgeRefluxValue = useRef<ConfigProviderProps['bridgeReflux']>(
-    props.bridgeReflux
-  );
-  const contextValue = useReducer(
-    makeBridgableReducer(configReducer, props.bridgeReflux ?? false),
-    props.initialValue
-  );
+  const contextValue = useReducer(configReducer, props.initialValue);
 
   useEffect(() => {
-    if (initialBridgeRefluxValue.current !== props.bridgeReflux) {
-      throw new Error(
-        `bridgeReflux must not change between rerenders. This may result in undefined and out of sync behavior between the two stores. bridgeReflux changed from ${initialBridgeRefluxValue.current} -> ${props.bridgeReflux}`
-      );
-    }
-
-    if (!props.bridgeReflux) {
-      return undefined;
-    }
-
     const [_, dispatch] = contextValue;
-
     // @ts-ignore we need to bind the listener to a context, hence the variable name,
     // but sadly typescript complains about shadowing here
     const bindContext = this;
@@ -46,9 +25,38 @@ export function ConfigProvider(props: ConfigProviderProps) {
     return () => {
       unsubscribeListener();
     };
-  }, [props.bridgeReflux]);
+  }, []);
+
+  const wrappedDispatch: ConfigContextValue[1] = useCallback(
+    action => {
+      console.log(action);
+      switch (action.type) {
+        case 'set config value': {
+          LegacyConfigStore.set(action.payload.key, action.payload.value);
+          break;
+        }
+        case 'set theme': {
+          LegacyConfigStore.updateTheme(action.payload);
+          break;
+        }
+        default: {
+          console.warn('Unhandled reducer action');
+        }
+      }
+
+      const reducerDispatch = contextValue[1];
+      reducerDispatch(action);
+    },
+    [contextValue[0], contextValue[1]]
+  );
+
+  const wrappedContextValue = useMemo((): ConfigContextValue => {
+    return [contextValue[0], wrappedDispatch];
+  }, [contextValue[0], wrappedDispatch]);
 
   return (
-    <ConfigContext.Provider value={contextValue}>{props.children}</ConfigContext.Provider>
+    <ConfigContext.Provider value={wrappedContextValue}>
+      {props.children}
+    </ConfigContext.Provider>
   );
 }
