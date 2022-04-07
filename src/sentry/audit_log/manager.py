@@ -3,6 +3,8 @@ from typing import Callable, List
 
 import sentry_sdk
 
+from sentry.models.auditlogentry import AuditLogEntry
+
 
 @dataclass
 class AuditLogEvent:
@@ -10,7 +12,7 @@ class AuditLogEvent:
     name: str
     api_name: str
     # render holds a function that will determine the message to be displayed in the audit log
-    render: Callable[..., str]
+    render: Callable[[AuditLogEntry], str]
 
 
 class AuditLogEventManager:
