@@ -6,7 +6,7 @@ export function useMetricsContext() {
   const metricsContext = useContext(MetricsContext);
 
   if (!metricsContext) {
-    throw new Error('useMetricsContext was called outside of MetricsContextProvider');
+    throw new Error('useMetricsContext was called outside of MetricsProvider');
   }
 
   return {

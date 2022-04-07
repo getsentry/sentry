@@ -45,7 +45,7 @@ describe('useMetricsContext', function () {
     });
   });
 
-  it('works', async function () {
+  it("fetches metrics and tags and save values in the context's state", async function () {
     render(
       <MetricsProvider organization={organization} projects={[project.id]}>
         <TestComponent other="value" />
@@ -66,7 +66,7 @@ describe('useMetricsContext', function () {
     expect(screen.getByText('sentry.sessions.session.error')).toBeInTheDocument();
   });
 
-  it('skip load', function () {
+  it('skip metrics and tags fetches', function () {
     render(
       <MetricsProvider organization={organization} projects={[project.id]} skipLoad>
         <TestComponent other="value" />
