@@ -23,7 +23,7 @@ type State = {
   /**
    * List of breadcrumbs
    */
-  breadcrumbEvent: undefined | Entry;
+  breadcrumbEntry: undefined | Entry;
 
   /**
    * The root replay event
@@ -85,7 +85,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
   const [state, setState] = useState<State>({
     fetchError: undefined,
     fetching: true,
-    breadcrumbEvent: undefined,
+    breadcrumbEntry: undefined,
     event: undefined,
     replayEvents: undefined,
     rrwebEvents: undefined,
@@ -150,7 +150,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
       fetchError: undefined,
       fetching: true,
 
-      breadcrumbEvent: undefined,
+      breadcrumbEntry: undefined,
       event: undefined,
       replayEvents: undefined,
       rrwebEvents: undefined,
@@ -163,7 +163,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         fetchReplayEvents(),
       ]);
 
-      const breadcrumbEvent = mergeBreadcrumbsEntries(replayEvents || []);
+      const breadcrumbEntry = mergeBreadcrumbsEntries(replayEvents || []);
 
       // Get a merged list of all spans from all replay events
       const spans = replayEvents.flatMap(
@@ -188,14 +188,14 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
         mergedReplayEvent,
         replayEvents,
         rrwebEvents,
-        breadcrumbEvent,
+        breadcrumbEntry,
       });
     } catch (error) {
       setState({
         fetchError: error,
         fetching: false,
 
-        breadcrumbEvent: undefined,
+        breadcrumbEntry: undefined,
         event: undefined,
         replayEvents: undefined,
         rrwebEvents: undefined,
@@ -210,7 +210,7 @@ function useReplayEvent({eventSlug, location, orgId}: Options): Result {
     fetchError: state.fetchError,
     fetching: state.fetching,
 
-    breadcrumbEvent: state.breadcrumbEvent,
+    breadcrumbEntry: state.breadcrumbEntry,
     event: state.event,
     replayEvents: state.replayEvents,
     rrwebEvents: state.rrwebEvents,

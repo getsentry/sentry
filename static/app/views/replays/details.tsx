@@ -109,7 +109,7 @@ function ReplayLoader(props: ReplayLoaderProps) {
   const {
     fetchError,
     fetching,
-    breadcrumbEvent,
+    breadcrumbEntry,
     event,
     replayEvents,
     rrwebEvents,
@@ -138,13 +138,13 @@ function ReplayLoader(props: ReplayLoaderProps) {
       <React.Fragment>
         <BaseRRWebReplayer events={rrwebEvents} />
 
-        {breadcrumbEvent && (
+        {breadcrumbEntry && (
           <EventEntry
             projectSlug={getProjectSlug(event)}
             // group={group}
             organization={props.organization}
             event={event}
-            entry={breadcrumbEvent}
+            entry={breadcrumbEntry}
             route={props.route}
             router={props.router}
           />
