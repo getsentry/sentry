@@ -83,7 +83,15 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
-  return addMessageWithType('error')(msg, options);
+  if (typeof msg === 'string' || React.isValidElement(msg)) {
+    return addMessageWithType('error')(msg, options);
+  }
+  return addMessageWithType('error')(
+    t(
+      "You've hit an issue, fortunately we use Sentry to monitor Sentry. So it's likely we're already looking into this!"
+    ),
+    options
+  );
 }
 
 export function addSuccessMessage(msg: React.ReactNode, options?: Options) {
