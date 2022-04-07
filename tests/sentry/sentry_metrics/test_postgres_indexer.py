@@ -2,11 +2,11 @@ from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.sentry_metrics.indexer.postgres_v2 import (
-    Indexer,
     KeyCollection,
     KeyResult,
     KeyResults,
     PGStringIndexerV2,
+    StaticStringsIndexerDecorator,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
@@ -39,9 +39,9 @@ class PostgresIndexerTest(TestCase):
         assert PGStringIndexer().reverse_resolve(1234) is None
 
 
-class IndexerTest(TestCase):
+class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
-        self.indexer = Indexer()
+        self.indexer = StaticStringsIndexerDecorator()
         StringIndexer.objects.create(organization_id=0, string="release", id=13)
         StringIndexer.objects.create(organization_id=0, string="production", id=12)
         StringIndexer.objects.create(organization_id=0, string="environment", id=7)

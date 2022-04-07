@@ -91,17 +91,6 @@ class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
 
-    @classmethod
-    def merge_results(
-        cls,
-        result_mappings: Sequence[Mapping[int, Mapping[str, int]]],
-    ) -> Mapping[int, Mapping[str, int]]:
-        new_results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        for result_map in result_mappings:
-            for org_id, strings in result_map.items():
-                new_results[org_id].update(strings)
-        return new_results
-
     def add_key_result(self, key_result: KeyResult) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
 
@@ -330,7 +319,7 @@ class PGStringIndexerV2(StringIndexer):
         return string
 
 
-class Indexer(StringIndexer):
+class StaticStringsIndexerDecorator(StringIndexer):
     """
     Wrapper for static strings
     """
@@ -357,7 +346,7 @@ class Indexer(StringIndexer):
 
         indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
 
-        return KeyResults().merge_results([static_string_results, indexer_results])
+        return merge_results([static_string_results, indexer_results])
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
