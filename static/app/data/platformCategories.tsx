@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 
-
 export const popularPlatformCategories = [
   'javascript',
   'javascript-react',
