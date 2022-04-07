@@ -25,6 +25,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import Form from 'sentry/components/forms/form';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
@@ -653,7 +654,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         help={
           hasAlertWizardV3
             ? null
-            : t('Perform the actions above once this often for an issue')
+            : t('Perform these actions once this often for an issue')
         }
         clearable={false}
         name="frequency"
@@ -1024,7 +1025,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </Step>
                 </PanelBody>
               </ConditionsPanel>
-              <StyledListItem>{t('Set action interval')}</StyledListItem>
+              <StyledListItem>
+                {t('Set action interval')}
+                <StyledFieldHelp>
+                  {t('Perform the actions above once this often for an issue')}
+                </StyledFieldHelp>
+              </StyledListItem>
               {hasAlertWizardV3 ? (
                 this.renderActionInterval(hasAccess, canEdit, hasAlertWizardV3)
               ) : (
@@ -1068,6 +1074,10 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const StyledFieldHelp = styled(FieldHelp)`
+  margin-top: 0;
 `;
 
 const SetConditionsListItem = styled(StyledListItem)`
