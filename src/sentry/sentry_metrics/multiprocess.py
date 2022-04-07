@@ -379,7 +379,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        mapping = indexer.bulk_record(org_strings)
+        mapping = indexer.bulk_record(org_strings).mapping
 
     new_messages: List[Message[KafkaPayload]] = []
 

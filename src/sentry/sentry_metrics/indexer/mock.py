@@ -4,7 +4,7 @@ from typing import DefaultDict, Dict, MutableMapping, Optional, Set
 
 from sentry.sentry_metrics.sessions import SessionMetricKey
 
-from .base import StringIndexer
+from .base import BulkRecordResult, StringIndexer
 
 _STRINGS = (
     "crashed",
@@ -34,11 +34,13 @@ class SimpleIndexer(StringIndexer):
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Dict[str, int]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> BulkRecordResult:
         strings = set()
         for _, strs in org_strings.items():
             strings.update(strs)
-        return {string: self._record(string) for string in strings}
+        return BulkRecordResult(
+            mapping={string: self._record(string) for string in strings}, meta={}
+        )
 
     def record(self, org_id: int, string: str) -> int:
         return self._record(string)

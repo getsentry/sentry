@@ -18,7 +18,7 @@ class PostgresIndexerTest(TestCase):
     def test_indexer(self):
         org_id = self.organization.id
         org_strings = {org_id: {"hello", "hey", "hi"}}
-        results = PGStringIndexer().bulk_record(org_strings=org_strings)
+        results = PGStringIndexer().bulk_record(org_strings=org_strings).mapping
         obj_ids = MetricsKeyIndexer.objects.filter(string__in=["hello", "hey", "hi"]).values_list(
             "id", flat=True
         )
@@ -59,7 +59,7 @@ class PostgresIndexerV2Test(TestCase):
             indexer_cache.get_many([f"{org1_id}:{string}" for string in self.strings]).values()
         ) == [None, None, None]
 
-        results = PGStringIndexerV2().bulk_record(org_strings=org_strings)
+        results = PGStringIndexerV2().bulk_record(org_strings=org_strings).mapping
 
         org1_string_ids = list(
             StringIndexer.objects.filter(

@@ -1,8 +1,10 @@
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Any, MutableMapping, Optional, Sequence, Set
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils import metrics
 from sentry.utils.services import Service
+
+from .base import BulkRecordResult
 
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 _INDEXER_CACHE_HIT_METRIC = "sentry_metrics.indexer.memcache.hit"
@@ -31,7 +33,7 @@ class PGStringIndexer(Service):
         # (which should all exist point at this point), but also cache the results
         return MetricsKeyIndexer.objects.get_many_from_cache(list(unmapped_strings), key="string")
 
-    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Mapping[str, int]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> BulkRecordResult:
         # XXX(meredith): We are going to be changing the implementation of bulk_record
         # in a future PR, so for now we don't need to do anything with the org_id, we just
         # want the signature to be correct for the new implementation
@@ -64,7 +66,7 @@ class PGStringIndexer(Service):
         for new in new_mapped:
             mapped_result[new.string] = new.id
 
-        return mapped_result
+        return BulkRecordResult(mapping=mapped_result, meta={})
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""

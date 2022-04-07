@@ -22,6 +22,8 @@ from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerT
 from sentry.utils import metrics
 from sentry.utils.services import Service
 
+from .base import BulkRecordResult
+
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
@@ -153,9 +155,7 @@ class PGStringIndexerV2(Service):
 
         return StringIndexerTable.objects.filter(query_statement)
 
-    def bulk_record(
-        self, org_strings: MutableMapping[int, Set[str]]
-    ) -> MutableMapping[int, MutableMapping[str, int]]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> BulkRecordResult:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -266,7 +266,7 @@ class PGStringIndexerV2(Service):
 
         mapped_results.update(db_write_key_results.get_mapped_results())
 
-        return mapped_results
+        return BulkRecordResult(mapping=mapped_results, meta={})
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
