@@ -19,7 +19,12 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.fields.snql import division_float, failure_count_transaction
+from sentry.snuba.metrics.fields.snql import (
+    division_float,
+    failure_count_transaction,
+    satisfaction_count_transaction,
+)
+from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
 
 
@@ -154,6 +159,42 @@ class DerivedMetricSnQLTestCase(TestCase):
         assert (
             failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
             == expected_failed_txs
+        )
+
+    def test_dist_count_aggregation_on_tx_satisfaction(self):
+        org_id = 1643
+
+        assert satisfaction_count_transaction(
+            org_id, self.metric_ids, "transaction.satisfied"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(
+                                    org_id, TransactionSatisfactionTagValue.SATISFIED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            "transaction.satisfied",
         )
 
     def test_percentage_in_snql(self):
