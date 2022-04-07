@@ -4,6 +4,7 @@ import abc
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
 
+from sentry import analytics
 from sentry.db.models import Model
 from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
@@ -64,3 +65,14 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             "user_id": self.requester.id,
             "target_user_id": recipient.id,
         }
+
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+        # Optionally record a second, identical event.
+        if self.analytics_event:
+            analytics.record(
+                self.analytics_event,
+                instance=self.reference,
+                providers=provider.name.lower(),
+                **self.get_log_params(recipient),
+            )

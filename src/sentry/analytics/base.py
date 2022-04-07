@@ -17,7 +17,10 @@ class Analytics(Service, abc.ABC):
     event_manager = default_manager
 
     def record(
-        self, event_or_event_type: str | Event | Any, instance: Any | None = None, **kwargs: Any
+        self,
+        event_or_event_type: str | Event | Any,
+        instance: Any | None = None,
+        **kwargs: Any,
     ) -> None:
         if isinstance(event_or_event_type, str):
             event = self.event_manager.get(event_or_event_type).from_instance(instance, **kwargs)

@@ -132,45 +132,23 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
         }
 
-    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        """
-        Returns a mapping of params used to record the event associated with self.analytics_event.
-        By default, use the log params.
-        """
-        return self.get_log_params(recipient)
-
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         return []
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    @property
-    def analytics_instance(self) -> Any | None:
-        """
-        Returns an instance for that can be used for analytics such as an organization or project
-        """
-        return None
-
-    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        analytics.record(event_name, *args, **kwargs)
-
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        """
+        Record an analytics event for this notification. This is called by each
+        provider in `notify()`.
+        """
         with sentry_sdk.start_span(op="notification.send", description="record_notification_sent"):
-            # may want to explicitly pass in the parameters for this event
-            self.record_analytics(
+            analytics.record(
                 f"integrations.{provider.name}.notification_sent",
-                category=self.get_category(),
+                category=self.metrics_key,
                 **self.get_log_params(recipient),
             )
-            # record an optional second event
-            if self.analytics_event:
-                self.record_analytics(
-                    self.analytics_event,
-                    self.analytics_instance,
-                    providers=provider.name.lower(),
-                    **self.get_custom_analytics_params(recipient),
-                )
 
     def get_referrer(
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
