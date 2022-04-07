@@ -18,7 +18,7 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.fields.snql import failure_count_transaction, failure_rate_transaction
+from sentry.snuba.metrics.fields.snql import division_float, failure_count_transaction
 from sentry.testutils import TestCase
 
 
@@ -155,19 +155,6 @@ class DerivedMetricSnQLTestCase(TestCase):
             == expected_failed_txs
         )
 
-        assert failure_rate_transaction(
-            failure_count_transaction(org_id, self.metric_ids, "transactions.failed"),
-            all_transactions(org_id, self.metric_ids, "transactions.all"),
-            alias="transactions.failure_rate",
-        ) == Function(
-            "divide",
-            [
-                expected_failed_txs,
-                expected_all_txs,
-            ],
-            alias="transactions.failure_rate",
-        )
-
     def test_percentage_in_snql(self):
         org_id = 666
         alias = "foo.percentage"
@@ -204,6 +191,18 @@ class DerivedMetricSnQLTestCase(TestCase):
                 alias="session.healthy_user",
             )
             == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
+        )
+
+    def test_division_in_snql(self):
+        org_id = 9876
+        alias = "transactions.failure_rate"
+        failed = failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+        all = all_transactions(org_id, self.metric_ids, "transactions.all")
+
+        assert division_float(failed, all, alias=alias) == Function(
+            "divide",
+            [failed, all],
+            alias=alias,
         )
 
     def test_session_duration_filters(self):

@@ -43,10 +43,10 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     crashed_sessions,
     crashed_users,
+    division_float,
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
-    failure_rate_transaction,
     percentage,
     session_duration_filters,
     sessions_errored_set,
@@ -931,8 +931,8 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
                 DerivedMetricKey.TRANSACTION_ALL.value,
             ],
             unit="transactions",
-            snql=lambda *args, org_id, metric_ids, alias=None: failure_rate_transaction(
-                *args, alias=alias
+            snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
+                failure_count, tx_count, alias=alias
             ),
         ),
     ]
