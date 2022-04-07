@@ -63,9 +63,6 @@ class ReleaseActivityNotification(ActivityNotification):
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
 
-    def should_email(self) -> bool:
-        return bool(self.release and self.deploy)
-
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
@@ -178,3 +175,8 @@ class ReleaseActivityNotification(ActivityNotification):
         if self.release:
             return f"{self.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
+
+    def send(self) -> None:
+        # Don't create a message when the Activity doesn't have a release and deploy.
+        if bool(self.release and self.deploy):
+            return super().send()

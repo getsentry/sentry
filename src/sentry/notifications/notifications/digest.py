@@ -128,9 +128,6 @@ class DigestNotification(ProjectNotification):
         }
 
     def send(self) -> None:
-        if not self.should_email():
-            return
-
         # Only calculate shared context once.
         shared_context = self.get_context()
 
