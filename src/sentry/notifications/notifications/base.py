@@ -127,6 +127,11 @@ class BaseNotification(abc.ABC):
         return None
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        """
+        Get the relevant data about a notification that should be passed to any
+        logging calls. Best practice is to call `super().get_log_params()` in
+        any overriding calls.
+        """
         return {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
