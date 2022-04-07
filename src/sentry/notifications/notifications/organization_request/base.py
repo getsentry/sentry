@@ -66,6 +66,15 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             "target_user_id": recipient.id,
         }
 
+    @property
+    def analytics_event(self) -> str | None:
+        """
+        Override this property with the desired name of an analytics event and
+        it will be recorded in `notify()`. Otherwise, only the generic analytics
+        will be recorded by the providers.
+        """
+        return None
+
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         # Optionally record a second, identical event.

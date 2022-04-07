@@ -49,15 +49,6 @@ class BaseNotification(abc.ABC):
         return None
 
     @property
-    def analytics_event(self) -> str | None:
-        """
-        Override this property with the desired name of an analytics event and
-        it will be recorded in `notify()`. Otherwise, only the generic analytics
-        will be recorded by the providers.
-        """
-        return None
-
-    @property
     @abc.abstractmethod
     def metrics_key(self) -> str:
         """
