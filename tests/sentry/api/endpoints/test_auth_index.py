@@ -4,6 +4,7 @@ from unittest import mock
 from django.test import override_settings
 
 from sentry.models import Authenticator, AuthProvider
+from sentry.models.authidentity import AuthIdentity
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
 
@@ -119,6 +120,32 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
+    def test_superuser_sso(self):
+        from sentry.auth.superuser import COOKIE_NAME, Superuser
+
+        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        user = self.create_user("foo@example.com", is_superuser=True)
+
+        user.update(password="")
+
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+
+        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+            SUPERUSER_ORG_ID=self.organization.id
+        ):
+            self.login_as(user, organization_id=self.organization.id)
+            response = self.client.put(
+                self.path,
+                data={
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "for_testing",
+                    "superuserReason": "for testing",
+                },
+            )
+            assert response.status_code == 200
+            assert COOKIE_NAME in response.cookies
+
     def test_superuser_no_sso(self):
         from sentry.auth.superuser import Superuser
 
@@ -130,13 +157,19 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             SUPERUSER_ORG_ID=self.organization.id
         ):
             self.login_as(user)
-            response = self.client.put(self.path, data={"password": "admin"})
+            response = self.client.put(
+                self.path,
+                data={
+                    "password": "admin",
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "for_testing",
+                    "superuserReason": "for testing",
+                },
+            )
             assert response.status_code == 401
 
     def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
-
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -145,7 +178,14 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         ):
             self.login_as(user)
             response = self.client.put(
-                self.path, HTTP_REFERER="http://testserver/bar", data={"password": "admin"}
+                self.path,
+                HTTP_REFERER="http://testserver/bar",
+                data={
+                    "password": "admin",
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "for_testing",
+                    "superuserReason": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
@@ -153,8 +193,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_no_sso_with_bad_referrer(self):
         from sentry.auth.superuser import Superuser
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
-
         user = self.create_user("foo@example.com", is_superuser=True)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
@@ -162,7 +200,14 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         ):
             self.login_as(user)
             response = self.client.put(
-                self.path, HTTP_REFERER="http://hacktheplanet/bar", data={"password": "admin"}
+                self.path,
+                HTTP_REFERER="http://hacktheplanet/bar",
+                data={
+                    "password": "admin",
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "for_testing",
+                    "superuserReason": "for testing",
+                },
             )
             assert response.status_code == 401
             assert self.client.session.get("_next") is None
