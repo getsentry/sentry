@@ -8,11 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileFilters = Record<string, Tag>;
 
-interface UseProfileFiltersOptions {
-  selection: PageFilters | undefined;
-}
-
-function useProfileFilters({selection}: UseProfileFiltersOptions): ProfileFilters {
+function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
   const api = useApi();
   const organization = useOrganization();
 
@@ -21,16 +17,24 @@ function useProfileFilters({selection}: UseProfileFiltersOptions): ProfileFilter
   useEffect(() => {
     api.clear();
 
-    fetchProfileFilters(api, organization, selection).then(_profileFilters => {
-      setProfileFilters(
-        _profileFilters.reduce((filters: ProfileFilters, tag: Tag) => {
+    if (!selection) {
+      return;
+    }
+
+    fetchProfileFilters(api, organization, selection).then(response => {
+      const withPredefinedFilters = response.reduce(
+        (filters: ProfileFilters, tag: Tag) => {
           filters[tag.key] = {
             ...tag,
+            // predefined allows us to specify a list of possible values
             predefined: true,
           };
           return filters;
-        }, {})
+        },
+        {}
       );
+
+      setProfileFilters(withPredefinedFilters);
     });
   }, [api, organization, selection]);
 
@@ -40,19 +44,15 @@ function useProfileFilters({selection}: UseProfileFiltersOptions): ProfileFilter
 function fetchProfileFilters(
   api: Client,
   organization: Organization,
-  selection: PageFilters | undefined
+  selection: PageFilters
 ): Promise<[Tag]> {
-  const query = selection
-    ? {
-        project: selection.projects,
-        environment: selection.environments,
-        ...normalizeDateTimeParams(selection.datetime),
-      }
-    : undefined;
-
   return api.requestPromise(`/organizations/${organization.slug}/profiling/filters/`, {
     method: 'GET',
-    query,
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selection.datetime),
+    },
   });
 }
 
