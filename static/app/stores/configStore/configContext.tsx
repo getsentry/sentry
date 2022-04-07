@@ -1,7 +1,8 @@
 import {createContext} from 'react';
 
-import {ConfigAction, ConfigState} from './configReducer';
+import LegacyConfigStore from 'sentry/stores/configStore';
+import {Config} from 'sentry/types/system';
 
 export const ConfigContext = createContext<
-  [ConfigState, React.Dispatch<ConfigAction<keyof ConfigState>>] | null
+  [Config, (store: typeof LegacyConfigStore) => void] | null
 >(null);

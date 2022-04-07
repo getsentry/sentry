@@ -1,12 +1,11 @@
 import {useContext} from 'react';
 
 import {ConfigContext} from 'sentry/stores/configStore/configContext';
-import {ConfigAction, ConfigState} from 'sentry/stores/configStore/configReducer';
 
-export function useConfig<K extends keyof ConfigState>(): [
-  ConfigState,
-  React.Dispatch<ConfigAction<K>>
-] {
+import LegacyConfigStore from 'sentry/stores/configStore';
+import {Config} from 'sentry/types/system';
+
+export function useConfig(): [Config, (store: typeof LegacyConfigStore) => void] {
   const context = useContext(ConfigContext);
 
   if (!context) {
