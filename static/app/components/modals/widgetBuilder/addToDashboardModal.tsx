@@ -12,23 +12,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {
-  DashboardListItem,
-  MAX_WIDGETS,
-  WidgetQuery,
-} from 'sentry/views/dashboardsV2/types';
+import {DashboardListItem, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 export type AddToDashboardModalProps = {
-  interval: string;
   organization: Organization;
-  query: WidgetQuery;
   selection: PageFilters;
-  widget: WidgetTemplate;
-
-  // TODO(nar): Change this type from any
-  widgetAsQueryParams: any;
+  widget: Widget;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -39,10 +29,8 @@ function AddToDashboardModal({
   Footer,
   closeModal,
   organization,
-  widgetAsQueryParams,
   selection,
-  query,
-  interval,
+  widget,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -118,12 +106,7 @@ function AddToDashboardModal({
             isSorting={false}
             widgetLimitReached={false}
             selection={selection}
-            widget={{
-              title: widgetAsQueryParams.defaultTitle,
-              displayType: widgetAsQueryParams.displayType,
-              queries: [query],
-              interval,
-            }}
+            widget={widget}
           />
         </div>
       </Body>

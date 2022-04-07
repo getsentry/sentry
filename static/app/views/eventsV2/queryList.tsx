@@ -135,17 +135,6 @@ class QueryList extends React.Component<Props> {
         openAddToDashboardModal({
           organization,
           query: defaultWidgetQuery,
-          widgetAsQueryParams: {
-            ...location.query,
-            source: DashboardWidgetSource.DISCOVERV2,
-            start: eventView.start,
-            end: eventView.end,
-            statsPeriod: eventView.statsPeriod,
-            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-            defaultTableColumns: defaultTableFields,
-            defaultTitle,
-            displayType,
-          },
           selection: {
             projects: eventView.project,
             environments: eventView.environment,
@@ -156,7 +145,12 @@ class QueryList extends React.Component<Props> {
               utc: eventView.utc,
             },
           },
-          interval: eventView.interval,
+          widget: {
+            title: defaultTitle,
+            displayType,
+            queries: [defaultWidgetQuery],
+            interval: eventView.interval,
+          },
         });
         return;
       }

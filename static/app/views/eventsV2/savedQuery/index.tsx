@@ -275,14 +275,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         openAddToDashboardModal({
           organization,
           query: defaultWidgetQuery,
-          widgetAsQueryParams: {
-            ...location.query,
-            source: DashboardWidgetSource.DISCOVERV2,
-            defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-            defaultTableColumns: defaultTableFields,
-            defaultTitle,
-            displayType,
-          },
           selection: {
             projects: eventView.project,
             environments: eventView.environment,
@@ -294,6 +286,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             },
           },
           interval: eventView.interval,
+          widget: {
+            title: defaultTitle,
+            displayType,
+            queries: [defaultWidgetQuery],
+            interval: eventView.interval,
+          },
         });
         return;
       }
