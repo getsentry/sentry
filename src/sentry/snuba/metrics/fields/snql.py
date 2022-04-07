@@ -2,8 +2,8 @@ from typing import List
 
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
+from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
 
 
 def _aggregation_on_session_status_func_factory(aggregate):

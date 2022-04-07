@@ -372,32 +372,32 @@ def _filter_option_to_config_setting(flt, setting):
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
-        "sentry.transactions.user",
-        "sentry.transactions.transaction.duration",
+        "s:transactions/user@none",
+        "d:transactions/duration@millisecond",
     ]
 )
 
 
 ALL_MEASUREMENT_METRICS = frozenset(
     [
-        "sentry.transactions.measurements.fp",
-        "sentry.transactions.measurements.fcp",
-        "sentry.transactions.measurements.lcp",
-        "sentry.transactions.measurements.fid",
-        "sentry.transactions.measurements.cls",
-        "sentry.transactions.measurements.ttfb",
-        "sentry.transactions.measurements.ttfb.requesttime",
-        "sentry.transactions.measurements.app_start_cold",
-        "sentry.transactions.measurements.app_start_warm",
-        "sentry.transactions.measurements.frames_total",
-        "sentry.transactions.measurements.frames_slow",
-        "sentry.transactions.measurements.frames_frozen",
-        "sentry.transactions.measurements.frames_slow_rate",
-        "sentry.transactions.measurements.frames_frozen_rate",
-        "sentry.transactions.measurements.stall_count",
-        "sentry.transactions.measurements.stall_total_time",
-        "sentry.transactions.measurements.stall_longest_time",
-        "sentry.transactions.measurements.stall_percentage",
+        "d:transactions/measurements.fcp@millisecond",
+        "d:transactions/measurements.lcp@millisecond",
+        "d:transactions/measurements.app_start_cold@millisecond",
+        "d:transactions/measurements.app_start_warm@millisecond",
+        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.fid@millisecond",
+        "d:transactions/measurements.fp@millisecond",
+        "d:transactions/measurements.frames_frozen@none",
+        "d:transactions/measurements.frames_frozen_rate@ratio",
+        "d:transactions/measurements.frames_slow@none",
+        "d:transactions/measurements.frames_slow_rate@ratio",
+        "d:transactions/measurements.frames_total@none",
+        "d:transactions/measurements.stall_count@none",
+        "d:transactions/measurements.stall_longest_time@millisecond",
+        "d:transactions/measurements.stall_percentage@percent",
+        "d:transactions/measurements.stall_total_time@millisecond",
+        "d:transactions/measurements.ttfb@millisecond",
+        "d:transactions/measurements.ttfb.requesttime@millisecond",
     ]
 )
 
@@ -469,9 +469,7 @@ def get_transaction_metrics_settings(
                     assert breakdown_config["type"] == "spanOperations"
 
                     for op_name in breakdown_config["matches"]:
-                        metrics.append(
-                            f"sentry.transactions.breakdowns.{breakdown_name}.ops.{op_name}"
-                        )
+                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
             except Exception:
                 capture_exception()
 
