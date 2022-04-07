@@ -2,6 +2,7 @@ import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
+import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -26,7 +27,7 @@ import {
   generateIssueEventTarget,
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -40,6 +41,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withApi from 'sentry/utils/withApi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -145,7 +147,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderSpanChild(): React.ReactNode {
-    const {childTransactions} = this.props;
+    const {childTransactions, organization, location} = this.props;
 
     if (!childTransactions || childTransactions.length !== 1) {
       return null;
@@ -174,10 +176,22 @@ class SpanDetail extends React.Component<Props, State> {
             return null;
           }
 
+          const target = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionResult.transaction,
+            query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+            projectID: String(childTransaction.project_id),
+          });
+
           return (
-            <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
-              {t('View Transaction')}
-            </StyledButton>
+            <ButtonGroup>
+              <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
+                {t('View Transaction')}
+              </StyledButton>
+              <StyledButton size="xsmall" to={target}>
+                {t('View Summary')}
+              </StyledButton>
+            </ButtonGroup>
           );
         }}
       </SpanEntryContext.Consumer>
@@ -473,11 +487,7 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-const StyledButton = styled(Button)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
+const StyledButton = styled(Button)``;
 
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
@@ -550,10 +560,12 @@ export const Row = ({
     <tr>
       <td className="key">{title}</td>
       <ValueTd className="value">
-        <pre className="val">
-          <span className="val-string">{children}</span>
-        </pre>
-        {extra}
+        <ValueRow>
+          <StyledPre>
+            <span className="val-string">{children}</span>
+          </StyledPre>
+          <ButtonContainer>{extra}</ButtonContainer>
+        </ValueRow>
       </ValueTd>
     </tr>
   );
@@ -592,5 +604,30 @@ function generateSlug(result: TransactionResult): string {
     'project.name': result['project.name'],
   });
 }
+
+const ButtonGroup = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const ValueRow = styled('div')`
+  display: grid;
+  grid-template-columns: auto min-content;
+  gap: ${space(1)};
+
+  border-radius: 4px;
+  background-color: ${p => p.theme.surface100};
+  margin: 2px;
+`;
+
+const StyledPre = styled('pre')`
+  margin: 0 !important;
+  background-color: transparent !important;
+`;
+
+const ButtonContainer = styled('div')`
+  padding: 8px 10px;
+`;
 
 export default withApi(withRouter(SpanDetail));
