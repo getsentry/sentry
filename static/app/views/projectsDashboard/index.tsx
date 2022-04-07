@@ -127,57 +127,60 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
               </Button>
             </ButtonContainer>
           </ProjectsHeader>
-          <StyledTeamSelector
-            name="select-team"
-            inFieldLabel={t('Team: ')}
-            placeholder={t('My Teams')}
-            value={currentTeam}
-            onChange={choice => handleChange(choice)}
-            teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
-            useId
-            clearable
-            styles={{
-              placeholder: (provided: any) => ({
-                ...provided,
-                paddingLeft: space(0.5),
-                ':before': {
-                  ...provided[':before'],
-                  color: theme.textColor,
-                },
-              }),
-              singleValue(provided: any) {
-                const custom = {
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: theme.fontSizeMedium,
+          {hasProjectRedesign && (
+            <StyledTeamSelector
+              name="select-team"
+              aria-label="select-team"
+              inFieldLabel={t('Team: ')}
+              placeholder={t('My Teams')}
+              value={currentTeam}
+              onChange={choice => handleChange(choice)}
+              teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
+              useId
+              clearable
+              styles={{
+                placeholder: (provided: any) => ({
+                  ...provided,
+                  paddingLeft: space(0.5),
                   ':before': {
                     ...provided[':before'],
                     color: theme.textColor,
-                    marginRight: space(1.5),
-                    marginLeft: space(0.5),
                   },
-                };
-                return {...provided, ...custom};
-              },
-              input: (provided: any, state: any) => ({
-                ...provided,
-                display: 'grid',
-                gridTemplateColumns: 'max-content 1fr',
-                alignItems: 'center',
-                marginRight: space(0.25),
-                gridGap: space(1.5),
-                ':before': {
-                  backgroundColor: state.theme.backgroundSecondary,
-                  height: 24,
-                  width: 38,
-                  borderRadius: 3,
-                  content: '""',
-                  display: 'block',
+                }),
+                singleValue(provided: any) {
+                  const custom = {
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: theme.fontSizeMedium,
+                    ':before': {
+                      ...provided[':before'],
+                      color: theme.textColor,
+                      marginRight: space(1.5),
+                      marginLeft: space(0.5),
+                    },
+                  };
+                  return {...provided, ...custom};
                 },
-              }),
-            }}
-          />
+                input: (provided: any, state: any) => ({
+                  ...provided,
+                  display: 'grid',
+                  gridTemplateColumns: 'max-content 1fr',
+                  alignItems: 'center',
+                  marginRight: space(0.25),
+                  gridGap: space(1.5),
+                  ':before': {
+                    backgroundColor: state.theme.backgroundSecondary,
+                    height: 24,
+                    width: 38,
+                    borderRadius: 3,
+                    content: '""',
+                    display: 'block',
+                  },
+                }),
+              }}
+            />
+          )}
         </Fragment>
       )}
 
