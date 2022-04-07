@@ -1,3 +1,14 @@
+"""
+Module that contains all the public field names queryable from the API. Any time a new Enum is
+introduced here, a corresponding MRI needs to be introduced in the corresponding MRI Enum. As an
+example,
+If we were to introduce a new public sessions field name called "foo.bar", we would add it here
+to `SessionMetricKey` as `FOO_BAR="foo.bar"`, then we would need to add an MRI in `SessionMRI`
+with the same Enum name but with a value of the MRI so we would add
+`FOO_BAR=e:sessions/foo.bar@none`
+"""
+
+
 __all__ = (
     "SessionMetricKey",
     "TransactionMetricKey",

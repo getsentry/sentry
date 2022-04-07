@@ -9,6 +9,12 @@ metrics.
   - Namespace: Identifying the product entity and use case affiliation of the metric.
   - Name: The display name of the metric in the allowed character set.
   - Unit: The verbatim unit name.
+Any Enum defined here but does not have a corresponding Enum name in `public.py` is considered
+and treated as an internal implementation detail which is not queryable by the API.
+As an example, `SessionMRI.ERRORED_PREAGGREGATED` has no corresponding enum in `SessionMetricKey`
+and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corresponding enum in
+`SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
+metric that is queryable by the API.
 """
 __all__ = ("SessionMRI", "TransactionMRI")
 
