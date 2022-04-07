@@ -887,12 +887,10 @@ function WidgetBuilder({
   const metricFields: string[] =
     state.dataSet === DataSet.RELEASE
       ? state.queries.reduce((acc, query) => {
-          if (query.fields) {
-            for (const field of query.fields) {
-              const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
-              if (fieldParameter && !acc.includes(fieldParameter)) {
-                acc.push(fieldParameter);
-              }
+          for (const field of [...query.aggregates, ...query.columns]) {
+            const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+            if (fieldParameter && !acc.includes(fieldParameter)) {
+              acc.push(fieldParameter);
             }
           }
           return acc;
