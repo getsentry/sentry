@@ -12,18 +12,21 @@ const Body = styled('div')`
   flex: 1;
 `;
 
-const MonitorsContainer: React.FC = ({children}) => (
-  <Feature features={['monitors']} renderDisabled>
-    <PageFiltersContainer
-      showEnvironmentSelector={false}
-      showDateSelector={false}
-      resetParamsOnChange={['cursor']}
-    >
-      <PageContent>
-        <Body>{children}</Body>
-      </PageContent>
-    </PageFiltersContainer>
-  </Feature>
-);
+const MonitorsContainer: React.FC = ({children}) => {
+  return (
+    <Feature features={['monitors']} renderDisabled>
+      <PageFiltersContainer
+        showEnvironmentSelector={false}
+        showDateSelector={false}
+        resetParamsOnChange={['cursor']}
+        hideGlobalHeader
+      >
+        <PageContent>
+          <Body>{children}</Body>
+        </PageContent>
+      </PageFiltersContainer>
+    </Feature>
+  );
+};
 
 export default withPageFilters(MonitorsContainer);

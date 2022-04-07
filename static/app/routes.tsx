@@ -215,7 +215,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          componentPromise={() => import('sentry/views/onboarding/onboarding')}
+          componentPromise={() => import('sentry/views/onboarding/onboardingController')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -1082,6 +1082,18 @@ function buildRoutes() {
         </Route>
       </Route>
       <Route
+        path="new/"
+        name={t('New Alert Rule')}
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
+      >
+        <Route
+          path=":alertType/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/alerts/create')}
+        />
+      </Route>
+      <Route
         path=":alertId/"
         componentPromise={() => import('sentry/views/alerts/incidentRedirect')}
         component={SafeLazyLoad}
@@ -1130,6 +1142,24 @@ function buildRoutes() {
       <Route
         path="/organizations/:orgId/monitors/:monitorId/edit/"
         componentPromise={() => import('sentry/views/monitors/edit')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
+  const replayRoutes = (
+    <Route
+      path="/organizations/:orgId/replays/"
+      componentPromise={() => import('sentry/views/replays')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/replays/replays')}
+        component={SafeLazyLoad}
+      />
+      <Route
+        path=":eventSlug/"
+        componentPromise={() => import('sentry/views/replays/details')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1865,6 +1895,7 @@ function buildRoutes() {
       {groupDetailsRoutes}
       {alertRoutes}
       {monitorsRoutes}
+      {replayRoutes}
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}

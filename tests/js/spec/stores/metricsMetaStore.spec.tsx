@@ -9,10 +9,10 @@ describe('MetricsMetaStore', function () {
     it('should add a new fields and trigger the new addition', () => {
       jest.spyOn(MetricsMetaStore, 'trigger');
 
-      const fields = MetricsMetaStore.getAllFields();
-      expect(fields).toEqual({});
+      const {metricsMeta} = MetricsMetaStore.getState();
+      expect(metricsMeta).toEqual({});
 
-      MetricsMetaStore.onLoadSuccess([
+      MetricsMetaStore.loadSuccess([
         {
           name: 'sentry.sessions.session',
           type: 'counter',
@@ -25,8 +25,8 @@ describe('MetricsMetaStore', function () {
         },
       ]);
 
-      const updatedFields = MetricsMetaStore.getAllFields();
-      expect(updatedFields).toEqual({
+      const {metricsMeta: updatedMetricsMeta} = MetricsMetaStore.getState();
+      expect(updatedMetricsMeta).toEqual({
         'sentry.sessions.session': {
           name: 'sentry.sessions.session',
           type: 'counter',

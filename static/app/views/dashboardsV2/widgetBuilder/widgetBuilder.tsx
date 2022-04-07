@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -8,23 +8,15 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
-import SearchBar from 'sentry/components/events/searchBar';
-import Input from 'sentry/components/forms/controls/input';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import Field from 'sentry/components/forms/field';
-import SelectControl from 'sentry/components/forms/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {PanelAlert} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {IconAdd, IconDelete} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {
@@ -41,14 +33,11 @@ import {
   generateFieldAsString,
   getAggregateAlias,
   getColumnsAndAggregates,
+  getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
-import Measurements, {
-  MeasurementCollection,
-} from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
@@ -62,89 +51,93 @@ import {
   DashboardDetails,
   DashboardListItem,
   DashboardWidgetSource,
+  DisplayType,
   Widget,
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {
-  generateIssueWidgetFieldOptions,
-  generateIssueWidgetOrderOptions,
-} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
-import WidgetCard from '../widgetCard';
 
-import BuildStep from './buildStep';
-import {ColumnFields} from './columnFields';
-import {DashboardSelector} from './dashboardSelector';
-import {DisplayTypeSelector} from './displayTypeSelector';
+import {ColumnsStep} from './buildSteps/columnsStep';
+import {DashboardStep} from './buildSteps/dashboardStep';
+import {DataSetStep} from './buildSteps/dataSetStep';
+import {FilterResultsStep} from './buildSteps/filterResultsStep';
+import {GroupByStep} from './buildSteps/groupByStep';
+import {SortByStep} from './buildSteps/sortByStep';
+import {VisualizationStep} from './buildSteps/visualizationStep';
+import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
 import {Header} from './header';
 import {
   DataSet,
-  DisplayType,
+  DEFAULT_RESULTS_LIMIT,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-import {YAxisSelector} from './yAxisSelector';
 
+// Both dashboards and widgets use the 'new' keyword when creating
 const NEW_DASHBOARD_ID = 'new';
 
-const DATASET_CHOICES: [DataSet, string][] = [
-  [DataSet.EVENTS, t('All Events (Errors and Transactions)')],
-  [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-  // [DataSet.METRICS, t('Metrics (Release Health)')],
-];
-
-const QUERIES: Record<DataSet, WidgetQuery> = {
-  [DataSet.EVENTS]: {
-    name: '',
-    fields: ['count()'],
-    columns: [],
-    aggregates: ['count()'],
-    conditions: '',
-    orderby: '',
-  },
-  [DataSet.ISSUES]: {
-    name: '',
-    fields: ['issue', 'assignee', 'title'] as string[],
-    columns: ['issue', 'assignee', 'title'],
-    aggregates: [],
-    conditions: '',
-    orderby: '',
-  },
-  [DataSet.METRICS]: {
-    name: '',
-    fields: [`sum(${SessionMetric.SESSION})`],
-    columns: [],
-    aggregates: [`sum(${SessionMetric.SESSION})`],
-    conditions: '',
-    orderby: '',
-  },
-};
+function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
+  return {
+    [DataSet.EVENTS]: {
+      name: '',
+      fields: ['count()'],
+      columns: [],
+      fieldAliases: [],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? '-count' : '',
+    },
+    [DataSet.ISSUES]: {
+      name: '',
+      fields: ['issue', 'assignee', 'title'] as string[],
+      columns: ['issue', 'assignee', 'title'],
+      fieldAliases: [],
+      aggregates: [],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+    },
+    [DataSet.RELEASE]: {
+      name: '',
+      fields: [`sum(${SessionMetric.SESSION})`],
+      columns: [],
+      fieldAliases: [],
+      aggregates: [`sum(${SessionMetric.SESSION})`],
+      conditions: '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
+    },
+  };
+}
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
-  // [WidgetType.METRICS]: DataSet.METRICS,
+  [WidgetType.METRICS]: DataSet.RELEASE,
 };
 
-type RouteParams = {
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASE]: WidgetType.METRICS,
+};
+
+interface RouteParams {
+  dashboardId: string;
   orgId: string;
-  dashboardId?: string;
-  widgetIndex?: number;
-};
+  widgetIndex?: string;
+}
 
-type QueryData = {
+interface QueryData {
   queryConditions: string[];
   queryFields: string[];
   queryNames: string[];
   queryOrderby: string;
-};
+}
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
@@ -156,25 +149,25 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
-  widget?: Widget;
 }
 
-type State = {
+interface State {
   dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
   interval: Widget['interval'];
+  limit: Widget['limit'];
   loading: boolean;
   queries: Widget['queries'];
   title: string;
   userHasModified: boolean;
   errors?: Record<string, any>;
   selectedDashboard?: SelectValue<string>;
-};
+  widgetToBeUpdated?: Widget;
+}
 
 function WidgetBuilder({
   dashboard,
-  widget: widgetToBeUpdated,
   params,
   location,
   organization,
@@ -182,18 +175,28 @@ function WidgetBuilder({
   start,
   end,
   statsPeriod,
-  tags,
   onSave,
   router,
+  tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, defaultTableColumns} = location.query;
+  const {source, displayType, defaultTitle, defaultTableColumns, limit} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
 
   const isEditing = defined(widgetIndex);
+  const widgetIndexNum = Number(widgetIndex);
+  const isValidWidgetIndex =
+    widgetIndexNum >= 0 &&
+    widgetIndexNum < dashboard.widgets.length &&
+    Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
+
+  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
+  const widgetBuilderNewDesign = organization.features.includes(
+    'new-widget-builder-experience-design'
+  );
 
   // Construct PageFilters object using statsPeriod/start/end props so we can
   // render widget graph using saved timeframe from Saved/Prebuilt Query
@@ -212,42 +215,89 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    if (!widgetToBeUpdated) {
-      return {
-        title: defaultTitle ?? t('Custom Widget'),
-        displayType: displayType ?? DisplayType.TABLE,
-        interval: '5m',
-        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...QUERIES.events}],
-        errors: undefined,
-        loading: !!notDashboardsOrigin,
-        dashboards: [],
-        userHasModified: false,
-        dataSet: DataSet.EVENTS,
-      };
-    }
-
     return {
-      title: widgetToBeUpdated.title,
-      displayType: widgetToBeUpdated.displayType,
-      interval: widgetToBeUpdated.interval,
-      queries: normalizeQueries(widgetToBeUpdated.displayType, widgetToBeUpdated.queries),
+      title: defaultTitle ?? t('Custom Widget'),
+      displayType: displayType ?? DisplayType.TABLE,
+      interval: '5m',
+      queries: [
+        defaultWidgetQuery
+          ? widgetBuilderNewDesign
+            ? {
+                ...defaultWidgetQuery,
+                orderby:
+                  defaultWidgetQuery.orderby ||
+                  generateOrderOptions({
+                    widgetType: WidgetType.DISCOVER,
+                    widgetBuilderNewDesign,
+                    columns: defaultWidgetQuery.columns,
+                    aggregates: defaultWidgetQuery.aggregates,
+                  })[0].value,
+              }
+            : {...defaultWidgetQuery}
+          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ],
+      limit,
       errors: undefined,
-      loading: false,
+      loading: !!notDashboardsOrigin,
       dashboards: [],
       userHasModified: false,
-      dataSet: widgetToBeUpdated.widgetType
-        ? WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType]
-        : DataSet.EVENTS,
+      dataSet: DataSet.EVENTS,
     };
   });
 
-  const [blurTimeout, setBlurTimeout] = useState<null | number>(null);
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
+      organization,
+      new_widget: !isEditing,
+    });
+
+    if (isEditing && isValidWidgetIndex) {
+      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const visualization =
+        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
+          ? DisplayType.TABLE
+          : widgetFromDashboard.displayType;
+      setState({
+        title: widgetFromDashboard.title,
+        displayType: visualization,
+        interval: widgetFromDashboard.interval,
+        queries: normalizeQueries({
+          displayType: visualization,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        }),
+        errors: undefined,
+        loading: false,
+        dashboards: [],
+        userHasModified: false,
+        dataSet: widgetFromDashboard.widgetType
+          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
+          : DataSet.EVENTS,
+        limit: widgetFromDashboard.limit,
+      });
+      setWidgetToBeUpdated(widgetFromDashboard);
+    }
+  }, []);
 
   useEffect(() => {
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
   }, [source]);
+
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
+  }, [selection.projects]);
+
+  useEffect(() => {
+    if (widgetBuilderNewDesign) {
+      fetchMetricsTags(api, organization.slug, selection.projects);
+      fetchMetricsFields(api, organization.slug, selection.projects);
+    }
+  }, [selection.projects, organization.slug, widgetBuilderNewDesign]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -261,36 +311,68 @@ function WidgetBuilder({
     displayType: state.displayType,
     interval: state.interval,
     queries: state.queries,
+    limit: state.limit,
     widgetType,
   };
 
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
-    pathname: currentDashboardId
-      ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
-      : `/organizations/${orgId}/dashboards/new/`,
+    pathname:
+      defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
+        ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
+        : `/organizations/${orgId}/dashboards/${NEW_DASHBOARD_ID}/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
+
+  const isTimeseriesChart = [
+    DisplayType.LINE,
+    DisplayType.BAR,
+    DisplayType.AREA,
+  ].includes(state.displayType);
+
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(
+    state.displayType
+  );
 
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries(newDisplayType, prevState.queries);
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        widgetBuilderNewDesign,
+      });
 
       if (newDisplayType === DisplayType.TOP_N) {
         // TOP N display should only allow a single query
         normalized.splice(1);
       }
 
+      if (widgetBuilderNewDesign && !isTabularChart && !isTimeseriesChart) {
+        newState.limit = undefined;
+      }
+
       if (
-        prevState.displayType === DisplayType.TABLE &&
-        widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
+        (prevState.displayType === DisplayType.TABLE &&
+          widgetToBeUpdated?.widgetType &&
+          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
+        (prevState.dataSet === DataSet.RELEASE &&
+          newDisplayType === DisplayType.WORLD_MAP)
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
-        set(newState, 'queries', normalizeQueries(newDisplayType, [{...QUERIES.events}]));
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
         set(newState, 'dataSet', DataSet.EVENTS);
         return {...newState, errors: undefined};
       }
@@ -312,23 +394,23 @@ function WidgetBuilder({
           // This is so the widget can reflect the same columns as the table in Discover without requiring additional user input
           if (newDisplayType === DisplayType.TABLE) {
             normalized.forEach(query => {
+              const tableQuery = getColumnsAndAggregates(defaultTableColumns);
+              query.columns = [...tableQuery.columns];
+              query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
-              const {columns, aggregates} = getColumnsAndAggregates([
-                ...defaultTableColumns,
-              ]);
-              query.aggregates = aggregates;
-              query.columns = columns;
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
             normalized.forEach(query => {
-              query.fields = [...defaultWidgetQuery.fields];
-              const {columns, aggregates} = getColumnsAndAggregates([
-                ...defaultWidgetQuery.fields,
-              ]);
-              query.aggregates = aggregates;
-              query.columns = columns;
-              query.orderby = defaultWidgetQuery.orderby;
+              query.fields = [
+                ...defaultWidgetQuery.columns,
+                ...defaultWidgetQuery.aggregates,
+              ];
+              query.aggregates = [...defaultWidgetQuery.aggregates];
+              query.columns = [...defaultWidgetQuery.columns];
+              if (!!defaultWidgetQuery.orderby) {
+                query.orderby = defaultWidgetQuery.orderby;
+              }
             });
           }
         }
@@ -347,12 +429,13 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
       from: source,
       field,
       value,
       widget_type: widgetType,
       organization,
+      new_widget: !isEditing,
     });
 
     setState(prevState => {
@@ -380,7 +463,7 @@ function WidgetBuilder({
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [QUERIES[newDataSet]])
+          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
       );
 
       set(newState, 'userHasModified', true);
@@ -391,7 +474,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(QUERIES.events);
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -413,44 +496,154 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       set(newState, `queries.${queryIndex}`, newQuery);
       set(newState, 'userHasModified', true);
+
+      if (widgetBuilderNewDesign && isTimeseriesChart && queryIndex === 0) {
+        const groupByFields = newQuery.columns.filter(field => !(field === 'equation|'));
+
+        if (groupByFields.length === 0) {
+          set(newState, 'limit', undefined);
+        } else {
+          set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+        }
+      }
       return {...newState, errors: undefined};
     });
   }
 
-  function handleYAxisOrColumnFieldChange(newFields: QueryFieldValue[]) {
+  function handleYAxisOrColumnFieldChange(
+    newFields: QueryFieldValue[],
+    isColumn = false
+  ) {
     const fieldStrings = newFields.map(generateFieldAsString);
-    const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
+    const aggregateAliasFieldStrings =
+      state.dataSet === DataSet.RELEASE
+        ? fieldStrings
+        : fieldStrings.map(getAggregateAlias);
 
-    for (const index in state.queries) {
-      const queryIndex = Number(index);
-      const query = state.queries[queryIndex];
+    const columnsAndAggregates = isColumn
+      ? getColumnsAndAggregatesAsStrings(newFields)
+      : undefined;
 
-      const descending = query.orderby.startsWith('-');
+    const newState = cloneDeep(state);
+
+    const newQueries = state.queries.map(query => {
+      const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
-      const prevAggregateAliasFieldStrings = query.fields.map(getAggregateAlias);
+      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
+        state.dataSet === DataSet.RELEASE ? aggregate : getAggregateAlias(aggregate)
+      );
       const newQuery = cloneDeep(query);
-      newQuery.fields = fieldStrings;
-      const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
-      newQuery.aggregates = aggregates;
-      newQuery.columns = columns;
+
+      if (isColumn) {
+        newQuery.fields = fieldStrings;
+        newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+      } else if (state.displayType === DisplayType.TOP_N) {
+        // Top N queries use n-1 fields for columns and the nth field for y-axis
+        newQuery.fields = [
+          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
+          ...fieldStrings,
+        ];
+        newQuery.aggregates = [
+          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
+          ...fieldStrings,
+        ];
+      } else {
+        newQuery.fields = [...newQuery.columns, ...fieldStrings];
+        newQuery.aggregates = fieldStrings;
+      }
+
+      // Prevent overwriting columns when setting y-axis for time series
+      if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
+        newQuery.columns = columnsAndAggregates?.columns ?? [];
+      }
+
       if (
         !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
         query.orderby !== ''
       ) {
         if (prevAggregateAliasFieldStrings.length === newFields.length) {
           // The Field that was used in orderby has changed. Get the new field.
-          newQuery.orderby = `${descending && '-'}${
+          const newOrderByValue =
             aggregateAliasFieldStrings[
               prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-            ]
-          }`;
+            ];
+
+          if (isDescending) {
+            newQuery.orderby = `-${newOrderByValue}`;
+          } else {
+            newQuery.orderby = newOrderByValue;
+          }
         } else {
-          newQuery.orderby = '';
+          newQuery.orderby = widgetBuilderNewDesign ? aggregateAliasFieldStrings[0] : '';
         }
       }
 
-      handleQueryChange(queryIndex, newQuery);
+      if (widgetBuilderNewDesign) {
+        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+      }
+
+      return newQuery;
+    });
+
+    set(newState, 'queries', newQueries);
+    set(newState, 'userHasModified', true);
+
+    if (widgetBuilderNewDesign && isTimeseriesChart) {
+      const groupByFields = newState.queries[0].columns.filter(
+        field => !(field === 'equation|')
+      );
+      if (groupByFields.length === 0) {
+        set(newState, 'limit', undefined);
+      } else {
+        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+      }
     }
+
+    setState(newState);
+  }
+
+  function handleGroupByChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+
+    const newState = cloneDeep(state);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.columns = fieldStrings;
+      set(newState, `queries.${index}`, newQuery);
+    });
+
+    set(newState, 'userHasModified', true);
+
+    if (widgetBuilderNewDesign && isTimeseriesChart) {
+      const groupByFields = newState.queries[0].columns.filter(
+        field => !(field === 'equation|')
+      );
+      if (groupByFields.length === 0) {
+        set(newState, 'limit', undefined);
+      } else {
+        set(newState, 'limit', newState.limit ?? DEFAULT_RESULTS_LIMIT);
+      }
+    }
+
+    setState(newState);
+  }
+
+  function handleLimitChange(newLimit: number) {
+    setState({...state, limit: newLimit});
+  }
+
+  function handleSortByChange(newSortBy: string) {
+    const newState = cloneDeep(state);
+
+    state.queries.forEach((query, index) => {
+      const newQuery = cloneDeep(query);
+      newQuery.orderby = newSortBy;
+      set(newState, `queries.${index}`, newQuery);
+    });
+
+    set(newState, 'userHasModified', true);
+    setState(newState);
   }
 
   function handleDelete() {
@@ -459,7 +652,7 @@ function WidgetBuilder({
     }
 
     let nextWidgetList = [...dashboard.widgets];
-    nextWidgetList.splice(widgetIndex, 1);
+    nextWidgetList.splice(widgetIndexNum, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
     onSave(nextWidgetList);
@@ -474,10 +667,19 @@ function WidgetBuilder({
     }
 
     // Only Table and Top N views need orderby
-    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(widgetData.displayType)) {
+    if (!widgetBuilderNewDesign && !isTabularChart) {
       widgetData.queries.forEach(query => {
         query.orderby = '';
       });
+    }
+
+    if (!widgetBuilderNewDesign) {
+      widgetData.queries.forEach(query => omit(query, 'fieldAliases'));
+    }
+
+    // Only Time Series charts shall have a limit
+    if (widgetBuilderNewDesign && !isTimeseriesChart) {
+      widgetData.limit = undefined;
     }
 
     if (!(await dataIsValid(widgetData))) {
@@ -508,8 +710,10 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
         organization,
+        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+        new_widget: false,
       });
       return;
     }
@@ -517,9 +721,10 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+      new_widget: true,
     });
   }
 
@@ -587,7 +792,10 @@ function WidgetBuilder({
     const queryData: QueryData = {
       queryNames: [],
       queryConditions: [],
-      queryFields: widgetData.queries[0].fields,
+      queryFields: [
+        ...widgetData.queries[0].columns,
+        ...widgetData.queries[0].aggregates,
+      ],
       queryOrderby: widgetData.queries[0].orderby,
     };
 
@@ -635,15 +843,6 @@ function WidgetBuilder({
     });
   }
 
-  function getAmendedFieldOptions(measurements: MeasurementCollection) {
-    return generateFieldOptions({
-      organization,
-      tagKeys: Object.values(tags).map(({key}) => key),
-      measurementKeys: Object.values(measurements).map(({key}) => key),
-      spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-    });
-  }
-
   function isFormInvalid() {
     if (notDashboardsOrigin && !state.selectedDashboard) {
       return true;
@@ -652,7 +851,7 @@ function WidgetBuilder({
     return false;
   }
 
-  if (isEditing && widgetIndex >= dashboard.widgets.length) {
+  if (isEditing && !isValidWidgetIndex) {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
         <PageContent>
@@ -663,12 +862,8 @@ function WidgetBuilder({
   }
 
   const canAddSearchConditions =
-    [
-      DisplayType.LINE,
-      DisplayType.AREA,
-      DisplayType.STACKED_AREA,
-      DisplayType.BAR,
-    ].includes(state.displayType) && state.queries.length < 3;
+    [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.queries.length < 3;
 
   const hideLegendAlias = [
     DisplayType.TABLE,
@@ -676,7 +871,25 @@ function WidgetBuilder({
     DisplayType.BIG_NUMBER,
   ].includes(state.displayType);
 
-  const explodedFields = state.queries[0].fields.map(field => explodeField({field}));
+  // Tabular visualizations will always have only one query and that query cannot be deleted,
+  // so we will always have the first query available to get data from.
+  const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
+
+  const explodedColumns = useMemo(() => {
+    return columns.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, [columns, fieldAliases]);
+
+  const explodedAggregates = useMemo(() => {
+    return aggregates.map((field, index) =>
+      explodeField({field, alias: fieldAliases[index]})
+    );
+  }, [aggregates, fieldAliases]);
+
+  const explodedFields = defined(fields)
+    ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
+    : [...explodedColumns, ...explodedAggregates];
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -700,330 +913,104 @@ function WidgetBuilder({
             <MainWrapper>
               <Main>
                 <BuildSteps symbol="colored-numeric">
-                  <BuildStep
-                    title={t('Choose your visualization')}
-                    description={t(
-                      'This is a preview of how your widget will appear in the dashboard.'
-                    )}
-                  >
-                    <DisplayTypeSelector
+                  <VisualizationStep
+                    widget={currentWidget}
+                    organization={organization}
+                    pageFilters={pageFilters}
+                    displayType={state.displayType}
+                    error={state.errors?.displayType}
+                    onChange={newDisplayType => {
+                      handleDisplayTypeOrTitleChange('displayType', newDisplayType);
+                    }}
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                  />
+                  <DataSetStep
+                    dataSet={state.dataSet}
+                    displayType={state.displayType}
+                    onChange={handleDataSetChange}
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
+                  />
+                  {isTabularChart && (
+                    <ColumnsStep
+                      dataSet={state.dataSet}
+                      queries={state.queries}
                       displayType={state.displayType}
-                      onChange={(option: {label: string; value: DisplayType}) => {
-                        handleDisplayTypeOrTitleChange('displayType', option.value);
+                      widgetType={widgetType}
+                      queryErrors={state.errors?.queries}
+                      onQueryChange={handleQueryChange}
+                      onYAxisOrColumnFieldChange={newFields => {
+                        handleYAxisOrColumnFieldChange(newFields, true);
                       }}
-                      error={state.errors?.displayType}
+                      explodedFields={explodedFields}
+                      tags={tags}
+                      organization={organization}
                     />
-                    <VisualizationWrapper displayType={state.displayType}>
-                      <WidgetCard
-                        organization={organization}
-                        selection={pageFilters}
-                        widget={currentWidget}
-                        isEditing={false}
-                        widgetLimitReached={false}
-                        renderErrorMessage={errorMessage =>
-                          typeof errorMessage === 'string' && (
-                            <PanelAlert type="error">{errorMessage}</PanelAlert>
-                          )
-                        }
-                        isSorting={false}
-                        currentWidgetDragging={false}
-                        noLazyLoad
-                      />
-                    </VisualizationWrapper>
-                  </BuildStep>
-                  <BuildStep
-                    title={t('Choose your data set')}
-                    description={t(
-                      'This reflects the type of information you want to use. For a full list, read the docs.'
-                    )}
-                  >
-                    <DataSetChoices
-                      label="dataSet"
-                      value={state.dataSet}
-                      choices={DATASET_CHOICES}
-                      disabledChoices={
-                        state.displayType !== DisplayType.TABLE
-                          ? [
-                              [
-                                DATASET_CHOICES[1][0],
-                                t(
-                                  'This data set is restricted to the table visualization.'
-                                ),
-                              ],
-                            ]
-                          : undefined
-                      }
-                      onChange={handleDataSetChange}
-                    />
-                  </BuildStep>
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
-                    <BuildStep
-                      title={t('Choose your columns')}
-                      description={
-                        state.dataSet !== DataSet.ISSUES
-                          ? tct(
-                              'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
-                              {
-                                functionLink: (
-                                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
-                                ),
-                                tagFieldLink: (
-                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
-                                ),
-                              }
-                            )
-                          : tct(
-                              '[tagFieldLink: Tag and field] columns will help you view more details about the issues (i.e. title).',
-                              {
-                                tagFieldLink: (
-                                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
-                                ),
-                              }
-                            )
-                      }
-                    >
-                      {state.dataSet === DataSet.EVENTS ? (
-                        <Measurements>
-                          {({measurements}) => (
-                            <ColumnFields
-                              displayType={state.displayType}
-                              organization={organization}
-                              widgetType={widgetType}
-                              columns={explodedFields}
-                              errors={state.errors?.queries}
-                              fieldOptions={getAmendedFieldOptions(measurements)}
-                              onChange={handleYAxisOrColumnFieldChange}
-                            />
-                          )}
-                        </Measurements>
-                      ) : (
-                        <ColumnFields
-                          displayType={state.displayType}
-                          organization={organization}
-                          widgetType={widgetType}
-                          columns={state.queries[0].fields.map(field =>
-                            explodeField({field})
-                          )}
-                          errors={
-                            state.errors?.queries?.[0]
-                              ? [state.errors?.queries?.[0]]
-                              : undefined
-                          }
-                          fieldOptions={generateIssueWidgetFieldOptions()}
-                          onChange={newFields => {
-                            const fieldStrings = newFields.map(generateFieldAsString);
-                            const newQuery = cloneDeep(state.queries[0]);
-                            newQuery.fields = fieldStrings;
-                            const {columns, aggregates} =
-                              getColumnsAndAggregates(fieldStrings);
-                            newQuery.aggregates = aggregates;
-                            newQuery.columns = columns;
-                            handleQueryChange(0, newQuery);
-                          }}
-                        />
-                      )}
-                    </BuildStep>
                   )}
                   {![DisplayType.TABLE].includes(state.displayType) && (
-                    <BuildStep
-                      title={
-                        displayType === DisplayType.BIG_NUMBER
-                          ? t('Choose what to plot')
-                          : t('Choose what to plot in the y-axis')
-                      }
-                      description={
-                        [DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(
-                          displayType
-                        )
-                          ? t(
-                              "This is the data you'd be visualizing in the display. You can chart multiple overlays if they share a similar unit."
-                            )
-                          : t("This is the data you'd be visualizing in the display.")
-                      }
-                    >
-                      <Measurements>
-                        {({measurements}) => (
-                          <YAxisSelector
-                            widgetType={widgetType}
-                            displayType={state.displayType}
-                            fields={explodedFields}
-                            fieldOptions={getAmendedFieldOptions(measurements)}
-                            onChange={handleYAxisOrColumnFieldChange}
-                            errors={state.errors?.queries}
-                          />
-                        )}
-                      </Measurements>
-                    </BuildStep>
+                    <YAxisStep
+                      dataSet={state.dataSet}
+                      displayType={state.displayType}
+                      widgetType={widgetType}
+                      queryErrors={state.errors?.queries}
+                      onYAxisChange={newFields => {
+                        handleYAxisOrColumnFieldChange(newFields);
+                      }}
+                      aggregates={explodedAggregates}
+                      tags={tags}
+                      organization={organization}
+                    />
                   )}
-                  <BuildStep
-                    title={t('Filter your results')}
-                    description={
-                      canAddSearchConditions
-                        ? t(
-                            'This is how you filter down your search. You can add multiple queries to compare data.'
-                          )
-                        : t('This is how you filter down your search.')
-                    }
-                  >
-                    <div>
-                      {state.queries.map((query, queryIndex) => {
-                        return (
-                          <QueryField
-                            key={queryIndex}
-                            inline={false}
-                            flexibleControlStateSize
-                            stacked
-                            error={state.errors?.queries?.[queryIndex]?.conditions}
-                          >
-                            <SearchConditionsWrapper>
-                              <Search
-                                searchSource="widget_builder"
-                                organization={organization}
-                                projectIds={selection.projects}
-                                query={query.conditions}
-                                fields={[]}
-                                onSearch={field => {
-                                  // SearchBar will call handlers for both onSearch and onBlur
-                                  // when selecting a value from the autocomplete dropdown. This can
-                                  // cause state issues for the search bar in our use case. To prevent
-                                  // this, we set a timer in our onSearch handler to block our onBlur
-                                  // handler from firing if it is within 200ms, ie from clicking an
-                                  // autocomplete value.
-                                  setBlurTimeout(
-                                    window.setTimeout(() => {
-                                      setBlurTimeout(null);
-                                    }, 200)
-                                  );
-
-                                  const newQuery: WidgetQuery = {
-                                    ...state.queries[queryIndex],
-                                    conditions: field,
-                                  };
-                                  handleQueryChange(queryIndex, newQuery);
-                                }}
-                                onBlur={field => {
-                                  if (!blurTimeout) {
-                                    const newQuery: WidgetQuery = {
-                                      ...state.queries[queryIndex],
-                                      conditions: field,
-                                    };
-                                    handleQueryChange(queryIndex, newQuery);
-                                  }
-                                }}
-                                useFormWrapper={false}
-                                maxQueryLength={MAX_QUERY_LENGTH}
-                              />
-                              {!hideLegendAlias && (
-                                <LegendAliasInput
-                                  type="text"
-                                  name="name"
-                                  value={query.name}
-                                  placeholder={t('Legend Alias')}
-                                  onChange={event => {
-                                    const newQuery: WidgetQuery = {
-                                      ...state.queries[queryIndex],
-                                      name: event.target.value,
-                                    };
-                                    handleQueryChange(queryIndex, newQuery);
-                                  }}
-                                />
-                              )}
-                              {state.queries.length > 1 && (
-                                <Button
-                                  size="zero"
-                                  borderless
-                                  onClick={() => handleQueryRemove(queryIndex)}
-                                  icon={<IconDelete />}
-                                  title={t('Remove query')}
-                                  aria-label={t('Remove query')}
-                                />
-                              )}
-                            </SearchConditionsWrapper>
-                          </QueryField>
-                        );
-                      })}
-                      {canAddSearchConditions && (
-                        <Button
-                          size="small"
-                          icon={<IconAdd isCircled />}
-                          onClick={handleAddSearchConditions}
-                        >
-                          {t('Add query')}
-                        </Button>
-                      )}
-                    </div>
-                  </BuildStep>
-                  {[DisplayType.TABLE, DisplayType.TOP_N].includes(state.displayType) && (
-                    <BuildStep
-                      title={t('Sort by a column')}
-                      description={t(
-                        "Choose one of the columns you've created to sort by."
-                      )}
-                    >
-                      <Field
-                        inline={false}
-                        flexibleControlStateSize
-                        stacked
-                        error={state.errors?.orderby}
-                      >
-                        {state.dataSet === DataSet.EVENTS ? (
-                          <SelectControl
-                            menuPlacement="auto"
-                            value={state.queries[0].orderby}
-                            name="orderby"
-                            options={generateOrderOptions({
-                              widgetType,
-                              ...getColumnsAndAggregates(state.queries[0].fields),
-                            })}
-                            onChange={(option: SelectValue<string>) => {
-                              const newQuery: WidgetQuery = {
-                                ...state.queries[0],
-                                orderby: option.value,
-                              };
-                              handleQueryChange(0, newQuery);
-                            }}
-                          />
-                        ) : (
-                          <SelectControl
-                            menuPlacement="auto"
-                            value={state.queries[0].orderby || IssueSortOptions.DATE}
-                            name="orderby"
-                            options={generateIssueWidgetOrderOptions(
-                              organization?.features?.includes('issue-list-trend-sort')
-                            )}
-                            onChange={(option: SelectValue<string>) => {
-                              const newQuery: WidgetQuery = {
-                                ...state.queries[0],
-                                orderby: option.value,
-                              };
-                              handleQueryChange(0, newQuery);
-                            }}
-                          />
+                  <FilterResultsStep
+                    queries={state.queries}
+                    hideLegendAlias={hideLegendAlias}
+                    canAddSearchConditions={canAddSearchConditions}
+                    organization={organization}
+                    queryErrors={state.errors?.queries}
+                    onAddSearchConditions={handleAddSearchConditions}
+                    onQueryChange={handleQueryChange}
+                    onQueryRemove={handleQueryRemove}
+                    selection={pageFilters}
+                    widgetType={widgetType}
+                  />
+                  {widgetBuilderNewDesign && isTimeseriesChart && (
+                    <GroupByStep
+                      columns={columns
+                        .filter(field => !(field === 'equation|'))
+                        .map((field, index) =>
+                          explodeField({field, alias: fieldAliases[index]})
                         )}
-                      </Field>
-                    </BuildStep>
+                      onGroupByChange={handleGroupByChange}
+                      organization={organization}
+                      tags={tags}
+                    />
+                  )}
+                  {((widgetBuilderNewDesign && isTimeseriesChart) || isTabularChart) && (
+                    <SortByStep
+                      limit={state.limit}
+                      displayType={state.displayType}
+                      queries={state.queries}
+                      dataSet={state.dataSet}
+                      widgetBuilderNewDesign={widgetBuilderNewDesign}
+                      error={state.errors?.orderby}
+                      onSortByChange={handleSortByChange}
+                      onLimitChange={handleLimitChange}
+                      organization={organization}
+                      widgetType={widgetType}
+                    />
                   )}
                   {notDashboardsOrigin && (
-                    <BuildStep
-                      title={t('Choose your dashboard')}
-                      description={t(
-                        "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-                      )}
-                      required
-                    >
-                      <DashboardSelector
-                        error={state.errors?.dashboard}
-                        dashboards={state.dashboards}
-                        onChange={selectedDashboard =>
-                          setState({
-                            ...state,
-                            selectedDashboard,
-                            errors: {...state.errors, dashboard: undefined},
-                          })
-                        }
-                        disabled={state.loading}
-                      />
-                    </BuildStep>
+                    <DashboardStep
+                      error={state.errors?.dashboard}
+                      dashboards={state.dashboards}
+                      onChange={selectedDashboard =>
+                        setState({
+                          ...state,
+                          selectedDashboard,
+                          errors: {...state.errors, dashboard: undefined},
+                        })
+                      }
+                      disabled={state.loading}
+                    />
                   )}
                 </BuildSteps>
               </Main>
@@ -1037,6 +1024,7 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget =>
                   setState({
                     ...state,
@@ -1063,38 +1051,6 @@ const PageContentWithoutPadding = styled(PageContent)`
   padding: 0;
 `;
 
-const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
-  overflow: ${p => (p.displayType === DisplayType.TABLE ? 'hidden' : 'visible')};
-  padding-right: ${space(2)};
-`;
-
-const DataSetChoices = styled(RadioGroup)`
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-auto-flow: column;
-  }
-`;
-
-const SearchConditionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
-`;
-
-const Search = styled(SearchBar)`
-  flex-grow: 1;
-`;
-
-const LegendAliasInput = styled(Input)`
-  width: 33%;
-`;
-
-const QueryField = styled(Field)`
-  padding-bottom: ${space(1)};
-`;
-
 const BuildSteps = styled(List)`
   gap: ${space(4)};
   max-width: 100%;
@@ -1110,12 +1066,27 @@ const Body = styled(Layout.Body)`
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: 1fr;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    /* 325px + 16px + 16px to match Side component width, padding-left and padding-right */
+    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(2)});
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    /* 325px + 16px + 30px to match Side component width, padding-left and padding-right */
+    grid-template-columns: minmax(100px, auto) calc(325px + ${space(2) + space(4)});
+  }
 `;
 
 const Main = styled(Layout.Main)`
   max-width: 1000px;
-  padding: ${space(4)};
   flex: 1;
+
+  padding: ${space(4)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: ${space(4)};
+  }
 `;
 
 const Side = styled(Layout.Side)`
@@ -1123,6 +1094,9 @@ const Side = styled(Layout.Side)`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     border-left: 1px solid ${p => p.theme.gray200};
+
+    /* to be consistent with Layout.Body in other verticals */
+    padding-right: ${space(4)};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {

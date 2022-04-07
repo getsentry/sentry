@@ -17,6 +17,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
+    "SessionMetricsTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -25,6 +26,8 @@ __all__ = (
     "SCIMTestCase",
     "SCIMAzureTestCase",
     "MetricsEnhancedPerformanceTestCase",
+    "MetricsAPIBaseTestCase",
+    "OrganizationMetricMetaIntegrationTestCase",
 )
 
 import hashlib
@@ -101,10 +104,16 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
-from sentry.search.events.constants import METRICS_MAP
+from sentry.search.events.constants import (
+    METRIC_FALSE_TAG_VALUE,
+    METRIC_MISERABLE_TAG_KEY,
+    METRIC_SATISFIED_TAG_KEY,
+    METRIC_TOLERATED_TAG_KEY,
+    METRIC_TRUE_TAG_VALUE,
+    METRICS_MAP,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -115,13 +124,25 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
+from ..snuba.metrics.naming_layer.mri import SessionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import (
+    AuthProvider,
+    Feature,
+    TaskRunner,
+    apply_feature_flag_on_cls,
+    override_options,
+    parse_queries,
+)
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
+
+
+DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
+SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -365,7 +386,72 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, TestCase):
-    pass
+    # Ensure that testcases that ask for DB setup actually make use of the
+    # DB. If they don't, they're wasting CI time.
+    if DETECT_TESTCASE_MISUSE:
+
+        @pytest.fixture(autouse=True, scope="class")
+        def _require_db_usage(self, request):
+            class State:
+                used_db = {}
+                base = request.cls
+
+            state = State()
+
+            yield state
+
+            did_not_use = set()
+            did_use = set()
+            for name, used in state.used_db.items():
+                if used:
+                    did_use.add(name)
+                else:
+                    did_not_use.add(name)
+
+            if did_not_use and not did_use:
+                pytest.fail(
+                    f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
+                    f"instead of `sentry.testutils.TestCase` for those kinds of tests."
+                )
+            elif did_not_use and did_use and not SILENCE_MIXED_TESTCASE_MISUSE:
+                pytest.fail(
+                    f"Some of the test functions in {state.base} used the DB and some did not! "
+                    f"test functions using the db: {did_use}\n"
+                    f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
+                )
+
+        @pytest.fixture(autouse=True, scope="function")
+        def _check_function_for_db(self, request, monkeypatch, _require_db_usage):
+            from django.db.backends.base.base import BaseDatabaseWrapper
+
+            real_ensure_connection = BaseDatabaseWrapper.ensure_connection
+
+            state = _require_db_usage
+
+            def ensure_connection(*args, **kwargs):
+                for info in inspect.stack():
+                    frame = info.frame
+                    try:
+                        first_arg_name = frame.f_code.co_varnames[0]
+                        first_arg = frame.f_locals[first_arg_name]
+                    except LookupError:
+                        continue
+
+                    # make an exact check here for two reasons.  One is that this is
+                    # good enough as we do not expect subclasses, secondly however because
+                    # it turns out doing an isinstance check on untrusted input can cause
+                    # bad things to happen because it's hookable.  In particular this
+                    # blows through max recursion limits here if it encounters certain
+                    # types of broken lazy proxy objects.
+                    if type(first_arg) is state.base and info.function in state.used_db:
+                        state.used_db[info.function] = True
+                        break
+
+                return real_ensure_connection(*args, **kwargs)
+
+            monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
+            state.used_db[request.function.__name__] = False
+            yield
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
@@ -741,7 +827,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
         for item in which:
             res = self.client.put(
-                "/api/0/assistant/?v2",
+                "/api/0/assistant/",
                 content_type="application/json",
                 data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
             )
@@ -993,40 +1079,34 @@ class SessionMetricsTestCase(SnubaTestCase):
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(
-                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
-            )
+            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
             if not user_is_nil:
                 self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    SessionMetricKey.SESSION_DURATION,
+                    SessionMRI.RAW_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1036,19 +1116,19 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
-        def metric_id(key: SessionMetricKey):
-            res = indexer.record(key.value)
+    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        def metric_id(key: SessionMRI):
+            res = indexer.record(1, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(name)
+            res = indexer.record(1, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(name)
+            res = indexer.record(1, name)
             assert res is not None, name
             return res
 
@@ -1058,6 +1138,7 @@ class SessionMetricsTestCase(SnubaTestCase):
                 "release",
                 "environment",
             )
+            if session[tag] is not None
         }
 
         extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
@@ -1101,6 +1182,10 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
+        "measurements.fp": "metrics_distributions",
+        "measurements.fcp": "metrics_distributions",
+        "measurements.fid": "metrics_distributions",
+        "measurements.cls": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []
@@ -1111,15 +1196,22 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._index_metric_strings()
 
     def _index_metric_strings(self):
-        PGStringIndexer().bulk_record(
-            strings=[
-                "transaction",
-                "transaction.status",
-                *self.METRIC_STRINGS,
-                *list(SPAN_STATUS_NAME_TO_CODE.keys()),
-                *list(METRICS_MAP.values()),
-            ]
-        )
+        strings = [
+            "transaction",
+            "environment",
+            "http.status",
+            "transaction.status",
+            METRIC_SATISFIED_TAG_KEY,
+            METRIC_TOLERATED_TAG_KEY,
+            METRIC_MISERABLE_TAG_KEY,
+            METRIC_TRUE_TAG_VALUE,
+            METRIC_FALSE_TAG_VALUE,
+            *self.METRIC_STRINGS,
+            *list(SPAN_STATUS_NAME_TO_CODE.keys()),
+            *list(METRICS_MAP.values()),
+        ]
+        org_strings = {self.organization.id: set(strings)}
+        PGStringIndexer().bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1127,18 +1219,27 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         metric: str = "transaction.duration",
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
         if tags is None:
             tags = {}
         else:
-            tags = {indexer.resolve(key): indexer.resolve(value) for key, value in tags.items()}
+            tags = {
+                indexer.resolve(self.organization.id, key): indexer.resolve(
+                    self.organization.id, value
+                )
+                for key, value in tags.items()
+            }
 
         if timestamp is None:
             metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
         else:
             metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
 
         if not isinstance(value, list):
             value = [value]
@@ -1147,8 +1248,8 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             [
                 {
                     "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": indexer.resolve(internal_metric),
+                    "project_id": project,
+                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
@@ -1320,16 +1421,25 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.anon_users_query = {
             "name": "Anonymous Users",
             "fields": ["count()"],
+            "aggregates": ["count()"],
+            "columns": [],
+            "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
+            "aggregates": ["count_unique(user.email)"],
+            "columns": [],
+            "fieldAliases": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
+            "aggregates": ["count()"],
+            "columns": ["geo.country_code"],
+            "fieldAliases": [],
             "conditions": "has:geo.country_code",
         }
 
@@ -1378,6 +1488,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["aggregates"] == widget_data_source.aggregates
         if "columns" in data:
             assert data["columns"] == widget_data_source.columns
+        if "fieldAliases" in data:
+            assert data["fieldAliases"] == widget_data_source.field_aliases
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
@@ -1389,6 +1501,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["title"] == expected_widget.title
         if "interval" in data:
             assert data["interval"] == expected_widget.interval
+        if "limit" in data:
+            assert data["limit"] == expected_widget.limit
         if "displayType" in data:
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
@@ -1553,3 +1667,78 @@ class SlackActivityNotificationTest(ActivityTestCase):
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
+
+
+@apply_feature_flag_on_cls("organizations:metrics")
+@pytest.mark.usefixtures("reset_snuba")
+class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
+    ...
+
+
+class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        now = int(time.time())
+
+        # TODO: move _send to SnubaMetricsTestCase
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record(org_id, "metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value1"),
+                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value2"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record(org_id, "metric1"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record(org_id, "tag3"): indexer.record(org_id, "value3"),
+                    },
+                    "type": "c",
+                    "value": 1,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record(org_id, "metric2"),
+                    "timestamp": now,
+                    "tags": {
+                        indexer.record(org_id, "tag4"): indexer.record(org_id, "value3"),
+                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value2"),
+                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value1"),
+                    },
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": indexer.record(org_id, "metric3"),
+                    "timestamp": now,
+                    "tags": {},
+                    "type": "s",
+                    "value": [123],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )

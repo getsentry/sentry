@@ -2,13 +2,13 @@ import * as React from 'react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {LineChartProps} from 'sentry/components/charts/lineChart';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color, Theme} from 'sentry/utils/theme';
@@ -144,13 +144,6 @@ export function getMaxOfSeries(series: Series[]) {
   return max;
 }
 
-export const vitalToMetricsField: Record<string, TransactionMetric> = {
-  [WebVital.LCP]: TransactionMetric.MEASUREMENTS_LCP,
-  [WebVital.FCP]: TransactionMetric.MEASUREMENTS_FCP,
-  [WebVital.FID]: TransactionMetric.MEASUREMENTS_FID,
-  [WebVital.CLS]: TransactionMetric.MEASUREMENTS_CLS,
-};
-
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
   [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
   [WebVital.FID]: [
@@ -202,7 +195,7 @@ export function getVitalChartDefinitions({
     selected: getSeriesSelection(location),
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     grid: {
       left: '5px',
       right: '10px',
@@ -213,7 +206,7 @@ export function getVitalChartDefinitions({
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) =>
         tooltipFormatter(value, vital === WebVital.CLS ? seriesName : yAxis),
     },

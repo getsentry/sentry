@@ -255,7 +255,7 @@ const DateRange = styled(withTheme(withRouter(BaseDateRange)))`
 const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${space(0.25)} ${space(2)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 

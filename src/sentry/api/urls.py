@@ -91,6 +91,16 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.client_state import ClientStateEndpoint
+from .endpoints.codeowners import (
+    ExternalTeamDetailsEndpoint,
+    ExternalTeamEndpoint,
+    ExternalUserDetailsEndpoint,
+    ExternalUserEndpoint,
+    ProjectCodeOwnersDetailsEndpoint,
+    ProjectCodeOwnersEndpoint,
+    ProjectCodeOwnersRequestEndpoint,
+)
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -99,8 +109,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
-from .endpoints.doc_integrations import DocIntegrationsEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -108,10 +116,6 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
-from .endpoints.external_team import ExternalTeamEndpoint
-from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
-from .endpoints.external_user import ExternalUserEndpoint
-from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
@@ -143,6 +147,38 @@ from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
+from .endpoints.integrations.sentry_apps import (
+    OrganizationSentryAppComponentsEndpoint,
+    OrganizationSentryAppsEndpoint,
+    SentryAppAuthorizationsEndpoint,
+    SentryAppComponentsEndpoint,
+    SentryAppDetailsEndpoint,
+    SentryAppFeaturesEndpoint,
+    SentryAppInstallationDetailsEndpoint,
+    SentryAppInstallationExternalIssueActionsEndpoint,
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+    SentryAppInstallationExternalIssuesEndpoint,
+    SentryAppInstallationExternalRequestsEndpoint,
+    SentryAppInstallationsEndpoint,
+    SentryAppInteractionEndpoint,
+    SentryAppPublishRequestEndpoint,
+    SentryAppRequestsEndpoint,
+    SentryAppsEndpoint,
+    SentryAppsStatsEndpoint,
+    SentryAppStatsEndpoint,
+    SentryInternalAppTokenDetailsEndpoint,
+    SentryInternalAppTokensEndpoint,
+)
 from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -172,7 +208,6 @@ from .endpoints.organization_code_mapping_codeowners import (
 )
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
-from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
@@ -204,6 +239,7 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
+from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -224,22 +260,21 @@ from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
-from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
-from .endpoints.organization_invite_request_details import OrganizationInviteRequestDetailsEndpoint
-from .endpoints.organization_invite_request_index import OrganizationInviteRequestIndexEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
-from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
-from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
-from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member import (
+    OrganizationInviteRequestDetailsEndpoint,
+    OrganizationInviteRequestIndexEndpoint,
+    OrganizationJoinRequestEndpoint,
+    OrganizationMemberDetailsEndpoint,
+    OrganizationMemberIndexEndpoint,
+)
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import (
     OrganizationMemberIssuesBookmarkedEndpoint,
@@ -259,8 +294,6 @@ from .endpoints.organization_metrics import (
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_plugins import OrganizationPluginsEndpoint
-from .endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -291,7 +324,6 @@ from .endpoints.organization_request_project_creation import OrganizationRequest
 from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
-from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -316,9 +348,6 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
-from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
-from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
-from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -392,27 +421,6 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.sentry_app import (
-    OrganizationSentryAppComponentsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
-    SentryAppInteractionEndpoint,
-    SentryAppPublishRequestEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppsEndpoint,
-    SentryAppsStatsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokensEndpoint,
-)
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
@@ -624,13 +632,26 @@ urlpatterns = [
         r"^monitors/",
         include(
             [
-                url(r"^(?P<monitor_id>[^\/]+)/$", MonitorDetailsEndpoint.as_view()),
-                url(r"^(?P<monitor_id>[^\/]+)/checkins/$", MonitorCheckInsEndpoint.as_view()),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/$",
+                    MonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-details",
+                ),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
+                    MonitorCheckInsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-index",
+                ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-check-in-details",
                 ),
-                url(r"^(?P<monitor_id>[^\/]+)/stats/$", MonitorStatsEndpoint.as_view()),
+                url(
+                    r"^(?P<monitor_id>[^\/]+)/stats/$",
+                    MonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-monitor-stats",
+                ),
             ]
         ),
     ),
@@ -1121,6 +1142,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-histogram",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-spans-histogram/$",
+                    OrganizationEventsSpansHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-spans-histogram",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
@@ -1561,6 +1587,11 @@ urlpatterns = [
                             ),
                         ],
                     ),
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
+                    ClientStateEndpoint.as_view(),
+                    name="sentry-api-0-organization-client-state",
                 ),
             ]
         ),
@@ -2131,7 +2162,7 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingProfileEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-profile",
                 ),

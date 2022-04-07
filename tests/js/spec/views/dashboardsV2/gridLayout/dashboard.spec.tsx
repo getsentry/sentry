@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
@@ -15,12 +11,7 @@ describe('Dashboards > Dashboard', () => {
     features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const organizationWithFlag = TestStubs.Organization({
-    features: [
-      'dashboards-basic',
-      'dashboards-edit',
-      'dashboard-grid-layout',
-      'issues-in-dashboards',
-    ],
+    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -39,6 +30,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
         orderby: '',
       },
     ],
@@ -54,6 +47,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['title', 'assignee'],
+        aggregates: [],
+        columns: ['title', 'assignee'],
         orderby: '',
       },
     ],
@@ -119,6 +114,7 @@ describe('Dashboards > Dashboard', () => {
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -128,21 +124,23 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -152,27 +150,56 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not try to add new widget if no newWidget', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
-      // @ts-ignore
+    beforeEach(() => {
       MemberListStore.init();
     });
+    afterEach(() => {
+      MemberListStore.teardown();
+    });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
-      rtlMountWithTheme(
+      render(
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
@@ -181,7 +208,6 @@ describe('Dashboards > Dashboard', () => {
           onUpdate={() => undefined}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
           router={initialData.router}
           location={initialData.location}
           widgetLimitReached={false}
@@ -189,17 +215,7 @@ describe('Dashboards > Dashboard', () => {
       );
     };
 
-    it('dashboard does not display issue widgets if the user does not have issue widgets feature flag', async () => {
-      const mockDashboardWithIssueWidget = {
-        ...mockDashboard,
-        widgets: [newWidget, issueWidget],
-      };
-      mount(mockDashboardWithIssueWidget);
-      expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
-      expect(screen.queryByText('Test Issue Widget')).not.toBeInTheDocument();
-    });
-
-    it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
+    it('dashboard displays issue widgets if the user has issue widgets feature flag', () => {
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
@@ -225,25 +241,29 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Edit mode', () => {
     let widgets: Widget[];
-    const mount = dashboard => {
+    const mount = (
+      dashboard,
+      mockedOrg = initialData.organization,
+      mockedRouter = initialData.router,
+      mockedLocation = initialData.location
+    ) => {
       const getDashboardComponent = () => (
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
-          organization={initialData.organization}
+          organization={mockedOrg}
           isEditing
           onUpdate={newWidgets => {
             widgets.splice(0, widgets.length, ...newWidgets);
           }}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
-          router={initialData.router}
-          location={initialData.location}
+          router={mockedRouter}
+          location={mockedLocation}
           widgetLimitReached={false}
         />
       );
-      const {rerender} = rtlMountWithTheme(getDashboardComponent());
+      const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
     };
 
@@ -257,12 +277,46 @@ describe('Dashboards > Dashboard', () => {
       expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
-    it('duplicates the widget', async () => {
+    it('duplicates the widget', () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
       const {rerender} = mount(dashboardWithOneWidget);
       userEvent.click(screen.getByLabelText('Duplicate Widget'));
       rerender();
       expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+    });
+
+    it('opens the widget builder when editing with the modal access flag', function () {
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          features: [
+            'dashboards-basic',
+            'dashboards-edit',
+            'dashboard-grid-layout',
+            'new-widget-builder-experience',
+            'new-widget-builder-experience-design',
+          ],
+        },
+      });
+      const dashboardWithOneWidget = {
+        ...mockDashboard,
+        widgets: [newWidget],
+      };
+
+      mount(
+        dashboardWithOneWidget,
+        testData.organization,
+        testData.router,
+        testData.router.location
+      );
+
+      userEvent.click(screen.getByLabelText('Edit Widget'));
+
+      expect(testData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
+        })
+      );
     });
   });
 });

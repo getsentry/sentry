@@ -7,6 +7,7 @@ import moment from 'moment';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,12 +16,14 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import AlertChart from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -46,6 +49,14 @@ const PAGE_QUERY_PARAMS = [
 class AlertRuleDetails extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
+  componentDidMount() {
+    const {organization, params} = this.props;
+    trackAdvancedAnalyticsEvent('issue_alert_rule_details.viewed', {
+      organization,
+      rule_id: parseInt(params.ruleId, 10),
+    });
+  }
+
   componentDidUpdate(prevProps: Props) {
     const {params: prevParams} = prevProps;
     const {params: currParams} = this.props;
@@ -68,7 +79,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, ruleId, projectId} = this.props.params;
-    return [['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]];
+    return [
+      [
+        'rule',
+        `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
+        {query: {expand: 'lastTriggered'}},
+      ],
+    ];
   }
 
   getDataDatetime(): DateTimeObject {
@@ -162,11 +179,11 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -183,32 +200,53 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
 
     return (
       <PageFiltersContainer
+        skipInitializeUrlParams
+        skipLoadLastUsed
         shouldForceProject
         forceProject={project}
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
       >
+        <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
+
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
                 {label: t('Alerts'), to: `/organizations/${orgId}/alerts/rules/`},
-                {label: t('Alert Rule'), to: null},
+                {
+                  label: rule.name,
+                  to: null,
+                },
               ]}
             />
             <Layout.Title>{rule.name}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button
-              icon={<IconEdit />}
-              to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
-            >
-              {t('Edit Rule')}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button
+                title={t('Send us feedback via email')}
+                href="mailto:alerting-feedback@sentry.io?subject=Issue Alert Details Feedback"
+              >
+                {t('Give Feedback')}
+              </Button>
+              <Button
+                icon={<IconEdit />}
+                to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('issue_alert_rule_details.edit_clicked', {
+                    organization,
+                    rule_id: parseInt(ruleId, 10),
+                  })
+                }
+              >
+                {t('Edit Rule')}
+              </Button>
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
-        <StyledLayoutBody>
+        <Layout.Body>
           <Layout.Main>
             <StyledPageTimeRangeSelector
               organization={organization}
@@ -231,6 +269,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
             <AlertRuleIssuesList
               organization={organization}
               project={project}
+              rule={rule}
               period={period ?? ''}
               start={start ?? null}
               end={end ?? null}
@@ -241,17 +280,13 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           <Layout.Side>
             <Sidebar rule={rule} />
           </Layout.Side>
-        </StyledLayoutBody>
+        </Layout.Body>
       </PageFiltersContainer>
     );
   }
 }
 
 export default AlertRuleDetails;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};

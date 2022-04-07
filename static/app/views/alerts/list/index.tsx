@@ -15,11 +15,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -262,29 +261,27 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <PageFiltersContainer
           organization={organization}
           showDateSelector={false}
-          hideGlobalHeader={organization.features.includes('selection-filters-v2')}
+          hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="stream" />
-          <StyledLayoutBody>
+          <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <StyledAlert icon={<IconInfo />}>
+                  <StyledAlert showIcon>
                     {t('This page only shows metric alerts.')}
                   </StyledAlert>
                   <FilterBar
-                    organization={organization}
                     location={location}
                     onChangeFilter={this.handleChangeFilter}
                     onChangeSearch={this.handleChangeSearch}
                     hasStatusFilters
-                    hasEnvironmentFilter
                   />
                 </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
-          </StyledLayoutBody>
+          </Layout.Body>
         </PageFiltersContainer>
       </SentryDocumentTitle>
     );
@@ -305,10 +302,8 @@ class IncidentsListContainer extends Component<Props> {
   trackView() {
     const {organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_stream.viewed',
-      eventName: 'Alert Stream: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+      organization,
     });
   }
 
@@ -340,10 +335,6 @@ class IncidentsListContainer extends Component<Props> {
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
-`;
-
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
 `;
 
 const EmptyStateAction = styled('p')`

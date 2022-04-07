@@ -44,7 +44,7 @@ describe('Events > SearchBar', function () {
       projectIds: [1, 2],
     };
     TagStore.reset();
-    TagStore.onLoadTagsSuccess([
+    TagStore.loadTagsSuccess([
       {count: 3, key: 'gpu', name: 'Gpu'},
       {count: 3, key: 'mytag', name: 'Mytag'},
       {count: 0, key: 'browser', name: 'Browser'},
@@ -184,7 +184,7 @@ describe('Events > SearchBar', function () {
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('filters dropdown to accommodate for num characters left in query', async function () {
+  it('filters dropdown to accomodate for num characters left in query', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} maxQueryLength={5} />, options);
     await tick();
     wrapper.update();

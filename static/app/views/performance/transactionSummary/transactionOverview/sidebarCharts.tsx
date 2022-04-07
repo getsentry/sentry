@@ -9,7 +9,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkPoint from 'sentry/components/charts/components/markPoint';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -23,20 +23,17 @@ import {Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {TransactionMetric} from 'sentry/utils/metrics/fields';
-import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
-import {transformMetricsToArea} from 'sentry/views/performance/landing/widgets/transforms/transformMetricsToArea';
 
 import {
   anomaliesRouteWithQuery,
@@ -45,26 +42,22 @@ import {
 } from '../transactionAnomalies/utils';
 
 type ContainerProps = WithRouterProps & {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
-  isMetricsData?: boolean;
 };
 
-type Props = Pick<
-  ContainerProps,
-  'organization' | 'isLoading' | 'error' | 'totals' | 'isMetricsData'
-> & {
+type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
-    chartOptions: Record<string, any>;
+    chartOptions: Omit<LineChartProps, 'series'>;
     errored: boolean;
     loading: boolean;
     reloading: boolean;
-    series: React.ComponentProps<typeof LineChart>['series'];
+    series: LineChartProps['series'];
   };
   eventView: EventView;
   location: Location;
@@ -87,7 +80,6 @@ function SidebarCharts({
   router,
   statsPeriod,
   chartData,
-  isMetricsData,
   eventView,
   location,
   transactionName,
@@ -104,16 +96,12 @@ function SidebarCharts({
             size="sm"
           />
         </ChartTitle>
-        {isMetricsData ? (
-          'TODO Metrics'
-        ) : (
-          <ChartSummaryValue
-            data-test-id="apdex-summary-value"
-            isLoading={isLoading}
-            error={error}
-            value={isMetricsData ? null : totals ? formatFloat(totals.apdex, 4) : null}
-          />
-        )}
+        <ChartSummaryValue
+          data-test-id="apdex-summary-value"
+          isLoading={isLoading}
+          error={error}
+          value={totals ? formatFloat(totals.apdex, 4) : null}
+        />
       </ChartLabel>
 
       <ChartLabel top="160px">
@@ -237,7 +225,6 @@ function SidebarChartsContainer({
   isLoading,
   error,
   totals,
-  isMetricsData,
   transactionName,
 }: ContainerProps) {
   const api = useApi();
@@ -265,7 +252,7 @@ function SidebarChartsContainer({
     },
   };
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     height: 480,
     grid: [
       {
@@ -293,7 +280,7 @@ function SidebarChartsContainer({
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time' as const,
+      type: 'time',
       show: false,
     })),
     yAxes: [
@@ -302,7 +289,7 @@ function SidebarChartsContainer({
         gridIndex: 0,
         interval: 0.2,
         axisLabel: {
-          formatter: (value: number) => formatFloat(value, 1),
+          formatter: (value: number) => `${formatFloat(value, 1)}`,
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -333,9 +320,9 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]] as string[],
+    colors: [colors[0], colors[1], colors[2]],
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -364,102 +351,6 @@ function SidebarChartsContainer({
     utc,
     totals,
   };
-
-  if (isMetricsData) {
-    const fields = [`count(${TransactionMetric.TRANSACTION_DURATION})`];
-
-    chartOptions.tooltip.nameFormatter = (name: string) => {
-      return name === 'failure_rate()' ? fields[0] : name;
-    };
-
-    // Fetch failure rate metrics
-    return (
-      <MetricsRequest
-        {...requestCommonProps}
-        query={new MutableSearch(requestCommonProps.query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-        orgSlug={organization.slug}
-        field={fields}
-        groupBy={['transaction.status']}
-      >
-        {failureRateRequestProps => {
-          const failureRateData = transformMetricsToArea(
-            {
-              location,
-              fields,
-            },
-            failureRateRequestProps,
-            true
-          );
-
-          const failureRateSerie = failureRateData.data.map(values => ({
-            ...values,
-            seriesName: 'failure_rate()',
-            yAxisIndex: 1,
-            xAxisIndex: 1,
-          }));
-
-          // Fetch trasaction per minute metrics
-          return (
-            <MetricsRequest
-              api={api}
-              orgSlug={organization.slug}
-              start={start}
-              end={end}
-              statsPeriod={statsPeriod}
-              project={project}
-              environment={environment}
-              query={new MutableSearch(query).formatString()} // TODO(metrics): not all tags will be compatible with metrics
-              field={fields}
-            >
-              {tpmRequestProps => {
-                const tpmData = transformMetricsToArea(
-                  {
-                    location,
-                    fields,
-                  },
-                  tpmRequestProps
-                );
-
-                const tpmSerie = tpmData.data.map(values => ({
-                  ...values,
-                  yAxisIndex: 2,
-                  xAxisIndex: 2,
-                }));
-
-                return (
-                  <SidebarCharts
-                    {...contentCommonProps}
-                    location={location}
-                    transactionName={transactionName}
-                    totals={{
-                      failure_rate: failureRateData.dataMean?.[0].mean ?? 0,
-                      tpm: tpmData.dataMean?.[0].mean ?? 0,
-                    }}
-                    isLoading={failureRateRequestProps.loading || tpmRequestProps.loading}
-                    error={
-                      failureRateRequestProps.errored || tpmRequestProps.errored
-                        ? t('Error fetching metrics data')
-                        : null
-                    }
-                    eventView={eventView}
-                    chartData={{
-                      loading: failureRateRequestProps.loading || tpmRequestProps.loading,
-                      reloading:
-                        failureRateRequestProps.reloading || tpmRequestProps.reloading,
-                      errored: failureRateRequestProps.errored || tpmRequestProps.errored,
-                      chartOptions,
-                      series: [...failureRateSerie, ...tpmSerie],
-                    }}
-                    isMetricsData
-                  />
-                );
-              }}
-            </MetricsRequest>
-          );
-        }}
-      </MetricsRequest>
-    );
-  }
 
   const datetimeSelection = {
     start: start || null,
@@ -503,7 +394,7 @@ function SidebarChartsContainer({
 
 type ChartValueProps = {
   'data-test-id': string;
-  error: string | null;
+  error: QueryError | null;
   isLoading: boolean;
   value: React.ReactNode;
 };

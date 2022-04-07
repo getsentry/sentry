@@ -1,9 +1,10 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import PluginActions from 'sentry/actions/pluginActions';
 import {Plugin} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type PluginStoreInterface = {
+interface PluginStoreDefinition extends StoreDefinition {
   plugins: Map<string, Plugin> | null;
   state: {
     error: Error | null;
@@ -12,7 +13,7 @@ type PluginStoreInterface = {
     plugins: Plugin[];
   };
   updating: Map<string, Plugin>;
-};
+}
 
 const defaultState = {
   loading: true,
@@ -21,10 +22,11 @@ const defaultState = {
   pageLinks: null,
 };
 
-const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
+const storeConfig: PluginStoreDefinition = {
   plugins: null,
   state: {...defaultState},
   updating: new Map(),
+  unsubscribeListeners: [],
 
   reset() {
     // reset our state
@@ -49,12 +51,22 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
 
   init() {
     this.reset();
-    this.listenTo(PluginActions.fetchAll, this.onFetchAll);
-    this.listenTo(PluginActions.fetchAllSuccess, this.onFetchAllSuccess);
-    this.listenTo(PluginActions.fetchAllError, this.onFetchAllError);
-    this.listenTo(PluginActions.update, this.onUpdate);
-    this.listenTo(PluginActions.updateSuccess, this.onUpdateSuccess);
-    this.listenTo(PluginActions.updateError, this.onUpdateError);
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAll, this.onFetchAll)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAllSuccess, this.onFetchAllSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.fetchAllError, this.onFetchAllError)
+    );
+    this.unsubscribeListeners.push(this.listenTo(PluginActions.update, this.onUpdate));
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.updateSuccess, this.onUpdateSuccess)
+    );
+    this.unsubscribeListeners.push(
+      this.listenTo(PluginActions.updateError, this.onUpdateError)
+    );
   },
 
   triggerState() {
@@ -121,7 +133,5 @@ const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   },
 };
 
-const PluginStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  PluginStoreInterface;
-
+const PluginStore = createStore(makeSafeRefluxStore(storeConfig));
 export default PluginStore;

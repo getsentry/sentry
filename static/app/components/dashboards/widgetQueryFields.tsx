@@ -110,6 +110,19 @@ function WidgetQueryFields({
   const doNotValidateYAxis = displayType === 'big_number';
 
   const filterPrimaryOptions = option => {
+    if (widgetType === WidgetType.METRICS) {
+      if (displayType === DisplayType.TABLE) {
+        return [
+          FieldValueKind.FUNCTION,
+          FieldValueKind.TAG,
+          FieldValueKind.NUMERIC_METRICS,
+        ].includes(option.value.kind);
+      }
+      if (displayType === DisplayType.TOP_N) {
+        return option.value.kind === FieldValueKind.TAG;
+      }
+    }
+
     // Only validate function names for timeseries widgets and
     // world map widgets.
     if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
@@ -123,21 +136,15 @@ function WidgetQueryFields({
       }
     }
 
-    if (
-      widgetType === WidgetType.METRICS &&
-      (displayType === DisplayType.TABLE || displayType === DisplayType.TOP_N)
-    ) {
-      return (
-        option.value.kind === FieldValueKind.FUNCTION ||
-        option.value.kind === FieldValueKind.TAG
-      );
-    }
-
-    return option.value.kind === FieldValueKind.FUNCTION;
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
   };
 
   const filterMetricsOptions = option => {
-    return option.value.kind === FieldValueKind.FUNCTION;
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
   };
 
   const filterAggregateParameters =
@@ -180,6 +187,10 @@ function WidgetQueryFields({
 
   const canDelete = fields.length > 1;
 
+  const noFieldsMessage = isMetricWidget
+    ? t('There are no metrics for this project.')
+    : undefined;
+
   if (displayType === 'table') {
     return (
       <Field
@@ -199,6 +210,7 @@ function WidgetQueryFields({
           organization={organization}
           filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
+          noFieldsMessage={noFieldsMessage}
         />
       </Field>
     );
@@ -227,6 +239,7 @@ function WidgetQueryFields({
             organization={organization}
             filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
             source={widgetType}
+            noFieldsMessage={noFieldsMessage}
           />
         </Field>
         <Field
@@ -250,6 +263,7 @@ function WidgetQueryFields({
                 isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
               }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
+              noFieldsMessage={noFieldsMessage}
             />
           </QueryFieldWrapper>
         </Field>
@@ -278,6 +292,7 @@ function WidgetQueryFields({
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(field)}
               otherColumns={fields}
+              noFieldsMessage={noFieldsMessage}
             />
             {(canDelete || field.kind === 'equation') && (
               <Button

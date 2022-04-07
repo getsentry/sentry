@@ -10,7 +10,6 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve,
@@ -20,6 +19,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import EntityKey
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
@@ -246,7 +246,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
     entity_key: EntityKey
-    metric_key: SessionMetricKey
+    metric_key: SessionMRI
     aggregation_func: str
 
     def __init__(
@@ -260,26 +260,37 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 "building snuba filter for a metrics subscription"
             )
         self.org_id = extra_fields["org_id"]
-        self.session_status = resolve_tag_key("session.status")
+        self.session_status = resolve_tag_key(self.org_id, "session.status")
         self.time_window = time_window
 
     def get_query_groupby(self) -> List[str]:
         return [self.session_status]
 
     def get_granularity(self) -> int:
-        # Both time_window and granularity are in seconds
-        # Time windows <= 1h -> Granularity 10s
-        # Time windows > 1h & <= 4h -> Granularity 60s
-        # Time windows > 4h and <= 24h -> Granularity 1 hour
-        # Time windows > 24h -> Granularity 1 day
+        """
+        Both time_window and granularity are in seconds
+        Time windows <= 1h -> Granularity 10s
+        Time windows > 1h & <= 4h -> Granularity 60s
+        Time windows > 4h and <= 24h -> Granularity 1 hour
+        Time windows > 24h -> Granularity 1 day
+        """
+        # ToDo(ahmed): Uncomment this logic once we are through with the comparisons
+        # if self.time_window <= 3600:
+        #     granularity = 10
+        # elif self.time_window <= 4 * 3600:
+        #     granularity = 60
+        # elif 4 * 3600 < self.time_window <= 24 * 3600:
+        #     granularity = 3600
+        # else:
+        #     granularity = 24 * 3600
+
+        # ToDo(ahmed): Hack this out in favor of previous commented logic
+        # Adding this to enable sessions vs metrics crash rate alert comparisons as it only
+        # makes sense to compare against sessions crash rate alerts with these granularities
         if self.time_window <= 3600:
-            granularity = 10
-        elif self.time_window <= 4 * 3600:
             granularity = 60
-        elif 4 * 3600 < self.time_window <= 24 * 3600:
-            granularity = 3600
         else:
-            granularity = 24 * 3600
+            granularity = 3600
         return granularity
 
     def build_snuba_filter(
@@ -290,12 +301,12 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
-        session_status_tag_values = resolve_many_weak(["crashed", "init"])
+        session_status_tag_values = resolve_many_weak(self.org_id, ["crashed", "init"])
         snuba_filter.update_with(
             {
                 "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
                 "conditions": [
-                    ["metric_id", "=", resolve(self.metric_key.value)],
+                    ["metric_id", "=", resolve(self.org_id, self.metric_key.value)],
                     [self.session_status, "IN", session_status_tag_values],
                 ],
                 "groupby": self.get_query_groupby(),
@@ -304,7 +315,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         )
         if environment:
             snuba_filter.conditions.append(
-                [resolve_tag_key("environment"), "=", resolve_weak(environment.name)]
+                [
+                    resolve_tag_key(self.org_id, "environment"),
+                    "=",
+                    resolve_weak(self.org_id, environment.name),
+                ]
             )
         if query and len(conditions) > 0:
             release_conditions = [
@@ -314,9 +329,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             for release_condition in release_conditions:
                 snuba_filter.conditions.append(
                     [
-                        resolve_tag_key(release_condition[0]),
+                        resolve_tag_key(self.org_id, release_condition[0]),
                         release_condition[1],
-                        resolve_weak(release_condition[2]),
+                        resolve_weak(self.org_id, release_condition[2]),
                     ]
                 )
 
@@ -336,7 +351,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         value_col_name = alias if alias else "value"
         try:
             translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key("session.status")
+            session_status = resolve_tag_key(org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve(row[session_status])
                 translated_data[tag_value] = row[value_col_name]
@@ -370,13 +385,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsCounters
-    metric_key: SessionMetricKey = SessionMetricKey.SESSION
+    metric_key: SessionMRI = SessionMRI.SESSION
     aggregation_func: str = "sum"
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsSets
-    metric_key: SessionMetricKey = SessionMetricKey.USER
+    metric_key: SessionMRI = SessionMRI.USER
     aggregation_func: str = "uniq"
 
 

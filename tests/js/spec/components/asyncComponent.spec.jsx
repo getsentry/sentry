@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -30,7 +30,7 @@ describe('AsyncComponent', function () {
         message: 'hi',
       },
     });
-    mountWithTheme(<TestAsyncComponent />);
+    render(<TestAsyncComponent />);
     expect(screen.getByText('hi')).toBeInTheDocument();
   });
 
@@ -44,7 +44,7 @@ describe('AsyncComponent', function () {
       },
       statusCode: 400,
     });
-    mountWithTheme(<TestAsyncComponent />);
+    render(<TestAsyncComponent />);
     expect(screen.getByText('oops there was a problem')).toBeInTheDocument();
   });
 
@@ -91,14 +91,11 @@ describe('AsyncComponent', function () {
       }
     }
 
-    mountWithTheme(<UniqueErrorsAsyncComponent />);
+    render(<UniqueErrorsAsyncComponent />);
 
-    expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
-      'oops there was a problem'
-    );
-    expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
-      'oops there was a different problem'
-    );
+    expect(
+      screen.getByText('oops there was a problem oops there was a different problem')
+    ).toBeInTheDocument();
   });
 
   describe('multi-route component', () => {
@@ -134,7 +131,7 @@ describe('AsyncComponent', function () {
         'onLoadAllEndpointsSuccess'
       );
 
-      mountWithTheme(<MultiRouteComponent />);
+      render(<MultiRouteComponent />);
 
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 

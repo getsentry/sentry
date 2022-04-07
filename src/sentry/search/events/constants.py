@@ -1,4 +1,5 @@
 import re
+from typing import Dict, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -24,12 +25,42 @@ RELEASE_STAGE_ALIAS = "release.stage"
 SEMVER_ALIAS = "release.version"
 SEMVER_PACKAGE_ALIAS = "release.package"
 SEMVER_BUILD_ALIAS = "release.build"
+TITLE_ALIAS = "title"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
+
+
+class ThresholdDict(TypedDict):
+    poor: float
+    meh: float
+
+
+VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
+    "lcp": {
+        "poor": 4000,
+        "meh": 2500,
+    },
+    "fp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fcp": {
+        "poor": 3000,
+        "meh": 1000,
+    },
+    "fid": {
+        "poor": 300,
+        "meh": 100,
+    },
+    "cls": {
+        "poor": 0.25,
+        "meh": 0.1,
+    },
+}
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -38,6 +69,9 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
 ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
+
+MISERY_ALPHA = 5.8875
+MISERY_BETA = 111.8625
 
 ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
@@ -78,6 +112,12 @@ CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
     "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+TREND_FUNCTION_TYPE_MAP = {
+    "trend_percentage()": "percentage",
+    "count_percentage()": "percentage",
+    "trend_difference()": "duration",
+    "confidence()": "number",
 }
 
 # Create the known set of fields from the issue properties
@@ -123,16 +163,50 @@ FUNCTION_ALIASES = {
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
-    "measurements.fp": "sentry.transactions.measurements.fp",
-    "measurements.fcp": "sentry.transactions.measurements.fcp",
-    "measurements.lcp": "sentry.transactions.measurements.lcp",
-    "measurements.fid": "sentry.transactions.measurements.fid",
-    "measurements.cls": "sentry.transactions.measurements.cls",
-    "measurements.ttfb": "sentry.transactions.measurements.ttfb",
-    "measurements.ttfb.requesttime": "sentry.transactions.measurements.ttfb.requesttime",
-    "transaction.duration": "sentry.transactions.transaction.duration",
-    "user": "sentry.transactions.user",
+    "measurements.fp": "d:transactions/measurements.fp@millisecond",
+    "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
+    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.fid": "d:transactions/measurements.fid@millisecond",
+    "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
+    "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
+    "transaction.duration": "d:transactions/duration@millisecond",
+    "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 51
 METRICS_GRANULARITIES = [86400, 3600, 60, 10]
+METRIC_TOLERATED_TAG_KEY = "is_tolerated"
+METRIC_SATISFIED_TAG_KEY = "is_satisfied"
+METRIC_MISERABLE_TAG_KEY = "is_user_miserable"
+METRIC_TRUE_TAG_VALUE = "true"
+METRIC_FALSE_TAG_VALUE = "false"
+METRIC_DURATION_COLUMNS = [
+    "measurements.fp",
+    "measurements.fcp",
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "measurements.ttfb",
+    "measurements.ttfb.requesttime",
+    "transaction.duration",
+]
+# So we can dry run some queries to see how often they'd be compatible
+DRY_RUN_COLUMNS = {
+    METRIC_TOLERATED_TAG_KEY,
+    METRIC_SATISFIED_TAG_KEY,
+    METRIC_MISERABLE_TAG_KEY,
+    METRIC_TRUE_TAG_VALUE,
+    METRIC_FALSE_TAG_VALUE,
+    "environment",
+    "http.method",
+    "measurement_rating",
+    "organization_id",
+    "project.id",
+    "project_id",
+    "release",
+    "timestamp",
+    "transaction.op",
+    "transaction",
+    "transaction.status",
+}

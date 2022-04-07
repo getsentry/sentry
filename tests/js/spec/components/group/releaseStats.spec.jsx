@@ -1,25 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
-import ConfigStore from 'sentry/stores/configStore';
 
 describe('GroupReleaseStats', function () {
-  const {organization, project, routerContext} = initializeOrg();
-
-  beforeAll(function () {
-    // Set timezone for snapshot
-    ConfigStore.loadInitialData({
-      user: {
-        options: {
-          timezone: 'America/Los_Angeles',
-        },
-      },
-    });
-  });
+  const organization = TestStubs.Organization();
+  const project = TestStubs.Project();
 
   const createWrapper = props =>
-    mountWithTheme(
+    render(
       <GroupReleaseStats
         group={TestStubs.Group()}
         project={project}
@@ -27,23 +15,32 @@ describe('GroupReleaseStats', function () {
         allEnvironments={TestStubs.Group()}
         environments={[]}
         {...props}
-      />,
-      routerContext
+      />
     );
 
   it('renders all environments', function () {
-    const wrapper = createWrapper();
-    expect(wrapper.find('[data-test-id="env-label"]').text()).toBe('All Environments');
-    expect(wrapper.find('GroupReleaseChart')).toHaveLength(2);
-    expect(wrapper.find('SeenInfo')).toHaveLength(2);
+    createWrapper();
+    expect(screen.getByTestId('env-label')).toHaveTextContent('All Environments');
+    expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
+    expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
+    expect(screen.getByText('Last seen')).toBeInTheDocument();
+    expect(screen.getByText('First seen')).toBeInTheDocument();
+    // Displays counts
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
   });
 
   it('renders specific environments', function () {
-    const wrapper = createWrapper({environments: TestStubs.Environments()});
-    expect(wrapper.find('[data-test-id="env-label"]').text()).toBe(
+    createWrapper({environments: TestStubs.Environments()});
+    expect(screen.getByTestId('env-label')).toHaveTextContent(
       'Production, Staging, STAGING'
     );
-    expect(wrapper.find('GroupReleaseChart')).toHaveLength(2);
-    expect(wrapper.find('SeenInfo')).toHaveLength(2);
+    expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
+    expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
+    expect(screen.getByText('Last seen')).toBeInTheDocument();
+    expect(screen.getByText('First seen')).toBeInTheDocument();
+    // Displays counts
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
   });
 });

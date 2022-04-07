@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {MetricsApiResponse, OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
+import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
@@ -84,18 +84,18 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       ) ||
       // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
       !isEqual(
-        widget.queries.flatMap(q => q.fields.filter(field => !!field)),
-        prevProps.widget.queries.flatMap(q => q.fields.filter(field => !!field))
+        widget.queries.flatMap(q => q.fields?.filter(field => !!field)),
+        prevProps.widget.queries.flatMap(q => q.fields?.filter(field => !!field))
       ) ||
       !isEqual(
-        widget.queries.flatMap(q => q.aggregates?.filter(aggregate => !!aggregate)),
+        widget.queries.flatMap(q => q.aggregates.filter(aggregate => !!aggregate)),
         prevProps.widget.queries.flatMap(q =>
-          q.aggregates?.filter(aggregate => !!aggregate)
+          q.aggregates.filter(aggregate => !!aggregate)
         )
       ) ||
       !isEqual(
-        widget.queries.flatMap(q => q.columns?.filter(column => !!column)),
-        prevProps.widget.queries.flatMap(q => q.columns?.filter(column => !!column))
+        widget.queries.flatMap(q => q.columns.filter(column => !!column)),
+        prevProps.widget.queries.flatMap(q => q.columns.filter(column => !!column))
       )
     ) {
       this.fetchData();
@@ -137,7 +137,7 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
-        return undefined;
+        return 20; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
     }
   }
 
@@ -163,15 +163,14 @@ class MetricsWidgetQueries extends React.Component<Props, State> {
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
 
-    const {aggregates, columns} = getColumnsAndAggregates(widget.queries[0].fields); // all queries have the same fields, filters differ
-
     const promises = widget.queries.map(query => {
+      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
       const requestData = {
         field: aggregates,
         orgSlug: organization.slug,
         end,
         environment: environments,
-        groupBy: columns.length ? columns : undefined,
+        groupBy: query.columns,
         interval,
         limit: this.limit,
         orderBy: query.orderby || (this.limit ? aggregates[0] : undefined),

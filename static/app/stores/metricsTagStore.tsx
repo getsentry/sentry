@@ -1,33 +1,50 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {MetricsTag, MetricsTagCollection} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type MetricsTagStoreInterface = {
-  getAllTags(): MetricsTagCollection;
-  onLoadTagsSuccess(data: MetricsTag[]): void;
-  reset(): void;
-  state: MetricsTagCollection;
+import {CommonStoreDefinition} from './types';
+
+type State = {
+  /**
+   * This is state for when tags fetched from the API are loaded
+   */
+  loaded: boolean;
+  metricsTags: MetricsTagCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
-  state: {},
+interface MetricsTagStoreDefinition extends CommonStoreDefinition<State> {
+  onLoadSuccess(data: MetricsTag[]): void;
+  reset(): void;
+}
+
+const storeConfig: MetricsTagStoreDefinition = {
+  unsubscribeListeners: [],
+  state: {
+    metricsTags: {},
+    loaded: false,
+  },
 
   init() {
-    this.state = {};
-    this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadTagsSuccess);
+    this.unsubscribeListeners.push(
+      this.listenTo(MetricsTagActions.loadMetricsTagsSuccess, this.onLoadSuccess)
+    );
   },
 
   reset() {
-    this.state = {};
+    this.state = {
+      metricsTags: {},
+      loaded: false,
+    };
     this.trigger(this.state);
   },
 
-  getAllTags() {
+  getState() {
     return this.state;
   },
 
-  onLoadTagsSuccess(data) {
+  onLoadSuccess(data) {
     const newTags = data.reduce<MetricsTagCollection>((acc, tag) => {
       acc[tag.key] = {
         ...tag,
@@ -36,12 +53,15 @@ const storeConfig: Reflux.StoreDefinition & MetricsTagStoreInterface = {
       return acc;
     }, {});
 
-    this.state = {...this.state, ...newTags};
+    this.state = {
+      metricsTags: {...this.state.metricsTags, ...newTags},
+      loaded: true,
+    };
+
     this.trigger(this.state);
   },
 };
 
-const MetricsTagStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricsTagStoreInterface;
+const MetricsTagStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default MetricsTagStore;

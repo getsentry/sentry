@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 from operator import attrgetter
@@ -607,15 +609,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 },
             )
             raise IntegrationError(
-                "Could not fetch project list from Jira"
-                "Ensure that jira is available and your account is still active."
+                "Could not fetch project list from Jira. Ensure that Jira is"
+                " available and your account is still active."
             )
 
         meta = self.get_issue_create_meta(client, project_id, jira_projects)
         if not meta:
             raise IntegrationError(
-                "Could not fetch issue create metadata from Jira. "
-                "Ensure that the integration user has access to the requested project."
+                "Could not fetch issue create metadata from Jira. Ensure that"
+                " the integration user has access to the requested project."
             )
 
         # check if the issuetype was passed as a parameter
@@ -771,10 +773,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         cleaned_data[field] = v
                         continue
                     if schema["type"] == "user" or schema.get("items") == "user":
-                        v = {user_id_field: v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                        # custom multi-picker
-                        v = [{user_id_field: v}]
+                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
+                            # custom multi-picker
+                            v = [{user_id_field: user_id} for user_id in v]
+                        else:
+                            v = {user_id_field: v}
                     elif schema["type"] == "issuelink":  # used by Parent field
                         v = {"key": v}
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
@@ -835,8 +838,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def sync_assignee_outbound(
         self,
-        external_issue: "ExternalIssue",
-        user: Optional["User"],
+        external_issue: ExternalIssue,
+        user: Optional[User],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

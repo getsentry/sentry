@@ -1,5 +1,6 @@
-import {IssueConfigField} from 'sentry/types/index';
-import {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/organizationIntegrations/sentryAppExternalForm';
+
+import type {IssueConfigField} from './integrations';
 
 type IssueAlertRuleFormField =
   | {
@@ -27,6 +28,7 @@ export type IssueAlertRuleActionTemplate = {
   enabled: boolean;
   id: string;
   label: string;
+  name: string;
   prompt: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
@@ -84,6 +86,7 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   id: string;
   projects: string[];
   errors?: {detail: string}[];
+  lastTriggered?: string;
 };
 
 // Project's alert rule stats

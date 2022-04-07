@@ -382,10 +382,14 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function generateGenericPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function shouldAddDefaultConditions(location: Location) {
+  const {query} = location;
+  const searchQuery = decodeScalar(query.query, '');
+  const isDefaultQuery = decodeScalar(query.isDefaultQuery);
+  return !searchQuery && isDefaultQuery !== 'false';
+}
+
+function generateGenericPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -425,7 +429,7 @@ function generateGenericPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -443,11 +447,7 @@ function generateGenericPerformanceEventView(
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   if (query.trendParameter) {
     // projects and projectIds are not necessary here since trendParameter will always
@@ -461,10 +461,7 @@ function generateGenericPerformanceEventView(
   return eventView;
 }
 
-function generateBackendPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function generateBackendPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -506,7 +503,7 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -525,11 +522,7 @@ function generateBackendPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -537,8 +530,7 @@ function generateBackendPerformanceEventView(
 function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
-  genericEventView: EventView,
-  isMetricsData: boolean
+  genericEventView: EventView
 ): EventView {
   const {query} = location;
 
@@ -548,8 +540,6 @@ function generateMobilePerformanceEventView(
     'project',
     'transaction.op',
     'tpm()',
-    'p75(measurements.app_start_cold)',
-    'p75(measurements.app_start_warm)',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
@@ -566,10 +556,6 @@ function generateMobilePerformanceEventView(
       selectedProjects.length > 0 &&
       selectedProjects.every(project => project.platform === 'react-native')
     ) {
-      // TODO(tonyx): remove these once the SDKs are ready
-      fields.pop();
-      fields.pop();
-
       fields.push('p75(measurements.stall_percentage)');
     }
   }
@@ -597,7 +583,7 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -616,19 +602,12 @@ function generateMobilePerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type is not a valid metric tag, so it will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
 
-function generateFrontendPageloadPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function generateFrontendPageloadPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -668,7 +647,7 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -687,20 +666,13 @@ function generateFrontendPageloadPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and transaction.op are not valid metric tags, so they will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-    eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('transaction.op', ['pageload']);
 
   return eventView;
 }
 
-function generateFrontendOtherPerformanceEventView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+function generateFrontendOtherPerformanceEventView(location: Location): EventView {
   const {query} = location;
 
   const fields = [
@@ -740,7 +712,7 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (!conditions.hasFilter('transaction.duration') && !isMetricsData) {
+  if (shouldAddDefaultConditions(location)) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -759,11 +731,7 @@ function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and !transaction.op are not valid metric tags, so they will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -771,9 +739,9 @@ function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  {isTrends = false, isMetricsData = false} = {}
+  {isTrends = false} = {}
 ) {
-  const eventView = generateGenericPerformanceEventView(location, isMetricsData);
+  const eventView = generateGenericPerformanceEventView(location);
 
   if (isTrends) {
     return eventView;
@@ -782,27 +750,19 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, isMetricsData);
+      return generateFrontendPageloadPerformanceEventView(location);
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, isMetricsData);
+      return generateFrontendOtherPerformanceEventView(location);
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, isMetricsData);
+      return generateBackendPerformanceEventView(location);
     case LandingDisplayField.MOBILE:
-      return generateMobilePerformanceEventView(
-        location,
-        projects,
-        eventView,
-        isMetricsData
-      );
+      return generateMobilePerformanceEventView(location, projects, eventView);
     default:
       return eventView;
   }
 }
 
-export function generatePerformanceVitalDetailView(
-  location: Location,
-  isMetricsData: boolean
-): EventView {
+export function generatePerformanceVitalDetailView(location: Location): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
@@ -851,12 +811,8 @@ export function generatePerformanceVitalDetailView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  // event.type and has are not valid metric tags, so they will be added to the query only
-  // in case the metric switch is disabled (for now).
-  if (!isMetricsData) {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-    eventView.additionalConditions.addFilterValues('has', [vitalName]);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.addFilterValues('has', [vitalName]);
 
   return eventView;
 }

@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -125,7 +125,7 @@ function VitalChartMetrics({
 
             const seriesMax = getMaxOfSeries(smoothedSeries);
             const yAxisMax = Math.max(seriesMax, vitalPoor);
-            chartOptions.yAxis.max = yAxisMax * 1.1;
+            chartOptions.yAxis!.max = yAxisMax * 1.1;
 
             return (
               <ReleaseSeries

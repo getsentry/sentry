@@ -13,7 +13,7 @@ from sentry.models import Organization
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.utils.snuba import SnubaTSResult
 
-METRICS_ENHANCE_REFERRERS: Set[str] = {
+METRICS_ENHANCED_REFERRERS: Set[str] = {
     "api.performance.homepage.widget-chart",
     "api.performance.generic-widget-chart.duration-histogram",
     "api.performance.generic-widget-chart.lcp-histogram",
@@ -77,6 +77,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:performance-chart-interpolation",
             "organizations:discover-use-snql",
             "organizations:performance-use-metrics",
+            "organizations:performance-dry-run-mep",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -128,7 +129,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             referrer = request.GET.get("referrer")
             referrer = (
                 referrer
-                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCE_REFERRERS)
+                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
                 else "api.organization-event-stats"
             )
             batch_features = self.get_features(organization, request)
@@ -139,9 +140,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             performance_use_metrics = batch_features.get(
                 "organizations:performance-use-metrics", False
             )
+            performance_dry_run_mep = batch_features.get(
+                "organizations:performance-dry-run-mep", False
+            )
 
-            metrics_enhanced = referrer in METRICS_ENHANCE_REFERRERS and performance_use_metrics
-            sentry_sdk.set_tag("performance.use_metrics", metrics_enhanced)
+            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+            allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -169,16 +174,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     use_snql=discover_snql,
                 )
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.timeseries_query(
-                selected_columns=query_columns,
-                query=query,
-                params=params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                comparison_delta=comparison_delta,
-                use_snql=discover_snql,
-            )
+            query_details = {
+                "selected_columns": query_columns,
+                "query": query,
+                "params": params,
+                "rollup": rollup,
+                "referrer": referrer,
+                "zerofill_results": zerofill_results,
+                "comparison_delta": comparison_delta,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": discover_snql,
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.timeseries_query(dry_run=True, **query_details)
+            return dataset.timeseries_query(**query_details)
 
         try:
             return Response(

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -6,6 +6,7 @@ import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasS
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
@@ -27,6 +28,9 @@ function FlamegraphZoomView({
   flamegraph,
   canvasPoolManager,
 }: FlamegraphZoomViewProps): React.ReactElement {
+  const [lastInteraction, setLastInteraction] = useState<'pan' | 'click' | 'zoom' | null>(
+    null
+  );
   const flamegraphPreferences = useFlamegraphPreferencesValue();
   const flamegraphTheme = useFlamegraphTheme();
 
@@ -37,8 +41,9 @@ function FlamegraphZoomView({
 
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
+  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-  const [searchResults, setSearchResults] = useState<Record<string, FlamegraphFrame>>({});
+  const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
@@ -122,13 +127,44 @@ function FlamegraphZoomView({
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
 
+  /**
+   * Whenever the flamegraph changes, the reference to the selected node
+   * may no longer be valid/correct. So clear it when that happens.
+   *
+   * The flamegraph may for reasons like
+   * - inverted/leftHeavy changed
+   * - thread changed
+   * - import happened
+   */
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [flamegraph]);
+
+  useEffect(() => {
+    scheduler.draw();
+  }, [flamegraphState.search.results]);
+
+  useEffect(() => {
+    const onKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key === 'z' && evt.metaKey) {
+        dispatchFlamegraphState({type: evt.shiftKey ? 'redo' : 'undo'});
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
   useEffect(() => {
     if (!flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
-      flamegraphRenderer.draw(searchResults);
+      flamegraphRenderer.draw(flamegraphState.search.results);
     };
 
     scheduler.registerBeforeFrameCallback(drawRectangles);
@@ -136,7 +172,7 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [scheduler, flamegraphRenderer, searchResults]);
+  }, [scheduler, flamegraphRenderer, flamegraphState.search.results]);
 
   useEffect(() => {
     if (!flamegraphRenderer || !textRenderer || !gridRenderer || !selectedFrameRenderer) {
@@ -223,6 +259,7 @@ function FlamegraphZoomView({
     };
   }, [
     scheduler,
+    flamegraph,
     flamegraphRenderer,
     textRenderer,
     gridRenderer,
@@ -286,23 +323,16 @@ function FlamegraphZoomView({
       scheduler.draw();
     };
 
-    const onSearchResultsChange = (results: Record<string, FlamegraphFrame>) => {
-      setSearchResults(results);
-      scheduler.draw();
-    };
-
     scheduler.on('setConfigView', onConfigViewChange);
     scheduler.on('transformConfigView', onTransformConfigView);
     scheduler.on('resetZoom', onResetZoom);
     scheduler.on('zoomIntoFrame', onZoomIntoFrame);
-    scheduler.on('searchResults', onSearchResultsChange);
 
     return () => {
       scheduler.off('setConfigView', onConfigViewChange);
       scheduler.off('transformConfigView', onTransformConfigView);
       scheduler.off('resetZoom', onResetZoom);
       scheduler.off('zoomIntoFrame', onZoomIntoFrame);
-      scheduler.off('searchResults', onSearchResultsChange);
     };
   }, [scheduler, flamegraphRenderer]);
 
@@ -330,25 +360,110 @@ function FlamegraphZoomView({
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [canvasPoolManager, scheduler]);
 
-  const onCanvasClick = useCallback(
+  const onCanvasMouseDown = useCallback((evt: React.MouseEvent<HTMLCanvasElement>) => {
+    const logicalMousePos = vec2.fromValues(
+      evt.nativeEvent.offsetX,
+      evt.nativeEvent.offsetY
+    );
+
+    const physicalMousePos = vec2.scale(
+      vec2.create(),
+      logicalMousePos,
+      window.devicePixelRatio
+    );
+
+    setLastInteraction('click');
+    setStartPanVector(physicalMousePos);
+  }, []);
+
+  const onCanvasMouseUp = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
       evt.preventDefault();
       evt.stopPropagation();
 
       if (!flamegraphRenderer || !configSpaceCursor) {
+        setLastInteraction(null);
+        setStartPanVector(null);
         return;
       }
 
       // Only dispatch the zoom action if the new clicked node is not the same as the old selected node.
       // This essentialy tracks double click action on a rectangle
-      if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
-        canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+      if (lastInteraction === 'click') {
+        if (hoveredNode && selectedNode && hoveredNode === selectedNode) {
+          canvasPoolManager.dispatch('zoomIntoFrame', [hoveredNode]);
+        }
+        canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+        setSelectedNode(hoveredNode);
       }
 
-      setSelectedNode(hoveredNode);
-      canvasPoolManager.dispatch('selectedNode', [hoveredNode]);
+      setLastInteraction(null);
+      setStartPanVector(null);
     },
-    [flamegraphRenderer, configSpaceCursor, selectedNode, hoveredNode, canvasPoolManager]
+    [
+      flamegraphRenderer,
+      configSpaceCursor,
+      selectedNode,
+      hoveredNode,
+      canvasPoolManager,
+      startPanVector,
+      lastInteraction,
+    ]
+  );
+
+  const onMouseDrag = useCallback(
+    (evt: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!startPanVector || !flamegraphRenderer) {
+        return;
+      }
+
+      const logicalMousePos = vec2.fromValues(
+        evt.nativeEvent.offsetX,
+        evt.nativeEvent.offsetY
+      );
+
+      const physicalMousePos = vec2.scale(
+        vec2.create(),
+        logicalMousePos,
+        window.devicePixelRatio
+      );
+
+      const physicalDelta = vec2.subtract(
+        vec2.create(),
+        startPanVector,
+        physicalMousePos
+      );
+
+      if (physicalDelta[0] === 0 && physicalDelta[1] === 0) {
+        return;
+      }
+
+      const physicalToConfig = mat3.invert(
+        mat3.create(),
+        flamegraphRenderer.configToPhysicalSpace
+      );
+      const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+
+      const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+        m00,
+        m01,
+        m02,
+        m10,
+        m11,
+        m12,
+        0,
+        0,
+        0,
+      ]);
+
+      canvasPoolManager.dispatch('transformConfigView', [
+        mat3.fromTranslation(mat3.create(), configDelta),
+      ]);
+
+      setLastInteraction('pan');
+      setStartPanVector(physicalMousePos);
+    },
+    [flamegraphRenderer, startPanVector]
   );
 
   const onCanvasMouseMove = useCallback(
@@ -362,12 +477,18 @@ function FlamegraphZoomView({
       );
 
       setConfigSpaceCursor([configSpaceMouse[0], configSpaceMouse[1]]);
+
+      if (lastInteraction) {
+        onMouseDrag(evt);
+      }
     },
-    [flamegraphRenderer, setConfigSpaceCursor]
+    [flamegraphRenderer, setConfigSpaceCursor, onMouseDrag, lastInteraction]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
+    setStartPanVector(null);
+    setLastInteraction(null);
   }, []);
 
   const zoom = useCallback(
@@ -399,6 +520,7 @@ function FlamegraphZoomView({
       const translatedBack = mat3.translate(mat3.create(), scaled, invertedConfigCenter);
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
+      setLastInteraction('zoom');
     },
     [flamegraphRenderer, canvasPoolManager]
   );
@@ -462,12 +584,14 @@ function FlamegraphZoomView({
   }, [flamegraphCanvasRef, zoom, scroll]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Canvas
         ref={canvas => setFlamegraphCanvasRef(canvas)}
-        onClick={onCanvasClick}
+        onMouseDown={onCanvasMouseDown}
+        onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
+        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
       />
       <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
@@ -484,7 +608,7 @@ function FlamegraphZoomView({
           {hoveredNode?.frame?.name}
         </BoundTooltip>
       ) : null}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

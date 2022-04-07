@@ -454,9 +454,6 @@ SESSION_COOKIE_SAMESITE = None
 
 SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
-GOOGLE_OAUTH2_CLIENT_ID = ""
-GOOGLE_OAUTH2_CLIENT_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -560,6 +557,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.deletion",
@@ -588,6 +587,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.profiles.task",
+    "sentry.release_health.duplex",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -654,6 +655,8 @@ CELERY_QUEUES = [
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("profiles.process", routing_key="profiles.process"),
+    Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -925,10 +928,10 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable obtaining and using API keys.
-    "organizations:alert-rule-ui-component": False,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enable issue alert status page
-    "organizations:alert-rule-status-page": False,
+    "organizations:alert-rule-status-page": True,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -965,6 +968,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
+    # Enable projects page redesign
+    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -993,6 +998,8 @@ SENTRY_FEATURES = {
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
     "organizations:new-widget-builder-experience-design": False,
+    # Enable access to the Add to Dashboard modal for metrics work
+    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1005,6 +1012,8 @@ SENTRY_FEATURES = {
     "organizations:release-health-check-metrics": False,
     # True if differences between the metrics and sessions backend should be reported
     "organizations:release-health-check-metrics-report": False,
+    # True if the metrics data should be returned as API response (if possible with current data)
+    "organizations:release-health-return-metrics": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1042,8 +1051,6 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics in dashboards
     "organizations:dashboards-metrics": False,
-    # Enable issue widgets in dashboards
-    "organizations:issues-in-dashboards": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable experimental performance improvements.
@@ -1059,8 +1066,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Display a global dashboard notification for this org
-    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1071,6 +1076,8 @@ SENTRY_FEATURES = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
+    # Enable autogrouping of sibling spans
+    "organizations:performance-autogroup-sibling-spans": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1078,6 +1085,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enables experimental new-style selection filters to replace the GSH
     "organizations:selection-filters-v2": False,
+    # Enable experimental session replay features
+    "organizations:session-replay": False,
     # Enable logging for weekly reports
     "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
@@ -1103,8 +1112,6 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
-    # Enable percent displays in issue stream
-    "organizations:issue-percent-display": False,
     # Enable team insights page
     "organizations:team-insights": True,
     # Adds additional filters and a new section to issue alert rules.
@@ -1670,11 +1677,12 @@ SENTRY_WATCHERS = (
     ),
 )
 
-# Controls whether DEVSERVICES will spin up a Relay and direct store traffic through Relay or not.
-# If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
-# will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
-# rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = True
+# Controls whether devserver spins up Relay, Kafka, and several ingest worker jobs to direct store traffic
+# through the Relay ingestion pipeline. Without, ingestion is completely disabled. Use `bin/load-mocks` to
+# generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
+# XXX: This is disabled by default as typical development workflows do not require end-to-end services running
+# and disabling optional services reduces resource consumption and complexity
+SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
@@ -1753,7 +1761,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": "postgres:9.6-alpine",
+            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -1890,7 +1898,7 @@ SENTRY_DEVSERVICES = {
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
-            "only_if": settings.SENTRY_USE_RELAY,
+            "only_if": bool(os.environ.get("SENTRY_USE_RELAY", settings.SENTRY_USE_RELAY)),
             "with_devserver": True,
         }
     ),
@@ -2228,6 +2236,7 @@ KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
+KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2261,6 +2270,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
     # Topic for indexer translated metrics
     KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    # Topic for receiving profiles from Relay
+    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2511,3 +2522,14 @@ SENTRY_PROFILING_SERVICE_URL = "http://localhost:8085"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
 SENTRY_ISSUE_ALERT_HISTORY_OPTIONS = {}
+
+# This is useful for testing SSO expiry flows
+SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
+
+# Set to an iterable of strings matching services so only logs from those services show up
+# eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
+DEVSERVER_LOGS_ALLOWLIST = None
+
+LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
+
+VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False

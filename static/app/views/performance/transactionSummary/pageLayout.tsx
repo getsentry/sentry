@@ -5,12 +5,10 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
@@ -19,7 +17,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {MetricsSwitchContext} from '../metricsSwitch';
 import {getTransactionName} from '../utils';
 
 import TransactionHeader from './header';
@@ -28,7 +25,6 @@ import {TransactionThresholdMetric} from './transactionThresholdModal';
 
 export type ChildProps = {
   eventView: EventView;
-  isMetricsData: boolean;
   location: Location;
   organization: Organization;
   projectId: string;
@@ -42,11 +38,7 @@ export type ChildProps = {
 
 type Props = {
   childComponent: (props: ChildProps) => JSX.Element;
-  generateEventView: (props: {
-    isMetricsData: boolean;
-    location: Location;
-    transactionName: string;
-  }) => EventView;
+  generateEventView: (props: {location: Location; transactionName: string}) => EventView;
   getDocumentTitle: (name: string) => string;
   location: Location;
   organization: Organization;
@@ -96,6 +88,8 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
+  const eventView = generateEventView({location, transactionName});
+
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -107,72 +101,59 @@ function PageLayout(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <MetricsSwitchContext.Consumer>
-          {({isMetricsData}) => {
-            const eventView = generateEventView({
-              location,
-              transactionName,
-              isMetricsData,
-            });
-            return (
-              <PerformanceEventViewProvider value={{eventView}}>
-                <PageFiltersContainer
-                  lockedMessageSubject={t('transaction')}
-                  shouldForceProject={defined(project)}
-                  forceProject={project}
-                  specificProjectSlugs={defined(project) ? [project.slug] : []}
-                  disableMultipleProjectSelection
-                  showProjectSettingsLink
-                  relativeDateOptions={relativeDateOptions}
-                  maxPickableDays={maxPickableDays}
-                >
-                  <StyledPageContent>
-                    <NoProjectMessage organization={organization}>
-                      <TransactionHeader
-                        eventView={eventView}
-                        location={location}
-                        organization={organization}
-                        projects={projects}
-                        projectId={projectId}
-                        transactionName={transactionName}
-                        currentTab={tab}
-                        hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                        handleIncompatibleQuery={handleIncompatibleQuery}
-                        onChangeThreshold={(threshold, metric) => {
-                          setTransactionThreshold(threshold);
-                          setTransactionThresholdMetric(metric);
-                        }}
-                      />
-                      <Layout.Body>
-                        <StyledSdkUpdatesAlert />
-                        {defined(error) && (
-                          <StyledAlert type="error" icon={<IconFlag size="md" />}>
-                            {error}
-                          </StyledAlert>
-                        )}
-                        {incompatibleAlertNotice && (
-                          <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-                        )}
-                        <ChildComponent
-                          location={location}
-                          organization={organization}
-                          projects={projects}
-                          eventView={eventView}
-                          projectId={projectId}
-                          transactionName={transactionName}
-                          setError={setError}
-                          transactionThreshold={transactionThreshold}
-                          transactionThresholdMetric={transactionThresholdMetric}
-                          isMetricsData={isMetricsData}
-                        />
-                      </Layout.Body>
-                    </NoProjectMessage>
-                  </StyledPageContent>
-                </PageFiltersContainer>
-              </PerformanceEventViewProvider>
-            );
-          }}
-        </MetricsSwitchContext.Consumer>
+        <PerformanceEventViewProvider value={{eventView}}>
+          <PageFiltersContainer
+            lockedMessageSubject={t('transaction')}
+            shouldForceProject={defined(project)}
+            forceProject={project}
+            specificProjectSlugs={defined(project) ? [project.slug] : []}
+            disableMultipleProjectSelection
+            showProjectSettingsLink
+            relativeDateOptions={relativeDateOptions}
+            maxPickableDays={maxPickableDays}
+          >
+            <StyledPageContent>
+              <NoProjectMessage organization={organization}>
+                <TransactionHeader
+                  eventView={eventView}
+                  location={location}
+                  organization={organization}
+                  projects={projects}
+                  projectId={projectId}
+                  transactionName={transactionName}
+                  currentTab={tab}
+                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                  handleIncompatibleQuery={handleIncompatibleQuery}
+                  onChangeThreshold={(threshold, metric) => {
+                    setTransactionThreshold(threshold);
+                    setTransactionThresholdMetric(metric);
+                  }}
+                />
+                <Layout.Body>
+                  {defined(error) && (
+                    <StyledAlert type="error" showIcon>
+                      {error}
+                    </StyledAlert>
+                  )}
+                  {incompatibleAlertNotice && (
+                    <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+                  )}
+                  <ChildComponent
+                    location={location}
+                    organization={organization}
+                    projects={projects}
+                    eventView={eventView}
+                    projectId={projectId}
+                    transactionName={transactionName}
+                    setError={setError}
+                    transactionThreshold={transactionThreshold}
+                    transactionThresholdMetric={transactionThresholdMetric}
+                  />
+                </Layout.Body>
+              </NoProjectMessage>
+            </StyledPageContent>
+          </PageFiltersContainer>
+        </PerformanceEventViewProvider>
       </Feature>
     </SentryDocumentTitle>
   );
@@ -184,12 +165,6 @@ export function NoAccess() {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
-  }
 `;
 
 const StyledAlert = styled(Alert)`

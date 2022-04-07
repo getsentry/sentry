@@ -12,17 +12,19 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {
   explodeField,
   generateFieldAsString,
   getAggregateAlias,
-  getColumnsAndAggregates,
+  getColumnsAndAggregatesAsStrings,
   isEquation,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
@@ -30,31 +32,43 @@ export const generateOrderOptions = ({
   aggregates,
   columns,
   widgetType,
+  widgetBuilderNewDesign = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
+  widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates : [...aggregates, ...columns]).forEach(field => {
-    let alias = getAggregateAlias(field);
-    const label = stripEquationPrefix(field);
-    // Equations are referenced via a standard alias following this pattern
-    if (isEquation(field)) {
-      alias = `equation[${equations}]`;
-      equations += 1;
-    }
-    options.push({
-      label: t('%s asc', label),
-      value: isMetrics ? field : alias,
+  (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias = getAggregateAlias(field);
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      if (widgetBuilderNewDesign) {
+        options.push({label, value: isMetrics ? field : alias});
+        return;
+      }
+
+      options.push({
+        label: t('%s asc', label),
+        value: isMetrics ? field : alias,
+      });
+
+      options.push({
+        label: t('%s desc', label),
+        value: isMetrics ? `-${field}` : `-${alias}`,
+      });
     });
-    options.push({
-      label: t('%s desc', label),
-      value: isMetrics ? `-${field}` : `-${alias}`,
-    });
-  });
+
   return options;
 };
 
@@ -77,7 +91,11 @@ type Props = {
  * callback. This component's state should live in the parent.
  */
 class WidgetQueriesForm extends React.Component<Props> {
-  blurTimeout: number | null = null;
+  componentWillUnmount() {
+    window.clearTimeout(this.blurTimeout);
+  }
+
+  blurTimeout: number | undefined = undefined;
 
   // Handle scalar field values changing.
   handleFieldChange = (queryIndex: number, field: string) => {
@@ -115,8 +133,9 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          window.clearTimeout(this.blurTimeout);
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -137,8 +156,11 @@ class WidgetQueriesForm extends React.Component<Props> {
           // this, we set a timer in our onSearch handler to block our onBlur
           // handler from firing if it is within 200ms, ie from clicking an
           // autocomplete value.
+          if (this.blurTimeout) {
+            window.clearTimeout(this.blurTimeout);
+          }
           this.blurTimeout = window.setTimeout(() => {
-            this.blurTimeout = null;
+            this.blurTimeout = undefined;
           }, 200);
           this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
@@ -167,8 +189,13 @@ class WidgetQueriesForm extends React.Component<Props> {
       widgetType = WidgetType.DISCOVER,
     } = this.props;
 
+    const isMetrics = widgetType === WidgetType.METRICS;
+
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
-    const explodedFields = queries[0].fields.map(field => explodeField({field}));
+    const query = queries[0];
+    const explodedFields = defined(query.fields)
+      ? query.fields.map(field => explodeField({field}))
+      : [...query.columns, ...query.aggregates].map(field => explodeField({field}));
 
     return (
       <QueryWrapper>
@@ -234,34 +261,39 @@ class WidgetQueriesForm extends React.Component<Props> {
           fields={explodedFields}
           organization={organization}
           onChange={fields => {
+            const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
-            const aggregateAliasFieldStrings = fieldStrings.map(field =>
-              getAggregateAlias(field)
-            );
+            const aggregateAliasFieldStrings = isMetrics
+              ? fieldStrings
+              : fieldStrings.map(field => getAggregateAlias(field));
             queries.forEach((widgetQuery, queryIndex) => {
-              const descending = widgetQuery.orderby.startsWith('-');
-              const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-              const prevAggregateAliasFieldStrings = widgetQuery.fields.map(field =>
-                getAggregateAlias(field)
-              );
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
-              const {columns, aggregates} = getColumnsAndAggregates(fieldStrings);
               newQuery.aggregates = aggregates;
               newQuery.columns = columns;
-              if (
-                !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-                widgetQuery.orderby !== ''
-              ) {
-                if (prevAggregateAliasFieldStrings.length === fields.length) {
-                  // The Field that was used in orderby has changed. Get the new field.
-                  newQuery.orderby = `${descending && '-'}${
-                    aggregateAliasFieldStrings[
-                      prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-                    ]
-                  }`;
-                } else {
-                  newQuery.orderby = '';
+              if (defined(widgetQuery.orderby)) {
+                const descending = widgetQuery.orderby.startsWith('-');
+                const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
+                const prevAggregateAliasFields = defined(widgetQuery.fields)
+                  ? widgetQuery.fields
+                  : [...widgetQuery.columns, ...widgetQuery.aggregates];
+                const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
+                  field => (isMetrics ? field : getAggregateAlias(field))
+                );
+                if (
+                  !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
+                  widgetQuery.orderby !== ''
+                ) {
+                  if (prevAggregateAliasFieldStrings.length === fields.length) {
+                    // The Field that was used in orderby has changed. Get the new field.
+                    newQuery.orderby = `${descending && '-'}${
+                      aggregateAliasFieldStrings[
+                        prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
+                      ]
+                    }`;
+                  } else {
+                    newQuery.orderby = '';
+                  }
                 }
               }
               onChange(queryIndex, newQuery);
@@ -282,7 +314,8 @@ class WidgetQueriesForm extends React.Component<Props> {
               name="orderby"
               options={generateOrderOptions({
                 widgetType,
-                ...getColumnsAndAggregates(queries[0].fields),
+                columns: queries[0].columns,
+                aggregates: queries[0].aggregates,
               })}
               onChange={(option: SelectValue<string>) =>
                 this.handleFieldChange(0, 'orderby')(option.value)

@@ -27,7 +27,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
@@ -98,12 +98,14 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
+type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+
 type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -124,6 +126,12 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
+  }
+
   getTitle() {
     const {organization, project} = this.props;
     const {rule} = this.state;
@@ -156,15 +164,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
+    const {
+      project,
+      params: {ruleId, orgId},
+    } = this.props;
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
+      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
     return endpoints as [string, string][];
@@ -203,7 +214,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -232,7 +245,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }
@@ -253,7 +268,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     router.push(
       organization.features.includes('alert-rule-status-page')
         ? {
-            pathname: `/organizations/sentry/alerts/rules/${project.slug}/${rule.id}/details/`,
+            pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
           }
         : {
             pathname: `/organizations/${organization.slug}/alerts/rules/`,
@@ -551,7 +566,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" icon={<IconWarning />}>
+      <Alert type="error" showIcon>
         {t(
           'Unable to access this alert rule -- check to make sure you have the correct permissions'
         )}

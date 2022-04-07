@@ -1,29 +1,36 @@
-import React from 'react';
+import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  mountWithTheme,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import {TOP_N} from 'sentry/utils/discover/types';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
+  MAX_WIDGETS,
   Widget,
+  WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
+const defaultOrgFeatures = [
+  'new-widget-builder-experience',
+  'dashboards-edit',
+  'global-views',
+];
+
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
+
 function renderTestComponent({
-  widget,
   dashboard,
   query,
   orgFeatures,
@@ -33,18 +40,13 @@ function renderTestComponent({
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
-  params?: WidgetBuilderProps['params'];
+  params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
-  widget?: WidgetBuilderProps['widget'];
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: orgFeatures ?? [
-        'new-widget-builder-experience',
-        'dashboards-edit',
-        'global-views',
-      ],
+      features: orgFeatures ?? defaultOrgFeatures,
     },
     router: {
       location: {
@@ -56,27 +58,25 @@ function renderTestComponent({
     },
   });
 
-  mountWithTheme(
+  render(
     <WidgetBuilder
       route={{}}
       router={router}
       routes={router.routes}
       routeParams={router.params}
       location={router.location}
-      dashboard={
-        dashboard ?? {
-          id: '1',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-        }
-      }
+      dashboard={{
+        id: 'new',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [],
+        ...dashboard,
+      }}
       onSave={onSave ?? jest.fn()}
-      widget={widget}
       params={{
         orgId: organization.slug,
-        widgetIndex: widget ? 0 : undefined,
+        dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
     />,
@@ -107,6 +107,8 @@ describe('WidgetBuilder', function () {
   };
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsv2Mock: jest.Mock | undefined;
+  let metricsDataMock: jest.Mock | undefined;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -124,7 +126,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsv2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       method: 'GET',
       statusCode: 200,
@@ -166,11 +168,69 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-geo/',
+      body: {data: [], meta: {}},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/tags/`,
+      body: [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/tags/session.status/`,
+      body: [
+        {
+          key: 'session.status',
+          value: 'crashed',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/metrics/meta/`,
+      body: [
+        {
+          name: SessionMetric.SESSION,
+          type: 'counter',
+          operations: ['sum'],
+          unit: null,
+        },
+        {
+          name: SessionMetric.SESSION_ERROR,
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
+        },
+        {
+          name: SessionMetric.USER,
+          type: 'set',
+          operations: ['count_unique'],
+          unit: null,
+        },
+      ],
+    });
+
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/metrics/data/`,
+      body: TestStubs.MetricsField({
+        field: `sum(${SessionMetric.SESSION})`,
+      }),
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -187,12 +247,16 @@ describe('WidgetBuilder', function () {
         {
           name: 'Known Users',
           fields: [],
+          columns: [],
+          aggregates: [],
           conditions: '',
           orderby: '-time',
         },
         {
           name: 'Anonymous Users',
           fields: [],
+          columns: [],
+          aggregates: [],
           conditions: '',
           orderby: '-time',
         },
@@ -201,9 +265,59 @@ describe('WidgetBuilder', function () {
       id: '1',
     };
 
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
     renderTestComponent({
-      widget,
+      dashboard,
       orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '2', // Out of bounds, only one widget
+      },
+    });
+
+    expect(
+      screen.getByText('The widget you want to edit was not found.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
+    const widget: Widget = {
+      displayType: DisplayType.AREA,
+      interval: '1d',
+      queries: [
+        {
+          name: 'Known Users',
+          fields: [],
+          columns: [],
+          aggregates: [],
+          conditions: '',
+          orderby: '-time',
+        },
+      ],
+      title: 'Transactions',
+      id: '1',
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    renderTestComponent({
+      dashboard,
+      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      params: {
+        widgetIndex: '0.5', // Invalid index
+      },
     });
 
     expect(
@@ -228,7 +342,7 @@ describe('WidgetBuilder', function () {
     // Header - Widget Title
     expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
 
-    // Header - Actions
+    // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
     expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
 
@@ -236,9 +350,7 @@ describe('WidgetBuilder', function () {
     expect(
       screen.getByRole('heading', {name: 'Choose your data set'})
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Select All Events (Errors and Transactions)')
-    ).toBeChecked();
+    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
 
     // Content - Step 2
     expect(
@@ -257,6 +369,74 @@ describe('WidgetBuilder', function () {
 
     // Content - Step 5
     expect(screen.getByRole('heading', {name: 'Sort by a column'})).toBeInTheDocument();
+  });
+
+  it('has links back to the new dashboard if creating', async function () {
+    // Dashboard has undefined dashboardId when creating from a new dashboard
+    // because of route setup
+    renderTestComponent({params: {dashboardId: undefined}});
+
+    expect(await screen.findByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+
+    expect(screen.getByLabelText('Cancel')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+  });
+
+  it('renders new design', async function () {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    // Switch to line chart for time series
+    userEvent.click(await screen.findByText('Table'));
+    userEvent.click(screen.getByText('Line Chart'));
+
+    // Header - Breadcrumbs
+    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/'
+    );
+    expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/new/'
+    );
+    expect(screen.getByText('Widget Builder')).toBeInTheDocument();
+
+    // Header - Widget Title
+    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+
+    // Footer - Actions
+    expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add Widget')).toBeInTheDocument();
+
+    // Content - Step 1
+    expect(
+      screen.getByRole('heading', {name: 'Choose your data set'})
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Select Events (Errors, transactions)')).toBeChecked();
+
+    // Content - Step 2
+    expect(
+      screen.getByRole('heading', {name: 'Choose your visualization'})
+    ).toBeInTheDocument();
+
+    // Content - Step 3
+    expect(
+      screen.getByRole('heading', {name: 'Choose what to plot in the y-axis'})
+    ).toBeInTheDocument();
+
+    // Content - Step 4
+    expect(
+      screen.getByRole('heading', {name: 'Filter your results'})
+    ).toBeInTheDocument();
+
+    // Content - Step 5
+    expect(screen.getByRole('heading', {name: 'Group your results'})).toBeInTheDocument();
   });
 
   it('can update the title', async function () {
@@ -329,9 +509,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(2);
 
-    userEvent.click(countFields[1]);
-    userEvent.type(countFields[1], 'last');
-    userEvent.click(screen.getByText('last_seen()'));
+    await selectEvent.select(countFields[1], ['last_seen()']);
 
     userEvent.click(screen.getByText('Select a dashboard'));
     userEvent.click(screen.getByText('Test Dashboard'));
@@ -373,9 +551,7 @@ describe('WidgetBuilder', function () {
 
     // Click the add overlay button
     userEvent.click(screen.getByLabelText('Add Overlay'));
-
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'count_unique(…){enter}');
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     userEvent.click(screen.getByLabelText('Add Widget'));
 
@@ -383,14 +559,15 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'Custom Widget',
-          displayType: 'line',
+          displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
           queries: [
             {
               conditions: '',
               fields: ['count()', 'count_unique(user)'],
               aggregates: ['count()', 'count_unique(user)'],
+              fieldAliases: [],
               columns: [],
               orderby: '',
               name: '',
@@ -425,15 +602,16 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'Custom Widget',
-          displayType: 'line',
+          displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
           queries: [
             {
               name: '',
               fields: ['count()', 'equation|count() + 100'],
               aggregates: ['count()', 'equation|count() + 100'],
               columns: [],
+              fieldAliases: [],
               conditions: '',
               orderby: '',
             },
@@ -500,7 +678,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     await screen.findByText('Line Chart');
 
@@ -583,6 +761,8 @@ describe('WidgetBuilder', function () {
           name: 'errors',
           conditions: 'event.type:error',
           fields: ['sdk.name', 'count()'],
+          columns: ['sdk.name'],
+          aggregates: ['count()'],
           orderby: '',
         },
       ],
@@ -598,7 +778,7 @@ describe('WidgetBuilder', function () {
 
     const handleSave = jest.fn();
 
-    renderTestComponent({dashboard, widget, onSave: handleSave});
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
@@ -613,8 +793,7 @@ describe('WidgetBuilder', function () {
 
     // Add a column, and choose a value,
     userEvent.click(screen.getByLabelText('Add a Column'));
-    userEvent.click(screen.getByText('(Required)'));
-    userEvent.type(screen.getByText('(Required)'), 'trace{enter}');
+    await selectEvent.select(screen.getByText('(Required)'), 'trace');
 
     // Save widget
     userEvent.click(screen.getByLabelText('Update Widget'));
@@ -623,7 +802,7 @@ describe('WidgetBuilder', function () {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
           title: 'sdk usage',
-          displayType: 'table',
+          displayType: DisplayType.TABLE,
           interval: '5m',
           queries: [
             {
@@ -635,7 +814,7 @@ describe('WidgetBuilder', function () {
               orderby: '',
             },
           ],
-          widgetType: 'discover',
+          widgetType: WidgetType.DISCOVER,
         }),
       ]);
     });
@@ -643,10 +822,49 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('should properly query for table fields', async function () {
+    const defaultWidgetQuery = {
+      name: '',
+      fields: ['title', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()'],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultTableColumns = ['title', 'count()', 'count_unique(user)', 'epm()'];
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        displayType: DisplayType.LINE,
+        defaultTableColumns,
+      },
+    });
+
+    expect(await screen.findByText('Line Chart')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Line Chart'));
+    userEvent.click(screen.getByText('Table'));
+
+    await waitFor(() => {
+      expect(eventsv2Mock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/eventsv2/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: defaultTableColumns,
+          }),
+        })
+      );
+    });
+  });
+
   it('should automatically add columns for top n widget charts according to the URL params', async function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+      columns: ['title'],
+      aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
       conditions: 'tag:value',
       orderby: '',
     };
@@ -667,9 +885,9 @@ describe('WidgetBuilder', function () {
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
     // Restricting to a single query
-    expect(screen.queryByLabelText('Add query')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add Query')).not.toBeInTheDocument();
 
-    // // Restricting to a single y-axis
+    // Restricting to a single y-axis
     expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
 
     expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
@@ -686,6 +904,8 @@ describe('WidgetBuilder', function () {
     const defaultWidgetQuery = {
       name: '',
       fields: ['count()', 'failure_count()', 'count_unique(user)'],
+      columns: [],
+      aggregates: ['count()', 'failure_count()', 'count_unique(user)'],
       conditions: 'tag:value',
       orderby: '',
     };
@@ -699,10 +919,16 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
+    // Table display and column
     expect(screen.getAllByText('count()')).toHaveLength(2);
+    // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
-    expect(screen.getAllByText(/count_unique/)).toHaveLength(2);
+    // Table display
     expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+    // Column
+    expect(screen.getByText('user')).toBeInTheDocument();
   });
 
   it('uses displayType if given a displayType', async function () {
@@ -718,6 +944,8 @@ describe('WidgetBuilder', function () {
   it('correctly defaults fields and orderby when in Top N display', async function () {
     const defaultWidgetQuery = {
       fields: ['title', 'count()', 'count_unique(user)'],
+      columns: ['title'],
+      aggregates: ['count()', 'count_unique(user)'],
       orderby: '-count_unique_user',
     };
 
@@ -746,8 +974,8 @@ describe('WidgetBuilder', function () {
 
     userEvent.click(await screen.findByText('Table'));
     userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(screen.getByLabelText('Add query'));
-    userEvent.click(screen.getByLabelText('Add query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
+    userEvent.click(screen.getByLabelText('Add Query'));
     expect(
       screen.getAllByPlaceholderText('Search for events, users, tags, and more')
     ).toHaveLength(3);
@@ -792,7 +1020,7 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    renderTestComponent({onSave: handleSave, dashboard, widget});
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
     userEvent.click(await screen.findByText('Delete'));
 
@@ -834,8 +1062,7 @@ describe('WidgetBuilder', function () {
 
     const {router} = renderTestComponent({
       dashboard,
-      widget,
-      params: {orgId: 'org-slug', dashboardId: '1'},
+      params: {orgId: 'org-slug', widgetIndex: '0'},
       query: {statsPeriod: '90d'},
     });
 
@@ -850,6 +1077,368 @@ describe('WidgetBuilder', function () {
           pathname: '/organizations/org-slug/dashboard/1/',
           query: expect.objectContaining({
             statsPeriod: '90d',
+          }),
+        })
+      );
+    });
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        {...untitledDashboard, widgetDisplay: []},
+        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
+      ],
+    });
+
+    const maxWidgetsDefaultValue = MAX_WIDGETS;
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+      },
+    });
+
+    userEvent.click(await screen.findByText('Select a dashboard'));
+    userEvent.hover(screen.getByText('Test Dashboard'));
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
+      )
+    ).toBeInTheDocument();
+
+    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {
+      value: maxWidgetsDefaultValue,
+    });
+  });
+
+  it('does not error when query conditions field is blurred', async function () {
+    jest.useFakeTimers();
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.BAR,
+      queries: [
+        {
+          name: 'filled in',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '-count',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
+
+    userEvent.click(await screen.findByLabelText('Add Query'));
+
+    // Triggering the onBlur of the new field should not error
+    userEvent.click(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+    );
+    userEvent.keyboard('{esc}');
+    act(() => {
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
+    });
+  });
+
+  it('does not wipe column changes when filters are modified', async function () {
+    jest.useFakeTimers();
+
+    // widgetIndex: undefined means creating a new widget
+    renderTestComponent({params: {widgetIndex: undefined}});
+
+    userEvent.click(await screen.findByLabelText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Triggering the onBlur of the filter should not error
+    userEvent.click(
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    );
+    userEvent.keyboard('{enter}');
+    act(() => {
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
+    });
+
+    expect(await screen.findAllByText('project')).toHaveLength(2);
+  });
+
+  describe('Sort by selectors', function () {
+    it('renders', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+      expect(
+        screen.getByText("Choose one of the columns you've created to sort by.")
+      ).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('High to low')).toBeInTheDocument();
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
+
+    it('sortBy defaults to the first field value when changing display type to table', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Errors over time',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+          {
+            name: 'csp',
+            conditions: 'event.type:csp',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click on the displayType selector
+      userEvent.click(await screen.findByText('Line Chart'));
+
+      // Choose the table visualization
+      userEvent.click(screen.getByText('Table'));
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('High to low')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
+
+    it('can update selectors values', async function () {
+      const handleSave = jest.fn();
+
+      const widget: Widget = {
+        id: '1',
+        title: 'Errors over time',
+        interval: '5m',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()', 'count_unique(id)'],
+            aggregates: ['count()', 'count_unique(id)'],
+            columns: [],
+            orderby: '-count',
+          },
+        ],
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        onSave: handleSave,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('High to low')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+
+      // Click on the "sortBy" selector
+      userEvent.click(screen.getAllByText('count()')[2]);
+
+      // menu of the "sortBy" selector is being displayed
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+
+      // Click on the second option of the "sortBy" selector
+      userEvent.click(screen.getAllByText('count_unique(id)')[1]);
+
+      // Wait for the Builder update the widget values
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(2);
+      });
+
+      // Now count_unique(id) is selected in the "sortBy" selector
+      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
+
+      // Click on the "sortDirection" selector
+      userEvent.click(screen.getByText('High to low'));
+
+      // Select the other option
+      userEvent.click(screen.getByText('Low to high'));
+
+      // Saves the widget
+      userEvent.click(screen.getByText('Update Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [expect.objectContaining({orderby: 'count_unique_id'})],
+          }),
+        ]);
+      });
+    });
+
+    it('sortBy defaults to the first field value when coming from discover', async function () {
+      const defaultWidgetQuery = {
+        name: '',
+        fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
+        columns: ['title'],
+        aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
+        conditions: 'tag:value',
+        orderby: '',
+      };
+
+      const {router} = renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          displayType: DisplayType.TABLE,
+          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
+        },
+      });
+
+      expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+      // Selector "sortDirection"
+      expect(screen.getByText('Low to high')).toBeInTheDocument();
+
+      // Selector "sortBy"
+      expect(screen.getAllByText('title')).toHaveLength(2);
+
+      await selectEvent.select(
+        screen.getByText('Select a dashboard'),
+        '+ Create New Dashboard'
+      );
+
+      // Saves the widget
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({queryOrderby: 'count'}),
+          })
+        );
+      });
+    });
+  });
+
+  it('renders fields with commas properly', async () => {
+    const defaultWidgetQuery = {
+      conditions: '',
+      fields: ['equation|count_if(transaction.duration,equals,300)*2'],
+      aggregates: ['equation|count_if(transaction.duration,equals,300)*2'],
+      columns: [],
+      orderby: '',
+      name: '',
+    };
+    const defaultTableColumns = [
+      'count_if(transaction.duration,equals,300)',
+      'equation|count_if(transaction.duration,equals,300)*2',
+    ];
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns,
+        yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
+      },
+    });
+
+    await screen.findByText('Add Widget');
+
+    expect(
+      await screen.findByText('count_if(transaction.duration,equals,300)*2')
+    ).toBeInTheDocument();
+  });
+
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
           }),
         })
       );
@@ -931,28 +1520,60 @@ describe('WidgetBuilder', function () {
     });
   });
 
+  // Disabling for CI, but should run locally when making changes
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('Update table header values (field alias)', async function () {
+    const handleSave = jest.fn();
+
+    renderTestComponent({
+      onSave: handleSave,
+      orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+    });
+
+    await screen.findByText('Table');
+
+    userEvent.type(screen.getByPlaceholderText('Alias'), 'First Alias{enter}');
+
+    userEvent.click(screen.getByLabelText('Add a Column'));
+
+    userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+    userEvent.click(screen.getByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalledWith([
+        expect.objectContaining({
+          queries: [
+            expect.objectContaining({fieldAliases: ['First Alias', 'Second Alias']}),
+          ],
+        }),
+      ]);
+    });
+  });
+
   describe('Issue Widgets', function () {
     it('sets widgetType to issues', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({onSave: handleSave});
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
       userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
           expect.objectContaining({
             title: 'Custom Widget',
-            displayType: 'table',
+            displayType: DisplayType.TABLE,
             interval: '5m',
-            widgetType: 'issue',
+            widgetType: WidgetType.ISSUE,
             queries: [
               {
                 conditions: '',
                 fields: ['issue', 'assignee', 'title'],
                 columns: ['issue', 'assignee', 'title'],
                 aggregates: [],
+                fieldAliases: [],
                 name: '',
                 orderby: '',
               },
@@ -975,12 +1596,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select All Events (Errors and Transactions)',
+          name: 'Select Events (Errors, transactions)',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Select Issues (Status, assignee, etc.)',
         })
       ).toBeDisabled();
     });
@@ -988,7 +1609,7 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      userEvent.click(await screen.findByText('Issues (Status, assignee, etc.)'));
       expect(screen.getByText('issue')).toBeInTheDocument();
       expect(screen.getByText('assignee')).toBeInTheDocument();
       expect(screen.getByText('title')).toBeInTheDocument();
@@ -1003,6 +1624,319 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('title')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+    });
+
+    it('issue query does not work on default search bar', async function () {
+      renderTestComponent();
+      userEvent.paste(
+        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
+        'is:',
+        {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
+      );
+      expect(await screen.findByText('No items found')).toBeInTheDocument();
+    });
+
+    it('renders with an issues search bar when selected in dataset selection', async function () {
+      renderTestComponent();
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+      userEvent.paste(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'is:',
+        {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
+      );
+      expect(await screen.findByText('resolved')).toBeInTheDocument();
+    });
+
+    // Disabling for CI, but should run locally when making changes
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('Update table header values (field alias)', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Table');
+
+      userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
+
+      await screen.findAllByPlaceholderText('Alias');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
+
+      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+              }),
+            ],
+          }),
+        ]);
+      });
+    });
+  });
+
+  describe('Release Widgets', function () {
+    it('maintains the selected dataset when display type is changed', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      const metricsDataset = screen.getByLabelText(/releases/i);
+      expect(metricsDataset).not.toBeChecked();
+      userEvent.click(metricsDataset);
+      expect(metricsDataset).toBeChecked();
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(metricsDataset).toBeChecked();
+    });
+
+    it('displays metrics tags', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
+      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('session.status')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
+      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+    });
+
+    it('displays no metrics message', async function () {
+      // ensure that we have no metrics fields
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/metrics/meta/`,
+        body: [],
+      });
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      // change data set to metrics
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      // open visualization select
+      userEvent.click(screen.getByText('Table'));
+      // choose line chart
+      userEvent.click(screen.getByText('Line Chart'));
+
+      // open fields select
+      userEvent.click(screen.getByText(/required/i));
+
+      // there's correct empty message
+      expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
+    });
+
+    it('makes the appropriate metrics call', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: [`sum(${SessionMetric.SESSION})`],
+            groupBy: [],
+            interval: '5m',
+            project: [],
+            statsPeriod: '24h',
+            per_page: 20,
+            orderBy: `-sum(${SessionMetric.SESSION})`,
+          },
+        })
+      );
+    });
+
+    it('displays the correct options for area chart', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      // change data set to metrics
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText(`${SessionMetric.SESSION}`)).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('sum(…)'));
+      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('count_unique(…)'));
+      expect(screen.getByText(`${SessionMetric.USER}`)).toBeInTheDocument();
+    });
+
+    it('sets widgetType to release', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        onSave: handleSave,
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+      userEvent.click(screen.getByLabelText('Add Widget'));
+
+      await waitFor(() => {
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            // TODO(adam): Update widget type to be 'release'
+            widgetType: WidgetType.METRICS,
+            queries: [
+              expect.objectContaining({
+                aggregates: [`sum(${SessionMetric.SESSION})`],
+                fields: [`sum(${SessionMetric.SESSION})`],
+                orderby: `-sum(${SessionMetric.SESSION})`,
+              }),
+            ],
+          }),
+        ]);
+      });
+
+      expect(handleSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not display "add an equation" button', async function () {
+      const widget: Widget = {
+        title: 'Metrics Widget',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.METRICS,
+        queries: [
+          {
+            name: 'errors',
+            conditions: 'event.type:error',
+            fields: ['sdk.name', 'count()'],
+            columns: ['sdk.name'],
+            aggregates: ['count()'],
+            orderby: '-sdk.name',
+          },
+        ],
+        interval: '1d',
+        id: '1',
+      };
+
+      const dashboard: DashboardDetails = {
+        id: '1',
+        title: 'Dashboard',
+        createdBy: undefined,
+        dateCreated: '2020-01-01T00:00:00.000Z',
+        widgets: [widget],
+      };
+
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Select line chart display
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+    });
+
+    it('render release data set disabled when the display type is world map', async function () {
+      renderTestComponent({
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('World Map'));
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Events (Errors, transactions)',
+        })
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Issues (Status, assignee, etc.)',
+        })
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Select Releases (sessions, crash rates)',
+        })
+      ).toBeDisabled();
+    });
+
+    // Disabling for CI, but should run locally when making changes
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('renders with an release search bar', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.type(
+        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
+        'session.status:'
+      );
+      expect(await screen.findByText('No items found')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
+      userEvent.type(
+        screen.getByPlaceholderText('Search for events, users, tags, and more'),
+        'session.status:'
+      );
+      expect(await screen.findByText('crashed')).toBeInTheDocument();
     });
   });
 
@@ -1034,29 +1968,182 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('disables dashboards with max widgets', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [
-        {...untitledDashboard, widgetDisplay: []},
-        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
-      ],
+  // Disabling for CI, but should run locally when making changes
+  // eslint-disable-next-line jest/no-disabled-tests
+  describe.skip('group by field', function () {
+    it('does not contain functions as options', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+
+      expect(screen.getByText('Select group')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Select group'));
+
+      // Only one f(x) field set in the y-axis selector
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
     });
 
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
+    it('adds more fields when Add Group is clicked', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
 
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-      },
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(await screen.findAllByText('Select group')).toHaveLength(2);
     });
 
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.hover(screen.getByText('Test Dashboard'));
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-      )
-    ).toBeInTheDocument();
+    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+
+      for (let i = 0; i < 19; i++) {
+        userEvent.click(screen.getByText('Add Group'));
+      }
+
+      expect(await screen.findAllByText('Select group')).toHaveLength(20);
+      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
+    });
+
+    it("doesn't reset group by when changing y-axis", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+      userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
+      userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
+
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it("doesn't erase the selection when switching to another time series", async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      userEvent.click(screen.getByText('Line Chart'));
+      userEvent.click(screen.getByText('Area Chart'));
+
+      expect(screen.getByText('project')).toBeInTheDocument();
+    });
+
+    it('sends a top N request when a grouping is selected', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      userEvent.click(await screen.findByText('Group your results'));
+      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: TOP_N,
+            orderby: '-count',
+          }),
+        })
+      );
+    });
+
+    it('allows deleting groups until there is one left', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await screen.findByText('Group your results');
+      userEvent.click(screen.getByText('Add Group'));
+      expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
+
+      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('limit field', function () {
+    it('renders if groupBy value is present', async function () {
+      const handleSave = jest.fn();
+
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        onSave: handleSave,
+      });
+
+      await screen.findByText('Group your results');
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Add Widget'));
+
+      await waitFor(() =>
+        expect(handleSave).toHaveBeenCalledWith([
+          expect.objectContaining({
+            limit: 5,
+          }),
+        ])
+      );
+    });
+
+    it('update value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      userEvent.click(screen.getByText('Limit to 5 results'));
+      userEvent.click(screen.getByText('Limit to 2 results'));
+
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: ['count()'],
+            field: ['project', 'count()'],
+            topEvents: 2,
+            orderby: '-count',
+          }),
+        })
+      );
+    });
+
+    it('gets removed if no groupBy value', async function () {
+      renderTestComponent({
+        query: {displayType: 'line'},
+        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+      });
+
+      await selectEvent.select(screen.getByText('Select group'), 'project');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Remove group'));
+
+      expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
+    });
   });
 });

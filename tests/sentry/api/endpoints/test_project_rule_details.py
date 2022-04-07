@@ -1,7 +1,10 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import responses
 from django.urls import reverse
+from freezegun import freeze_time
+from pytz import UTC
 
 from sentry.models import (
     Environment,
@@ -9,6 +12,7 @@ from sentry.models import (
     Rule,
     RuleActivity,
     RuleActivityType,
+    RuleFireHistory,
     RuleStatus,
     SentryAppComponent,
 )
@@ -17,6 +21,8 @@ from sentry.utils import json
 
 
 class ProjectRuleDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-project-rule-details"
+
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -212,9 +218,24 @@ class ProjectRuleDetailsTest(APITestCase):
         assert response.data["actions"][0]["sentryAppInstallationUuid"] == self.installation.uuid
         assert response.data["actions"][0]["disabled"] is True
 
+    @freeze_time()
+    def test_last_triggered(self):
+        self.login_as(user=self.user)
+        rule = self.create_project_rule()
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        )
+        assert resp.data["lastTriggered"] is None
+        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
+        resp = self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, expand=["lastTriggered"]
+        )
+        assert resp.data["lastTriggered"] == datetime.now().replace(tzinfo=UTC)
+
 
 class UpdateProjectRuleTest(APITestCase):
-    def test_simple(self):
+    @patch("sentry.signals.alert_rule_edited.send_robust")
+    def test_simple(self, send_robust):
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -266,6 +287,7 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.data["conditions"] == conditions
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+        assert send_robust.called
 
     def test_no_owner(self):
         self.login_as(user=self.user)

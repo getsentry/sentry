@@ -1,6 +1,5 @@
 import base64
 import logging
-import random
 import sys
 import time
 import uuid
@@ -403,11 +402,9 @@ def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
 
 
 def get_options_for_project(project):
-    compare_rate = options.get("symbolicator.compare_stackwalking_methods_rate")
     return {
         # Symbolicators who do not support options will ignore this field entirely.
         "dif_candidates": features.has("organizations:images-loaded-v2", project.organization),
-        "compare_stackwalking_methods": random.random() < compare_rate,
     }
 
 

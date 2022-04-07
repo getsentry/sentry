@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
 from sentry.models import Organization, Project, ProjectCodeOwners
 
@@ -30,8 +31,6 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
             )
         result = {}
         for pco in project_code_owners:
-            associations, errors = ProjectCodeOwners.validate_codeowners_associations(
-                pco.raw, pco.project
-            )
+            associations, errors = validate_codeowners_associations(pco.raw, pco.project)
             result[pco.project.slug] = {"associations": associations, "errors": errors}
         return self.respond(result, status=status.HTTP_200_OK)

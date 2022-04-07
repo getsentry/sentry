@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
@@ -33,7 +33,7 @@ describe('ProjectDebugFiles', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
@@ -48,7 +48,7 @@ describe('ProjectDebugFiles', function () {
       body: [],
     });
 
-    mountWithTheme(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles {...props} />);
 
     // Uploaded debug files content
     expect(
@@ -64,7 +64,7 @@ describe('ProjectDebugFiles', function () {
       }`,
     });
 
-    mountWithTheme(<ProjectDebugFiles {...props} />);
+    render(<ProjectDebugFiles {...props} />);
 
     // Delete button
     userEvent.click(screen.getByTestId('delete-dif'));

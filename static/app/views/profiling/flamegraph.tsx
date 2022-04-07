@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -6,11 +7,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
-import {FlamegraphPreferencesProvider} from 'sentry/utils/profiling/flamegraph/flamegraphPreferencesProvider';
+import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -79,26 +79,37 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <FlamegraphPreferencesProvider>
+      <FlamegraphStateProvider>
         <FlamegraphThemeProvider>
           <FullScreenFlamegraphContainer>
             {requestState === 'errored' ? (
-              <Alert type="error" icon={<IconFlag size="md" />}>
+              <Alert type="error" showIcon>
                 {t('Unable to load profiles')}
               </Alert>
             ) : requestState === 'loading' ? (
-              <React.Fragment>
+              <Fragment>
                 <Flamegraph profiles={LoadingGroup} />
-                <LoadingIndicator />
-              </React.Fragment>
+                <LoadingIndicatorContainer>
+                  <LoadingIndicator />
+                </LoadingIndicatorContainer>
+              </Fragment>
             ) : requestState === 'resolved' && profiles ? (
               <Flamegraph profiles={profiles} />
             ) : null}
           </FullScreenFlamegraphContainer>
         </FlamegraphThemeProvider>
-      </FlamegraphPreferencesProvider>
+      </FlamegraphStateProvider>
     </SentryDocumentTitle>
   );
 }
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
 
 export default FlamegraphView;

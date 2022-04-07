@@ -21,6 +21,8 @@ export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   SESSIONS = 'sessions',
+  /** Also used for crash free alerts */
+  METRICS = 'metrics',
 }
 
 export enum EventTypes {
@@ -215,8 +217,6 @@ export type MetricActionTemplate = {
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedAction = Omit<UnsavedAction, 'unsavedDateCreated' | 'unsavedId'> &
-  SavedActionFields;
 
 type SavedActionFields = {
   /**

@@ -19,7 +19,14 @@ from typing import (
 
 import pytz
 from dateutil import parser
-from sentry_sdk import capture_exception, capture_message, push_scope, set_context, set_tag
+from sentry_sdk import (
+    capture_exception,
+    capture_message,
+    push_scope,
+    set_context,
+    set_extra,
+    set_tag,
+)
 from typing_extensions import Literal
 
 from sentry import features
@@ -46,9 +53,10 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.metrics.helpers import get_intervals
+from sentry.snuba.metrics.query_builder import get_intervals
 from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.tasks.base import instrumented_task
 from sentry.utils.metrics import incr, timer, timing
 
 DateLike = Union[datetime, str]
@@ -618,6 +626,103 @@ def get_sessionsv2_schema(now: datetime, query: QueryDefinition) -> Mapping[str,
     }
 
 
+@instrumented_task(
+    name="sentry.release_health.duplex.run_comparison",
+    queue="release_health.duplex",
+    max_retries=0,  # No need to retry
+)  # type: ignore
+def run_comparison(
+    fn_name: str,
+    metrics_fn: Callable[..., Any],
+    should_compare: bool,
+    rollup: Optional[int],
+    organization: Optional[Organization],
+    schema: Optional[Schema],
+    function_args: Tuple[Any],
+    sessions_result: Any,
+    metrics_result: Any,
+    sessions_time: datetime,
+    sentry_tags: Optional[Mapping[str, str]] = None,
+    **kwargs,
+) -> None:
+    if rollup is None:
+        rollup = 0  # force exact date comparison if not specified
+
+    tags = {"method": fn_name, "rollup": str(rollup)}
+
+    # Sentry tags
+    set_tag("releasehealth.duplex.rollup", str(rollup))
+    set_tag("releasehealth.duplex.method", fn_name)
+    set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
+    for key, value in (sentry_tags or {}).items():
+        set_tag(key, value)
+
+    set_context(
+        "release-health-duplex-sessions",
+        {
+            "sessions": sessions_result,
+        },
+    )
+
+    try:
+        delay = (datetime.now(pytz.utc) - sessions_time).total_seconds()
+        set_extra("delay", delay)
+        timing("releasehealth.metrics.delay", delay)
+
+        if metrics_result is None:
+            # We read from the metrics source even if there is no need to compare.
+            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                metrics_result = metrics_fn(*function_args)
+
+        incr(
+            "releasehealth.metrics.check_should_compare",
+            tags={"should_compare": str(should_compare), **tags},
+            sample_rate=1.0,
+        )
+
+        if not should_compare:
+            return
+
+        copy = deepcopy(sessions_result)
+
+        set_context("release-health-duplex-metrics", {"metrics": metrics_result})
+
+        with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
+            errors = compare_results(copy, metrics_result, rollup, None, schema)
+        set_context("release-health-duplex-errors", {"errors": [str(error) for error in errors]})
+
+        should_report = features.has(
+            "organizations:release-health-check-metrics-report", organization
+        )
+
+        incr(
+            "releasehealth.metrics.compare",
+            tags={"has_errors": str(bool(errors)), "reported": str(should_report), **tags},
+            sample_rate=1.0,
+        )
+
+        if errors and should_report:
+            tag_delta(errors, tags)
+            # We heavily rely on Sentry's message sanitization to properly deduplicate this
+            capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
+    except Exception:
+        capture_exception()
+        should_compare = False
+        incr(
+            "releasehealth.metrics.crashed",
+            tags=tags,
+            sample_rate=1.0,
+        )
+
+
+def identity(x: Any) -> Any:
+    return x
+
+
+def index_by_group(d: Mapping[Any, Any]) -> Any:
+    return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
+
+
 class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     DEFAULT_ROLLUP = 60 * 60  # 1h
 
@@ -662,89 +767,86 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     def _dispatch_call_inner(
         self,
         fn_name: str,
-        should_compare: Union[bool, Callable[[Any], bool]],
+        should_compare: Union[bool, Callable[[], bool]],
         rollup: Optional[int],
         organization: Optional[Organization],
         schema: Optional[Schema],
         *args: Any,
+        sentry_tags: Optional[Mapping[str, str]] = None,
     ) -> ReleaseHealthResult:
-        if rollup is None:
-            rollup = 0  # force exact date comparison if not specified
-        sessions_fn = getattr(self.sessions, fn_name)
-        set_tag("releasehealth.duplex.rollup", str(rollup))
-        set_tag("releasehealth.duplex.method", fn_name)
-        set_tag("releasehealth.duplex.org_id", str(getattr(organization, "id")))
-
-        tags = {"method": fn_name, "rollup": str(rollup)}
-        with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
-            ret_val = sessions_fn(*args)
-
-        if organization is None or not features.has(
-            "organizations:release-health-check-metrics", organization
-        ):
-            return ret_val  # cannot check feature without organization
-
-        set_context(
-            "release-health-duplex-sessions",
-            {
-                "sessions": ret_val,
-            },
+        # Note: having both featureflags enabled at once is deadly for endpoint
+        # performance, but does work.
+        should_return_metrics = organization is not None and features.has(
+            "organizations:release-health-return-metrics", organization
         )
-
-        try:
-            # We read from the metrics source even if there is no need to compare.
-            metrics_fn = getattr(self.metrics, fn_name)
-            with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
-                metrics_val = metrics_fn(*args)
-
-            if not isinstance(should_compare, bool):
-                # should compare depends on the session result
-                # evaluate it now
-                should_compare = should_compare(ret_val)
-
-            incr(
-                "releasehealth.metrics.check_should_compare",
-                tags={"should_compare": str(should_compare), **tags},
-                sample_rate=1.0,
-            )
+        should_check_metrics = organization is not None and features.has(
+            "organizations:release-health-check-metrics", organization
+        )
+        if not isinstance(should_compare, bool):
+            try:
+                should_compare = should_compare()
+            except Exception:
+                capture_exception()
+                should_compare = False
 
             if not should_compare:
-                return ret_val
+                # if should_compare=False, then we already know the metrics result is bad and shouldn't return it.
+                should_return_metrics = False
 
-            copy = deepcopy(ret_val)
+        sessions_fn = getattr(self.sessions, fn_name)
+        metrics_fn = getattr(self.metrics, fn_name)
 
-            set_context("release-health-duplex-metrics", {"metrics": metrics_val})
+        now = datetime.now(pytz.utc)
+        tags = {"method": fn_name, "rollup": str(rollup)}
+        incr(
+            "releasehealth.metrics.should_return",
+            tags={"should_return": str(should_return_metrics), **tags},
+        )
 
-            with timer("releasehealth.results-diff.duration", tags=tags, sample_rate=1.0):
-                errors = compare_results(copy, metrics_val, rollup, None, schema)
-            set_context(
-                "release-health-duplex-errors", {"errors": [str(error) for error in errors]}
-            )
+        sessions_result = None  # get rid of unbound warnings -- this line shouldn't be necessary
+        metrics_result = None
 
-            should_report = features.has(
-                "organizations:release-health-check-metrics-report", organization
-            )
+        if should_return_metrics:
+            try:
+                with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
+                    metrics_result = metrics_fn(*args)
+            except Exception:
+                capture_exception()
 
+        if should_check_metrics or metrics_result is None:
+            with timer("releasehealth.sessions.duration", tags=tags, sample_rate=1.0):
+                sessions_result = sessions_fn(*args)
+
+        if should_check_metrics:
+            try:
+                run_comparison.delay(
+                    fn_name,
+                    metrics_fn,
+                    should_compare,
+                    rollup,
+                    organization,
+                    schema,
+                    function_args=args,
+                    sessions_result=sessions_result,
+                    metrics_result=metrics_result,
+                    sessions_time=now,
+                    sentry_tags=sentry_tags,
+                )
+            except Exception:
+                capture_exception()
+
+        if metrics_result is not None:
             incr(
-                "releasehealth.metrics.compare",
-                tags={"has_errors": str(bool(errors)), "reported": str(should_report), **tags},
-                sample_rate=1.0,
+                "releasehealth.metrics.should_return",
+                tags={"did_return": "True", **tags},
             )
-
-            if errors and should_report:
-                tag_delta(errors, tags)
-                # We heavily rely on Sentry's message sanitization to properly deduplicate this
-                capture_message(f"{fn_name} - Release health metrics mismatch: {errors[0]}")
-        except Exception:
-            capture_exception()
-            should_compare = False
+            return metrics_result
+        else:
             incr(
-                "releasehealth.metrics.crashed",
-                tags=tags,
-                sample_rate=1.0,
+                "releasehealth.metrics.should_return",
+                tags={"did_return": "False", **tags},
             )
-
-        return ret_val
+            return sessions_result
 
     if TYPE_CHECKING:
         # Mypy is not smart enough to figure out _dispatch_call is a wrapper
@@ -774,7 +876,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "previousCrashFreeRate": ComparatorType.Ratio,
             }
         }
-        should_compare = lambda _: _coerce_utc(previous_start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(previous_start) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -815,7 +917,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(hours=24) > self.metrics_start
+        should_compare = lambda: now - timedelta(hours=24) > self.metrics_start
 
         if org_id is not None:
             organization = self._org_from_id(org_id)
@@ -849,22 +951,19 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         # Tag sentry event with relative end time, so we can see if live queries
         # cause greater deltas:
         relative_hours = math.ceil((query.end - now).total_seconds() / 3600)
-        set_tag("run_sessions_query.rel_end", f"{relative_hours}h")
+        sentry_tags = {"run_sessions_query.rel_end": f"{relative_hours}h"}
 
         project_ids = query.filter_keys.get("project_id")
         if project_ids and len(project_ids) == 1:
             project_id = project_ids[0]
-            set_tag("run_sessions_query.project_id", str(project_id))
+            sentry_tags["run_sessions_query.project_id"] = str(project_id)
             try:
                 project = Project.objects.get_from_cache(id=project_id)
                 assert org_id == project.organization_id
             except (Project.DoesNotExist, AssertionError):
                 pass
             else:
-                set_tag("run_sessions_query.platform", project.platform)
-
-        def index_by(d: Mapping[Any, Any]) -> Any:
-            return tuple(sorted(d["by"].items(), key=lambda t: t[0]))  # type: ignore
+                sentry_tags["run_sessions_query.platform"] = project.platform
 
         schema = {
             "start": ComparatorType.DateTime,
@@ -876,12 +975,12 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                     "series": schema_for_series,
                     "totals": ComparatorType.Ignore,
                 },
-                index_by=index_by,
+                index_by=index_by_group,
             ),
             "query": ComparatorType.Exact,
         }
 
-        should_compare = lambda _: _coerce_utc(query.start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(query.start) > self.metrics_start
 
         organization = self._org_from_id(org_id)
         return self._dispatch_call(  # type: ignore
@@ -893,6 +992,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             org_id,
             query,
             span_op,
+            sentry_tags=sentry_tags,
         )
 
     def get_release_sessions_time_bounds(
@@ -908,12 +1008,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             "sessions_upper_bound": ComparatorType.DateTime,
         }
 
-        def should_compare(val: ReleaseSessionsTimeBounds) -> bool:
-            lower_bound = val.get("sessions_lower_bound")
-            if lower_bound is not None:
-                lower_bound_d = parser.parse(lower_bound)
-                return lower_bound_d > self.metrics_start
-            return True
+        now = datetime.now(pytz.utc)
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
 
         organization = self._org_from_id(org_id)
 
@@ -939,7 +1035,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(projects_list)
         return self._dispatch_call(  # type: ignore
             "check_has_health_data",
@@ -961,7 +1057,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Set[ReleaseName]:
         rollup = self.DEFAULT_ROLLUP  # not used
         schema = {ComparatorType.Exact}
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
 
         organization = self._org_from_id(organization_id)
 
@@ -1000,7 +1096,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        should_compare = lambda _: now - timedelta(days=1) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=1) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_release_health_data_overview",
@@ -1037,7 +1133,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "crash_free_sessions": ComparatorType.Ratio,
             }
         ]
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
             "get_crash_free_breakdown",
@@ -1058,11 +1154,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
         rollup = self.DEFAULT_ROLLUP  # not used
-        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
 
-        should_compare = (
-            lambda _: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
-        )
+        schema = ComparatorType.Ignore
+
+        should_compare = lambda: datetime.now(timezone.utc) - timedelta(days=3) > self.metrics_start
 
         if now is None:
             now = datetime.now(pytz.utc)
@@ -1074,7 +1169,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
             organization,
             schema,
-            project_ids,
+            list(project_ids),
             now,
         )
 
@@ -1088,7 +1183,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
 
         rollup = self.DEFAULT_ROLLUP  # TODO check if this is correct ?
         schema = {"*": ComparatorType.DateTime}
-        should_compare = lambda _: now - timedelta(days=90) > self.metrics_start
+        should_compare = lambda: now - timedelta(days=90) > self.metrics_start
         organization = self._org_from_projects(project_releases)
         return self._dispatch_call(  # type: ignore
             "get_oldest_health_data_for_releases",
@@ -1117,7 +1212,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             stats_period = "24h"
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
-        should_compare = lambda _: _coerce_utc(stats_start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(stats_start) > self.metrics_start
 
         organization = self._org_from_id(organization_id)
 
@@ -1159,7 +1254,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
                 "*": ComparatorType.Counter,
             },
         )
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
             "get_project_release_stats",
@@ -1185,7 +1280,13 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         environment_id: Optional[int] = None,
     ) -> int:
         schema = ComparatorType.Counter
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+
+        # We verified the correctness of the metrics implementation manually.
+        # The results still differ because the sessions impl gets its results
+        # from hourly aggregations.
+        schema = ComparatorType.Ignore
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
+
         organization = self._org_from_projects([project_id])
         return self._dispatch_call(  # type: ignore
             "get_project_sessions_count",
@@ -1209,7 +1310,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         rollup: Optional[int] = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
         schema = [(ComparatorType.Exact, ComparatorType.Counter)]
-        should_compare = lambda _: _coerce_utc(start) > self.metrics_start
+        should_compare = lambda: _coerce_utc(start) > self.metrics_start
         organization = self._org_from_projects(project_ids)
         return self._dispatch_call(  # type: ignore
             "get_num_sessions_per_project",
@@ -1234,11 +1335,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[str]] = None,
         now: Optional[datetime] = None,
     ) -> Sequence[ProjectRelease]:
-        schema = ListSet(schema=ComparatorType.Exact, index_by=lambda x: x)
-
-        set_tag("gprbs.limit", str(limit))
-        set_tag("gprbs.offset", str(offset))
-        set_tag("gprbs.scope", str(scope))
+        schema = ComparatorType.Ignore
 
         if stats_period is None:
             stats_period = "24h"
@@ -1250,7 +1347,8 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             now = datetime.now(pytz.utc)
 
         rollup, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
-        should_compare = lambda _: now > self.metrics_start
+        assert stats_start is not None  # because stats_period is not None
+        should_compare = lambda: stats_start > self.metrics_start
         organization = self._org_from_projects(project_ids)
 
         return self._dispatch_call(  # type: ignore

@@ -1,16 +1,21 @@
-import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {
-  it('adds config prop', function () {
+  beforeEach(() => {
     ConfigStore.init();
+  });
 
+  afterEach(() => {
+    ConfigStore.teardown();
+  });
+  it('adds config prop', function () {
     const MyComponent = ({config}) => <div>{config.test}</div>;
     const Container = withConfig(MyComponent);
 
-    mountWithTheme(<Container />);
+    render(<Container />);
 
     act(() => void ConfigStore.set('test', 'foo'));
 

@@ -1,3 +1,5 @@
+import localStorage from 'sentry/utils/localStorage';
+
 import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
@@ -11,10 +13,20 @@ export const eventsRequestQueryProps = [
   'end',
   'environment',
   'project',
+  'referrer',
 ] as const;
 
 function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+}
+
+export function getMEPQueryParams(isMEPEnabled: boolean) {
+  return isMEPEnabled
+    ? {
+        metricsEnhanced: '1',
+        preventMetricAggregates: '1', // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
+      }
+    : undefined;
 }
 
 const getContainerLocalStorageObjectKey = 'landing-chart-container';

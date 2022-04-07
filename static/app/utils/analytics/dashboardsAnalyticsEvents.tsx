@@ -34,42 +34,31 @@ const dashboardsEventMapAddWidgetModal: Record<
     'Dashboards2: Widget saved directly to Dashboard from Add Widget to Dashboard modal',
 };
 
-// Used in the widget builder full-page
-type DashboardsEventParametersAddWidgetInBuilder = {
-  'dashboards_views.add_widget_in_builder.change': {
+// Used in the full-page widget builder
+type DashboardsEventParametersWidgetBuilder = {
+  'dashboards_views.widget_builder.change': {
     field: string;
     from: string;
+    new_widget: boolean;
     value: string;
     widget_type: string;
   };
-  'dashboards_views.add_widget_in_builder.confirm': {
-    data_set: string;
+  'dashboards_views.widget_builder.opened': {
+    new_widget: boolean;
   };
-  'dashboards_views.add_widget_in_builder.opened': {};
-  // TODO(widget-builder-experience): Port the analytics code as soon as we can persist a widget from the widget library
-  'dashboards_views.add_widget_in_builder.save': {
+  'dashboards_views.widget_builder.save': {
     data_set: string;
+    new_widget: boolean;
   };
-  'dashboards_views.edit_widget_in_builder.confirm': {};
-  'dashboards_views.edit_widget_in_builder.opened': {};
 };
 
-const dashboardsEventMapAddWidgetInBuilder: Record<
-  keyof DashboardsEventParametersAddWidgetInBuilder,
+const dashboardsEventMapWidgetBuilder: Record<
+  keyof DashboardsEventParametersWidgetBuilder,
   string | null
 > = {
-  'dashboards_views.edit_widget_in_builder.confirm':
-    'Dashboards2: Edit dashboard widget builder form submitted',
-  'dashboards_views.edit_widget_in_builder.opened':
-    'Dashboards2: Edit widget in builder opened',
-  'dashboards_views.add_widget_in_builder.opened':
-    'Dashboards2: Add widget in builder opened',
-  'dashboards_views.add_widget_in_builder.change':
-    'Dashboards2: Field changed in builder',
-  'dashboards_views.add_widget_in_builder.confirm':
-    'Dashboards2: Add widget to dashboard widget builder form submitted',
-  'dashboards_views.add_widget_in_builder.save':
-    'Dashboards2: Widget saved directly to dashboard from add widget to dashboard widget builder',
+  'dashboards_views.widget_builder.change': 'Widget Builder: Field changed',
+  'dashboards_views.widget_builder.save': 'Widget Builder: Form submitted',
+  'dashboards_views.widget_builder.opened': 'Widget Builder: Page opened',
 };
 
 export type DashboardsEventParameters = {
@@ -108,8 +97,42 @@ export type DashboardsEventParameters = {
   'dashboards_views.widget_library.switch_tab': {
     to: string;
   };
+  'dashboards_views.widget_viewer.edit': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.open': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.open_source': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.paginate': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.select_query': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.sort': {
+    column: string;
+    display_type: string;
+    order: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.toggle_legend': {
+    display_type: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_viewer.zoom': {
+    display_type: string;
+    widget_type: string;
+  };
 } & DashboardsEventParametersAddWidgetModal &
-  DashboardsEventParametersAddWidgetInBuilder;
+  DashboardsEventParametersWidgetBuilder;
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
@@ -131,6 +154,15 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
   'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
   'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
+  'dashboards_views.widget_viewer.edit': 'Widget Viewer: Edit Widget Modal Opened',
+  'dashboards_views.widget_viewer.open': 'Widget Viewer: Opened',
+  'dashboards_views.widget_viewer.open_source':
+    'Widget Viewer: Opened in Discover/Issues',
+  'dashboards_views.widget_viewer.paginate': 'Widget Viewer: Paginate',
+  'dashboards_views.widget_viewer.select_query': 'Widget Viewer: Query Selected',
+  'dashboards_views.widget_viewer.sort': 'Widget Viewer: Table Sorted',
+  'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
+  'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
   ...dashboardsEventMapAddWidgetModal,
-  ...dashboardsEventMapAddWidgetInBuilder,
+  ...dashboardsEventMapWidgetBuilder,
 };

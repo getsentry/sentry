@@ -1,4 +1,4 @@
-import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
 
@@ -13,9 +13,7 @@ jest.mock(
 
 describe('PipelineView', () => {
   it('renders awsLambdaProjectSelect', () => {
-    mountWithTheme(
-      <PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />
-    );
+    render(<PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />);
 
     expect(screen.getByText('mock_AwsLambdaProjectSelect')).toBeInTheDocument();
 
@@ -28,7 +26,7 @@ describe('PipelineView', () => {
     // eslint-disable-next-line no-console
     console.error.mockImplementation(() => {});
 
-    expect(() => mountWithTheme(<PipelineView pipelineName="other" />)).toThrow(
+    expect(() => render(<PipelineView pipelineName="other" />)).toThrow(
       'Invalid pipeline name other'
     );
 

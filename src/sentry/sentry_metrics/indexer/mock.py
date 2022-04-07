@@ -1,9 +1,8 @@
 import itertools
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional
+from typing import DefaultDict, Dict, MutableMapping, Optional, Set
 
-from sentry.sentry_metrics.sessions import SessionMetricKey
-
+from ...snuba.metrics.naming_layer.mri import SessionMRI
 from .base import StringIndexer
 
 _STRINGS = (
@@ -13,14 +12,15 @@ _STRINGS = (
     "healthy",
     "production",
     "release",
-    SessionMetricKey.SESSION_DURATION.value,
+    SessionMRI.RAW_DURATION.value,
     "session.status",
-    SessionMetricKey.SESSION.value,
+    SessionMRI.SESSION.value,
     "staging",
-    SessionMetricKey.USER.value,
+    SessionMRI.USER.value,
     "init",
-    SessionMetricKey.SESSION_ERROR.value,
+    SessionMRI.ERROR.value,
     "abnormal",
+    "exited",
 )
 
 
@@ -33,13 +33,16 @@ class SimpleIndexer(StringIndexer):
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
+    def bulk_record(self, org_strings: MutableMapping[int, Set[str]]) -> Dict[str, int]:
+        strings = set()
+        for _, strs in org_strings.items():
+            strings.update(strs)
         return {string: self._record(string) for string in strings}
 
-    def record(self, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         return self._record(string)
 
-    def resolve(self, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         return self._strings.get(string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:

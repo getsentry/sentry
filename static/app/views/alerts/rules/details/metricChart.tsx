@@ -10,20 +10,26 @@ import momentTimezone from 'moment-timezone';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
-import AreaChart, {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import {
+  ChartControls,
+  HeaderTitleLegend,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -48,10 +54,12 @@ import {
   AlertRuleTriggerType,
   Dataset,
   IncidentRule,
+  TimePeriod,
 } from 'sentry/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -291,6 +299,9 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, project, timePeriod, query} = this.props;
+    const transactionFields = ['title', 'count()', 'count_unique(user)'];
+    const errorFields = ['issue', 'title', 'count()', 'count_unique(user)'];
+
     const ctaOpts = {
       orgSlug: orgId,
       projects: [project],
@@ -298,7 +309,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       eventType: query,
       start: timePeriod.start,
       end: timePeriod.end,
-      fields: ['issue', 'title', 'count()', 'count_unique(user)'],
+      fields: rule.dataset === 'transactions' ? transactionFields : errorFields,
     };
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
@@ -310,24 +321,24 @@ class MetricChart extends React.PureComponent<Props, State> {
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
-      <ChartActions>
-        <ChartSummary>
-          <SummaryText>{t('SUMMARY')}</SummaryText>
-          <SummaryStats>
-            <StatItem>
+      <StyledChartControls>
+        <StyledInlineContainer>
+          <SectionHeading>{t('Summary')}</SectionHeading>
+          <StyledSectionValue>
+            <ValueItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-            <StatItem>
+              {warningPercent ? warningPercent.toFixed(2) : 0}%
+            </ValueItem>
+            <ValueItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
-            </StatItem>
-          </SummaryStats>
-        </ChartSummary>
+              {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+            </ValueItem>
+          </StyledSectionValue>
+        </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
             <Button size="small" {...props}>
@@ -335,7 +346,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             </Button>
           </Feature>
         )}
-      </ChartActions>
+      </StyledChartControls>
     );
   }
 
@@ -591,6 +602,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
+                onFinished={() => {
+                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                  this.updateDimensions();
+                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -729,11 +745,6 @@ class MetricChart extends React.PureComponent<Props, State> {
                           .join('');
                       },
                     }}
-                    onFinished={() => {
-                      // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                      // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                      this.updateDimensions();
-                    }}
                   />
                 )}
               </ChartZoom>
@@ -760,6 +771,19 @@ class MetricChart extends React.PureComponent<Props, State> {
     const {api, rule, organization, timePeriod, project, interval, query} = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
+    // Fix for 7 days * 1m interval being over the max number of results from events api
+    // 10k events is the current max
+    if (
+      timePeriod.usingPeriod &&
+      timePeriod.period === TimePeriod.SEVEN_DAYS &&
+      interval === '1m'
+    ) {
+      timePeriod.start = getUtcDateString(
+        // -5 minutes provides a small cushion for rounding up minutes. This might be able to be smaller
+        moment(moment.utc(timePeriod.end).subtract(10000 - 5, 'minutes'))
+      );
+    }
+
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
@@ -773,7 +797,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return dataset === Dataset.SESSIONS ? (
+    return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
         api={api}
         organization={organization}
@@ -844,6 +868,17 @@ const ChartHeader = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
+const StyledChartControls = styled(ChartControls)`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const StyledInlineContainer = styled(InlineContainer)`
+  grid-auto-flow: column;
+  grid-column-gap: ${space(1)};
+`;
+
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
   height: ${space(1)};
@@ -863,47 +898,22 @@ const Filters = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const ChartActions = styled(PanelFooter)`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: ${space(1)} 20px;
+const StyledSectionValue = styled(SectionValue)`
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: ${space(1.5)};
+  margin: 0 0 0 ${space(1.5)};
 `;
 
-const ChartSummary = styled('div')`
-  display: flex;
-  margin-right: auto;
-`;
-
-const SummaryText = styled(SectionHeading)`
-  flex: 1;
-  display: flex;
+const ValueItem = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: ${space(0.5)};
   align-items: center;
-  margin: 0;
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-`;
-
-const SummaryStats = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)};
-`;
-
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(2)} 0 0;
+  font-variant-numeric: tabular-nums;
 `;
 
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
-`;
-
-const StatCount = styled('span')`
-  margin-left: ${space(0.5)};
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.textColor};
 `;

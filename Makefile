@@ -45,7 +45,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	yarn deref-api-docs
 
 watch-api-docs:
-	@node api-docs/watch.js
+	@ts-node api-docs/watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
@@ -161,7 +161,7 @@ test-plugins:
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest tests/relay_integration -vv
+	pytest tests/relay_integration -vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml" --junit-xml=".artifacts/relay.junit.xml"
 	@echo ""
 
 test-api-docs: build-api-docs

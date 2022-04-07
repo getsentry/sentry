@@ -1,33 +1,43 @@
-import Reflux from 'reflux';
+import {createStore} from 'reflux';
 
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type MetricsMetaStoreInterface = {
-  getAllFields(): MetricsMetaCollection;
-  onLoadSuccess(data: MetricsMeta[]): void;
-  reset(): void;
-  state: MetricsMetaCollection;
+import {CommonStoreDefinition} from './types';
+
+type State = {
+  /**
+   * This is state for when tags fetched from the API are loaded
+   */
+  loaded: boolean;
+  metricsMeta: MetricsMetaCollection;
 };
 
-const storeConfig: Reflux.StoreDefinition & MetricsMetaStoreInterface = {
-  state: {},
+interface MetricsMetaStoreDefinition extends CommonStoreDefinition<State> {
+  loadSuccess(data: MetricsMeta[]): void;
+  reset(): void;
+}
 
-  init() {
-    this.state = {};
-    this.listenTo(MetricsMetaActions.loadMetricsMetaSuccess, this.onLoadSuccess);
+const storeConfig: MetricsMetaStoreDefinition = {
+  unsubscribeListeners: [],
+  state: {
+    metricsMeta: {},
+    loaded: false,
   },
 
   reset() {
-    this.state = {};
+    this.state = {
+      metricsMeta: {},
+      loaded: false,
+    };
     this.trigger(this.state);
   },
 
-  getAllFields() {
+  getState() {
     return this.state;
   },
 
-  onLoadSuccess(data) {
+  loadSuccess(data) {
     const newFields = data.reduce<MetricsMetaCollection>((acc, field) => {
       acc[field.name] = {
         ...field,
@@ -36,12 +46,14 @@ const storeConfig: Reflux.StoreDefinition & MetricsMetaStoreInterface = {
       return acc;
     }, {});
 
-    this.state = {...this.state, ...newFields};
+    this.state = {
+      metricsMeta: {...this.state.metricsMeta, ...newFields},
+      loaded: true,
+    };
     this.trigger(this.state);
   },
 };
 
-const MetricsMetaStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  MetricsMetaStoreInterface;
+const MetricsMetaStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default MetricsMetaStore;
