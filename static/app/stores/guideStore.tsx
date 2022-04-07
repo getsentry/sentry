@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
 import {createStore, StoreDefinition} from 'reflux';
 
-import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
@@ -76,12 +76,13 @@ const defaultState: GuideStoreState = {
 interface GuideStoreDefinition extends StoreDefinition {
   browserHistoryListener: null | (() => void);
 
-  onFetchSucceeded(data: GuidesServerData): void;
-  onRegisterAnchor(target: string): void;
-  onSetForceHide(forceHide: boolean): void;
-  onUnregisterAnchor(target: string): void;
+  fetchSucceeded(data: GuidesServerData): void;
+  nextStep(): void;
   recordCue(guide: string): void;
+  registerAnchor(target: string): void;
+  setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
 }
 
@@ -93,23 +94,6 @@ const storeConfig: GuideStoreDefinition = {
   init() {
     this.state = defaultState;
 
-    this.unsubscribeListeners.push(
-      this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(GuideActions.closeGuide, this.onCloseGuide)
-    );
-    this.unsubscribeListeners.push(this.listenTo(GuideActions.nextStep, this.onNextStep));
-    this.unsubscribeListeners.push(this.listenTo(GuideActions.toStep, this.onToStep));
-    this.unsubscribeListeners.push(
-      this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(GuideActions.setForceHide, this.onSetForceHide)
-    );
     this.unsubscribeListeners.push(
       this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
     );
@@ -138,7 +122,7 @@ const storeConfig: GuideStoreDefinition = {
     this.updateCurrentGuide();
   },
 
-  onFetchSucceeded(data) {
+  fetchSucceeded(data) {
     // It's possible we can get empty responses (seems to be Firefox specific)
     // Do nothing if `data` is empty
     // also, temporarily check data is in the correct format from the updated
@@ -163,7 +147,7 @@ const storeConfig: GuideStoreDefinition = {
     this.updateCurrentGuide();
   },
 
-  onCloseGuide(dismissed?: boolean) {
+  closeGuide(dismissed?: boolean) {
     const {currentGuide, guides} = this.state;
     // update the current guide seen to true or all guides
     // if markOthersAsSeen is true and the user is dismissing
@@ -178,27 +162,27 @@ const storeConfig: GuideStoreDefinition = {
     this.updateCurrentGuide();
   },
 
-  onNextStep() {
+  nextStep() {
     this.state.currentStep += 1;
     this.trigger(this.state);
   },
 
-  onToStep(step: number) {
+  toStep(step: number) {
     this.state.currentStep = step;
     this.trigger(this.state);
   },
 
-  onRegisterAnchor(target) {
+  registerAnchor(target) {
     this.state.anchors.add(target);
     this.updateCurrentGuide();
   },
 
-  onUnregisterAnchor(target) {
+  unregisterAnchor(target) {
     this.state.anchors.delete(target);
     this.updateCurrentGuide();
   },
 
-  onSetForceHide(forceHide) {
+  setForceHide(forceHide) {
     this.state.forceHide = forceHide;
     this.trigger(this.state);
   },
@@ -255,7 +239,7 @@ const storeConfig: GuideStoreDefinition = {
         if (seen) {
           return false;
         }
-        if (user?.isSuperuser) {
+        if (user?.isSuperuser && !IS_ACCEPTANCE_TEST) {
           return true;
         }
         if (dateThreshold) {

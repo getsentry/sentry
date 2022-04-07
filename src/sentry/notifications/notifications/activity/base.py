@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+import abc
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from sentry.models import Activity, Team, User
 
 
-class ActivityNotification(ProjectNotification, ABC):
+class ActivityNotification(ProjectNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.WORKFLOW
     metrics_key = "activity"
 
@@ -58,13 +58,15 @@ class ActivityNotification(ProjectNotification, ABC):
     def get_type(self) -> str:
         return f"notify.activity.{self.activity.get_type_display()}"
 
+    @abc.abstractmethod
     def get_context(self) -> MutableMapping[str, Any]:
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
-        raise NotImplementedError
+        pass
 
     def send(self) -> None:
         return send_activity_notification(self)
@@ -73,7 +75,7 @@ class ActivityNotification(ProjectNotification, ABC):
         return {"activity": self.activity, **super().get_log_params(recipient)}
 
 
-class GroupActivityNotification(ActivityNotification, ABC):
+class GroupActivityNotification(ActivityNotification, abc.ABC):
     message_builder = "IssueNotificationMessageBuilder"
 
     def __init__(self, activity: Activity) -> None:

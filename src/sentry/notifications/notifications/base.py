@@ -75,9 +75,6 @@ class BaseNotification(abc.ABC):
         """
         raise NotImplementedError
 
-    def should_email(self) -> bool:
-        return True
-
     def get_template(self) -> str:
         return f"sentry/emails/{self.get_filename()}.txt"
 
