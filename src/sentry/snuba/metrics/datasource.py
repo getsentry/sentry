@@ -7,7 +7,7 @@ efficient, we only look at the past 24 hours.
 """
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
-
+import logging
 from collections import defaultdict, deque
 from copy import copy
 from operator import itemgetter
@@ -43,7 +43,10 @@ from sentry.snuba.metrics.utils import (
     Tag,
     TagValue,
 )
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.snuba import raw_snql_query
+
+logger = logging.getLogger(__name__)
 
 
 def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
@@ -121,14 +124,20 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             projects=projects,
             org_id=projects[0].organization_id,
         ):
-            metrics_meta.append(
-                MetricMeta(
-                    name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
-                    type=metric_type,
-                    operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
-                    unit=None,  # snuba does not know the unit
+            try:
+                metrics_meta.append(
+                    MetricMeta(
+                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
+                        type=metric_type,
+                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                        unit=None,  # snuba does not know the unit
+                    )
                 )
-            )
+            except InvalidField:
+                # An instance of `InvalidField` exception is raised here when there is no reverse
+                # mapping from MRI to public name because of the naming change
+                logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
+                continue
             metric_ids_in_entities[metric_type].add(row["metric_id"])
 
     # In the previous loop, we find all available metric ids per entity with respect to the
