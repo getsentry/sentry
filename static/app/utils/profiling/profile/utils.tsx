@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+import {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -98,16 +98,12 @@ export function memoizeVariadicByReference<Arguments, Value>(
   };
 }
 
-export function wrapWithSpan<T>(fn: () => T, options?): T {
-  const sentryScope = Sentry.getCurrentHub().getScope();
-  const parentSpan = sentryScope?.getSpan();
-
-  if (!defined(sentryScope) || !defined(parentSpan)) {
+export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, options): T {
+  if (!defined(parentSpan)) {
     return fn();
   }
 
   const sentrySpan = parentSpan.startChild(options);
-  sentryScope.setSpan(sentrySpan);
   try {
     return fn();
   } catch (error) {
@@ -115,6 +111,5 @@ export function wrapWithSpan<T>(fn: () => T, options?): T {
     throw error;
   } finally {
     sentrySpan.finish();
-    sentryScope.setSpan(parentSpan);
   }
 }

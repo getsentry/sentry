@@ -29,6 +29,11 @@ const isPopular = (platform: PlatformIntegration) =>
     platform.id as typeof popularPlatformCategories[number]
   );
 
+const popularIndex = (platform: PlatformIntegration) =>
+  popularPlatformCategories.indexOf(
+    platform.id as typeof popularPlatformCategories[number]
+  );
+
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -75,13 +80,18 @@ function PlatformPicker(props: PlatformPickerProps) {
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
     const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top
+      // for the all category, put popular ones at the top in the order they appear in the popular list
       if (category === 'all') {
+        if (isPopular(a) && isPopular(b)) {
+          // if both popular, maintain ordering from popular list
+          return popularIndex(a) - popularIndex(b);
+        }
         if (isPopular(a) !== isPopular(b)) {
           return isPopular(a) ? -1 : 1;
         }
       }
-      return a.id.localeCompare(b.id);
+      // maintain ordering otherwise
+      return 0;
     };
 
     const filtered = platforms

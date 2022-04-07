@@ -128,6 +128,41 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         update_suggestions = response.data
         assert len(update_suggestions) == 0
 
+    @mock.patch(
+        "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
+        return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
+    )
+    def test_unknown_version(self, mock_index_state):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "dev-master@32e5415"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "b",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+                "sdk": {"name": "example.sdk", "version": "2.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+
+        update_suggestions = response.data
+        assert len(update_suggestions) == 0
+
 
 class OrganizationSdkUpdatesWithSnql(OrganizationSdkUpdates):
     def setUp(self):
