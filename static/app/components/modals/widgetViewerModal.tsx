@@ -25,7 +25,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tooltip from 'sentry/components/tooltip';
+import {IconEdit} from 'sentry/icons/iconEdit';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -461,15 +461,15 @@ function WidgetViewerModal(props: Props) {
           </Container>
         )}
         {widget.queries.length > 1 && (
-          <StyledAlert type="info" showIcon>
+          <Alert type="info" showIcon>
             {t(
-              'This widget was built with multiple queries. Table data can only be displayed for one query at a time.'
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
             )}
-          </StyledAlert>
+          </Alert>
         )}
         {(widget.queries.length > 1 || widget.queries[0].conditions) && (
-          <StyledSelectControlRowContainer>
-            <StyledSelectControl
+          <QueryContainer>
+            <SelectControl
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -545,179 +545,172 @@ function WidgetViewerModal(props: Props) {
               isSearchable={false}
               isDisabled={widget.queries.length < 2}
             />
-            <StyledQuestionTooltip
-              title={t('Widget queries can be edited by clicking "Edit Widget".')}
-              size="sm"
-            />
-          </StyledSelectControlRowContainer>
+            {widget.queries.length === 1 && (
+              <StyledQuestionTooltip
+                title={t('To edit this query, you must edit the widget.')}
+                size="sm"
+              />
+            )}
+          </QueryContainer>
         )}
-        <TableContainer>
-          {widget.widgetType === WidgetType.ISSUE ? (
-            <IssueWidgetQueries
-              api={api}
-              organization={organization}
-              widget={tableWidget}
-              selection={modalSelection}
-              limit={
-                widget.displayType === DisplayType.TABLE
-                  ? FULL_TABLE_ITEM_LIMIT
-                  : HALF_TABLE_ITEM_LIMIT
+        {widget.widgetType === WidgetType.ISSUE ? (
+          <IssueWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+          >
+            {({transformedResults, loading, pageLinks, totalCount}) => {
+              if (totalResults === undefined) {
+                setTotalResults(totalCount);
               }
-              cursor={cursor}
-            >
-              {({transformedResults, loading, pageLinks, totalCount}) => {
-                if (totalResults === undefined) {
-                  setTotalResults(totalCount);
-                }
-                const links = parseLinkHeader(pageLinks ?? null);
-                return (
-                  <React.Fragment>
-                    <GridEditable
-                      isLoading={loading}
-                      data={transformedResults}
-                      columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
-                      grid={{
-                        renderHeadCell: renderIssueGridHeaderCell({
-                          location,
-                          organization,
-                          selection,
-                          widget: tableWidget,
-                        }) as (
-                          column: GridColumnOrder,
-                          columnIndex: number
-                        ) => React.ReactNode,
-                        renderBodyCell: renderGridBodyCell({
-                          location,
-                          organization,
-                          selection,
-                          widget: tableWidget,
-                        }),
-                        onResizeColumn,
-                      }}
-                      location={location}
-                    />
-                    {(links?.previous?.results || links?.next?.results) && (
-                      <StyledPagination
-                        pageLinks={pageLinks}
-                        onCursor={(nextCursor, _path, _query, delta) => {
-                          let nextPage = isNaN(page) ? delta : page + delta;
-                          let newCursor = nextCursor;
-                          // unset cursor and page when we navigate back to the first page
-                          // also reset cursor if somehow the previous button is enabled on
-                          // first page and user attempts to go backwards
-                          if (nextPage <= 0) {
-                            newCursor = undefined;
-                            nextPage = 0;
+              const links = parseLinkHeader(pageLinks ?? null);
+              return (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={loading}
+                    data={transformedResults}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderIssueGridHeaderCell({
+                        location,
+                        organization,
+                        selection,
+                        widget: tableWidget,
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        location,
+                        organization,
+                        selection,
+                        widget: tableWidget,
+                      }),
+                      onResizeColumn,
+                    }}
+                    location={location}
+                  />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={(nextCursor, _path, _query, delta) => {
+                        let nextPage = isNaN(page) ? delta : page + delta;
+                        let newCursor = nextCursor;
+                        // unset cursor and page when we navigate back to the first page
+                        // also reset cursor if somehow the previous button is enabled on
+                        // first page and user attempts to go backwards
+                        if (nextPage <= 0) {
+                          newCursor = undefined;
+                          nextPage = 0;
+                        }
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                            [WidgetViewerQueryField.PAGE]: nextPage,
+                          },
+                        });
+
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
                           }
-                          router.replace({
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              [WidgetViewerQueryField.CURSOR]: newCursor,
-                              [WidgetViewerQueryField.PAGE]: nextPage,
-                            },
-                          });
-
-                          trackAdvancedAnalyticsEvent(
-                            'dashboards_views.widget_viewer.paginate',
-                            {
-                              organization,
-                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                              display_type: widget.displayType,
-                            }
-                          );
-                        }}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              }}
-            </IssueWidgetQueries>
-          ) : (
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={tableWidget}
-              selection={modalSelection}
-              limit={
-                widget.displayType === DisplayType.TABLE
-                  ? FULL_TABLE_ITEM_LIMIT
-                  : HALF_TABLE_ITEM_LIMIT
-              }
-              pagination
-              cursor={cursor}
-            >
-              {({tableResults, loading, pageLinks}) => {
-                const isFirstPage = pageLinks
-                  ? parseLinkHeader(pageLinks).previous.results === false
-                  : false;
-                const links = parseLinkHeader(pageLinks ?? null);
-                return (
-                  <React.Fragment>
-                    <GridEditable
-                      isLoading={loading}
-                      data={tableResults?.[0]?.data ?? []}
-                      columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
-                      grid={{
-                        renderHeadCell: renderDiscoverGridHeaderCell({
-                          ...props,
-                          widget: tableWidget,
-                          tableData: tableResults?.[0],
-                          onHeaderClick: () => setChartUnmodified(false),
-                        }) as (
-                          column: GridColumnOrder,
-                          columnIndex: number
-                        ) => React.ReactNode,
-                        renderBodyCell: renderGridBodyCell({
-                          ...props,
-                          tableData: tableResults?.[0],
-                          isFirstPage,
-                        }),
-                        onResizeColumn,
+                        );
                       }}
-                      location={location}
                     />
-                    {(links?.previous?.results || links?.next?.results) && (
-                      <StyledPagination
-                        pageLinks={pageLinks}
-                        onCursor={newCursor => {
-                          router.replace({
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              [WidgetViewerQueryField.CURSOR]: newCursor,
-                            },
-                          });
+                  )}
+                </React.Fragment>
+              );
+            }}
+          </IssueWidgetQueries>
+        ) : (
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            pagination
+            cursor={cursor}
+          >
+            {({tableResults, loading, pageLinks}) => {
+              const isFirstPage = pageLinks
+                ? parseLinkHeader(pageLinks).previous.results === false
+                : false;
+              const links = parseLinkHeader(pageLinks ?? null);
+              return (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={loading}
+                    data={tableResults?.[0]?.data ?? []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      renderHeadCell: renderDiscoverGridHeaderCell({
+                        ...props,
+                        widget: tableWidget,
+                        tableData: tableResults?.[0],
+                        onHeaderClick: () => setChartUnmodified(false),
+                      }) as (
+                        column: GridColumnOrder,
+                        columnIndex: number
+                      ) => React.ReactNode,
+                      renderBodyCell: renderGridBodyCell({
+                        ...props,
+                        tableData: tableResults?.[0],
+                        isFirstPage,
+                      }),
+                      onResizeColumn,
+                    }}
+                    location={location}
+                  />
+                  {(links?.previous?.results || links?.next?.results) && (
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={newCursor => {
+                        router.replace({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [WidgetViewerQueryField.CURSOR]: newCursor,
+                          },
+                        });
 
-                          trackAdvancedAnalyticsEvent(
-                            'dashboards_views.widget_viewer.paginate',
-                            {
-                              organization,
-                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                              display_type: widget.displayType,
-                            }
-                          );
-                        }}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          )}
-        </TableContainer>
+                        trackAdvancedAnalyticsEvent(
+                          'dashboards_views.widget_viewer.paginate',
+                          {
+                            organization,
+                            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                            display_type: widget.displayType,
+                          }
+                        );
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
+        )}
       </React.Fragment>
     );
   }
-
-  const StyledHeader = styled(Header)`
-    ${headerCss}
-  `;
-  const StyledFooter = styled(Footer)`
-    ${footerCss}
-  `;
 
   let openLabel: string;
   let path: string;
@@ -738,14 +731,12 @@ function WidgetViewerModal(props: Props) {
   }
   return (
     <React.Fragment>
-      <StyledHeader closeButton>
-        <Tooltip title={widget.title} showOnlyOnOverflow>
-          <WidgetTitle>{widget.title}</WidgetTitle>
-        </Tooltip>
-      </StyledHeader>
+      <Header closeButton>
+        <h3>{widget.title}</h3>
+      </Header>
       <Body>{renderWidgetViewer()}</Body>
-      <StyledFooter>
-        <TotalResultsContainer>
+      <Footer>
+        <ResultsContainer>
           {totalResults &&
             (widget.widgetType === WidgetType.ISSUE ? (
               <span>
@@ -762,154 +753,82 @@ function WidgetViewerModal(props: Props) {
                 })}
               </span>
             ))}
-        </TotalResultsContainer>
-        <ButtonBarContainer>
-          <StyledButtonBar gap={1}>
-            {onEdit && widget.id && (
-              <Button
-                type="button"
-                onClick={() => {
-                  closeModal();
-                  onEdit();
-                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  });
-                }}
-              >
-                {t('Edit Widget')}
-              </Button>
-            )}
+        </ResultsContainer>
+        <ButtonBar gap={1}>
+          {onEdit && widget.id && (
             <Button
-              to={path}
-              priority="primary"
               type="button"
+              icon={<IconEdit />}
               onClick={() => {
-                trackAdvancedAnalyticsEvent(
-                  'dashboards_views.widget_viewer.open_source',
-                  {
-                    organization,
-                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                    display_type: widget.displayType,
-                  }
-                );
+                closeModal();
+                onEdit();
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                  organization,
+                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  display_type: widget.displayType,
+                });
               }}
             >
-              {openLabel}
+              {t('Edit Widget')}
             </Button>
-          </StyledButtonBar>
-        </ButtonBarContainer>
-      </StyledFooter>
+          )}
+          <Button
+            to={path}
+            priority="primary"
+            type="button"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          >
+            {openLabel}
+          </Button>
+        </ButtonBar>
+      </Footer>
     </React.Fragment>
   );
 }
 
 export const modalCss = css`
   width: 100%;
-  max-width: 1400px;
-`;
-
-const headerCss = css`
-  margin: -${space(4)} -${space(4)} 0px -${space(4)};
-  line-height: normal;
-  display: flex;
-`;
-const footerCss = css`
-  margin: 0px -${space(4)} -${space(4)};
-  flex-wrap: wrap;
+  max-width: 1200px;
 `;
 
 const Container = styled('div')<{height?: number | null}>`
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   max-height: ${HALF_CONTAINER_HEIGHT}px;
   position: relative;
-
-  & > div {
-    padding: ${space(1.5)} 0px;
-  }
-`;
-const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0 0 0;
 `;
 
-const StyledSelectControl = styled(SelectControl)`
-  display: flex;
-  & > div {
-    width: 100%;
-  }
-  & input {
-    height: 0;
-  }
-  flex: 1;
-`;
-
-// Table Container allows Table display to work around parent padding and fill full modal width
-const TableContainer = styled('div')`
-  max-width: 1400px;
+const QueryContainer = styled('div')`
+  margin-bottom: ${space(2)};
   position: relative;
-  margin: ${space(2)} 0;
-  & > div {
-    margin: 0;
-  }
-
-  & td:first-child {
-    padding: ${space(1)} ${space(2)};
-  }
-
-  & table {
-    overflow-y: hidden;
-  }
 `;
 
-const WidgetTitle = styled('h4')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const StyledPagination = styled(Pagination)`
-  padding-top: ${space(2)};
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: absolute;
+  top: ${space(1.5)};
+  right: ${space(2)};
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
-  flex: 1;
   display: ${p => p.display};
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${space(1.5)};
-  line-height: 2;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TotalResultsContainer = styled('span')`
-  margin-top: auto;
-  margin-bottom: ${space(1)};
-  font-size: 0.875rem;
-  text-align: right;
-`;
-
-const ButtonBarContainer = styled('span')`
+const ResultsContainer = styled('div')`
   display: flex;
+  align-items: center;
   flex-grow: 1;
-  flex-direction: row-reverse;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  width: fit-content;
 `;
 
 const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
-`;
-
-const StyledSelectControlRowContainer = styled('span')`
-  display: flex;
-  margin-top: ${space(2)};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  padding-left: ${space(1)};
-  margin: auto;
 `;
 
 export default withRouter(withPageFilters(WidgetViewerModal));
