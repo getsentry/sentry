@@ -19,7 +19,7 @@ describe('SettingsSearch', function () {
   ]);
 
   beforeEach(function () {
-    FormSearchStore.onLoadSearchMap([]);
+    FormSearchStore.loadSearchMap([]);
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',

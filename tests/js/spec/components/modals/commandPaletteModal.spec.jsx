@@ -12,7 +12,7 @@ describe('Command Palette Modal', function () {
   let orgsMock;
 
   beforeEach(function () {
-    FormSearchStore.onLoadSearchMap([]);
+    FormSearchStore.loadSearchMap([]);
 
     MockApiClient.clearMockResponses();
 
