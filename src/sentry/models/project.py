@@ -262,11 +262,7 @@ class Project(Model, PendingDeletionMixin):
     def get_full_name(self):
         return self.slug
 
-    def transfer_to(self, team=None, organization=None):
-        # NOTE: this will only work properly if the new team is in a different
-        # org than the existing one, which is currently the only use case in
-        # production
-        # TODO(jess): refactor this to make it an org transfer only
+    def transfer_to(self, organization):
         from sentry.incidents.models import AlertRule
         from sentry.models import (
             Environment,
@@ -277,9 +273,6 @@ class Project(Model, PendingDeletionMixin):
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
-
-        if organization is None:
-            organization = team.organization
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -325,10 +318,6 @@ class Project(Model, PendingDeletionMixin):
             Rule.objects.filter(id__in=rule_ids).update(
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
-
-        # ensure this actually exists in case from team was null
-        if team is not None:
-            self.add_team(team)
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
