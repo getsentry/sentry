@@ -22,7 +22,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
@@ -123,7 +123,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
         ):
             metrics_meta.append(
                 MetricMeta(
-                    name=get_reverse_mri(reverse_resolve(row["metric_id"])),
+                    name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
                     type=metric_type,
                     operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                     unit=None,  # snuba does not know the unit
@@ -144,7 +144,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
         derived_metric_obj = public_derived_metrics[derived_metric_name]
         metrics_meta.append(
             MetricMeta(
-                name=get_reverse_mri(derived_metric_obj.metric_name),
+                name=get_public_name_from_mri(derived_metric_obj.metric_name),
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,

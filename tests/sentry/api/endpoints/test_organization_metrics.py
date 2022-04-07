@@ -8,7 +8,7 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import percentage
-from sentry.snuba.metrics.naming_layer.mapping import get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -124,8 +124,8 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         ]
 
     @patch(
-        "sentry.snuba.metrics.datasource.get_reverse_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_reverse_mri),
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
     )
     def test_metrics_index(self):
         """

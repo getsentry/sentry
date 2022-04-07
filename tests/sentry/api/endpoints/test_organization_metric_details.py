@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
@@ -37,8 +37,8 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_reverse_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_reverse_mri),
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
     )
     def test_metric_details(self):
         # metric1:
@@ -102,8 +102,8 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
 
     @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["foo.bar"], get_mri))
     @patch(
-        "sentry.snuba.metrics.datasource.get_reverse_mri",
-        mocked_mri_resolver(["foo.bar"], get_reverse_mri),
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(["foo.bar"], get_public_name_from_mri),
     )
     def test_metric_details_metric_does_not_have_data(self):
         indexer.record(self.organization.id, "foo.bar")
@@ -178,8 +178,10 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_reverse_mri",
-        mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_reverse_mri),
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(
+            ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
+        ),
     )
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_same_entity_multiple_metric_ids(self, mocked_derived_metrics):

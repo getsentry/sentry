@@ -49,7 +49,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
@@ -140,7 +140,7 @@ def _get_entity_of_metric_name(projects: Sequence[Project], metric_name: str) ->
         if data:
             return entity_key
 
-    raise InvalidParams(f"Raw metric {get_reverse_mri(metric_name)} does not exit")
+    raise InvalidParams(f"Raw metric {get_public_name_from_mri(metric_name)} does not exit")
 
 
 def org_id_from_projects(projects: Sequence[Project]) -> int:
@@ -477,7 +477,7 @@ class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressio
         raise DerivedMetricParseException(
             f"Method `{func_name}` can only be called on instance of "
             f"{self.__class__.__name__} "
-            f"{get_reverse_mri(self.metric_name)} with a `projects` attribute."
+            f"{get_public_name_from_mri(self.metric_name)} with a `projects` attribute."
         )
 
 
@@ -529,7 +529,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         if len(entities) != 1 or entities == {None}:
             raise DerivedMetricParseException(
                 f"Derived Metric "
-                f"{get_reverse_mri(self.metric_name)} cannot be calculated from a single entity"
+                f"{get_public_name_from_mri(self.metric_name)} cannot be calculated from a single entity"
             )
         return entities.pop()
 
@@ -644,7 +644,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
     ) -> List[OrderBy]:
         raise NotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
-            f"{get_reverse_mri(self.metric_name)} as it does not "
+            f"{get_public_name_from_mri(self.metric_name)} as it does not "
             f"have a direct mapping to a query alias"
         )
 

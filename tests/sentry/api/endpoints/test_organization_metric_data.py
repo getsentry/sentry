@@ -988,7 +988,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    @patch("sentry.snuba.metrics.fields.base.get_reverse_mri")
+    @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
     def test_derived_metric_incorrectly_defined_as_singular_entity(

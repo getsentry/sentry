@@ -30,7 +30,7 @@ from sentry.snuba.metrics.fields.snql import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_reverse_mri
+from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 
@@ -77,8 +77,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
+        "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
+        mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
     def test_get_entity_and_validate_dependency_tree_of_a_single_entity_derived_metric(self):
         """
@@ -115,8 +115,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
+        "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
+        mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
     def test_generate_select_snql_of_derived_metric(self):
         """
@@ -261,8 +261,8 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         "sentry.snuba.metrics.fields.base._get_entity_of_metric_name", get_entity_of_metric_mocked
     )
     @mock.patch(
-        "sentry.snuba.metrics.fields.base.get_reverse_mri",
-        mocked_mri_resolver(["crash_free_fake"], get_reverse_mri),
+        "sentry.snuba.metrics.fields.base.get_public_name_from_mri",
+        mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
     def test_generate_order_by_clause(self):
         for derived_metric_name in MOCKED_DERIVED_METRICS.keys():

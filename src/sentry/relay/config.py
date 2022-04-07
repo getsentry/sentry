@@ -372,32 +372,32 @@ def _filter_option_to_config_setting(flt, setting):
 #: Top-level metrics for transactions
 TRANSACTION_METRICS = frozenset(
     [
-        "transaction.user",
-        "transaction.duration",
+        "s:transactions/user@none",
+        "d:transactions/duration@millisecond",
     ]
 )
 
 
 ALL_MEASUREMENT_METRICS = frozenset(
     [
-        "transaction.measurements.fcp",
-        "transaction.measurements.lcp",
-        "transaction.measurements.app_start_cold",
-        "transaction.measurements.app_start_warm",
-        "transaction.measurements.cls",
-        "transaction.measurements.fid",
-        "transaction.measurements.fp",
-        "transaction.measurements.frames_frozen",
-        "transaction.measurements.frames_frozen_rate",
-        "transaction.measurements.frames_slow",
-        "transaction.measurements.frames_slow_rate",
-        "transaction.measurements.frames_total",
-        "transaction.measurements.stall_count",
-        "transaction.measurements.stall_longest_time",
-        "transaction.measurements.stall_percentage",
-        "transaction.measurements.stall_total_time",
-        "transaction.measurements.ttfb",
-        "transaction.measurements.ttfb.requesttime",
+        "d:transactions/measurements.fcp@millisecond",
+        "d:transactions/measurements.lcp@millisecond",
+        "d:transactions/measurements.app_start_cold@millisecond",
+        "d:transactions/measurements.app_start_warm@millisecond",
+        "d:transactions/measurements.cls@millisecond",
+        "d:transactions/measurements.fid@millisecond",
+        "d:transactions/measurements.fp@millisecond",
+        "d:transactions/measurements.frames_frozen@none",
+        "d:transactions/measurements.frames_frozen_rate@ratio",
+        "d:transactions/measurements.frames_slow@none",
+        "d:transactions/measurements.frames_slow_rate@ratio",
+        "d:transactions/measurements.frames_total@none",
+        "d:transactions/measurements.stall_count@none",
+        "d:transactions/measurements.stall_longest_time@millisecond",
+        "d:transactions/measurements.stall_percentage@percent",
+        "d:transactions/measurements.stall_total_time@millisecond",
+        "d:transactions/measurements.ttfb@millisecond",
+        "d:transactions/measurements.ttfb.requesttime@millisecond",
     ]
 )
 
@@ -469,7 +469,7 @@ def get_transaction_metrics_settings(
                     assert breakdown_config["type"] == "spanOperations"
 
                     for op_name in breakdown_config["matches"]:
-                        metrics.append(f"transaction.breakdowns.ops.{op_name}")
+                        metrics.append(f"d:transactions/breakdowns.ops.{op_name}")
             except Exception:
                 capture_exception()
 

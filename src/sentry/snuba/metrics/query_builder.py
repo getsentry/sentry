@@ -34,7 +34,7 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_reverse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -660,9 +660,9 @@ class SnubaResultConverter:
                         del series[key]
                 else:
                     reversed_mri_key = (
-                        f"{get_reverse_mri(metric_name)}"
+                        f"{get_public_name_from_mri(metric_name)}"
                         if operation is None
-                        else f"{operation}({get_reverse_mri(metric_name)})"
+                        else f"{operation}({get_public_name_from_mri(metric_name)})"
                     )
                     if totals is not None:
                         totals[reversed_mri_key] = totals.pop(key)

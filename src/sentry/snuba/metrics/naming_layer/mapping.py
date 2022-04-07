@@ -1,4 +1,4 @@
-__all__ = ("create_name_mapping_layers", "get_mri", "get_reverse_mri")
+__all__ = ("create_name_mapping_layers", "get_mri", "get_public_name_from_mri")
 
 
 from enum import Enum
@@ -12,7 +12,7 @@ from sentry.snuba.sessions_v2 import InvalidField
 def create_name_mapping_layers() -> None:
     # ToDo(ahmed): Hack this out once the FE changes their mappings
     # Backwards Compat
-    NAMING_MAPPING_LAYER.update(
+    NAME_TO_MRI.update(
         {
             # Session
             "sentry.sessions.session": SessionMRI.SESSION,
@@ -28,20 +28,17 @@ def create_name_mapping_layers() -> None:
     ):
         # Adds new names at the end, so that when the reverse mapping is created
         for metric_key in MerticKey:
-            try:
-                NAMING_MAPPING_LAYER[metric_key.value] = MRI[metric_key.name]
-            except KeyError:
-                continue
+            NAME_TO_MRI[metric_key.value] = MRI[metric_key.name]
 
-    REVERSE_NAME_MAPPING_LAYER.update({v.value: k for k, v in NAMING_MAPPING_LAYER.items()})
+    MRI_TO_NAME.update({v.value: k for k, v in NAME_TO_MRI.items()})
 
 
-NAMING_MAPPING_LAYER: Dict[str, Enum] = {}
-REVERSE_NAME_MAPPING_LAYER: Dict[str, str] = {}
+NAME_TO_MRI: Dict[str, Enum] = {}
+MRI_TO_NAME: Dict[str, str] = {}
 
 
 def get_mri(external_name: Union[Enum, str]) -> str:
-    if not len(NAMING_MAPPING_LAYER):
+    if not len(NAME_TO_MRI):
         create_name_mapping_layers()
 
     if isinstance(external_name, Enum):
@@ -49,7 +46,7 @@ def get_mri(external_name: Union[Enum, str]) -> str:
     assert isinstance(external_name, str)
 
     try:
-        return cast(str, NAMING_MAPPING_LAYER[external_name].value)
+        return cast(str, NAME_TO_MRI[external_name].value)
     except KeyError:
         raise InvalidField(
             f"Failed to parse '{external_name}'. Must be something like 'sum(my_metric)', "
@@ -57,8 +54,8 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         )
 
 
-def get_reverse_mri(internal_name: Union[Enum, str]) -> str:
-    if not len(REVERSE_NAME_MAPPING_LAYER):
+def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
+    if not len(MRI_TO_NAME):
         create_name_mapping_layers()
 
     if isinstance(internal_name, Enum):
@@ -66,6 +63,6 @@ def get_reverse_mri(internal_name: Union[Enum, str]) -> str:
     assert isinstance(internal_name, str)
 
     try:
-        return REVERSE_NAME_MAPPING_LAYER[internal_name]
+        return MRI_TO_NAME[internal_name]
     except KeyError:
         raise InvalidField(f"Unable to find a mri reverse mapping for '{internal_name}'.")
