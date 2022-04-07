@@ -12,7 +12,7 @@ describe('MetricsMetaStore', function () {
       const {metricsMeta} = MetricsMetaStore.getState();
       expect(metricsMeta).toEqual({});
 
-      MetricsMetaStore.onLoadSuccess([
+      MetricsMetaStore.loadSuccess([
         {
           name: 'sentry.sessions.session',
           type: 'counter',
