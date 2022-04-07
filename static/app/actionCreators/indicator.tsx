@@ -87,7 +87,9 @@ export function addErrorMessage(msg: React.ReactNode, options?: Options) {
     return addMessageWithType('error')(msg, options);
   }
   return addMessageWithType('error')(
-    t('Oops, looks like something went wrong!'),
+    t(
+      "It looks like you've hit an issue in our server API. It's likely we're already looking into this!"
+    ),
     options
   );
 }
