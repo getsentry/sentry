@@ -12,7 +12,7 @@ datadog==0.29.3
 django-crispy-forms==1.8.1
 django-picklefield==2.1.0
 django-pg-zero-downtime-migrations==0.10
-Django==2.2.24
+Django==2.2.27
 djangorestframework==3.11.2
 drf-spectacular==0.21.0
 email-reply-parser==0.5.12
@@ -31,6 +31,7 @@ lxml==4.6.5
 maxminddb==2.0.3
 mistune==0.8.4
 mmh3==3.0.0
+packaging==21.3
 parsimonious==0.8.0
 petname==2.6
 phonenumberslite==8.12.0
@@ -57,7 +58,7 @@ rfc3986-validator==0.1.1
 sentry-arroyo==0.0.5
 sentry-relay==0.8.9
 sentry-sdk>=1.4.3,<1.6.0
-snuba-sdk==0.1.4
+snuba-sdk==0.1.5
 simplejson==3.17.2
 statsd==3.3
 structlog==21.1.0

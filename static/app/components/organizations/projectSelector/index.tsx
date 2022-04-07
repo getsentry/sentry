@@ -2,6 +2,7 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
@@ -192,6 +193,7 @@ const ProjectSelector = ({
       busyItemsStillVisible={searching}
       onScroll={onScroll}
       maxHeight={500}
+      minWidth={350}
       inputProps={{style: {padding: 8, paddingLeft: 10}}}
       rootClassName={rootClassName}
       className={className}
@@ -216,7 +218,11 @@ const ProjectSelector = ({
           >
             {showPin ? '' : t('Project')}
           </AddButton>
-          {showPin && <PageFilterPinButton size="xsmall" filter="projects" />}
+          {showPin && (
+            <GuideAnchor target="new_page_filter_pin" position="bottom">
+              <PageFilterPinButton size="xsmall" filter="projects" />
+            </GuideAnchor>
+          )}
         </InputActions>
       }
       menuFooter={renderProps => {

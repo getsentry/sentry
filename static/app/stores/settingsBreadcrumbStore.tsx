@@ -1,42 +1,32 @@
 import {PlainRoute} from 'react-router';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
-import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
   title: string;
 };
 
-type SettingsBreadcrumbStoreInterface = {
+interface SettingsBreadcrumbStoreDefinition extends StoreDefinition {
   getPathMap(): Internals['pathMap'];
   init(): void;
-  onTrimMappings(routes: PlainRoute<any>[]): void;
-  onUpdateRouteMap(update: UpdateData): void;
   reset(): void;
-};
+  trimMappings(routes: PlainRoute<any>[]): void;
+  updateRouteMap(update: UpdateData): void;
+}
 
 type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: StoreDefinition &
-  Internals &
-  SettingsBreadcrumbStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: SettingsBreadcrumbStoreDefinition = {
   pathMap: {},
   unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.unsubscribeListeners.push(
-      this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(SettingsBreadcrumbActions.trimMappings, this.onTrimMappings)
-    );
   },
 
   reset() {
@@ -47,12 +37,12 @@ const storeConfig: StoreDefinition &
     return this.pathMap;
   },
 
-  onUpdateRouteMap({routes, title}) {
+  updateRouteMap({routes, title}) {
     this.pathMap[getRouteStringFromRoutes(routes)] = title;
     this.trigger(this.pathMap);
   },
 
-  onTrimMappings(routes) {
+  trimMappings(routes) {
     const routePath = getRouteStringFromRoutes(routes);
     for (const fullPath in this.pathMap) {
       if (!routePath.startsWith(fullPath)) {
@@ -63,7 +53,5 @@ const storeConfig: StoreDefinition &
   },
 };
 
-const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SettingsBreadcrumbStoreInterface;
-
+const SettingsBreadcrumbStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SettingsBreadcrumbStore;

@@ -6,27 +6,33 @@ coverage:
     patch:
       default: false
       frontend:
+        # codecov should not fail status checks
+        informational: true
+        only_pulls: true
         target: 60%
         flags:
         - frontend
       backend:
+        # codecov should not fail status checks
+        informational: true
+        only_pulls: true
         target: 90%
         flags:
           - backend
   ignore:
-  - src/.*?/migrations/.*
-  - src/bitfield/.*
-  - src/sentry/debug/.*
-  - src/sentry/lint/.*
-  - src/sentry/runner/.*
-  - src/social_auth/.*
+  - src/*/migrations/
+  - src/bitfield/
+  - src/sentry/debug/
+  - src/sentry/lint/
+  - src/sentry/runner/
+  - src/social_auth/
   - static/app/routes.tsx
   - tests/
 
 flags:
   frontend:
     paths:
-    - "static/app"
+    - "static/app/"
     carryforward: true
   backend:
     paths:

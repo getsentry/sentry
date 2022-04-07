@@ -79,16 +79,14 @@ class TimeSince extends React.PureComponent<Props, State> {
   }
 
   componentWillUnmount() {
-    if (this.ticker) {
-      window.clearTimeout(this.ticker);
-      this.ticker = null;
-    }
+    window.clearTimeout(this.tickerTimeout);
   }
 
-  ticker: number | null = null;
+  tickerTimeout: number | undefined = undefined;
 
   setRelativeDateTicker = () => {
-    this.ticker = window.setTimeout(() => {
+    window.clearTimeout(this.tickerTimeout);
+    this.tickerTimeout = window.setTimeout(() => {
       this.setState({
         relative: getRelativeDate(
           this.props.date,

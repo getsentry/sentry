@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
@@ -19,7 +20,7 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
-  error: string | null;
+  error: QueryError | null;
   eventView: EventView;
   hasWebVitals: boolean;
   isLoading: boolean;

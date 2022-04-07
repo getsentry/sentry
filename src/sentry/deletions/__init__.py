@@ -21,7 +21,7 @@ Scheduling Deletions
 --------------------
 
 The entrypoint into deletions for the majority of application code is via the ``ScheduledDeletion``
-model. This model lets you creation deletion jobs that are run in the future.
+model. This model lets you create deletion jobs that are run in the future.
 
 >>> from sentry.models import ScheduledDeletion
 >>> ScheduledDeletion.schedule(organization, days=1, hours=2)
@@ -52,7 +52,7 @@ If you have scheduled a record for deletion and want to be able to cancel that d
 deletion task needs to implement the `should_proceed` hook.
 
 >>> def should_proceed(self, instance):
->>>     return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus. DELETION_IN_PROGRESS}
+>>>     return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS}
 
 The above would only proceed with the deletion if the record's status was correct.  When a deletion
 is cancelled by this hook, the `ScheduledDeletion` row will be removed.
@@ -63,7 +63,7 @@ Using Deletions Manager Directly
 For example, let's say you want to delete an organization:
 
 >>> from sentry import deletions
->>> task = deletions.get(model=Organization)
+>>> task = deletions.get(model=Organization, query={})
 >>> work = True
 >>> while work:
 >>>    work = task.chunk()

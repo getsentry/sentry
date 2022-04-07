@@ -260,6 +260,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
       } else {
         openSudo({
           retryRequest: () => Promise.resolve(this.fetchData()),
+          isSuperuser: true,
         });
       }
     }

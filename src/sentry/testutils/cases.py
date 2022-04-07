@@ -114,7 +114,6 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
-from sentry.sentry_metrics.sessions import SessionMetricKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -125,6 +124,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
+from ..snuba.metrics.naming_layer.mri import SessionMRI
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -827,7 +827,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
         for item in which:
             res = self.client.put(
-                "/api/0/assistant/?v2",
+                "/api/0/assistant/",
                 content_type="application/json",
                 data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
             )
@@ -1079,40 +1079,34 @@ class SessionMetricsTestCase(SnubaTestCase):
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": "init"}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "init"}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            self._push_metric(
-                session, "set", SessionMetricKey.SESSION_ERROR, {}, session["session_id"]
-            )
+            self._push_metric(session, "set", SessionMRI.ERROR, {}, session["session_id"])
             if not user_is_nil:
                 self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": "errored"}, user
+                    session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
-                session, "counter", SessionMetricKey.SESSION, {"session.status": status}, +1
+                session, "counter", SessionMRI.SESSION, {"session.status": status}, +1
             )
             if not user_is_nil:
-                self._push_metric(
-                    session, "set", SessionMetricKey.USER, {"session.status": status}, user
-                )
+                self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
         if status != "ok":  # terminal
             if session["duration"] is not None:
                 self._push_metric(
                     session,
                     "distribution",
-                    SessionMetricKey.SESSION_DURATION,
+                    SessionMRI.RAW_DURATION,
                     {"session.status": status},
                     session["duration"],
                 )
@@ -1122,8 +1116,8 @@ class SessionMetricsTestCase(SnubaTestCase):
             self.store_session(session)
 
     @classmethod
-    def _push_metric(cls, session, type, key: SessionMetricKey, tags, value):
-        def metric_id(key: SessionMetricKey):
+    def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        def metric_id(key: SessionMRI):
             res = indexer.record(1, key.value)
             assert res is not None, key
             return res
@@ -1225,6 +1219,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         metric: str = "transaction.duration",
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
+        project: Optional[id] = None,
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
@@ -1243,6 +1238,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         else:
             metric_timestamp = timestamp.timestamp()
 
+        if project is None:
+            project = self.project.id
+
         if not isinstance(value, list):
             value = [value]
 
@@ -1250,7 +1248,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             [
                 {
                     "org_id": self.organization.id,
-                    "project_id": self.project.id,
+                    "project_id": project,
                     "metric_id": indexer.resolve(self.organization.id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
@@ -1425,6 +1423,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()"],
             "aggregates": ["count()"],
             "columns": [],
+            "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
         self.known_users_query = {
@@ -1432,6 +1431,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
             "columns": [],
+            "fieldAliases": [],
             "conditions": "has:user.email",
         }
         self.geo_errors_query = {
@@ -1439,6 +1439,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
             "columns": ["geo.country_code"],
+            "fieldAliases": [],
             "conditions": "has:geo.country_code",
         }
 
@@ -1487,6 +1488,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["aggregates"] == widget_data_source.aggregates
         if "columns" in data:
             assert data["columns"] == widget_data_source.columns
+        if "fieldAliases" in data:
+            assert data["fieldAliases"] == widget_data_source.field_aliases
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

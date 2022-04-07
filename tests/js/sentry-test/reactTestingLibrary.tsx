@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {cache} from '@emotion/css';
+import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
@@ -9,6 +9,8 @@ import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 type ProviderOptions = {
   context?: Record<string, any>;
@@ -74,6 +76,19 @@ const fireEvent = rtl.fireEvent;
 function renderGlobalModal(options?: Options) {
   return render(<GlobalModal />, options);
 }
+
+/**
+ * jest-sentry-environment attaches a global Sentry object that can be used.
+ * The types on it conflicts with the existing window.Sentry object so it's using any here.
+ */
+const globalSentry = (global as any).Sentry;
+
+/**
+ * This cannot be implemented as a Sentry Integration because Jest creates an
+ * isolated environment for each test suite. This means that if we were to apply
+ * the monkey patching ahead of time, it would be shadowed by Jest.
+ */
+instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
 
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';

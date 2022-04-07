@@ -1,16 +1,16 @@
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ReleaseActions from 'sentry/actions/releaseActions';
 import {Deploy, Organization, Release} from 'sentry/types';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
 type StoreLoading = Map<string, boolean>;
 type StoreError = Map<string, Error>;
 
-type ReleaseStoreInterface = {
+interface ReleaseStoreDefinition extends StoreDefinition {
   get(
     projectSlug: string,
     releaseVersion: string
@@ -40,12 +40,12 @@ type ReleaseStoreInterface = {
     releaseLoading: StoreLoading;
   };
   updateOrganization(org: Organization): void;
-};
+}
 
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;
 
-const storeConfig: StoreDefinition & ReleaseStoreInterface & SafeStoreDefinition = {
+const storeConfig: ReleaseStoreDefinition = {
   state: {
     orgSlug: undefined,
     release: new Map() as StoreRelease,
@@ -226,7 +226,5 @@ const storeConfig: StoreDefinition & ReleaseStoreInterface & SafeStoreDefinition
   },
 };
 
-const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  ReleaseStoreInterface;
-
+const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ReleaseStore;

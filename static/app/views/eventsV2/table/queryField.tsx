@@ -97,8 +97,8 @@ type Props = {
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
+  skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
-  widgetBuilderNewDesign?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -167,13 +167,14 @@ class QueryField extends React.Component<Props> {
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
+      case FieldValueKind.NUMERIC_METRICS:
+        fieldValue = {
+          kind: 'calculatedField',
+          field: value.meta.name,
+        };
+        break;
       case FieldValueKind.FUNCTION:
-        if (current.kind === 'field') {
-          fieldValue = {
-            kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
-          };
-        } else if (current.kind === 'function') {
+        if (current.kind === 'function') {
           fieldValue = {
             kind: 'function',
             function: [
@@ -182,6 +183,11 @@ class QueryField extends React.Component<Props> {
               current.function[2],
               current.function[3],
             ],
+          };
+        } else {
+          fieldValue = {
+            kind: 'function',
+            function: [value.meta.name as AggregationKey, '', undefined, undefined],
           };
         }
         break;
@@ -332,7 +338,7 @@ class QueryField extends React.Component<Props> {
       }
     }
 
-    if (fieldValue?.kind === 'field') {
+    if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
@@ -419,7 +425,7 @@ class QueryField extends React.Component<Props> {
       inFieldLabels,
       filterAggregateParameters,
       hideParameterSelector,
-      widgetBuilderNewDesign,
+      skipParameterPlaceholder,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -507,7 +513,7 @@ class QueryField extends React.Component<Props> {
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
 
-    if (widgetBuilderNewDesign) {
+    if (skipParameterPlaceholder) {
       return inputs;
     }
 
@@ -547,8 +553,13 @@ class QueryField extends React.Component<Props> {
         text = kind;
         tagType = 'warning';
         break;
+      case FieldValueKind.NUMERIC_METRICS:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
       case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
+      case FieldValueKind.METRICS:
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
       default:
@@ -571,7 +582,7 @@ class QueryField extends React.Component<Props> {
       otherColumns,
       placeholder,
       noFieldsMessage,
-      widgetBuilderNewDesign,
+      skipParameterPlaceholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -628,14 +639,21 @@ class QueryField extends React.Component<Props> {
 
     let gridColumnsQuantity: undefined | number = undefined;
 
-    if (widgetBuilderNewDesign) {
+    if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
       if (
         fieldValue.kind === 'function' &&
         AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
       ) {
-        gridColumnsQuantity = containerColumns;
+        if (
+          containerColumns === 3 &&
+          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
+        ) {
+          gridColumnsQuantity = 2;
+        } else {
+          gridColumnsQuantity = containerColumns;
+        }
       } else {
         gridColumnsQuantity = 1;
       }

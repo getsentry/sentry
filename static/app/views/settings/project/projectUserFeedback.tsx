@@ -21,6 +21,8 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
+  submitTimeout: number | undefined = undefined;
+
   componentDidMount() {
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful

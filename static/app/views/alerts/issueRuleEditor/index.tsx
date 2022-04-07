@@ -98,12 +98,14 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
+type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+
 type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -124,6 +126,12 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
+  }
+
   getTitle() {
     const {organization, project} = this.props;
     const {rule} = this.state;
@@ -156,15 +164,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
+    const {
+      project,
+      params: {ruleId, orgId},
+    } = this.props;
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
+      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
     return endpoints as [string, string][];
@@ -203,7 +214,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        window.setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -232,7 +245,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    window.setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }

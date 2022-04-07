@@ -16,7 +16,9 @@ const GroupEventAttachmentsContainer = ({organization, group}: Props) => (
   <Feature
     features={['event-attachments']}
     organization={organization}
-    renderDisabled={props => <FeatureDisabled {...props} />}
+    renderDisabled={props => (
+      <FeatureDisabled {...props} featureName="Event Attachments" />
+    )}
   >
     <GroupEventAttachments projectSlug={group.project.slug} />
   </Feature>

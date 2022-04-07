@@ -1,8 +1,5 @@
-import * as React from 'react';
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import random from 'lodash/random';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -22,45 +19,6 @@ Light.defaultProps = {
       repeat: Infinity,
       repeatType: 'loop',
     }),
-  },
-};
-
-const fallingKeyframes = keyframes`
-  0%,  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(15px);
-  }
-  40% {
-    opacity: 0;
-  }
-  60% {
-    transform: translateY(0);
-  }
-`;
-
-const StarGroup = styled(motion.g)`
-  > g {
-    animation-name: ${fallingKeyframes};
-  }
-`;
-
-StarGroup.defaultProps = {
-  onAnimationEnd: (e: React.AnimationEvent) => {
-    if (!(e.target instanceof SVGGElement)) {
-      return;
-    }
-    const style = e.target.style;
-    const delay = random(3000, 10000);
-
-    const restart = () => {
-      style.animation = `${fallingKeyframes.name} ${random(3000, 8000)}ms`;
-    };
-
-    style.animation = 'none';
-    window.setTimeout(restart, delay);
   },
 };
 
