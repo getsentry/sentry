@@ -23,8 +23,8 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
