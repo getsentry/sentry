@@ -58,8 +58,8 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     });
   }
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
+  componentDidMount() {
+    super.componentDidMount();
 
     this.unsubscribables = [
       SentryAppInstallationStore.listen(this.onSentryAppInstallationChange, this),

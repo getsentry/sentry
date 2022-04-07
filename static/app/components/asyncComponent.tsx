@@ -69,6 +69,8 @@ class AsyncComponent<
   constructor(props: P, context: any) {
     super(props, context);
 
+    this.api = new Client();
+
     this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
     this.render = wrapErrorHandling(this, this.render.bind(this));
 
@@ -82,8 +84,7 @@ class AsyncComponent<
     }
   }
 
-  UNSAFE_componentWillMount() {
-    this.api = new Client();
+  componentDidMount() {
     this.fetchData();
 
     if (this.reloadOnVisible) {
