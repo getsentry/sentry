@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 
@@ -10,18 +11,28 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import SelectOption from 'sentry/components/forms/selectOption';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {DashboardListItem, MAX_WIDGETS} from 'sentry/views/dashboardsV2/types';
+import withPageFilters from 'sentry/utils/withPageFilters';
+import {
+  DashboardListItem,
+  MAX_WIDGETS,
+  WidgetQuery,
+} from 'sentry/views/dashboardsV2/types';
+import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 export type AddToDashboardModalProps = {
-  appleSauce: any;
   iconColor: string;
   onConfirm: () => void;
   organization: Organization;
-  router: any;
+  query: WidgetQuery;
+  router: InjectedRouter;
+  selection: PageFilters;
   widget: WidgetTemplate;
+
+  // TODO(nar): Change this from any
+  widgetAsQueryParams: any;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -32,7 +43,8 @@ function AddToDashboardModal({
   Footer,
   closeModal,
   organization,
-  appleSauce,
+  widgetAsQueryParams,
+  query,
   router,
 }: Props) {
   const api = useApi();
@@ -51,13 +63,13 @@ function AddToDashboardModal({
 
     router.push({
       pathname,
-      query: appleSauce,
+      query: widgetAsQueryParams,
     });
     closeModal();
   }
 
   function handleAddAndStayInDiscover() {
-    alert('Stay');
+    return;
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -108,9 +120,31 @@ function AddToDashboardModal({
         />
         <div style={{marginTop: '16px'}}>
           {t('This is a preview of how the widget will appear in your dashboard.')}
-          <div style={{marginTop: '8px', height: '200px', backgroundColor: 'green'}}>
-            Preview
-          </div>
+          <WidgetCard
+            api={api}
+            organization={organization}
+            currentWidgetDragging={false}
+            isEditing={false}
+            isSorting={false}
+            widgetLimitReached={false}
+            // Override selection to 24hr here because
+            selection={{
+              projects: [],
+              environments: [],
+              datetime: {
+                start: widgetAsQueryParams.start,
+                end: widgetAsQueryParams.end,
+                period: widgetAsQueryParams.statsPeriod,
+                utc: widgetAsQueryParams.utc,
+              },
+            }}
+            widget={{
+              title: widgetAsQueryParams.defaultTitle,
+              displayType: widgetAsQueryParams.displayType,
+              queries: [query],
+              interval: '5m',
+            }}
+          />
         </div>
       </Body>
 
@@ -137,7 +171,7 @@ function AddToDashboardModal({
   );
 }
 
-export default AddToDashboardModal;
+export default withPageFilters(AddToDashboardModal);
 
 export const modalCss = css`
   width: 100%;

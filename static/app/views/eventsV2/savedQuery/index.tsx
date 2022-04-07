@@ -275,7 +275,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         openAddToDashboardModal({
           organization,
           query: defaultWidgetQuery,
-          appleSauce: {
+          widgetAsQueryParams: {
             ...location.query,
             source: DashboardWidgetSource.DISCOVERV2,
             defaultWidgetQuery: urlEncode(defaultWidgetQuery),

@@ -135,7 +135,7 @@ class QueryList extends React.Component<Props> {
         openAddToDashboardModal({
           organization,
           query: defaultWidgetQuery,
-          appleSauce: {
+          widgetAsQueryParams: {
             ...location.query,
             source: DashboardWidgetSource.DISCOVERV2,
             start: eventView.start,
