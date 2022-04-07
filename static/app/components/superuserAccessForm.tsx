@@ -6,7 +6,6 @@ import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type State = {
@@ -55,7 +54,7 @@ class SuperuserAccessForm extends Component<State> {
           resetOnError
         >
           {error && (
-            <StyledAlert type="error" icon={<IconFlag size="md" />}>
+            <StyledAlert type="error" showIcon>
               {t(errorType)}
             </StyledAlert>
           )}
