@@ -102,7 +102,8 @@ export function fetchMetricsTags(
   });
 
   promise.then(tagFetchSuccess).catch(response => {
-    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric tags');
+    const errorResponse =
+      response?.responseJSON?.detail ?? t('Unable to fetch metric tags');
     addErrorMessage(errorResponse);
     handleXhrErrorResponse(errorResponse)(response);
   });
@@ -131,7 +132,8 @@ export function fetchMetricsFields(
   );
 
   promise.then(metaFetchSuccess).catch(response => {
-    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric fields');
+    const errorResponse =
+      response?.responseJSON?.detail ?? t('Unable to fetch metric fields');
     addErrorMessage(errorResponse);
     handleXhrErrorResponse(errorResponse)(response);
   });
