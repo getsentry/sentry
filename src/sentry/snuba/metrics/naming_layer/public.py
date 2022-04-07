@@ -55,10 +55,10 @@ class TransactionMetricKey(Enum):
     MEASUREMENTS_STALL_TOTAL_TIME = "transaction.measurements.stall_total_time"
     MEASUREMENTS_TTFB = "transaction.measurements.ttfb"
     MEASUREMENTS_TTFB_REQUEST_TIME = "transaction.measurements.ttfb.requesttime"
-    BREAKDOWNS_HTTP = "transaction.breakdowns.span_ops.ops.http"
-    BREAKDOWNS_DB = "transaction.breakdowns.span_ops.ops.db"
-    BREAKDOWNS_BROWSER = "transaction.breakdowns.span_ops.ops.browser"
-    BREAKDOWNS_RESOURCE = "transaction.breakdowns.span_ops.ops.resource"
+    BREAKDOWNS_HTTP = "transaction.breakdowns.ops.http"
+    BREAKDOWNS_DB = "transaction.breakdowns.ops.db"
+    BREAKDOWNS_BROWSER = "transaction.breakdowns.ops.browser"
+    BREAKDOWNS_RESOURCE = "transaction.breakdowns.ops.resource"
     FAILURE_RATE = "transaction.failure_rate"
 
 
