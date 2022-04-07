@@ -295,6 +295,8 @@ export const AlertWizardRuleTemplates: Record<
   },
 };
 
+export const DEFAULT_WIZARD_TEMPLATE = AlertWizardRuleTemplates.num_errors;
+
 export const hidePrimarySelectorSet = new Set<AlertType>([
   'num_errors',
   'users_experiencing_errors',
