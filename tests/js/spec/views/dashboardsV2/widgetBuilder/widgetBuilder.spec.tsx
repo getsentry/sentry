@@ -1626,18 +1626,27 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
     });
 
-    it('renders with an issues search bar', async function () {
+    it('issue query does not work on default search bar', async function () {
       renderTestComponent();
-      userEvent.type(
+      userEvent.paste(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-        'is:'
+        'is:',
+        {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
       );
       expect(await screen.findByText('No items found')).toBeInTheDocument();
+    });
 
+    it('renders with an issues search bar when selected in dataset selection', async function () {
+      renderTestComponent();
       userEvent.click(screen.getByText('Issues (Status, assignee, etc.)'));
-      userEvent.type(
+      userEvent.paste(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'is:'
+        'is:',
+        {
+          clipboardData: {getData: () => ''},
+        } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
       );
       expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
