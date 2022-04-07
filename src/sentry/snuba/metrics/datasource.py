@@ -22,13 +22,13 @@ from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_intervals,
-    parse_field,
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
@@ -123,7 +123,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
         ):
             metrics_meta.append(
                 MetricMeta(
-                    name=reverse_resolve(row["metric_id"]),
+                    name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
                     type=metric_type,
                     operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                     unit=None,  # snuba does not know the unit
@@ -144,7 +144,7 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
         derived_metric_obj = public_derived_metrics[derived_metric_name]
         metrics_meta.append(
             MetricMeta(
-                name=derived_metric_obj.metric_name,
+                name=get_public_name_from_mri(derived_metric_obj.metric_name),
                 type=derived_metric_obj.result_type,
                 operations=derived_metric_obj.generate_available_operations(),
                 unit=derived_metric_obj.unit,
@@ -228,15 +228,20 @@ def _fetch_tags_or_values_per_ids(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     assert len({p.organization_id for p in projects}) == 1
+
+    metric_mris = None
     if metric_names is not None:
+        metric_mris = [get_mri(metric_name) for metric_name in metric_names]
+
+        # ToDo(ahmed): Hack out private derived metrics logic
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
             get_derived_metrics(exclude_private=True).keys()
         )
-        if set(metric_names).intersection(private_derived_metrics) != set():
+        if set(metric_mris).intersection(private_derived_metrics) != set():
             raise InvalidParams(f"Metric names {metric_names} do not exist")
 
     try:
-        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_names)
+        metric_ids = _get_metrics_filter_ids(projects=projects, metric_names=metric_mris)
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
             f"Some or all of the metric names in {metric_names} do not exist in the indexer"
@@ -299,7 +304,7 @@ def _fetch_tags_or_values_per_ids(
         # SingularEntityDerivedMetric actually span a single entity
         _validate_requested_derived_metrics_in_input_metrics(
             projects,
-            metric_names=metric_names,
+            metric_names=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
         )
 
@@ -339,6 +344,7 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         referrer="snuba.metrics.meta.get_single_metric",
     )
     entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+
     response_dict = {
         "name": metric_name,
         "type": metric_type,
@@ -347,9 +353,10 @@ def get_single_metric_info(projects: Sequence[Project], metric_name: str) -> Met
         "tags": tags,
     }
 
+    metric_mri = get_mri(metric_name)
     public_derived_metrics = get_derived_metrics(exclude_private=True)
-    if metric_name in public_derived_metrics:
-        derived_metric = public_derived_metrics[metric_name]
+    if metric_mri in public_derived_metrics:
+        derived_metric = public_derived_metrics[metric_mri]
         response_dict.update(
             {
                 "operations": derived_metric.generate_available_operations(),
@@ -433,8 +440,10 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
         # The initial query has to contain only one field which is the same as the order by
         # field
-        orderby_field = [key for key, value in query.fields.items() if value == query.orderby[0]][0]
-        query.fields = {orderby_field: parse_field(orderby_field)}
+        orderby_expr, orderby_parsed = [
+            (key, value) for key, value in query.fields.items() if value == query.orderby[0]
+        ][0]
+        query.fields = {orderby_expr: orderby_parsed}
 
         snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
         if len(snuba_queries) > 1:
