@@ -1,6 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
 
 import type exportGlobals from 'sentry/bootstrap/exportGlobals';
+import {Theme} from 'sentry/utils/theme';
 
 import type {User} from './user';
 
@@ -127,7 +128,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: string; message: string}[];
+  messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
 
   privacyUrl: string | null;

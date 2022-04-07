@@ -8,12 +8,12 @@ import {
 } from 'sentry/actionCreators/deployPreview';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
-import AlertActions from 'sentry/actions/alertActions';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -81,7 +81,7 @@ function App({children}: Props) {
       const {id, message, url} = problem;
       const type = problem.severity === 'critical' ? 'error' : 'warning';
 
-      AlertActions.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, type, url, opaque: true});
     });
   }
 
@@ -91,7 +91,7 @@ function App({children}: Props) {
 
     // Show system-level alerts
     config.messages.forEach(msg =>
-      AlertActions.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
     );
 
     // The app is running in deploy preview mode
