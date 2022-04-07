@@ -271,6 +271,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
     if (organization.features.includes('new-widget-builder-experience')) {
+      const widgetAsQueryParams = {
+        ...location.query,
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns: defaultTableFields,
+        defaultTitle,
+        displayType,
+      };
       if (organization.features.includes('new-widget-builder-experience-design')) {
         openAddToDashboardModal({
           organization,
@@ -290,19 +298,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             queries: [defaultWidgetQuery],
             interval: eventView.interval,
           },
+          router,
+          widgetAsQueryParams,
         });
         return;
       }
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: defaultTableFields,
-          defaultTitle,
-          displayType,
-        },
+        query: widgetAsQueryParams,
       });
       return;
     }

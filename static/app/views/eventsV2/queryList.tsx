@@ -131,6 +131,17 @@ class QueryList extends React.Component<Props> {
       savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
     if (organization.features.includes('new-widget-builder-experience')) {
+      const widgetAsQueryParams = {
+        ...location.query,
+        source: DashboardWidgetSource.DISCOVERV2,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns: defaultTableFields,
+        defaultTitle,
+        displayType,
+      };
       if (organization.features.includes('new-widget-builder-experience-design')) {
         openAddToDashboardModal({
           organization,
@@ -150,22 +161,13 @@ class QueryList extends React.Component<Props> {
             queries: [defaultWidgetQuery],
             interval: eventView.interval,
           },
+          router,
         });
         return;
       }
       router.push({
         pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DISCOVERV2,
-          start: eventView.start,
-          end: eventView.end,
-          statsPeriod: eventView.statsPeriod,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-          defaultTableColumns: defaultTableFields,
-          defaultTitle,
-          displayType,
-        },
+        query: widgetAsQueryParams,
       });
       return;
     }

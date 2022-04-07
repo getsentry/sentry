@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {InjectedRouter} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,8 +20,11 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 
 export type AddToDashboardModalProps = {
   organization: Organization;
+  router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
+  // TODO(nar): Fill in type
+  widgetAsQueryParams: any;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -31,8 +35,10 @@ function AddToDashboardModal({
   Footer,
   closeModal,
   organization,
+  router,
   selection,
   widget,
+  widgetAsQueryParams,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -43,8 +49,16 @@ function AddToDashboardModal({
   }, []);
 
   function handleGoToBuilder() {
+    const pathname =
+      selectedDashboardId === 'new'
+        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
+        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
+
+    router.push({
+      pathname,
+      query: widgetAsQueryParams,
+    });
     closeModal();
-    return;
   }
 
   function handleAddAndStayInDiscover() {
