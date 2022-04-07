@@ -33,7 +33,7 @@ describe('withMetricsMeta HoC', function () {
     expect(screen.getByText('value')).toBeInTheDocument();
 
     act(() => {
-      MetricsMetaStore.onLoadSuccess([
+      MetricsMetaStore.loadSuccess([
         {
           name: 'sentry.sessions.session',
           type: 'counter',

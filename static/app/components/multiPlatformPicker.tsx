@@ -29,6 +29,11 @@ const isPopular = (platform: PlatformIntegration) =>
     platform.id as typeof popularPlatformCategories[number]
   );
 
+const popularIndex = (platform: PlatformIntegration) =>
+  popularPlatformCategories.indexOf(
+    platform.id as typeof popularPlatformCategories[number]
+  );
+
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -43,12 +48,12 @@ interface PlatformPickerProps {
   organization: Organization;
   platforms: PlatformKey[];
   removePlatform: (key: PlatformKey) => void;
+  source: string;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
   noAutoFilter?: boolean;
   showOther?: boolean;
-  source?: string;
 }
 
 function PlatformPicker(props: PlatformPickerProps) {
@@ -68,22 +73,25 @@ function PlatformPicker(props: PlatformPickerProps) {
     const subsetMatch = (platform: PlatformIntegration) =>
       platform.id.includes(filterLowerCase) ||
       platform.name.toLowerCase().includes(filterLowerCase) ||
-      filterAliases[platform.id as PlatformKey]?.some(alias =>
-        alias.includes(filterLowerCase)
-      );
+      filterAliases[platform.id]?.some(alias => alias.includes(filterLowerCase));
 
     const categoryMatch = (platform: PlatformIntegration) =>
       category === 'all' ||
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
     const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top
+      // for the all category, put popular ones at the top in the order they appear in the popular list
       if (category === 'all') {
+        if (isPopular(a) && isPopular(b)) {
+          // if both popular, maintain ordering from popular list
+          return popularIndex(a) - popularIndex(b);
+        }
         if (isPopular(a) !== isPopular(b)) {
           return isPopular(a) ? -1 : 1;
         }
       }
-      return a.id.localeCompare(b.id);
+      // maintain ordering otherwise
+      return 0;
     };
 
     const filtered = platforms
@@ -151,18 +159,22 @@ function PlatformPicker(props: PlatformPickerProps) {
             data-test-id={`platform-${platform.id}`}
             key={platform.id}
             platform={platform}
-            selected={props.platforms.includes(platform.id as PlatformKey)}
+            selected={props.platforms.includes(platform.id)}
             onClear={(e: React.MouseEvent) => {
-              removePlatform(platform.id as PlatformKey);
+              removePlatform(platform.id);
               e.stopPropagation();
             }}
             onClick={() => {
+              // do nothing if already selected
+              if (props.platforms.includes(platform.id)) {
+                return;
+              }
               trackAdvancedAnalyticsEvent('growth.select_platform', {
                 platform_id: platform.id,
                 source,
                 organization,
               });
-              addPlatform(platform.id as PlatformKey);
+              addPlatform(platform.id);
             }}
           />
         ))}
@@ -241,6 +253,7 @@ const ClearButton = styled(Button)`
   position: absolute;
   top: -6px;
   right: -6px;
+  min-height: 0;
   height: 22px;
   width: 22px;
   display: flex;

@@ -3,6 +3,8 @@ from typing import Mapping, Union
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
+from requests import RequestException
+
 from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
@@ -35,9 +37,8 @@ class AlertRuleActionRequester(Mediator):
         return urlunparse(urlparts)
 
     def _make_request(self) -> Mapping[str, Union[bool, str]]:
-
         try:
-            req = send_and_save_sentry_app_request(
+            request = send_and_save_sentry_app_request(
                 self._build_url(),
                 self.sentry_app,
                 self.install.organization_id,
@@ -46,7 +47,7 @@ class AlertRuleActionRequester(Mediator):
                 method=self.http_method,
                 data=self.body,
             )
-        except Exception as e:
+        except RequestException as e:
             logger.info(
                 "alert_rule_action.error",
                 extra={
@@ -56,11 +57,13 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            message = f"{self.sentry_app.name}: {str(e.response.text) or DEFAULT_ERROR_MESSAGE}"
+            # NOTE: bool(e.response) is always False because non-2xx responses are Falsey.
+            text = e.response.text if e.response is not None else None
+            message = f"{self.sentry_app.name}: {text or DEFAULT_ERROR_MESSAGE}"
             # Bubble up error message from Sentry App to the UI for the user.
             return {"success": False, "message": message}
 
-        body_raw = safe_urlread(req)
+        body_raw = safe_urlread(request)
         body = body_raw.decode() if body_raw else None
         message = f"{self.sentry_app.name}: {body or DEFAULT_SUCCESS_MESSAGE}"
         return {"success": True, "message": message}
@@ -71,7 +74,9 @@ class AlertRuleActionRequester(Mediator):
         return {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
+            # TODO(Ecosystem): Deprecate this header in favor of documented 'Sentry-Hook-Signature'
             "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
+            "Sentry-Hook-Signature": self.sentry_app.build_signature(self.body),
         }
 
     @memoize

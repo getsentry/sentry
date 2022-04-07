@@ -980,7 +980,6 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         assert len(alert_rule_trigger_actions) == 0
 
     def test_sentry_app_action_missing_params(self):
-
         self.run_fail_validation_test(
             {
                 "type": AlertRuleTriggerAction.get_registered_type(

@@ -1,9 +1,9 @@
 import findIndex from 'lodash/findIndex';
-import {createStore, Store, StoreDefinition} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;
@@ -11,16 +11,16 @@ type State = {
   savedSearches: SavedSearch[];
 };
 
-type SavedSearchesStoreInterface = {
+interface SavedSearchesStoreDefinition extends StoreDefinition {
   findByQuery(query: string, sort: string): SavedSearch | undefined;
   get(): State;
   getFilteredSearches(type: SavedSearchType, id?: string): SavedSearch[];
   onPinSearch(type: SavedSearchType, query: string, sort: string): void;
   reset(): void;
   updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
-};
+}
 
-const storeConfig: StoreDefinition & SavedSearchesStoreInterface & SafeStoreDefinition = {
+const storeConfig: SavedSearchesStoreDefinition = {
   unsubscribeListeners: [],
 
   state: {
@@ -245,7 +245,5 @@ const storeConfig: StoreDefinition & SavedSearchesStoreInterface & SafeStoreDefi
   },
 };
 
-const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig)) as Store &
-  SavedSearchesStoreInterface;
-
+const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig));
 export default SavedSearchesStore;

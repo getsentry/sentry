@@ -140,21 +140,6 @@ export function getSortLabel(key: string) {
   }
 }
 
-export enum IssueDisplayOptions {
-  EVENTS = 'events',
-  SESSIONS = 'sessions',
-}
-
-export function getDisplayLabel(key: IssueDisplayOptions) {
-  switch (key) {
-    case IssueDisplayOptions.SESSIONS:
-      return t('Events as %');
-    case IssueDisplayOptions.EVENTS:
-    default:
-      return t('Event Count');
-  }
-}
-
 export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'query',
   'status',

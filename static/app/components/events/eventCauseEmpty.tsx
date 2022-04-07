@@ -154,8 +154,7 @@ class EventCauseEmpty extends Component<Props, State> {
   }
 
   render() {
-    const {shouldShow} = this.state;
-    if (!shouldShow) {
+    if (!this.state.shouldShow) {
       return null;
     }
 

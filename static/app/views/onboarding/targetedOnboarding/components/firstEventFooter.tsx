@@ -36,64 +36,46 @@ export default function FirstEventFooter({
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
 
-  const getSecondaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+  const getSecondaryCta = () => {
+    // if hasn't sent first event, allow skiping
+    if (!hasFirstEvent) {
+      return <Button onClick={onClickSetupLater}>{t('Setup Later')}</Button>;
+    }
+    // if last, no secondary cta
+    if (isLast) {
+      return null;
+    }
+    return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
+  };
+
+  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
         <CreateSampleEventButton
           project={project}
           source="targted-onboarding"
-          priority="default"
+          priority="primary"
         >
           {t('View Sample Error')}
         </CreateSampleEventButton>
       );
     }
-    // if last, no secondary cta
-    if (isLast) {
-      return null;
-    }
+
     return (
       <Button
         to={`/organizations/${organization.slug}/issues/${
           firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
         }`}
+        priority="primary"
       >
         {t('Take me to my error')}
       </Button>
     );
   };
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
-    // if hasn't sent first event, allow skiping
-    if (!hasFirstEvent) {
-      return (
-        <Button priority="primary" onClick={onClickSetupLater}>
-          {t('Setup Later')}
-        </Button>
-      );
-    }
-    if (isLast) {
-      return (
-        <Button
-          to={`/organizations/${organization.slug}/issues/${
-            firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
-          }`}
-          priority="primary"
-        >
-          {t('Take me to my error')}
-        </Button>
-      );
-    }
-    return (
-      <Button priority="primary" onClick={onClickSetupLater}>
-        {t('Next Platform')}
-      </Button>
-    );
-  };
-
   return (
-    <GenericFooter>
+    <GridFooter>
       <SkipOnboardingLink
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
@@ -123,21 +105,24 @@ export default function FirstEventFooter({
               </AnimatedText>
             </StatusWrapper>
             <OnboardingButtonBar gap={2}>
-              {getSecondaryCta({firstIssue})}
+              {getSecondaryCta()}
               {getPrimaryCta({firstIssue})}
             </OnboardingButtonBar>
           </Fragment>
         )}
       </EventWaiter>
-    </GenericFooter>
+    </GridFooter>
   );
 }
 
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
+  justify-self: end;
 `;
 
-const AnimatedText = styled(motion.div)<{errorReceived: boolean}>`
+const AnimatedText = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'errorReceived',
+})<{errorReceived: boolean}>`
   margin-left: ${space(1)};
   color: ${p =>
     p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
@@ -168,6 +153,7 @@ const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
+  justify-content: center;
 `;
 
 StatusWrapper.defaultProps = {
@@ -187,4 +173,9 @@ StatusWrapper.defaultProps = {
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+`;
+
+const GridFooter = styled(GenericFooter)`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
 `;
