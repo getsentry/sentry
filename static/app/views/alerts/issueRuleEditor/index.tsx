@@ -1,10 +1,5 @@
 import {ChangeEvent, Fragment, ReactNode} from 'react';
-import {
-  browserHistory,
-  RouteComponentProps,
-  withRouter,
-  WithRouterProps,
-} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -117,8 +112,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & WithRouterProps &
-  RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -1055,7 +1049,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withRouter(withOrganization(withProjects(IssueRuleEditor)));
+export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
