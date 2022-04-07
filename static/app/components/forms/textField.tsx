@@ -1,17 +1,6 @@
-import InputField from 'sentry/components/forms/inputField';
+import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 
-type Props = InputField['props'] & {
-  spellCheck?: string;
-};
-
-export default class TextField extends InputField<Props> {
-  getAttributes() {
-    return {
-      spellCheck: this.props.spellCheck,
-    };
-  }
-
-  getType() {
-    return 'text';
-  }
+export interface TextFieldProps extends Omit<InputFieldProps, 'type'> {}
+export default function TextField(props) {
+  return <InputField {...props} type="text" />;
 }

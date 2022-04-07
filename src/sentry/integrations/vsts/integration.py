@@ -23,7 +23,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Identity
 from sentry.models import Integration as IntegrationModel

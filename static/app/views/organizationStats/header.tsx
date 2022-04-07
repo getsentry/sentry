@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -24,7 +23,7 @@ function StatsHeader({organization, activeTab}: Props) {
           <Button
             title={t('Send us feedback via email')}
             size="small"
-            href="mailto:workflow-feedback@sentry.io?subject=Team Stats Feedback"
+            href="mailto:alerting-feedback@sentry.io?subject=Team Stats Feedback"
           >
             {t('Give Feedback')}
           </Button>
@@ -37,13 +36,11 @@ function StatsHeader({organization, activeTab}: Props) {
         <li className={`${activeTab === 'issues' ? 'active' : ''}`}>
           <Link to={`/organizations/${organization.slug}/stats/issues/`}>
             {t('Issues')}
-            <FeatureBadge type="beta" />
           </Link>
         </li>
         <li className={`${activeTab === 'health' ? 'active' : ''}`}>
           <Link to={`/organizations/${organization.slug}/stats/health/`}>
             {t('Health')}
-            <FeatureBadge type="beta" />
           </Link>
         </li>
       </Layout.HeaderNavTabs>

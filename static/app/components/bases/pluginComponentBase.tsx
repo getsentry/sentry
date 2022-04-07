@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {FormState, GenericField} from 'sentry/components/forms';
+import {FormState, GenericField} from 'sentry/components/deprecatedforms';
 import {t} from 'sentry/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {
@@ -51,7 +51,12 @@ class PluginComponentBase<
 
   componentWillUnmount() {
     this.api.clear();
+    window.clearTimeout(this.successMessageTimeout);
+    window.clearTimeout(this.errorMessageTimeout);
   }
+
+  successMessageTimeout: number | undefined = undefined;
+  errorMessageTimeout: number | undefined = undefined;
 
   api = new Client();
 
@@ -112,7 +117,9 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    setTimeout(() => {
+
+    window.clearTimeout(this.successMessageTimeout);
+    this.successMessageTimeout = window.setTimeout(() => {
       addSuccessMessage(t('Success!'));
     }, 0);
   }
@@ -125,7 +132,9 @@ class PluginComponentBase<
       },
       () => callback && callback()
     );
-    setTimeout(() => {
+
+    window.clearTimeout(this.errorMessageTimeout);
+    this.errorMessageTimeout = window.setTimeout(() => {
       addErrorMessage(t('Unable to save changes. Please try again.'));
     }, 0);
   }

@@ -16,7 +16,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
@@ -242,17 +241,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     });
   };
 
-  onGoLegacyDiscover = () => {
-    localStorage.setItem('discover:version', '1');
-    const user = ConfigStore.get('user');
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.opt_out',
-      eventName: 'Discoverv2: Go to discover',
-      organization_id: parseInt(this.props.organization.id, 10),
-      user_id: parseInt(user.id, 10),
-    });
-  };
-
   renderNoAccess() {
     return (
       <PageContent>
@@ -262,7 +250,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {location, organization} = this.props;
+    const {location, organization, router} = this.props;
     const {savedQueries, savedQueriesPageLinks, renderPrebuilt} = this.state;
 
     return (
@@ -274,6 +262,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         location={location}
         organization={organization}
         onQueryChange={this.handleQueryChange}
+        router={router}
       />
     );
   }

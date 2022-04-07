@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -60,7 +60,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
-    const col = explodeFieldString(f.field);
+    const col = explodeFieldString(f.field, f.alias);
     const columnName = f.field;
     if (isEquation(f.field)) {
       column.key = `equation[${equations}]`;
@@ -245,7 +245,7 @@ export function getExpandedResults(
   // Expand any functions in the resulting column, and dedupe the result.
   // Mark any column as null to remove it.
   const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
-    const exploded = explodeFieldString(field.field);
+    const exploded = explodeFieldString(field.field, field.alias);
     const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
     if (
@@ -300,7 +300,7 @@ function generateAdditionalConditions(
   }
 
   eventView.fields.forEach((field: Field) => {
-    const column = explodeFieldString(field.field);
+    const column = explodeFieldString(field.field, field.alias);
 
     // Skip aggregate fields
     if (column.kind === 'function') {
@@ -461,7 +461,7 @@ export function generateFieldOptions({
       }
       return {
         ...param,
-        ...overrides({parameter: param, organization}),
+        ...overrides({parameter: param}),
       };
     });
 

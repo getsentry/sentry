@@ -27,7 +27,7 @@ import {
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAnchor, IconWarning} from 'sentry/icons';
+import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -39,6 +39,7 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withApi from 'sentry/utils/withApi';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
@@ -203,6 +204,30 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderViewSimilarSpansButton() {
+    const {span, organization, location, event} = this.props;
+
+    if (isGapSpan(span) || !span.op || !span.hash) {
+      return null;
+    }
+
+    const transactionName = event.title;
+
+    const target = spanDetailsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      query: location.query,
+      spanSlug: {op: span.op, group: span.hash},
+      projectID: event.projectID,
+    });
+
+    return (
+      <StyledButton size="xsmall" to={target}>
+        {t('View Similar Spans')}
+      </StyledButton>
+    );
+  }
+
   renderOrphanSpanMessage() {
     const {span} = this.props;
 
@@ -211,7 +236,7 @@ class SpanDetail extends React.Component<Props, State> {
     }
 
     return (
-      <Alert system type="info" icon={<IconWarning size="md" />}>
+      <Alert type="info" showIcon system>
         {t(
           'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
         )}
@@ -236,7 +261,7 @@ class SpanDetail extends React.Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert system type="error" icon={<IconWarning size="md" />}>
+      <Alert type="error" showIcon system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
@@ -343,7 +368,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Description" extra={this.renderViewSimilarSpansButton()}>
+                {span?.description ?? ''}
+              </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
@@ -381,7 +408,7 @@ class SpanDetail extends React.Component<Props, State> {
                 <Row title="Span Group">
                   {defined(span.hash) ? String(span.hash) : null}
                 </Row>
-                <Row title="Span Exclusive Time">
+                <Row title="Span Self Time">
                   {defined(span.exclusive_time)
                     ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
                     : null}

@@ -6,6 +6,10 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
+import Form from 'sentry/components/forms/form';
+import FormField from 'sentry/components/forms/formField';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import {
   Panel,
   PanelAlert,
@@ -18,10 +22,6 @@ import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {Project} from 'sentry/types';
-import FieldFromConfig from 'sentry/views/settings/components/forms/fieldFromConfig';
-import Form from 'sentry/views/settings/components/forms/form';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {

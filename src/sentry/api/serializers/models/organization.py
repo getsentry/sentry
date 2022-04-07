@@ -1,15 +1,24 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
+
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
+from typing_extensions import TypedDict
 
 from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
+from sentry.api.serializers.models.project import ProjectSerializerResponse
+from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.app import quotas
+from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     ALERTS_MEMBER_WRITE_DEFAULT,
-    APDEX_THRESHOLD_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -37,11 +46,15 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.models.user import User
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
+if TYPE_CHECKING:
+    from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
 
-class TrustedRelaySerializer(serializers.Serializer):
+
+class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -50,7 +63,7 @@ class TrustedRelaySerializer(serializers.Serializer):
         ("last_modified", "lastModified"),
     )
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: Any) -> dict[str, Any]:
         ret_val = {}
         for internal_key, external_key in TrustedRelaySerializer.internal_external:
             val = instance.get(internal_key)
@@ -58,7 +71,7 @@ class TrustedRelaySerializer(serializers.Serializer):
                 ret_val[external_key] = val
         return ret_val
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> dict[str, str]:
         try:
             key_name = data.get("name")
             public_key = data.get("publicKey") or ""
@@ -89,19 +102,41 @@ class TrustedRelaySerializer(serializers.Serializer):
         return {"public_key": public_key, "name": key_name, "description": description}
 
 
+class _Status(TypedDict):
+    id: str
+    name: str
+
+
+class OrganizationSerializerResponse(TypedDict):
+    id: str
+    slug: str
+    status: _Status
+    name: str
+    dateCreated: datetime
+    isEarlyAdopter: bool
+    require2FA: bool
+    requireEmailVerification: bool
+    avatar: Any  # TODO replace with Avatar
+    features: Any  # TODO
+
+
 @register(Organization)
-class OrganizationSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+class OrganizationSerializer(Serializer):  # type: ignore
+    def get_attrs(
+        self, item_list: Sequence[Organization], user: User
+    ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         avatars = {
             a.organization_id: a
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
-        data = {}
+        data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
             data[item] = {"avatar": avatars.get(item.id)}
         return data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Organization, attrs: Mapping[str, Any], user: User
+    ) -> OrganizationSerializerResponse:
         from sentry import features
         from sentry.features.base import OrganizationFeature
 
@@ -180,19 +215,37 @@ class OrganizationSerializer(Serializer):
         }
 
 
-class OnboardingTasksSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+class _OnboardingTasksAttrs(TypedDict):
+    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+
+
+class OnboardingTasksSerializerResponse(TypedDict):
+
+    task: str  # TODO: literal/enum
+    status: str  # TODO: literal/enum
+    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    completionSeen: datetime
+    dateCompleted: datetime
+    data: Any  # JSON object
+
+
+class OnboardingTasksSerializer(Serializer):  # type: ignore
+    def get_attrs(
+        self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
+    ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
         # Unique user list
         users = {item.user for item in item_list if item.user}
         serialized_users = serialize(users, user, UserSerializer())
         user_map = {user["id"]: user for user in serialized_users}
 
-        data = {}
+        data: MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs] = {}
         for item in item_list:
             data[item] = {"user": user_map.get(str(item.user_id))}
         return data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: OrganizationOnboardingTask, attrs: _OnboardingTasksAttrs, user: User
+    ) -> OnboardingTasksSerializerResponse:
         return {
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP.get(obj.status),
@@ -203,11 +256,49 @@ class OnboardingTasksSerializer(Serializer):
         }
 
 
+class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
+    role: Any  # TODO replace with enum/literal
+
+
+class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
+    experiments: Any
+    quota: Any
+    isDefault: bool
+    defaultRole: bool
+    availableRoles: list[Any]  # TODO replace with enum/literal
+    openMembership: bool
+    allowSharedIssues: bool
+    enhancedPrivacy: bool
+    dataScrubber: bool
+    dataScrubberDefaults: bool
+    sensitiveFields: list[Any]  # TODO
+    safeFields: list[Any]
+    storeCrashReports: Any  # TODO
+    attachmentsRole: Any  # TODO
+    debugFilesRole: str
+    eventsMemberAdmin: bool
+    alertsMemberWrite: bool
+    scrubIPAddresses: bool
+    scrapeJavaScript: bool
+    allowJoinRequests: bool
+    relayPiiConfig: Optional[str]
+    trustedRelays: Any  # TODO
+    access: frozenset[str]
+    pendingAccessRequests: int
+    onboardingTasks: OnboardingTasksSerializerResponse
+
+
 class DetailedOrganizationSerializer(OrganizationSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[Organization], user: User, **kwargs: Any
+    ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(self, obj, attrs, user, access):
+    def serialize(  # type: ignore
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
+    ) -> DetailedOrganizationSerializerResponse:
+        # TODO: rectify access argument overriding parent if we want to remove above type ignore
+
         from sentry import experiments
 
         onboarding_tasks = list(
@@ -216,7 +307,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = super().serialize(obj, attrs, user)
+        context = cast(DetailedOrganizationSerializerResponse, super().serialize(obj, attrs, user))
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -289,9 +380,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-                "apdexThreshold": int(
-                    obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
-                ),
             }
         )
 
@@ -309,11 +397,20 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         return context
 
 
+class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
+    DetailedOrganizationSerializerResponse
+):
+    teams: list[TeamSerializerResponse]
+    projects: list[ProjectSerializerResponse]
+
+
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[Organization], user: User, **kwargs: Any
+    ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def _project_list(self, organization, access):
+    def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         member_projects = list(access.projects)
         member_project_ids = [p.id for p in member_projects]
         other_projects = list(
@@ -321,14 +418,14 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
                 id__in=member_project_ids
             )
         )
-        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)
+        project_list = sorted(other_projects + member_projects, key=lambda x: x.slug)  # type: ignore
 
         for project in project_list:
             project.set_cached_field_value("organization", organization)
 
         return project_list
 
-    def _team_list(self, organization, access):
+    def _team_list(self, organization: Organization, access: Access) -> list[Team]:
         member_teams = list(access.teams)
         member_team_ids = [p.id for p in member_teams]
         other_teams = list(
@@ -336,18 +433,23 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
                 id__in=member_team_ids
             )
         )
-        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)
+        team_list = sorted(other_teams + member_teams, key=lambda x: x.slug)  # type: ignore
 
         for team in team_list:
             team.set_cached_field_value("organization", organization)
 
         return team_list
 
-    def serialize(self, obj, attrs, user, access):
+    def serialize(  # type: ignore
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
+    ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        context = super().serialize(obj, attrs, user, access)
+        context = cast(
+            DetailedOrganizationSerializerWithProjectsAndTeamsResponse,
+            super().serialize(obj, attrs, user, access),
+        )
 
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)

@@ -14,21 +14,20 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
+import FormModel from 'sentry/components/forms/model';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import {FieldObject} from 'sentry/components/forms/type';
 import {PanelItem} from 'sentry/components/panels';
 import U2fsign from 'sentry/components/u2f/u2fsign';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 import AsyncView from 'sentry/views/asyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
-import FormModel from 'sentry/views/settings/components/forms/model';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
-import {FieldObject} from 'sentry/views/settings/components/forms/type';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -405,7 +404,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
         <TextBlock>{authenticator.description}</TextBlock>
 
         {authenticator.rotationWarning && authenticator.status === 'rotation' && (
-          <Alert type="warning" icon={<IconWarning size="md" />}>
+          <Alert type="warning" showIcon>
             {authenticator.rotationWarning}
           </Alert>
         )}

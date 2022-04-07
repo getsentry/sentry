@@ -1,6 +1,8 @@
 import {t} from 'sentry/locale';
 
-const popular = [
+
+export const popularPlatformCategories = [
+  'javascript',
   'javascript-react',
   'node',
   'javascript',
@@ -134,7 +136,7 @@ export const desktop = [
 ] as const;
 
 const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popular},
+  {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
   {id: 'browser', name: t('Browser'), platforms: frontend},
   {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
@@ -231,7 +233,7 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
 };
 
 export type PlatformKey =
-  | typeof popular[number]
+  | typeof popularPlatformCategories[number]
   | typeof frontend[number]
   | typeof mobile[number]
   | typeof backend[number]

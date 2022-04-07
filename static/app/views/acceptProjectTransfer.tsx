@@ -1,12 +1,12 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{}, {}>;

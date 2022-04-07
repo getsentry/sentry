@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -39,7 +39,9 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -266,7 +268,7 @@ def alert(request):
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
-    rule = Rule(label="An example rule")
+    rule = Rule(id=1, label="An example rule")
 
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
@@ -283,13 +285,17 @@ def alert(request):
         text_template="sentry/emails/error.txt",
         context={
             "rule": rule,
+            "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
             "timezone": pytz.timezone("Europe/Vienna"),
-            "link": "http://example.com/link",
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
+            "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
             "commits": [
                 {
                     # TODO(dcramer): change to use serializer
@@ -352,12 +358,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in range(random.randint(1, 10)):
+        for _ in range(random.randint(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -395,14 +401,8 @@ def digest(request):
     digest = build_digest(project, records, state)[0]
     start, end, counts = get_digest_metadata(digest)
 
-    context = {
-        "project": project,
-        "counts": counts,
-        "digest": digest,
-        "start": start,
-        "end": end,
-        "referrer": "digest_email",
-    }
+    rule_details = get_rules(list(rules.values()), org, project)
+    context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
     add_unsubscribe_link(context)
 
     return MailPreview(
@@ -496,7 +496,14 @@ def report(request):
         series = [
             (
                 timestamp + (i * rollup),
-                (random.randint(0, daily_maximum), random.randint(0, daily_maximum)),
+                (
+                    # Resolved issues
+                    random.randint(0, daily_maximum),
+                    # Unresolved issues
+                    random.randint(0, daily_maximum),
+                    # Transactions
+                    random.randint(0, daily_maximum),
+                ),
             )
             for i in range(0, 7)
         ]
@@ -512,6 +519,8 @@ def report(request):
             build_issue_summaries(),
             build_usage_outcomes(),
             build_calendar_data(project),
+            key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
+            key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
         )
 
     if random.random() < 0.85:
@@ -519,8 +528,13 @@ def report(request):
     else:
         personal = {"resolved": 0, "users": 0}
 
+    if request.GET.get("new"):
+        html_template = "sentry/emails/reports/new.html"
+    else:
+        html_template = "sentry/emails/reports/body.html"
+
     return MailPreview(
-        html_template="sentry/emails/reports/body.html",
+        html_template=html_template,
         text_template="sentry/emails/reports/body.txt",
         context={
             "duration": reports.durations[duration],

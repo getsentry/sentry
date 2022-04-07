@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
@@ -93,7 +93,7 @@ export type OpenConfirmOptions = {
   /**
    * Button priority
    */
-  priority?: React.ComponentProps<typeof Button>['priority'];
+  priority?: ButtonProps['priority'];
   /**
    * Custom function to render the cancel button
    */
@@ -305,7 +305,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 onClick={this.handleClose}
                 aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
               >
-                {cancelText}
+                {cancelText ?? t('Cancel')}
               </Button>
             )}
             {renderConfirmButton ? (
@@ -322,7 +322,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
                 autoFocus
                 aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
-                {confirmText}
+                {confirmText ?? t('Confirm')}
               </Button>
             )}
           </ButtonBar>

@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -20,7 +21,10 @@ import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = ['start', 'end', 'utc', 'period', 'project', 'environment'];
 
-type Props = RouteComponentProps<{dashboardId: string; orgId: string}, {}> & {
+type Props = RouteComponentProps<
+  {dashboardId: string; orgId: string; widgetId?: number},
+  {}
+> & {
   children: React.ReactNode;
   organization: Organization;
 };
@@ -61,14 +65,17 @@ function ViewEditDashboard(props: Props) {
           return error ? (
             <NotFound />
           ) : dashboard ? (
-            <DashboardDetail
-              {...props}
-              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
-              dashboard={dashboard}
-              dashboards={dashboards}
-              onDashboardUpdate={onDashboardUpdate}
-              newWidget={newWidget}
-            />
+            <ErrorBoundary>
+              <DashboardDetail
+                {...props}
+                initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
+                dashboard={dashboard}
+                dashboards={dashboards}
+                onDashboardUpdate={onDashboardUpdate}
+                newWidget={newWidget}
+                onSetNewWidget={() => setNewWidget(undefined)}
+              />
+            </ErrorBoundary>
           ) : (
             <LoadingIndicator />
           );

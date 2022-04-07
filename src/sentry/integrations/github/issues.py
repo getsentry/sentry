@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 from django.urls import reverse
 
-from sentry.integrations.issues import IssueBasicMixin
+from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -57,33 +57,27 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
             "sentry-extensions-github-search", args=[org.slug, self.model.id]
         )
 
-        # TODO(mgaeta): inline these lists.
-        out: Sequence[Mapping[str, Any]] = (
-            [
-                {
-                    "name": "repo",
-                    "label": "GitHub Repository",
-                    "type": "select",
-                    "default": default_repo,
-                    "choices": repo_choices,
-                    "url": autocomplete_url,
-                    "updatesForm": True,
-                    "required": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "assignee",
-                    "label": "Assignee",
-                    "default": "",
-                    "type": "select",
-                    "required": False,
-                    "choices": assignees,
-                }
-            ]
-        )
-        return out
+        return [
+            {
+                "name": "repo",
+                "label": "GitHub Repository",
+                "type": "select",
+                "default": default_repo,
+                "choices": repo_choices,
+                "url": autocomplete_url,
+                "updatesForm": True,
+                "required": True,
+            },
+            *fields,
+            {
+                "name": "assignee",
+                "label": "Assignee",
+                "default": "",
+                "type": "select",
+                "required": False,
+                "choices": assignees,
+            },
+        ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
@@ -152,6 +146,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
                 ),
                 "type": "textarea",
                 "required": False,
+                "autosize": True,
                 "help": "Leave blank if you don't want to add a comment to the GitHub issue.",
             },
         ]

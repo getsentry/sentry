@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from django.db.models import Max
@@ -6,7 +7,7 @@ from rest_framework import serializers
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -15,9 +16,32 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.search.events.fields import get_function_alias, resolve_field_list
-from sentry.search.events.filter import get_filter
+from sentry.search.events.builder import UnresolvedQuery
+from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period
+
+AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
+AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
+EQUATION_PREFIX = "equation|"
+
+
+def is_equation(field: str) -> bool:
+    """check if a public alias is an equation, which start with the equation prefix
+    eg. `equation|5 + 5`
+    """
+    return field.startswith(EQUATION_PREFIX)
+
+
+def is_aggregate(field: str) -> bool:
+    field_match = re.match(AGGREGATE_PATTERN, field)
+    if field_match:
+        return True
+
+    equation_match = re.match(AGGREGATE_BASE, field)
+    if equation_match and is_equation(field):
+        return True
+
+    return False
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -87,6 +111,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
+    aggregates = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
+    columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
+    field_aliases = serializers.ListField(
+        child=serializers.CharField(allow_blank=True), required=False, allow_null=True
+    )
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
@@ -108,23 +139,27 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
-        fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
-        equations, fields = categorize_columns(fields)
         is_table = is_table_display_type(self.context.get("displayType"))
 
-        if equations is not None:
-            try:
-                resolved_equations, _, _ = resolve_equation_list(
-                    equations,
-                    fields,
-                    auto_add=not is_table,
-                    aggregates_only=not is_table,
-                )
-            except (InvalidSearchQuery, ArithmeticError) as err:
-                raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
-        else:
-            resolved_equations = []
+        # TODO(dam): Use columns and aggregates for validation
+        fields = self._get_attr(data, "fields", []).copy()
+        equations, fields = categorize_columns(fields)
+
+        # TODO(dam): Temp code while we are sure adoption
+        # of fromtend code that sends this data is high enough
+        columns = self._get_attr(data, "columns", []).copy()
+        aggregates = self._get_attr(data, "aggregates", []).copy()
+
+        if not columns and not aggregates:
+            for field in fields:
+                if is_aggregate(field):
+                    aggregates.append(field)
+                else:
+                    columns.append(field)
+
+            data["columns"] = columns
+            data["aggregates"] = aggregates
 
         try:
             parse_search_query(conditions)
@@ -147,21 +182,32 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 "organization_id": self.context.get("organization").id,
             }
 
-            snuba_filter = get_filter(conditions, params=params)
+            builder = UnresolvedQuery(
+                dataset=Dataset.Discover,
+                params=params,
+                equation_config={"auto_add": not is_table, "aggregates_only": not is_table},
+            )
+
+            builder.resolve_conditions(conditions, use_aggregate_conditions=True)
+            builder.resolve_params()
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
 
-        if orderby:
-            snuba_filter.orderby = get_function_alias(orderby)
+        # TODO(dam): Add validation for metrics fields/queries
         try:
-            resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
-        except InvalidSearchQuery as err:
+            builder.columns = builder.resolve_select(fields, equations)
+        except (InvalidSearchQuery, ArithmeticError) as err:
             # We don't know if the widget that this query belongs to is an
             # Issue widget or Discover widget. Pass the error back to the
             # Widget serializer to decide if whether or not to raise this
             # error based on the Widget's type
             data["discover_query_error"] = {"fields": f"Invalid fields: {err}"}
+
+        try:
+            builder.resolve_orderby(orderby)
+        except (InvalidSearchQuery) as err:
+            data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
 
@@ -186,6 +232,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     widget_type = serializers.ChoiceField(
         choices=DashboardWidgetTypes.as_text_choices(), required=False
     )
+    limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
 
     def validate_display_type(self, display_type):
@@ -320,10 +367,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data["widget_type"]
-            if "widget_type" in widget_data
-            else DashboardWidgetTypes.DISCOVER,
+            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
+            limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
         )
         new_queries = []
@@ -332,6 +378,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                 DashboardWidgetQuery(
                     widget=widget,
                     fields=query["fields"],
+                    aggregates=query.get("aggregates"),
+                    columns=query.get("columns"),
+                    field_aliases=query.get("field_aliases"),
                     conditions=query["conditions"],
                     name=query.get("name", ""),
                     orderby=query.get("orderby", ""),
@@ -347,6 +396,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
         widget.order = order
+        widget.limit = data.get("limit", widget.limit)
         widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 
@@ -373,6 +423,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     DashboardWidgetQuery(
                         widget=widget,
                         fields=query_data["fields"],
+                        aggregates=query_data.get("aggregates"),
+                        columns=query_data.get("columns"),
+                        field_aliases=query_data.get("field_aliases"),
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
                         orderby=query_data.get("orderby", ""),
@@ -388,6 +441,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
         query.orderby = data.get("orderby", query.orderby)
+        query.aggregates = data.get("aggregates", query.aggregates)
+        query.columns = data.get("columns", query.columns)
+        query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.order = order
         query.save()
 

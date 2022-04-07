@@ -9,6 +9,7 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
+import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -32,6 +33,19 @@ type GlobalSelectionHeaderProps = Omit<
 type Props = WithRouterProps &
   GlobalSelectionHeaderProps & {
     /**
+     * Hide the global header
+     * Mainly used for pages which are using the new style page filters
+     */
+    hideGlobalHeader?: boolean;
+
+    /**
+     * When used with shouldForceProject it will not persist the project id
+     * to url query parameters on load. This is useful when global selection header
+     * is used for display purposes rather than selection.
+     */
+    skipInitializeUrlParams?: boolean;
+
+    /**
      * Skip loading from local storage
      * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
      * We do not want to load the user's last used env/project in this case, otherwise will
@@ -41,7 +55,7 @@ type Props = WithRouterProps &
   };
 
 /**
- * The page filters container handles initalization of page filters for the
+ * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
 function Container({skipLoadLastUsed, children, ...props}: Props) {
@@ -54,6 +68,8 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     showAbsolute,
     shouldForceProject,
     specificProjectSlugs,
+    hideGlobalHeader,
+    skipInitializeUrlParams,
   } = props;
 
   const {isReady} = useLegacyStore(PageFiltersStore);
@@ -84,11 +100,11 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   // Initializes GlobalSelectionHeader
   //
-  // Calls an actionCreator to load project/environment from local storage if possible,
-  // otherwise populate with defaults.
+  // Calls an actionCreator to load project/environment from local storage when
+  // pinned, otherwise populate with defaults.
   //
-  // This should only happen when the header is mounted
-  // e.g. when changing views or organizations.
+  // This should only happen when the header is mounted e.g. when changing
+  // views or organizations.
   useEffect(() => {
     // We can initialize before ProjectsStore is fully loaded if we don't need to
     // enforce single project.
@@ -99,6 +115,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     initializeUrlState({
       organization,
       queryParams: location.query,
+      pathname: location.pathname,
       router,
       skipLoadLastUsed,
       memberProjects,
@@ -107,6 +124,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       shouldForceProject,
       shouldEnforceSingleProject: enforceSingleProject,
       showAbsolute,
+      skipInitializeUrlParams,
     });
   }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
 
@@ -155,17 +173,15 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     lastQuery.current = location.query;
   }, [location.query]);
 
-  // Wait for global selection to be ready before rendering chilren
+  // Wait for global selection to be ready before rendering children
   if (!isReady) {
     return <PageContent />;
   }
 
-  // New-style selection filters no longer have a 'global'header
-  const hasGlobalHeader = !organization.features.includes('selection-filters-v2');
-
   return (
     <Fragment>
-      {hasGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {!hideGlobalHeader && <GlobalSelectionHeader {...props} {...additionalProps} />}
+      {hideGlobalHeader && <DesyncedFilterAlert router={router} />}
       {children}
     </Fragment>
   );

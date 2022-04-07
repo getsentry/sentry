@@ -11,23 +11,21 @@ import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
-import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
+import FilterBar from '../filterBar';
 import AlertHeader from '../list/header';
-import {CombinedMetricIssueAlerts} from '../types';
-import {isIssueAlert} from '../utils';
+import {AlertRuleType, CombinedMetricIssueAlerts} from '../types';
+import {getTeamParams, isIssueAlert} from '../utils';
 
 import RuleListRow from './row';
-import TeamFilter, {getTeamParams} from './teamFilter';
 
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
 
@@ -111,33 +109,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return this.renderBody();
   }
 
-  renderFilterBar() {
-    const {location} = this.props;
-    const selectedTeams = new Set(getTeamParams(location.query.team));
-
-    return (
-      <FilterWrapper>
-        <TeamFilter
-          selectedTeams={selectedTeams}
-          handleChangeFilter={this.handleChangeFilter}
-        />
-        <StyledSearchBar
-          placeholder={t('Search by name')}
-          query={location.query?.name}
-          onSearch={this.handleChangeSearch}
-        />
-      </FilterWrapper>
-    );
-  }
-
   renderList() {
     const {
       params: {orgId},
-      location: {query},
+      location,
       organization,
       router,
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
+    const {query} = location;
 
     const allProjectsFromIncidents = new Set(
       flatten(ruleList?.map(({projects}) => projects))
@@ -158,9 +138,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     return (
-      <StyledLayoutBody>
+      <Layout.Body>
         <Layout.Main fullWidth>
-          {this.renderFilterBar()}
+          <FilterBar
+            location={location}
+            onChangeFilter={this.handleChangeFilter}
+            onChangeSearch={this.handleChangeSearch}
+          />
           <Teams provideUserTeams>
             {({initiallyLoaded: loadedTeams, teams}) => (
               <StyledPanelTable
@@ -247,7 +231,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     ruleList.map(rule => (
                       <RuleListRow
                         // Metric and issue alerts can have the same id
-                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        key={`${
+                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                        }-${rule.id}`}
                         projectsLoaded={initiallyLoaded}
                         projects={projects as Project[]}
                         rule={rule}
@@ -278,7 +264,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             }}
           />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -292,6 +278,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           organization={organization}
           showDateSelector={false}
           showEnvironmentSelector={false}
+          hideGlobalHeader
         >
           <AlertHeader organization={organization} router={router} activeTab="rules" />
           {this.renderList()}
@@ -316,10 +303,8 @@ class AlertRulesListContainer extends Component<Props> {
   trackView() {
     const {organization, location} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey: 'alert_rules.viewed',
-      eventName: 'Alert Rules: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('alert_rules.viewed', {
+      organization,
       sort: Array.isArray(location.query.sort)
         ? location.query.sort.join(',')
         : location.query.sort,
@@ -333,26 +318,12 @@ class AlertRulesListContainer extends Component<Props> {
 
 export default withPageFilters(AlertRulesListContainer);
 
-const StyledLayoutBody = styled(Layout.Body)`
-  margin-bottom: -20px;
-`;
-
 const StyledSortLink = styled(Link)`
   color: inherit;
 
   :hover {
     color: inherit;
   }
-`;
-
-const FilterWrapper = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-left: ${space(1.5)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`

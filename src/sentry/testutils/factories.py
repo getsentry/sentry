@@ -85,7 +85,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
-from sentry.models.integrationfeature import Feature, IntegrationTypes
+from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
@@ -1190,4 +1190,11 @@ class Factories:
             prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
+        )
+
+    @staticmethod
+    def create_comment(issue, project, user, text="hello world"):
+        data = {"text": text}
+        return Activity.objects.create(
+            project=project, group=issue, type=Activity.NOTE, user=user, data=data
         )

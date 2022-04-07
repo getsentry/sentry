@@ -3,13 +3,13 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import EmailField from 'sentry/components/forms/emailField';
+import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
-import EmailField from 'sentry/views/settings/components/forms/emailField';
-import Form from 'sentry/views/settings/components/forms/form';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 

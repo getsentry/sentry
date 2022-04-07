@@ -13,12 +13,16 @@ const Placeholder = () => (
   />
 );
 
-const Message = () => (
+const Message = ({
+  title,
+  subtitle,
+}: {
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}) => (
   <React.Fragment>
-    <EmptyMessage>
-      {t("We couldn't find any issues that matched your filters.")}
-    </EmptyMessage>
-    <p>{t('Get out there and write some broken code!')}</p>
+    <EmptyMessage>{title}</EmptyMessage>
+    <p>{subtitle}</p>
   </React.Fragment>
 );
 
@@ -53,14 +57,20 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, State> 
   }
 }
 
-const NoUnresolvedIssues = () => (
+const NoUnresolvedIssues = ({
+  title,
+  subtitle,
+}: {
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+}) => (
   <Wrapper>
     <ErrorBoundary>
       <React.Suspense fallback={<Placeholder />}>
         <CongratsRobotsVideo />
       </React.Suspense>
     </ErrorBoundary>
-    <Message />
+    <Message title={title} subtitle={subtitle} />
   </Wrapper>
 );
 

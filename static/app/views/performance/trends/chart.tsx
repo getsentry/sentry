@@ -3,7 +3,11 @@ import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import LineChart, {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {
+  LineChart,
+  LineChartProps,
+  LineChartSeries,
+} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -43,7 +47,7 @@ type Props = WithRouterProps &
     trendChangeType: TrendChangeType;
     disableLegend?: boolean;
     disableXAxis?: boolean;
-    grid?: React.ComponentProps<typeof LineChart>['grid'];
+    grid?: LineChartProps['grid'];
     height?: number;
     transaction?: NormalizedTrendsTransaction;
     trendFunctionField?: TrendFunctionField;
@@ -92,8 +96,8 @@ function getIntervalLine(
     return [];
   }
 
-  const seriesStart = parseInt(series[0].data[0].name as string, 0);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 0);
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
 
   if (seriesEnd < seriesStart) {
     return [];
@@ -233,6 +237,8 @@ export function Chart({
   disableLegend,
   grid,
   height,
+  projects,
+  project,
 }: Props) {
   const theme = useTheme();
 
@@ -263,7 +269,7 @@ export function Chart({
   const data = events?.data ?? [];
 
   const trendFunction = getCurrentTrendFunction(location, trendFunctionField);
-  const trendParameter = getCurrentTrendParameter(location);
+  const trendParameter = getCurrentTrendParameter(location, projects, project);
   const chartLabel = generateTrendFunctionAsString(
     trendFunction.field,
     trendParameter.column
@@ -307,7 +313,7 @@ export function Chart({
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     tooltip: {
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(value, seriesName);

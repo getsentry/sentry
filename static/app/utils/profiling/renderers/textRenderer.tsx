@@ -1,7 +1,7 @@
 import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
-import {FlamegraphTheme} from '../flamegraph/FlamegraphTheme';
+import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 import {
   ELLIPSIS,
@@ -14,8 +14,8 @@ import {
 
 export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boolean {
   // Frame is outside of the view on the left
-  if (!frame.overlaps(view)) {
-    return true;
+  if (frame.overlaps(view)) {
+    return false;
   }
 
   // @TODO check if we still need this
@@ -25,7 +25,7 @@ export function isOutsideView(frame: Rect, view: Rect, inverted: boolean): boole
     }
   }
 
-  return false;
+  return true;
 }
 
 class TextRenderer {
@@ -81,7 +81,7 @@ class TextRenderer {
       // This rect gets discarded after each render which is wasteful
       const frameInConfigSpace = new Rect(
         frame.start,
-        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth,
+        this.flamegraph.inverted ? configSpace.height - frame.depth + 1 : frame.depth + 1,
         frame.end - frame.start,
         1
       );
@@ -112,7 +112,7 @@ class TextRenderer {
       // from the total width, so that we can truncate the center of the text accurately.
       const paddedRectangleWidth =
         frameInPhysicalSpace.width -
-        2 * (this.theme.SIZES.BAR_PADDING * window.devicePixelRatio);
+        2 * this.theme.SIZES.BAR_PADDING * window.devicePixelRatio;
 
       // We want to draw the text in the vertical center of the frame, so we substract half the height of the text
       const y =
@@ -126,14 +126,13 @@ class TextRenderer {
       // If the width of the text is greater than the minimum width to render, we should render it
       if (paddedRectangleWidth >= minWidth) {
         let text = frame.frame.name;
-        const textWidth = this.measureText(this.context, text);
 
         // If text width is smaller than rectangle, just draw the text
-        if (textWidth > paddedRectangleWidth) {
+        if (this.measureText(this.context, text) > paddedRectangleWidth) {
           text = trimTextCenter(
             text,
             findRangeBinarySearch(
-              {low: 0, high: text.length},
+              {low: 0, high: paddedRectangleWidth},
               n => this.measureText(this.context, text.substring(0, n)),
               paddedRectangleWidth
             )[0]

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -6,7 +7,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SearchBar from 'sentry/components/events/searchBar';
+import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
+import SelectField from 'sentry/components/forms/selectField';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -14,18 +17,17 @@ import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, Organization, SelectValue} from 'sentry/types';
+import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import theme from 'sentry/utils/theme';
+import WizardField from 'sentry/views/alerts/incidentRules/wizardField';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getFunctionHelpText} from 'sentry/views/alerts/wizard/options';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
+import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {
   COMPARISON_DELTA_OPTIONS,
   DEFAULT_AGGREGATE,
@@ -52,8 +54,8 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  hasAlertWizardV3: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   onFilterSearch: (query: string) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
@@ -77,6 +79,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     this.fetchData();
   }
 
+  formElemBaseStyle = {
+    padding: `${space(0.5)}`,
+    border: 'none',
+  };
+
   async fetchData() {
     const {api, organization, projectSlug} = this.props;
 
@@ -98,7 +105,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
 
-    if (this.props.dataset === Dataset.SESSIONS) {
+    if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
         // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
         TimeWindow.ONE_HOUR,
@@ -110,7 +117,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     return Object.entries(options).map(([value, label]) => ({
       value: parseInt(value, 10),
-      label,
+      label: this.props.hasAlertWizardV3
+        ? tct('[timeWindow] interval', {
+            timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
+          })
+        : label,
     }));
   }
 
@@ -118,6 +129,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     switch (this.props.dataset) {
       case Dataset.ERRORS:
         return t('Filter events by level, message, and other properties\u2026');
+      case Dataset.METRICS:
       case Dataset.SESSIONS:
         return t('Filter sessions by release version\u2026');
       case Dataset.TRANSACTIONS:
@@ -127,7 +139,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   get searchSupportedTags() {
-    if (this.props.dataset === Dataset.SESSIONS) {
+    if (isCrashFreeAlert(this.props.dataset)) {
       return {
         release: {
           key: 'release',
@@ -139,43 +151,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     return undefined;
   }
 
-  render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      alertType,
-      timeWindow,
-      comparisonType,
-      comparisonDelta,
-      onTimeWindowChange,
-      onComparisonDeltaChange,
-      onComparisonTypeChange,
-      dataset,
-    } = this.props;
-    const {environments} = this.state;
-
-    const environmentOptions: SelectValue<string | null>[] =
-      environments?.map((env: Environment) => ({
-        value: env.name,
-        label: getDisplayName(env),
-      })) ?? [];
-
-    const anyEnvironmentLabel = (
-      <React.Fragment>
-        {t('All')}
-        <div className="all-environment-note">
-          {tct(
-            `This will count events across every environment. For example,
-             having 50 [code1:production] events and 50 [code2:development]
-             events would trigger an alert with a critical threshold of 100.`,
-            {code1: <code />, code2: <code />}
-          )}
-        </div>
-      </React.Fragment>
-    );
-    environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
+  renderEventTypeFilter() {
+    const {organization, disabled, alertType} = this.props;
 
     const dataSourceOptions = [
       {
@@ -209,41 +186,232 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       });
     }
 
-    const formElemBaseStyle = {
-      padding: `${space(0.5)}`,
-      border: 'none',
-    };
+    return (
+      <FormField
+        name="datasource"
+        inline={false}
+        style={{
+          ...this.formElemBaseStyle,
+          minWidth: 300,
+          flex: 2,
+        }}
+        flexibleControlStateSize
+      >
+        {({onChange, onBlur, model}) => {
+          const formDataset = model.getValue('dataset');
+          const formEventTypes = model.getValue('eventTypes');
+          const mappedValue = convertDatasetEventTypesToSource(
+            formDataset,
+            formEventTypes
+          );
+          return (
+            <SelectControl
+              value={mappedValue}
+              inFieldLabel={t('Events: ')}
+              onChange={optionObj => {
+                const optionValue = optionObj.value;
+                onChange(optionValue, {});
+                onBlur(optionValue, {});
+                // Reset the aggregate to the default (which works across
+                // datatypes), otherwise we may send snuba an invalid query
+                // (transaction aggregate on events datasource = bad).
+                optionValue === 'transaction'
+                  ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
+                  : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
-    const {labelText: intervalLabelText, timeWindowText} = getFunctionHelpText(alertType);
+                // set the value of the dataset and event type from data source
+                const {dataset: datasetFromDataSource, eventTypes} =
+                  DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                model.setValue('dataset', datasetFromDataSource);
+                model.setValue('eventTypes', eventTypes);
+              }}
+              options={dataSourceOptions}
+              isDisabled={disabled}
+            />
+          );
+        }}
+      </FormField>
+    );
+  }
+
+  renderInterval() {
+    const {
+      organization,
+      disabled,
+      alertType,
+      hasAlertWizardV3,
+      timeWindow,
+      comparisonDelta,
+      comparisonType,
+      onTimeWindowChange,
+      onComparisonDeltaChange,
+    } = this.props;
+
+    const {labelText, timeWindowText} = getFunctionHelpText(alertType);
+    const intervalLabelText = hasAlertWizardV3 ? t('Define your metric') : labelText;
+
+    return (
+      <Fragment>
+        <StyledListItem>
+          <StyledListTitle>
+            <div>{intervalLabelText}</div>
+            {!hasAlertWizardV3 && (
+              <Tooltip
+                title={t(
+                  'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
+                )}
+              >
+                <IconQuestion size="sm" color="gray200" />
+              </Tooltip>
+            )}
+          </StyledListTitle>
+        </StyledListItem>
+        <FormRow>
+          {hasAlertWizardV3 ? (
+            <WizardField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              style={{
+                ...this.formElemBaseStyle,
+                padding: 0,
+                marginRight: space(1),
+                flex: 1,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          ) : (
+            <MetricField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              style={{
+                ...this.formElemBaseStyle,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          )}
+          {!hasAlertWizardV3 && timeWindowText && (
+            <FormRowText>{timeWindowText}</FormRowText>
+          )}
+          <SelectControl
+            name="timeWindow"
+            styles={{
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minWidth: hasAlertWizardV3 ? 200 : 130,
+                maxWidth: 300,
+              }),
+            }}
+            options={this.timeWindowOptions}
+            required
+            isDisabled={disabled}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
+            inline={false}
+            flexibleControlStateSize
+          />
+          {!hasAlertWizardV3 && (
+            <Feature
+              features={['organizations:change-alerts']}
+              organization={organization}
+            >
+              {comparisonType === AlertRuleComparisonType.CHANGE && (
+                <ComparisonContainer>
+                  {t(' compared to ')}
+                  <SelectControl
+                    name="comparisonDelta"
+                    styles={{
+                      container: (provided: {
+                        [x: string]: string | number | boolean;
+                      }) => ({
+                        ...provided,
+                        marginLeft: space(1),
+                      }),
+                      control: (provided: {[x: string]: string | number | boolean}) => ({
+                        ...provided,
+                        minWidth: 500,
+                        maxWidth: 1000,
+                      }),
+                    }}
+                    value={comparisonDelta}
+                    onChange={({value}) => onComparisonDeltaChange(value)}
+                    options={COMPARISON_DELTA_OPTIONS}
+                    required={comparisonType === AlertRuleComparisonType.CHANGE}
+                  />
+                </ComparisonContainer>
+              )}
+            </Feature>
+          )}
+        </FormRow>
+      </Fragment>
+    );
+  }
+
+  render() {
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      hasAlertWizardV3,
+      dataset,
+    } = this.props;
+    const {environments} = this.state;
+
+    const environmentOptions: SelectValue<string | null>[] =
+      environments?.map((env: Environment) => ({
+        value: env.name,
+        label: getDisplayName(env),
+      })) ?? [];
+
+    environmentOptions.unshift({
+      value: null,
+      label: t('All'),
+    });
+
+    const transactionTags = [
+      'transaction',
+      'transaction.duration',
+      'transaction.op',
+      'transaction.status',
+    ];
+    const measurementTags = Object.values({...WebVital, ...MobileVital});
+    const eventOmitTags =
+      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     return (
       <React.Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        <StyledListItem>{t('Filter events')}</StyledListItem>
-        <FormRow>
+        {hasAlertWizardV3 && this.renderInterval()}
+        <StyledListItem>{t('Filter environments')}</StyledListItem>
+        <FormRow noMargin>
           <SelectField
             name="environment"
             placeholder={t('All')}
             style={{
-              ...formElemBaseStyle,
-              minWidth: 180,
+              ...this.formElemBaseStyle,
+              minWidth: 230,
               flex: 1,
             }}
             styles={{
               singleValue: (base: any) => ({
                 ...base,
-                '.all-environment-note': {display: 'none'},
               }),
-              option: (base: any, state: any) => ({
+              option: (base: any) => ({
                 ...base,
-                '.all-environment-note': {
-                  ...(!state.isSelected && !state.isFocused
-                    ? {color: theme.gray400}
-                    : {}),
-                  fontSize: theme.fontSizeSmall,
-                },
               }),
             }}
             options={environmentOptions}
@@ -251,59 +419,16 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
             inline={false}
             flexibleControlStateSize
-            inFieldLabel={t('Env: ')}
+            inFieldLabel={t('Environment: ')}
           />
-          {allowChangeEventTypes && (
-            <FormField
-              name="datasource"
-              inline={false}
-              style={{
-                ...formElemBaseStyle,
-                minWidth: 300,
-                flex: 2,
-              }}
-              flexibleControlStateSize
-            >
-              {({onChange, onBlur, model}) => {
-                const formDataset = model.getValue('dataset');
-                const formEventTypes = model.getValue('eventTypes');
-                const mappedValue = convertDatasetEventTypesToSource(
-                  formDataset,
-                  formEventTypes
-                );
-                return (
-                  <SelectControl
-                    value={mappedValue}
-                    inFieldLabel={t('Events: ')}
-                    onChange={optionObj => {
-                      const optionValue = optionObj.value;
-                      onChange(optionValue, {});
-                      onBlur(optionValue, {});
-                      // Reset the aggregate to the default (which works across
-                      // datatypes), otherwise we may send snuba an invalid query
-                      // (transaction aggregate on events datasource = bad).
-                      optionValue === 'transaction'
-                        ? model.setValue('aggregate', DEFAULT_TRANSACTION_AGGREGATE)
-                        : model.setValue('aggregate', DEFAULT_AGGREGATE);
-
-                      // set the value of the dataset and event type from data source
-                      const {dataset: datasetFromDataSource, eventTypes} =
-                        DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                      model.setValue('dataset', datasetFromDataSource);
-                      model.setValue('eventTypes', eventTypes);
-                    }}
-                    options={dataSourceOptions}
-                    isDisabled={disabled}
-                  />
-                );
-              }}
-            </FormField>
-          )}
+          {allowChangeEventTypes && this.renderEventTypeFilter()}
+        </FormRow>
+        <FormRow>
           <FormField
             name="query"
             inline={false}
             style={{
-              ...formElemBaseStyle,
+              ...this.formElemBaseStyle,
               flex: '6 0 500px',
             }}
             flexibleControlStateSize
@@ -320,6 +445,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     'release.package',
                     'release.build',
                     'project',
+                    ...eventOmitTags,
                   ]}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
@@ -356,97 +482,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             )}
           </FormField>
         </FormRow>
-        {dataset !== Dataset.SESSIONS && (
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            <StyledListItem>{t('Select threshold type')}</StyledListItem>
-            <FormRow>
-              <RadioGroup
-                style={{flex: 1}}
-                disabled={disabled}
-                choices={[
-                  [AlertRuleComparisonType.COUNT, 'Count'],
-                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-                ]}
-                value={comparisonType}
-                label={t('Threshold Type')}
-                onChange={onComparisonTypeChange}
-              />
-            </FormRow>
-          </Feature>
-        )}
-        <StyledListItem>
-          <StyledListTitle>
-            <div>{intervalLabelText}</div>
-            <Tooltip
-              title={t(
-                'Time window over which the metric is evaluated. Alerts are evaluated every minute regardless of this value.'
-              )}
-            >
-              <IconQuestion size="sm" color="gray200" />
-            </Tooltip>
-          </StyledListTitle>
-        </StyledListItem>
-        <FormRow>
-          {timeWindowText && (
-            <MetricField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              style={{
-                ...formElemBaseStyle,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-            />
-          )}
-          {timeWindowText && <FormRowText>{timeWindowText}</FormRowText>}
-          <SelectControl
-            name="timeWindow"
-            styles={{
-              control: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                minWidth: 130,
-                maxWidth: 300,
-              }),
-            }}
-            options={this.timeWindowOptions}
-            required
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
-          <Feature features={['organizations:change-alerts']} organization={organization}>
-            {comparisonType === AlertRuleComparisonType.CHANGE && (
-              <ComparisonContainer>
-                {t(' compared to ')}
-                <SelectControl
-                  name="comparisonDelta"
-                  styles={{
-                    container: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      marginLeft: space(1),
-                    }),
-                    control: (provided: {[x: string]: string | number | boolean}) => ({
-                      ...provided,
-                      minWidth: 500,
-                      maxWidth: 1000,
-                    }),
-                  }}
-                  value={comparisonDelta}
-                  onChange={({value}) => onComparisonDeltaChange(value)}
-                  options={COMPARISON_DELTA_OPTIONS}
-                  required={comparisonType === AlertRuleComparisonType.CHANGE}
-                />
-              </ComparisonContainer>
-            )}
-          </Feature>
-        </FormRow>
+        {!hasAlertWizardV3 && this.renderInterval()}
       </React.Fragment>
     );
   }
@@ -484,12 +520,12 @@ const StyledListItem = styled(ListItem)`
   line-height: 1.3;
 `;
 
-const FormRow = styled('div')`
+const FormRow = styled('div')<{noMargin?: boolean}>`
   display: flex;
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => (p.noMargin ? 0 : space(4))};
 `;
 
 const FormRowText = styled('div')`

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import moment from 'moment';
 
@@ -14,13 +15,14 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete, IconEllipsis, IconGraph} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -47,6 +49,7 @@ type Props = {
   organization: Organization;
   pageLinks: string;
   renderPrebuilt: boolean;
+  router: InjectedRouter;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
 };
@@ -91,15 +94,23 @@ class QueryList extends React.Component<Props> {
   };
 
   handleAddQueryToDashboard = (eventView: EventView, savedQuery?: SavedQuery) => {
-    const {organization} = this.props;
+    const {organization, router, location} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableColumns = eventView.fields.map(({field}) => field);
+    const defaultTableFields = eventView.fields.map(({field}) => field);
+    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
+      aggregates: [
+        ...(displayType === DisplayType.TOP_N ? aggregates : []),
+        ...(typeof savedQuery?.yAxis === 'string'
+          ? [savedQuery?.yAxis]
+          : savedQuery?.yAxis ?? ['count()']),
+      ],
+      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
         ...(typeof savedQuery?.yAxis === 'string'
           ? [savedQuery?.yAxis]
           : savedQuery?.yAxis ?? ['count()']),
@@ -113,6 +124,27 @@ class QueryList extends React.Component<Props> {
       saved_query: !!savedQuery,
     });
 
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+          start: eventView.start,
+          end: eventView.end,
+          statsPeriod: eventView.statsPeriod,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns: defaultTableFields,
+          defaultTitle,
+          displayType,
+        },
+      });
+      return;
+    }
+
     openAddDashboardWidgetModal({
       organization,
       start: eventView.start,
@@ -120,7 +152,7 @@ class QueryList extends React.Component<Props> {
       statsPeriod: eventView.statsPeriod,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns,
+      defaultTableColumns: defaultTableFields,
       defaultTitle:
         savedQuery?.name ??
         (eventView.name !== 'All Events' ? eventView.name : undefined),
@@ -211,7 +243,6 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          leadingItems: <IconGraph />,
           onAction: () => this.handleAddQueryToDashboard(eventView),
         },
       ];
@@ -273,13 +304,12 @@ class QueryList extends React.Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
-      const menuItems = (canAddToDashboard: boolean) => [
+      const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
         ...(canAddToDashboard
           ? [
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                leadingItems: <IconGraph />,
                 onAction: () => this.handleAddQueryToDashboard(eventView, savedQuery),
               },
             ]
@@ -287,14 +317,13 @@ class QueryList extends React.Component<Props> {
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
-          leadingItems: <IconCopy />,
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
         },
         {
           key: 'delete',
           label: t('Delete Query'),
-          leadingItems: <IconDelete />,
+          priority: 'danger',
           onAction: () => this.handleDeleteQuery(eventView),
         },
       ];
@@ -329,10 +358,7 @@ class QueryList extends React.Component<Props> {
             />
           )}
           renderContextMenu={() => (
-            <Feature
-              organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
-            >
+            <Feature organization={organization} features={['dashboards-edit']}>
               {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}

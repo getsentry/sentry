@@ -5,9 +5,6 @@ namespace Profiling {
     name: string;
     unit: string;
     spans?: RawSpan[];
-    shared: {
-      frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
-    };
   }
 
   // Android traces follow this format
@@ -35,7 +32,7 @@ namespace Profiling {
   };
 
   type FrameInfo = {
-    key: number | string;
+    key: string | number;
     name: string;
     file?: string;
     line?: number;
@@ -58,7 +55,7 @@ namespace Profiling {
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
     name: string;
-    activeProfileIndex: number;
+    activeProfileIndex?: number;
     profiles: ReadonlyArray<ProfileTypes>;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;

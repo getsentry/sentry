@@ -17,7 +17,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Identity, Repository
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -169,16 +169,24 @@ class OAuthLoginView(PipelineView):
 
         try:
             request_token = client.get_request_token()
-            pipeline.bind_state("request_token", request_token)
-            authorize_url = client.get_authorize_url(request_token)
-
-            return self.redirect(authorize_url)
         except ApiError as error:
             logger.info(
                 "identity.bitbucket-server.request-token",
                 extra={"url": config.get("url"), "error": error},
             )
             return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
+
+        pipeline.bind_state("request_token", request_token)
+        if not request_token.get("oauth_token"):
+            logger.info(
+                "identity.bitbucket-server.oauth-token",
+                extra={"url": config.get("url")},
+            )
+            return pipeline.error("Missing oauth_token")
+
+        authorize_url = client.get_authorize_url(request_token)
+
+        return self.redirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):

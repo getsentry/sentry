@@ -7,17 +7,17 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
 import Truncate from 'sentry/components/truncate';
-import {IconAdd, IconFlag} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-import Field from 'sentry/views/settings/components/forms/field';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -116,7 +116,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
       <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info" icon={<IconFlag size="md" />}>
+          <PanelAlert type="info" showIcon>
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}

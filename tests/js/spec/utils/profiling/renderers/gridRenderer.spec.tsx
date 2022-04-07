@@ -1,4 +1,4 @@
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/FlamegraphTheme';
+import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, Transform} from 'sentry/utils/profiling/gl/utils';
 import {
   computeInterval,
@@ -57,7 +57,7 @@ describe('getIntervalTimeAtX', () => {
       physicalSpace
     );
 
-    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(20);
+    expect(getIntervalTimeAtX(configToPhysical, 500)).toBe(15);
   });
 });
 

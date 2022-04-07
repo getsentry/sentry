@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -19,9 +19,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from sentry import analytics, tsdb
+from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -100,9 +101,11 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    # Default Rate Limit Values, override in subclass
-    # Should be of format: { <http function>: { <category>: RateLimit(limit, window) } }
-    rate_limits: Mapping[str, Mapping[RateLimitCategory | str, RateLimit]] = {}
+    # end user of endpoint must set private to true, or define public endpoints
+    private: Optional[bool] = None
+    public: Optional[HTTP_METHODS_SET] = None
+
+    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def build_cursor_link(self, request: Request, name, cursor):
@@ -170,47 +173,6 @@ class Endpoint(APIView):
             request.json_body = json.loads(request.body)
         except json.JSONDecodeError:
             return
-
-    def _create_api_access_log(self, request_start_time: float):
-        """
-        Create a log entry to be used for api metrics gathering
-        """
-        try:
-
-            token_class = getattr(self.request.auth, "__class__", None)
-            token_name = token_class.__name__ if token_class else None
-
-            view_obj = self.request.parser_context["view"]
-
-            request_user = getattr(self.request, "user", None)
-            user_id = getattr(request_user, "id", None)
-            is_app = getattr(request_user, "is_sentry_app", None)
-
-            request_access = getattr(self.request, "access", None)
-            org_id = getattr(request_access, "organization_id", None)
-
-            request_auth = getattr(self.request, "auth", None)
-            auth_id = getattr(request_auth, "id", None)
-
-            log_metrics = dict(
-                method=str(self.request.method),
-                view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
-                response=self.response.status_code,
-                user_id=str(user_id),
-                is_app=str(is_app),
-                token_type=str(token_name),
-                organization_id=str(org_id),
-                auth_id=str(auth_id),
-                path=str(self.request.path),
-                caller_ip=str(self.request.META.get("REMOTE_ADDR")),
-                user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
-                rate_limited=str(getattr(self.request, "will_be_rate_limited", False)),
-                rate_limit_category=str(getattr(self.request, "rate_limit_category", None)),
-                request_duration_seconds=time.time() - request_start_time,
-            )
-            api_access_logger.info("api.access", extra=log_metrics)
-        except Exception:
-            api_access_logger.exception("api.access")
 
     def initialize_request(self, request: Request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
@@ -309,8 +271,6 @@ class Endpoint(APIView):
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
-
-        self._create_api_access_log(start_time)
 
         return self.response
 

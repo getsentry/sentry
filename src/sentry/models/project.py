@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from collections import defaultdict
@@ -27,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -41,7 +44,7 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectManager(BaseManager):
-    def get_by_users(self, users: Iterable["User"]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -259,11 +262,7 @@ class Project(Model, PendingDeletionMixin):
     def get_full_name(self):
         return self.slug
 
-    def transfer_to(self, team=None, organization=None):
-        # NOTE: this will only work properly if the new team is in a different
-        # org than the existing one, which is currently the only use case in
-        # production
-        # TODO(jess): refactor this to make it an org transfer only
+    def transfer_to(self, organization):
         from sentry.incidents.models import AlertRule
         from sentry.models import (
             Environment,
@@ -274,9 +273,6 @@ class Project(Model, PendingDeletionMixin):
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
-
-        if organization is None:
-            organization = team.organization
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -323,10 +319,6 @@ class Project(Model, PendingDeletionMixin):
                 environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
             )
 
-        # ensure this actually exists in case from team was null
-        if team is not None:
-            self.add_team(team)
-
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
         rules = Rule.objects.filter(owner_id__isnull=False, project=self)
@@ -338,6 +330,31 @@ class Project(Model, PendingDeletionMixin):
                 is_member = actor.resolve().organization_id == organization.id
             if not is_member:
                 rule.update(owner=None)
+
+        # [Rule, AlertRule(SnubaQuery->Environment)]
+        # id -> name
+        environment_names_with_alerts = {
+            **environment_names,
+            **{
+                env_id: env_name
+                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
+                    "snuba_query__environment__id", "snuba_query__environment__name"
+                )
+            },
+        }
+
+        # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
+        # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
+        # the old org
+        # alertrule ->  snuba_query -> environment_id
+        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
+            "snuba_query_id", "snuba_query__environment__id"
+        ):
+            SnubaQuery.objects.filter(id=snuba_id).update(
+                environment_id=Environment.get_or_create(
+                    self, name=environment_names_with_alerts.get(environment_id, None)
+                ).id
+            )
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 

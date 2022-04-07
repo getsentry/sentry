@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'sentry/components/forms/form';
+import {Context} from 'sentry/components/deprecatedforms/form';
+import FormContext from 'sentry/components/forms/formContext';
 import {Permissions, WebhookEvent} from 'sentry/types';
-import FormContext from 'sentry/views/settings/components/forms/formContext';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -81,6 +81,7 @@ export default class Subscriptions extends Component<Props> {
                 checked={events.includes(choice) && !disabledFromPermissions}
                 resource={choice}
                 onChange={this.onChange}
+                isNew={choice === 'comment'}
               />
             </Fragment>
           );
@@ -91,6 +92,9 @@ export default class Subscriptions extends Component<Props> {
 }
 
 const SubscriptionGrid = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template: auto / 1fr 1fr 1fr;
+  @media (max-width: ${props => props.theme.breakpoints[2]}) {
+    grid-template: 1fr 1fr 1fr / auto;
+  }
 `;

@@ -1,12 +1,10 @@
-import {EventsStatsData} from 'sentry/types';
-import {
+import {EventsStatsData, Organization} from 'sentry/types';
+import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import localStorage from 'sentry/utils/localStorage';
 import withApi from 'sentry/utils/withApi';
-
-const transformedAnomalyDevKey = 'dev.anomalyPayload.transformed';
+import {ANOMALY_FLAG} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
 
 type AnomaliesProps = {};
 type RequestProps = DiscoverQueryProps & AnomaliesProps;
@@ -15,11 +13,12 @@ export type ChildrenProps = Omit<GenericChildrenProps<AnomaliesProps>, 'tableDat
   data: AnomalyPayload | null;
 };
 
-type Props = RequestProps & {
+type Props = Omit<RequestProps, 'orgSlug'> & {
   children: (props: ChildrenProps) => React.ReactNode;
+  organization: Organization;
 };
 
-type AnomalyConfidence = 'high' | 'low';
+export type AnomalyConfidence = 'high' | 'low';
 
 // Should match events stats data in format.
 type AnomalyStatsData = {
@@ -28,6 +27,7 @@ type AnomalyStatsData = {
   start?: number;
 };
 
+// Anomaly info describes what the anomaly service determines is an 'anomaly area'.
 export type AnomalyInfo = {
   confidence: AnomalyConfidence;
   end: number;
@@ -41,12 +41,11 @@ export type AnomalyPayload = {
   anomalies: AnomalyInfo[];
   y: AnomalyStatsData;
   yhat_lower: AnomalyStatsData;
-  yhat_upper: AnomalyStatsData; // Anomaly info describes what the anomaly service determines is an 'anomaly area'.
+  yhat_upper: AnomalyStatsData;
 };
 
 function transformStatsTimes(stats: AnomalyStatsData) {
   stats.data.forEach(d => (d[0] = d[0] * 1000));
-  stats.data = stats.data.slice((stats.data.length * 4) / 6, stats.data.length);
   return stats;
 }
 function transformAnomaliesTimes(anoms: AnomalyInfo[]) {
@@ -57,41 +56,40 @@ function transformAnomaliesTimes(anoms: AnomalyInfo[]) {
   return anoms;
 }
 
-/**
- * All this code is temporary while in development so a local dev env isn't required.
- * TODO(k-fish): Remove this after EA.
- */
-function getLocalPayload(): AnomalyPayload | null {
-  const rawTransformed = localStorage.getItem(transformedAnomalyDevKey);
-  if (rawTransformed) {
-    const transformedData: AnomalyPayload = JSON.parse(rawTransformed || '{}');
-
-    if (transformedData) {
-      transformedData.y = transformStatsTimes(transformedData.y);
-      transformedData.yhat_upper = transformStatsTimes(transformedData.yhat_upper);
-      transformedData.yhat_lower = transformStatsTimes(transformedData.yhat_lower);
-      transformedData.anomalies = transformAnomaliesTimes(transformedData.anomalies);
-      return transformedData;
-    }
+function transformPayload(payload: AnomalyPayload): AnomalyPayload {
+  const newPayload = {...payload};
+  if (!payload.y || !payload.yhat_lower || !payload.yhat_upper || !payload.anomalies) {
+    return newPayload;
   }
 
-  localStorage.setItem(transformedAnomalyDevKey, ''); // Set the key so it shows up automatically if this feature is enabled.
-
-  return null;
+  newPayload.y = transformStatsTimes(payload.y);
+  newPayload.yhat_upper = transformStatsTimes(payload.yhat_upper);
+  newPayload.yhat_lower = transformStatsTimes(payload.yhat_lower);
+  newPayload.anomalies = transformAnomaliesTimes(payload.anomalies);
+  return newPayload;
 }
 
 function AnomaliesSeriesQuery(props: Props) {
-  const data = getLocalPayload(); // TODO(k-fish): Replace with api request when service is enabled.
+  if (!props.organization.features.includes(ANOMALY_FLAG)) {
+    return (
+      <div>
+        {props.children({data: null, isLoading: false, error: null, pageLinks: null})}
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {props.children({
-        data,
-        isLoading: false,
-        error: null,
-        pageLinks: null,
-      })}
-    </div>
+    <GenericDiscoverQuery<AnomalyPayload, {}>
+      route="transaction-anomaly-detection"
+      {...props}
+    >
+      {({tableData, ...rest}) => {
+        return props.children({
+          data: tableData && tableData.y ? transformPayload(tableData) : null,
+          ...rest,
+        });
+      }}
+    </GenericDiscoverQuery>
   );
 }
 

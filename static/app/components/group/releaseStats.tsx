@@ -1,6 +1,7 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import AlertLink from 'sentry/components/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
@@ -53,29 +54,33 @@ const GroupReleaseStats = ({
         <Placeholder height="288px" />
       ) : (
         <Fragment>
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="24h"
-            title={t('Last 24 Hours')}
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
-          <GroupReleaseChart
-            group={allEnvironments}
-            environment={environmentLabel}
-            environmentStats={group.stats}
-            release={currentRelease?.release}
-            releaseStats={currentRelease?.stats}
-            statsPeriod="30d"
-            title={t('Last 30 Days')}
-            className="bar-chart-small"
-            firstSeen={group.firstSeen}
-            lastSeen={group.lastSeen}
-          />
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="24h"
+              title={t('Last 24 Hours')}
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
+          <GraphContainer>
+            <GroupReleaseChart
+              group={allEnvironments}
+              environment={environmentLabel}
+              environmentStats={group.stats}
+              release={currentRelease?.release}
+              releaseStats={currentRelease?.stats}
+              statsPeriod="30d"
+              title={t('Last 30 Days')}
+              className="bar-chart-small"
+              firstSeen={group.firstSeen}
+              lastSeen={group.lastSeen}
+            />
+          </GraphContainer>
 
           <SidebarSection
             secondary
@@ -141,9 +146,10 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={t('Releases not configured')}>
-              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-              {t(' to make issues easier to fix.')}
+            <SidebarSection secondary title={t('Releases')}>
+              <AlertLink priority="muted" size="small" to={releaseTrackingUrl}>
+                {t('See which release caused this issue ')}
+              </AlertLink>
             </SidebarSection>
           ) : null}
         </Fragment>
@@ -156,4 +162,8 @@ export default memo(GroupReleaseStats);
 
 const TooltipWrapper = styled('span')`
   margin-left: ${space(0.5)};
+`;
+
+const GraphContainer = styled('div')`
+  margin-bottom: ${space(3)};
 `;

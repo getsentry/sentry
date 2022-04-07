@@ -11,7 +11,7 @@ from sentry.auth.helper import (
     AuthHelperSessionStore,
     AuthIdentityHandler,
 )
-from sentry.auth.provider import Provider
+from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -37,7 +37,6 @@ def _set_up_request():
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
-        self.provider_obj = Provider(self.provider)
         self.request = _set_up_request()
 
         self.auth_provider = AuthProvider.objects.create(
@@ -60,7 +59,7 @@ class AuthIdentityHandlerTest(TestCase):
     def _handler_with(self, identity):
         return AuthIdentityHandler(
             self.auth_provider,
-            Provider(self.provider),
+            DummyProvider(self.provider),
             self.organization,
             self.request,
             identity,
@@ -331,8 +330,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         existing_user = self.create_user(email=self.email)
         existing_user.update(password="")
 
-        with self.feature("organizations:idp-automatic-migration"):
-            context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
+        context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
         mock_create_key.assert_called_with(
             existing_user, self.organization, self.auth_provider, self.email, "1234"
         )
@@ -343,8 +341,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
     def test_does_not_migrate_user_with_password(self, mock_create_key, mock_render):
         existing_user = self.create_user(email=self.email)
-        with self.feature("organizations:idp-automatic-migration"):
-            context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
         assert context["existing_user"] == existing_user
         assert "login_form" in context
@@ -354,7 +351,6 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
 class AuthHelperTest(TestCase):
     def setUp(self):
-        self.organization = self.create_organization()
         self.provider = "dummy"
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider

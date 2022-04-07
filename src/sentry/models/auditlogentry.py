@@ -24,7 +24,7 @@ def format_ondemand_budget(ondemand_data):
             attachments_budget = format_ondemand_max_spend(
                 ondemand_data.get("attachmentsBudget", 0)
             )
-            return f"split on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
+            return f"per-category on-demand (errors at {errors_budget}, transactions at {transactions_budget}, and attachments at {attachments_budget})"
         else:
             shared_budget = ondemand_data.get("sharedMaxBudget", 0)
             return f"shared on-demand of {format_ondemand_max_spend(shared_budget)}"
@@ -394,8 +394,14 @@ class AuditLogEntry(Model):
             return f"changed on-demand budget to {next_ondemand_budget}"
         elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
             return "started trial"
+
         elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
-            return "changed plan to {}".format(self.data["plan_name"])
+            plan_name = self.data["plan_name"]
+            if "quotas" in self.data:
+                quotas = self.data["quotas"]
+                return f"changed plan to {plan_name} with {quotas}"
+            return f"changed plan to {plan_name}"
+
         elif self.event == AuditLogEntryEvent.PLAN_CANCELLED:
             return "cancelled plan"
 

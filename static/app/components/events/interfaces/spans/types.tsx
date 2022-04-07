@@ -1,9 +1,13 @@
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+
+import SpanTreeModel from './spanTreeModel';
+
 export type GapSpanType = {
   isOrphan: boolean;
   start_timestamp: number;
+  // this is essentially end_timestamp
   timestamp: number;
   type: 'gap';
-  // this is essentially end_timestamp
   description?: string;
 };
 
@@ -11,6 +15,7 @@ export type RawSpanType = {
   data: Object;
   span_id: string;
   start_timestamp: number;
+  // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
   description?: string;
@@ -18,7 +23,6 @@ export type RawSpanType = {
   hash?: string;
   op?: string;
   parent_span_id?: string;
-  // this is essentially end_timestamp
   same_process_as_parent?: boolean;
   status?: string;
   tags?: {[key: string]: string};
@@ -56,9 +60,17 @@ export type FetchEmbeddedChildrenState =
   | 'error_fetching_embedded_transactions';
 
 export type SpanGroupProps = {
-  showSpanGroup: boolean;
-  spanGrouping: EnhancedSpan[] | undefined;
-  toggleSpanGroup: (() => void) | undefined;
+  isNestedSpanGroupExpanded: boolean;
+  spanNestedGrouping: EnhancedSpan[] | undefined;
+  toggleNestedSpanGroup: (() => void) | undefined;
+  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
+};
+
+export type SpanSiblingGroupProps = {
+  isLastSibling: boolean;
+  occurrence: number;
+  spanSiblingGrouping: EnhancedSpan[] | undefined;
+  toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
 };
 
 type CommonEnhancedProcessedSpanType = {
@@ -71,6 +83,8 @@ type CommonEnhancedProcessedSpanType = {
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
   treeDepth: number;
+  groupOccurrence?: number;
+  isFirstSiblingOfGroup?: boolean;
 };
 
 export type EnhancedSpan =
@@ -80,7 +94,8 @@ export type EnhancedSpan =
     } & CommonEnhancedProcessedSpanType)
   | ({
       span: SpanType;
-      toggleSpanGroup: (() => void) | undefined;
+      toggleNestedSpanGroup: (() => void) | undefined;
+      toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
       type: 'span';
     } & CommonEnhancedProcessedSpanType);
 
@@ -104,7 +119,13 @@ export type EnhancedProcessedSpanType =
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
-    } & SpanGroupProps);
+    } & SpanGroupProps)
+  | ({
+      continuingTreeDepths: Array<TreeDepthType>;
+      span: SpanType;
+      treeDepth: number;
+      type: 'span_group_siblings';
+    } & SpanSiblingGroupProps);
 
 export type SpanEntry = {
   data: Array<RawSpanType>;
@@ -165,25 +186,9 @@ export type IndexedFusedSpan = {
   tagValues: string[];
 };
 
-export type FuseResult = {
-  item: IndexedFusedSpan;
-  score: number;
-};
-
 export type FilterSpans = {
-  results: FuseResult[];
+  results: Fuse.FuseResult<IndexedFusedSpan>[];
   spanIDs: Set<string>;
-};
-
-type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
-
-export type SpanFuseOptions = {
-  distance: number;
-  includeMatches: false;
-  keys: FuseKey[];
-  location: number;
-  maxPatternLength: number;
-  threshold: number;
 };
 
 export type TraceBound = {
@@ -191,3 +196,13 @@ export type TraceBound = {
   traceEndTimestamp: number;
   traceStartTimestamp: number;
 };
+
+export type DescendantGroup = {
+  group: SpanTreeModel[];
+  occurrence?: number;
+};
+
+export enum GroupType {
+  DESCENDANTS,
+  SIBLINGS,
+}

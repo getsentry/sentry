@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AreaChart from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import space from 'sentry/styles/space';
 
 export default {

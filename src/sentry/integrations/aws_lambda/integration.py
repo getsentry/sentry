@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.serverless import ServerlessMixin
+from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import OrganizationIntegration, Project, ProjectStatus
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import map

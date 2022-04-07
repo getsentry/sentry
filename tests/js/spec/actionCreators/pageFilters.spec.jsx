@@ -1,16 +1,21 @@
 import {
   initializeUrlState,
+  revertToPinnedFilters,
   updateDateTime,
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import PageFiltersActions from 'sentry/actions/pageFiltersActions';
+import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
 describe('PageFilters ActionCreators', function () {
   const organization = TestStubs.Organization();
+  const pageFiltersOrganization = TestStubs.Organization({
+    features: ['selection-filters-v2'],
+  });
   beforeEach(function () {
     localStorage.getItem.mockClear();
     jest.spyOn(PageFiltersActions, 'updateProjects');
@@ -29,6 +34,7 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
+        pathname: '/mock-pathname/',
         router,
       });
 
@@ -56,6 +62,7 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
+        pathname: '/mock-pathname/',
         skipLoadLastUsed: true,
         router,
       });
@@ -69,6 +76,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: '/mock-pathname/',
         router,
       });
       expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
@@ -90,6 +98,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '3h',
@@ -117,6 +126,7 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -144,6 +154,7 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
+        pathname: '/mock-pathname/',
         defaultSelection: {
           datetime: {
             period: '24h',
@@ -170,6 +181,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
+        pathname: 'mock-pathname',
         router,
       });
 
@@ -194,6 +206,74 @@ describe('PageFilters ActionCreators', function () {
           },
         })
       );
+    });
+
+    it('does not add non-pinned filters to query for pages with new page filters', function () {
+      // Mock storage to have a saved value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: [],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(),
+        });
+
+      // Initialize state with a page that shouldn't restore from local storage
+      initializeUrlState({
+        organization: pageFiltersOrganization,
+        queryParams: {},
+        pathname: '/organizations/org-slug/issues/',
+        router,
+      });
+
+      // Confirm that query params are not restored from local storage
+      expect(router.replace).not.toHaveBeenCalled();
+
+      pageFilterStorageMock.mockRestore();
+    });
+
+    it('uses pinned filters for pages with new page filters', function () {
+      // Mock storage to have a saved/pinned value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: ['prod'],
+            start: null,
+            end: null,
+            period: '7d',
+            utc: null,
+          },
+          pinnedFilters: new Set(['environments', 'datetime', 'projects']),
+        });
+
+      // Initialize state with a page that uses pinned filters
+      initializeUrlState({
+        organization: pageFiltersOrganization,
+        queryParams: {},
+        pathname: '/organizations/org-slug/issues/',
+        router,
+      });
+
+      // Confirm that only environment is restored from local storage
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: ['prod'],
+            project: ['1'],
+            statsPeriod: '7d',
+          },
+        })
+      );
+
+      pageFilterStorageMock.mockRestore();
     });
   });
 
@@ -402,6 +482,60 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
         },
       });
+    });
+  });
+
+  describe('revertToPinnedFilters()', function () {
+    it('reverts all filters that are desynced from localStorage', async function () {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {},
+        },
+      });
+      // Mock storage to have a saved value
+      const pageFilterStorageMock = jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValueOnce({
+          state: {
+            project: ['1'],
+            environment: [],
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          pinnedFilters: new Set(['projects', 'environments', 'datetime']),
+        });
+
+      PageFiltersActions.initializeUrlState({
+        projects: ['2'],
+        environments: ['prod'],
+        datetime: {
+          start: null,
+          end: null,
+          period: '1d',
+          utc: null,
+        },
+      });
+      PageFiltersActions.updateDesyncedFilters(
+        new Set(['projects', 'environments', 'datetime'])
+      );
+      // Tick for PageFiltersActions
+      await tick();
+
+      revertToPinnedFilters('org-slug', router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          environment: [],
+          project: ['1'],
+          statsPeriod: '14d',
+        },
+      });
+
+      pageFilterStorageMock.mockRestore();
     });
   });
 });

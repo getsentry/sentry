@@ -28,7 +28,7 @@ function ScatterChart({series, ...props}: Props) {
       series={series.map(({seriesName, data, ...options}) =>
         ScatterSeries({
           name: seriesName,
-          data: data.map(({name, value}) => [name, value, 'stuff']),
+          data: data.map(({name, value}) => [name, value]),
           ...options,
           animation: false,
         })

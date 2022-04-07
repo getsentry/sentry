@@ -1,7 +1,9 @@
 import logging
+from collections import namedtuple
 from typing import Any, Mapping, Optional, Sequence
 
 from sentry import digests
+from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models import NotificationSetting, Project, ProjectOption
@@ -12,9 +14,13 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
+from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# TODO(mgaeta): This CANNOT be moved because of the way we inject mail adapters in plugins.
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class MailAdapter:
@@ -28,7 +34,7 @@ class MailAdapter:
     def rule_notify(
         self,
         event: Any,
-        futures: Sequence[Any],
+        futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
     ) -> None:
@@ -103,7 +109,7 @@ class MailAdapter:
     @staticmethod
     def notify_digest(
         project: Project,
-        digest: Any,
+        digest: Digest,
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
     ) -> None:

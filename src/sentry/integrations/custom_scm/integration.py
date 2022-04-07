@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response

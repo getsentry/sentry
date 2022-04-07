@@ -1,12 +1,11 @@
 import {Component} from 'react';
 
+import {FieldFromConfig} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
+import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Repository} from 'sentry/types';
-import {FieldFromConfig} from 'sentry/views/settings/components/forms';
-import Form from 'sentry/views/settings/components/forms/form';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 import Alert from './alert';
 
@@ -60,7 +59,7 @@ export default class RepositoryEditForm extends Component<Props> {
         apiMethod="PUT"
         onCancel={onCancel}
       >
-        <Alert type="warning" icon={<IconWarning />}>
+        <Alert type="warning" showIcon>
           {tct(
             'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
             {

@@ -8,6 +8,8 @@ import {User} from 'sentry/types';
 // limit that can be changed if necessary.
 export const MAX_WIDGETS = 30;
 
+export const DEFAULT_TABLE_LIMIT = 5;
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',
@@ -15,7 +17,6 @@ export enum DisplayType {
   TABLE = 'table',
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
   TOP_N = 'top_n',
 }
 
@@ -26,10 +27,18 @@ export enum WidgetType {
 }
 
 export type WidgetQuery = {
+  aggregates: string[];
+  columns: string[];
   conditions: string;
-  fields: string[];
   name: string;
   orderby: string;
+  // Table column alias.
+  // We may want to have alias for y-axis in the future too
+  fieldAliases?: string[];
+  // Fields is replaced with aggregates + columns. It
+  // is currently used to track column order on table
+  // widgets.
+  fields?: string[];
 };
 
 export type Widget = {
@@ -38,9 +47,21 @@ export type Widget = {
   queries: WidgetQuery[];
   title: string;
   id?: string;
-  layout?: Partial<Layout>;
+  layout?: WidgetLayout | null;
+  // Used to define 'topEvents' when fetching time-series data for a widget
+  limit?: number;
   tempId?: string;
   widgetType?: WidgetType;
+};
+
+// We store an explicit set of keys in the backend now
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
+  minH: number;
+};
+
+export type WidgetPreview = {
+  displayType: DisplayType;
+  layout: WidgetLayout | null;
 };
 
 /**
@@ -50,6 +71,7 @@ export type DashboardListItem = {
   id: string;
   title: string;
   widgetDisplay: DisplayType[];
+  widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
 };

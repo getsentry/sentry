@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, Variants} from 'framer-motion';
+import {AnimatePresence, HTMLMotionProps, motion, Variants} from 'framer-motion';
 
 import Button from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
@@ -9,22 +9,19 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventWaiter from 'sentry/utils/eventWaiter';
+import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';
 import testableTransition from 'sentry/utils/testableTransition';
-
-type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
-type FirstIssue = null | true | Group;
 
 type RenderProps = {
   firstEventButton: React.ReactNode;
   indicator: React.ReactNode;
 };
 
-type Props = EventWaiterProps & {
+interface FirstEventIndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
   children: (props: RenderProps) => React.ReactNode;
-};
+}
 
-const FirstEventIndicator = ({children, ...props}: Props) => (
+const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => (
   <EventWaiter {...props}>
     {({firstIssue}) =>
       children({
@@ -52,7 +49,11 @@ const FirstEventIndicator = ({children, ...props}: Props) => (
   </EventWaiter>
 );
 
-const Indicator = ({firstIssue}: EventWaiterProps & {firstIssue: FirstIssue}) => (
+interface IndicatorProps extends Omit<EventWaiterProps, 'children' | 'api'> {
+  firstIssue: Group | null | true;
+}
+
+const Indicator = ({firstIssue}: IndicatorProps) => (
   <Container>
     <AnimatePresence>
       {!firstIssue ? <Waiting key="waiting" /> : <Success key="received" />}
@@ -92,14 +93,14 @@ StatusWrapper.defaultProps = {
   },
 };
 
-const Waiting = (props: React.ComponentProps<typeof StatusWrapper>) => (
+const Waiting = (props: HTMLMotionProps<'div'>) => (
   <StatusWrapper {...props}>
     <AnimatedText>{t('Waiting to receive first event to continue')}</AnimatedText>
     <WaitingIndicator />
   </StatusWrapper>
 );
 
-const Success = (props: React.ComponentProps<typeof StatusWrapper>) => (
+const Success = (props: HTMLMotionProps<'div'>) => (
   <StatusWrapper {...props}>
     <AnimatedText>{t('Event was received!')}</AnimatedText>
     <ReceivedIndicator />

@@ -1,10 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  mountWithTheme as rtlMountWithTheme,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
@@ -12,6 +8,9 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
+    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+  });
+  const organizationWithFlag = TestStubs.Organization({
     features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
   });
   const mockDashboard = {
@@ -31,6 +30,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
         orderby: '',
       },
     ],
@@ -46,6 +47,8 @@ describe('Dashboards > Dashboard', () => {
         name: '',
         conditions: '',
         fields: ['title', 'assignee'],
+        aggregates: [],
+        columns: ['title', 'assignee'],
         orderby: '',
       },
     ],
@@ -70,6 +73,7 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: [
         {
+          annotations: [],
           id: '1',
           title: 'Error: Failed',
           project: {
@@ -101,10 +105,16 @@ describe('Dashboards > Dashboard', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags(),
+    });
   });
 
   it('dashboard adds new widget if component is mounted with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -114,21 +124,23 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         newWidget={newWidget}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
   it('dashboard adds new widget if component updated with newWidget prop', async () => {
     const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
     const wrapper = mountWithTheme(
       <Dashboard
         paramDashboardId="1"
@@ -138,27 +150,56 @@ describe('Dashboards > Dashboard', () => {
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
-        onSetWidgetToBeUpdated={() => undefined}
         router={initialData.router}
         location={initialData.location}
         widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
       initialData.routerContext
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
     wrapper.setProps({newWidget});
     await tick();
     wrapper.update();
     expect(mockHandleAddCustomWidget).toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
+  });
+
+  it('dashboard does not try to add new widget if no newWidget', async () => {
+    const mockHandleAddCustomWidget = jest.fn();
+    const mockCallbackToUnsetNewWidget = jest.fn();
+    const wrapper = mountWithTheme(
+      <Dashboard
+        paramDashboardId="1"
+        dashboard={mockDashboard}
+        organization={initialData.organization}
+        isEditing={false}
+        onUpdate={() => undefined}
+        handleUpdateWidgetList={() => undefined}
+        handleAddCustomWidget={mockHandleAddCustomWidget}
+        router={initialData.router}
+        location={initialData.location}
+        widgetLimitReached={false}
+        onSetNewWidget={mockCallbackToUnsetNewWidget}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
+    expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
   });
 
   describe('Issue Widgets', () => {
-    afterEach(() => {
-      // @ts-ignore
+    beforeEach(() => {
       MemberListStore.init();
     });
+    afterEach(() => {
+      MemberListStore.teardown();
+    });
     const mount = (dashboard, mockedOrg = initialData.organization) => {
-      rtlMountWithTheme(
+      render(
         <Dashboard
           paramDashboardId="1"
           dashboard={dashboard}
@@ -167,7 +208,6 @@ describe('Dashboards > Dashboard', () => {
           onUpdate={() => undefined}
           handleUpdateWidgetList={() => undefined}
           handleAddCustomWidget={() => undefined}
-          onSetWidgetToBeUpdated={() => undefined}
           router={initialData.router}
           location={initialData.location}
           widgetLimitReached={false}
@@ -175,25 +215,7 @@ describe('Dashboards > Dashboard', () => {
       );
     };
 
-    it('dashboard does not display issue widgets if the user does not have issue widgets feature flag', async () => {
-      const mockDashboardWithIssueWidget = {
-        ...mockDashboard,
-        widgets: [newWidget, issueWidget],
-      };
-      mount(mockDashboardWithIssueWidget);
-      expect(screen.getByText('Test Discover Widget')).toBeInTheDocument();
-      expect(screen.queryByText('Test Issue Widget')).not.toBeInTheDocument();
-    });
-
-    it('dashboard displays issue widgets if the user has issue widgets feature flag', async () => {
-      const organizationWithFlag = TestStubs.Organization({
-        features: [
-          'dashboards-basic',
-          'dashboards-edit',
-          'dashboard-grid-layout',
-          'issues-in-dashboards',
-        ],
-      });
+    it('dashboard displays issue widgets if the user has issue widgets feature flag', () => {
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [newWidget, issueWidget],
@@ -204,25 +226,97 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('renders suggested assignees', async () => {
-      const organizationWithFlag = TestStubs.Organization({
-        features: [
-          'dashboards-basic',
-          'dashboards-edit',
-          'dashboard-grid-layout',
-          'issues-in-dashboards',
-        ],
-      });
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget, organizationWithFlag);
-      await tick();
-      expect(screen.getByText('T')).toBeInTheDocument();
+      expect(await screen.findByText('T')).toBeInTheDocument();
       userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion:')).toBeInTheDocument();
-      expect(await screen.findByText('test@sentry.io')).toBeInTheDocument();
-      expect(await screen.findByText('Matching Issue Owners Rule')).toBeInTheDocument();
+      expect(screen.getByText('test@sentry.io')).toBeInTheDocument();
+      expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
+    });
+  });
+
+  describe('Edit mode', () => {
+    let widgets: Widget[];
+    const mount = (
+      dashboard,
+      mockedOrg = initialData.organization,
+      mockedRouter = initialData.router,
+      mockedLocation = initialData.location
+    ) => {
+      const getDashboardComponent = () => (
+        <Dashboard
+          paramDashboardId="1"
+          dashboard={dashboard}
+          organization={mockedOrg}
+          isEditing
+          onUpdate={newWidgets => {
+            widgets.splice(0, widgets.length, ...newWidgets);
+          }}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          router={mockedRouter}
+          location={mockedLocation}
+          widgetLimitReached={false}
+        />
+      );
+      const {rerender} = render(getDashboardComponent());
+      return {rerender: () => rerender(getDashboardComponent())};
+    };
+
+    beforeEach(() => {
+      widgets = [newWidget];
+    });
+
+    it('displays the copy widget button in edit mode', () => {
+      const dashboardWithOneWidget = {...mockDashboard, widgets};
+      mount(dashboardWithOneWidget);
+      expect(screen.getByLabelText('Duplicate Widget')).toBeInTheDocument();
+    });
+
+    it('duplicates the widget', () => {
+      const dashboardWithOneWidget = {...mockDashboard, widgets};
+      const {rerender} = mount(dashboardWithOneWidget);
+      userEvent.click(screen.getByLabelText('Duplicate Widget'));
+      rerender();
+      expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+    });
+
+    it('opens the widget builder when editing with the modal access flag', function () {
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          features: [
+            'dashboards-basic',
+            'dashboards-edit',
+            'dashboard-grid-layout',
+            'new-widget-builder-experience',
+            'new-widget-builder-experience-design',
+          ],
+        },
+      });
+      const dashboardWithOneWidget = {
+        ...mockDashboard,
+        widgets: [newWidget],
+      };
+
+      mount(
+        dashboardWithOneWidget,
+        testData.organization,
+        testData.router,
+        testData.router.location
+      );
+
+      userEvent.click(screen.getByLabelText('Edit Widget'));
+
+      expect(testData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
+        })
+      );
     });
   });
 });

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
+import Input from 'sentry/components/forms/controls/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import autoCompleteFilter from './autoCompleteFilter';
 import List from './list';
@@ -63,6 +63,16 @@ type Props = {
   css?: any;
 
   'data-test-id'?: string;
+
+  /**
+   * If true, the menu will be visually detached from actor.
+   */
+  detached?: boolean;
+
+  /**
+   * Disables padding for the label.
+   */
+  disableLabelPadding?: boolean;
 
   /**
    * passed down to the AutoComplete Component
@@ -130,6 +140,11 @@ type Props = {
   menuWithArrow?: boolean;
 
   /**
+   * Minimum menu width, defaults to 250
+   */
+  minWidth?: number;
+
+  /**
    * Message to display when there are no items that match the search
    */
   noResultsMessage?: React.ReactNode;
@@ -157,7 +172,6 @@ type Props = {
     state?: AutoComplete<Item>['state'],
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
-
   /**
    * for passing simple styles to the root container
    */
@@ -171,6 +185,10 @@ type Props = {
    * the styles are forward to the Autocomplete's getMenuProps func
    */
   style?: React.CSSProperties;
+  /**
+   * Optional element to be rendered on the right side of the dropdown menu
+   */
+  subPanel?: React.ReactNode;
 } & Pick<
   ListProps,
   'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
@@ -181,12 +199,16 @@ const Menu = ({
   emptyMessage = t('No items'),
   searchPlaceholder = t('Filter search'),
   blendCorner = true,
+  detached = false,
   alignMenu = 'left',
+  minWidth = 250,
   hideInput = false,
+  disableLabelPadding = false,
   busy = false,
   busyItemsStillVisible = false,
   menuWithArrow = false,
   disabled = false,
+  subPanel = null,
   itemSize,
   virtualizedHeight,
   virtualizedLabelHeight,
@@ -286,7 +308,7 @@ const Menu = ({
             selectedItem,
           })}
           {isOpen && (
-            <BubbleWithMinWidth
+            <StyledDropdownBubble
               className={className}
               {...getMenuProps({
                 ...menuProps,
@@ -295,56 +317,69 @@ const Menu = ({
               style={style}
               css={css}
               blendCorner={blendCorner}
+              detached={detached}
               alignMenu={alignMenu}
               menuWithArrow={menuWithArrow}
+              minWidth={minWidth}
             >
-              {itemsLoading && <LoadingIndicator mini />}
-              {showInput && (
-                <InputWrapper>
-                  <StyledInput
-                    autoFocus
-                    placeholder={searchPlaceholder}
-                    {...getInputProps({...inputProps, onChange})}
-                  />
-                  <InputLoadingWrapper>
-                    {(busy || busyItemsStillVisible) && (
-                      <LoadingIndicator size={16} mini />
-                    )}
-                  </InputLoadingWrapper>
-                  {inputActions}
-                </InputWrapper>
-              )}
-              <div>
-                {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
-                <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
-                  {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
-                  {showNoResultsMessage && (
-                    <EmptyMessage>
-                      {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
-                    </EmptyMessage>
-                  )}
-                  {busy && (
-                    <BusyMessage>
-                      <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
-                    </BusyMessage>
-                  )}
-                  {!busy && (
-                    <List
-                      items={autoCompleteResults}
-                      maxHeight={maxHeight}
-                      highlightedIndex={highlightedIndex}
-                      inputValue={inputValue}
-                      onScroll={onScroll}
-                      getItemProps={getItemProps}
-                      virtualizedLabelHeight={virtualizedLabelHeight}
-                      virtualizedHeight={virtualizedHeight}
-                      itemSize={itemSize}
+              <DropdownMainContent minWidth={minWidth}>
+                {itemsLoading && <LoadingIndicator mini />}
+                {showInput && (
+                  <InputWrapper>
+                    <StyledInput
+                      autoFocus
+                      placeholder={searchPlaceholder}
+                      {...getInputProps({...inputProps, onChange})}
                     />
+                    <InputLoadingWrapper>
+                      {(busy || busyItemsStillVisible) && (
+                        <LoadingIndicator size={16} mini />
+                      )}
+                    </InputLoadingWrapper>
+                    {inputActions}
+                  </InputWrapper>
+                )}
+                <div>
+                  {menuHeader && (
+                    <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                      {menuHeader}
+                    </LabelWithPadding>
                   )}
-                </ItemList>
-                {renderedFooter && <LabelWithPadding>{renderedFooter}</LabelWithPadding>}
-              </div>
-            </BubbleWithMinWidth>
+                  <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
+                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                    {showNoResultsMessage && (
+                      <EmptyMessage>
+                        {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
+                      </EmptyMessage>
+                    )}
+                    {busy && (
+                      <BusyMessage>
+                        <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                      </BusyMessage>
+                    )}
+                    {!busy && (
+                      <List
+                        items={autoCompleteResults}
+                        maxHeight={maxHeight}
+                        highlightedIndex={highlightedIndex}
+                        inputValue={inputValue}
+                        onScroll={onScroll}
+                        getItemProps={getItemProps}
+                        virtualizedLabelHeight={virtualizedLabelHeight}
+                        virtualizedHeight={virtualizedHeight}
+                        itemSize={itemSize}
+                      />
+                    )}
+                  </ItemList>
+                  {renderedFooter && (
+                    <LabelWithPadding disableLabelPadding={disableLabelPadding}>
+                      {renderedFooter}
+                    </LabelWithPadding>
+                  )}
+                </div>
+              </DropdownMainContent>
+              {subPanel}
+            </StyledDropdownBubble>
           )}
         </AutoCompleteRoot>
       );
@@ -397,8 +432,17 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
   ${p => p.disabled && 'pointer-events: none;'}
 `;
 
-const BubbleWithMinWidth = styled(DropdownBubble)`
-  min-width: 250px;
+const StyledDropdownBubble = styled(DropdownBubble)<{minWidth: number}>`
+  display: flex;
+  min-width: ${p => p.minWidth}px;
+
+  ${p => p.detached && p.alignMenu === 'left' && 'right: auto;'}
+  ${p => p.detached && p.alignMenu === 'right' && 'left: auto;'}
+`;
+
+const DropdownMainContent = styled('div')<{minWidth: number}>`
+  width: 100%;
+  min-width: ${p => p.minWidth}px;
 `;
 
 const InputWrapper = styled('div')`
@@ -408,7 +452,7 @@ const InputWrapper = styled('div')`
   align-items: center;
 `;
 
-const LabelWithPadding = styled('div')`
+const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
@@ -420,7 +464,7 @@ const LabelWithPadding = styled('div')`
   &:last-child {
     border-bottom: none;
   }
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => !p.disableLabelPadding && `${space(0.25)} ${space(1)}`};
 `;
 
 const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`

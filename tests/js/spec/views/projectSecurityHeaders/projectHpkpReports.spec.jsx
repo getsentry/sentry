@@ -30,8 +30,7 @@ describe('ProjectHpkpReports', function () {
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),
         })}
-      />,
-      TestStubs.routerContext()
+      />
     );
     expect(wrapper).toSnapshot();
   });

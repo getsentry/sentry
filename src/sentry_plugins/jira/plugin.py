@@ -177,28 +177,24 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = (
-            [
-                {
-                    "name": "project",
-                    "label": "Jira Project",
-                    "choices": ((meta["id"], jira_project_key),),
-                    "default": meta["id"],
-                    "type": "select",
-                    "readonly": True,
-                }
-            ]
-            + fields
-            + [
-                {
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "default": issue_type or issue_type_meta["id"],
-                    "type": "select",
-                    "choices": issue_type_choices,
-                }
-            ]
-        )
+        fields = [
+            {
+                "name": "project",
+                "label": "Jira Project",
+                "choices": ((meta["id"], jira_project_key),),
+                "default": meta["id"],
+                "type": "select",
+                "readonly": True,
+            },
+            *fields,
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+            },
+        ]
 
         # title is renamed to summary before sending to JIRA
         standard_fields = [f["name"] for f in fields] + ["summary"]
@@ -210,7 +206,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         dynamic_fields = list(issue_type_meta.get("fields").keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
-        # build up some dynamic fields based on required shit.
+        # Build up some dynamic fields based on what is required.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.

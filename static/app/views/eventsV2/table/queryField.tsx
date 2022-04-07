@@ -4,6 +4,7 @@ import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -15,18 +16,18 @@ import {SelectValue} from 'sentry/types';
 import {
   AggregateParameter,
   AggregationKey,
+  AGGREGATIONS,
   Column,
   ColumnType,
   DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
-type FieldValueOption = SelectValue<FieldValue>;
+export type FieldValueOption = SelectValue<FieldValue>;
 
 type FieldOptions = Record<string, FieldValueOption>;
 
@@ -86,11 +87,17 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
   otherColumns?: Column[];
+  placeholder?: string;
   /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
+  skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
 };
 
@@ -160,13 +167,14 @@ class QueryField extends React.Component<Props> {
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
+      case FieldValueKind.NUMERIC_METRICS:
+        fieldValue = {
+          kind: 'calculatedField',
+          field: value.meta.name,
+        };
+        break;
       case FieldValueKind.FUNCTION:
-        if (current.kind === 'field') {
-          fieldValue = {
-            kind: 'function',
-            function: [value.meta.name as AggregationKey, '', undefined, undefined],
-          };
-        } else if (current.kind === 'function') {
+        if (current.kind === 'function') {
           fieldValue = {
             kind: 'function',
             function: [
@@ -175,6 +183,11 @@ class QueryField extends React.Component<Props> {
               current.function[2],
               current.function[3],
             ],
+          };
+        } else {
+          fieldValue = {
+            kind: 'function',
+            function: [value.meta.name as AggregationKey, '', undefined, undefined],
           };
         }
         break;
@@ -195,6 +208,7 @@ class QueryField extends React.Component<Props> {
             (field.kind === FieldValueKind.FIELD ||
               field.kind === FieldValueKind.TAG ||
               field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.METRICS ||
               field.kind === FieldValueKind.BREAKDOWN) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
@@ -317,14 +331,14 @@ class QueryField extends React.Component<Props> {
     const {fieldValue} = this.props;
     let {fieldOptions} = this.props;
 
-    if (fieldValue.kind === 'function') {
+    if (fieldValue?.kind === 'function') {
       const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
       }
     }
 
-    if (fieldValue.kind === 'field') {
+    if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
@@ -335,7 +349,7 @@ class QueryField extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      fieldValue.kind === FieldValueKind.FUNCTION
+      fieldValue?.kind === FieldValueKind.FUNCTION
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
@@ -353,6 +367,7 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
@@ -405,8 +420,14 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {disabled, inFieldLabels, filterAggregateParameters, hideParameterSelector} =
-      this.props;
+    const {
+      disabled,
+      inFieldLabels,
+      filterAggregateParameters,
+      hideParameterSelector,
+      skipParameterPlaceholder,
+    } = this.props;
+
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         if (hideParameterSelector) {
@@ -492,6 +513,10 @@ class QueryField extends React.Component<Props> {
       throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
 
+    if (skipParameterPlaceholder) {
+      return inputs;
+    }
+
     // Add enough disabled inputs to fill the grid up.
     // We always have 1 input.
     const {gridColumns} = this.props;
@@ -528,8 +553,13 @@ class QueryField extends React.Component<Props> {
         text = kind;
         tagType = 'warning';
         break;
+      case FieldValueKind.NUMERIC_METRICS:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
       case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
+      case FieldValueKind.METRICS:
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
       default:
@@ -550,6 +580,9 @@ class QueryField extends React.Component<Props> {
       hidePrimarySelector,
       gridColumns,
       otherColumns,
+      placeholder,
+      noFieldsMessage,
+      skipParameterPlaceholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -560,11 +593,12 @@ class QueryField extends React.Component<Props> {
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
-      placeholder: t('(Required)'),
+      placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
+      noOptionsMessage: () => noFieldsMessage,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -572,7 +606,7 @@ class QueryField extends React.Component<Props> {
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
-    if (fieldValue.kind === FieldValueKind.EQUATION) {
+    if (fieldValue?.kind === FieldValueKind.EQUATION) {
       return (
         <Container
           className={className}
@@ -588,6 +622,7 @@ class QueryField extends React.Component<Props> {
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
+            placeholder={t('Equation')}
           />
           {error ? (
             <ArithmeticError title={error}>
@@ -601,10 +636,33 @@ class QueryField extends React.Component<Props> {
     // if there's more than 2 parameters, set gridColumns to 2 so they go onto the next line instead
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
+
+    let gridColumnsQuantity: undefined | number = undefined;
+
+    if (skipParameterPlaceholder) {
+      // if the selected field is a function and has parameters, we would like to display each value in separate columns.
+      // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
+      if (
+        fieldValue.kind === 'function' &&
+        AGGREGATIONS[fieldValue.function[0]].parameters.length > 0
+      ) {
+        if (
+          containerColumns === 3 &&
+          AGGREGATIONS[fieldValue.function[0]].parameters.length === 1
+        ) {
+          gridColumnsQuantity = 2;
+        } else {
+          gridColumnsQuantity = containerColumns;
+        }
+      } else {
+        gridColumnsQuantity = 1;
+      }
+    }
+
     return (
       <Container
         className={className}
-        gridColumns={containerColumns}
+        gridColumns={gridColumnsQuantity ?? containerColumns}
         tripleLayout={gridColumns === 3 && parameters.length > 2}
       >
         {!hidePrimarySelector && (
@@ -628,7 +686,7 @@ function validateColumnTypes(
     return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
   }
 
-  return columnTypes.includes(input.meta.dataType);
+  return (columnTypes as string[]).includes(input.meta.dataType);
 }
 
 const Container = styled('div')<{
@@ -647,10 +705,10 @@ const Container = styled('div')<{
   flex-grow: 1;
 `;
 
-type InputProps = React.HTMLProps<HTMLInputElement> & {
+interface BufferedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onUpdate: (value: string) => void;
   value: string;
-};
+}
 type InputState = {value: string};
 
 /**
@@ -661,8 +719,8 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<InputProps, InputState> {
-  constructor(props: InputProps) {
+class BufferedInput extends React.Component<BufferedInputProps, InputState> {
+  constructor(props: BufferedInputProps) {
     super(props);
     this.input = React.createRef();
   }
@@ -714,7 +772,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<InputProps>`
   /* Match the height of the select boxes */
   height: 41px;
   min-width: 50px;

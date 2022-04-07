@@ -89,7 +89,7 @@ function HeaderItem({
       )}
       {locked && (
         <Tooltip title={lockedMessage || t('This selection is locked')} position="bottom">
-          <StyledLock color="gray300" />
+          <StyledLock color="gray300" isSolid />
         </Tooltip>
       )}
     </StyledHeaderItem>

@@ -8,6 +8,7 @@ import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -181,45 +182,47 @@ class SimilarStackTrace extends React.Component<Props, State> {
       isLoadedSuccessfully;
 
     return (
-      <React.Fragment>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process merges.'
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
+            )}
+          </Alert>
+          <HeaderWrapper>
+            <Title>{t('Issues with a similar stack trace')}</Title>
+            {hasV2 && (
+              <ButtonBar merged active={v2 ? 'new' : 'old'}>
+                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('Old Algorithm')}
+                </Button>
+                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                  {t('New Algorithm')}
+                </Button>
+              </ButtonBar>
+            )}
+          </HeaderWrapper>
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <LoadingError
+              message={t('Unable to load similar issues, please try again later')}
+              onRetry={this.fetchData}
+            />
           )}
-        </Alert>
-        <HeaderWrapper>
-          <Title>{t('Issues with a similar stack trace')}</Title>
-          {hasV2 && (
-            <ButtonBar merged active={v2 ? 'new' : 'old'}>
-              <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
-                {t('Old Algorithm')}
-              </Button>
-              <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
-                {t('New Algorithm')}
-              </Button>
-            </ButtonBar>
+          {hasSimilarItems && (
+            <List
+              items={similarItems}
+              filteredItems={filteredSimilarItems}
+              onMerge={this.handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={similarLinks}
+              v2={v2}
+            />
           )}
-        </HeaderWrapper>
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <LoadingError
-            message={t('Unable to load similar issues, please try again later')}
-            onRetry={this.fetchData}
-          />
-        )}
-        {hasSimilarItems && (
-          <List
-            items={similarItems}
-            filteredItems={filteredSimilarItems}
-            onMerge={this.handleMerge}
-            orgId={orgId}
-            project={project}
-            groupId={groupId}
-            pageLinks={similarLinks}
-            v2={v2}
-          />
-        )}
-      </React.Fragment>
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 }

@@ -21,7 +21,7 @@ const recordAnalyticsFirstEvent = ({key, organization, project}) =>
  */
 type FirstIssue = null | true | Group;
 
-type Props = {
+export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
   eventType: 'error' | 'transaction';
@@ -31,9 +31,9 @@ type Props = {
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
-};
+}
 
-type State = {
+type EventWaiterState = {
   firstIssue: FirstIssue;
 };
 
@@ -41,8 +41,8 @@ type State = {
  * This is a render prop component that can be used to wait for the first event
  * of a project to be received via polling.
  */
-class EventWaiter extends React.Component<Props, State> {
-  state: State = {
+class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
+  state: EventWaiterState = {
     firstIssue: null,
   };
 
@@ -60,7 +60,7 @@ class EventWaiter extends React.Component<Props, State> {
     this.stopPolling();
   }
 
-  intervalId: number | null = null;
+  pollingInterval: number | null = null;
 
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
@@ -139,15 +139,20 @@ class EventWaiter extends React.Component<Props, State> {
       return;
     }
 
-    this.intervalId = window.setInterval(
+    // Proactively clear interval just in case stopPolling was not called
+    if (this.pollingInterval) {
+      window.clearInterval(this.pollingInterval);
+    }
+
+    this.pollingInterval = window.setInterval(
       this.pollHandler,
       this.props.pollInterval || DEFAULT_POLL_INTERVAL
     );
   }
 
   stopPolling() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
     }
   }
 

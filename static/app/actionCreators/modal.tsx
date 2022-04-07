@@ -7,6 +7,8 @@ import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashb
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   Group,
   IssueOwnership,
@@ -240,6 +242,15 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
+export async function openWidgetBuilderOverwriteModal(
+  options: OverwriteWidgetModalProps
+) {
+  const mod = await import('sentry/components/modals/widgetBuilder/overwriteWidgetModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
 export async function openReprocessEventModal({
   onClose,
   ...options
@@ -274,4 +285,18 @@ export async function openDashboardWidgetLibraryModal(
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+}
+
+export async function openWidgetViewerModal({
+  onClose,
+  ...options
+}: WidgetViewerModalOptions & {onClose?: () => void}) {
+  const mod = await import('sentry/components/modals/widgetViewerModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    backdrop: 'static',
+    modalCss,
+    onClose,
+  });
 }

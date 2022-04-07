@@ -200,11 +200,13 @@ const generateAliases = (colors: BaseColors) => ({
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
+  successText: colors.green400,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
+  errorText: colors.red400,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -223,6 +225,7 @@ const generateAliases = (colors: BaseColors) => ({
    */
   active: colors.purple300,
   activeHover: colors.purple400,
+  activeText: colors.purple400,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -347,31 +350,41 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     background: colors.gray200,
     backgroundLight: alias.backgroundSecondary,
     border: alias.border,
+    borderHover: alias.border,
     iconColor: 'inherit',
+    iconHoverColor: 'inherit',
   },
   info: {
     background: colors.blue300,
     backgroundLight: colors.blue100,
     border: colors.blue200,
+    borderHover: colors.blue300,
     iconColor: colors.blue300,
+    iconHoverColor: colors.blue400,
   },
   warning: {
     background: colors.yellow300,
     backgroundLight: colors.yellow100,
     border: colors.yellow200,
+    borderHover: colors.yellow300,
     iconColor: colors.yellow300,
+    iconHoverColor: colors.yellow400,
   },
   success: {
     background: colors.green300,
     backgroundLight: colors.green100,
     border: colors.green200,
+    borderHover: colors.green300,
     iconColor: colors.green300,
+    iconHoverColor: colors.green400,
   },
   error: {
     background: colors.red300,
     backgroundLight: colors.red100,
     border: colors.red200,
+    borderHover: colors.red300,
     iconColor: colors.red300,
+    iconHoverColor: colors.red400,
     textLight: colors.red200,
   },
 });
@@ -476,7 +489,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     color: alias.textColor,
     colorActive: alias.textColor,
     background: alias.background,
-    backgroundActive: alias.backgroundSecondary,
+    backgroundActive: alias.hover,
     border: alias.border,
     borderActive: alias.border,
     borderTranslucent: alias.translucentBorder,
@@ -542,7 +555,7 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     color: alias.textColor,
     colorActive: alias.textColor,
     background: alias.background,
-    backgroundActive: alias.backgroundSecondary,
+    backgroundActive: alias.hover,
     border: alias.formInputBorder,
     borderActive: alias.formInputBorder,
     borderTranslucent: alias.translucentBorder,

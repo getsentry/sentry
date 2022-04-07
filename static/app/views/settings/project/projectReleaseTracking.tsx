@@ -5,19 +5,18 @@ import Alert from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
 import AsyncView from 'sentry/views/asyncView';
-import Field from 'sentry/views/settings/components/forms/field';
-import TextCopyInput from 'sentry/views/settings/components/forms/textCopyInput';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
@@ -121,7 +120,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
         {!hasWrite && (
-          <Alert icon={<IconFlag size="md" />} type="warning">
+          <Alert type="warning">
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

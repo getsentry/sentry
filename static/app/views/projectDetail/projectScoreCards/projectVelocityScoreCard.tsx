@@ -163,11 +163,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized} = this.props;
+    const {selection, isProjectStabilized, query} = this.props;
 
     if (
       prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      prevProps.isProjectStabilized !== isProjectStabilized ||
+      prevProps.query !== query
     ) {
       this.remountComponent();
     }

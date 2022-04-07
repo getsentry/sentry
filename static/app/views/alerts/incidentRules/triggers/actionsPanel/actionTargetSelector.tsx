@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import Input from 'sentry/components/forms/controls/input';
 import SelectControl from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import SelectMembers from 'sentry/components/selectMembers';
@@ -10,7 +11,6 @@ import {
   MetricActionTemplate,
   TargetType,
 } from 'sentry/views/alerts/incidentRules/types';
-import Input from 'sentry/views/settings/components/forms/controls/input';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {

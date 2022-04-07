@@ -6,18 +6,19 @@ import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class SampledProfile extends Profile {
-  static FromProfile(sampled: Profiling.SampledProfile): Profile {
+  static FromProfile(
+    sampled: Profiling.SampledProfile,
+    frameIndex: ReturnType<typeof createFrameIndex>
+  ): Profile {
     const {startValue, endValue, samples, weights} = sampled;
 
-    const sampledProfile = new SampledProfile(
+    const profile = new SampledProfile(
       endValue - startValue,
       startValue,
       endValue,
       sampled.name,
       sampled.unit
     );
-
-    const frameIndex = createFrameIndex(sampled.shared.frames);
 
     if (samples.length !== weights.length) {
       throw new Error(
@@ -29,7 +30,7 @@ export class SampledProfile extends Profile {
       const stack = samples[i];
       const weight = weights[i];
 
-      sampledProfile.appendSampleWithWeight(
+      profile.appendSampleWithWeight(
         stack.map(n => {
           if (!frameIndex[n]) {
             throw new Error(`Could not resolve frame ${n} in frame index`);
@@ -41,7 +42,7 @@ export class SampledProfile extends Profile {
       );
     }
 
-    return sampledProfile.build();
+    return profile.build();
   }
 
   appendSampleWithWeight(stack: Frame[], weight: number): void {
@@ -66,13 +67,15 @@ export class SampledProfile extends Profile {
 
       node.addToTotalWeight(weight);
 
-      let start = framesInStack.length - 1;
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
       // We check the stack in a top-down order to find the first recursive frame.
+      let start = framesInStack.length - 1;
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
-          node.setRecursive(node);
+          // The recursion edge is bidirectional
+          framesInStack[start].setRecursive(node);
+          node.setRecursive(framesInStack[start]);
           break;
         }
         start--;

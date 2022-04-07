@@ -4,17 +4,15 @@ import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
 import {EventTransaction} from 'sentry/types/event';
-import {createFuzzySearch} from 'sentry/utils/createFuzzySearch';
+import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
 import {
   FilterSpans,
-  FuseResult,
   IndexedFusedSpan,
   ParsedTraceType,
   RawSpanType,
-  SpanFuseOptions,
   TraceBound,
 } from './types';
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
@@ -26,13 +24,13 @@ class WaterfallModel {
   event: Readonly<EventTransaction>;
   rootSpan: SpanTreeModel;
   parsedTrace: ParsedTraceType;
-  fuse: Fuse<string, SpanFuseOptions> | undefined = undefined;
+  fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
 
   // readable/writable state
   operationNameFilters: ActiveOperationFilter = noFilter;
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
-  hiddenSpanGroups: Set<string>;
+  hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
 
   constructor(event: Readonly<EventTransaction>) {
@@ -55,7 +53,7 @@ class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanGroups = new Set();
+    this.hiddenSpanSubTrees = new Set();
 
     makeObservable(this, {
       parsedTrace: observable,
@@ -72,9 +70,9 @@ class WaterfallModel {
       searchQuery: observable,
       querySpanSearch: action,
 
-      // span group toggling
-      hiddenSpanGroups: observable,
-      toggleSpanGroup: action,
+      // span sub-tree toggling
+      hiddenSpanSubTrees: observable,
+      toggleSpanSubTree: action,
 
       // trace bounds
       traceBounds: observable,
@@ -189,7 +187,7 @@ class WaterfallModel {
       return;
     }
 
-    const results = this.fuse.search<FuseResult>(searchQuery);
+    const results = this.fuse.search(searchQuery);
 
     const spanIDs: Set<string> = results.reduce((setOfSpanIDs: Set<string>, result) => {
       const spanID = getSpanID(result.item.span);
@@ -202,19 +200,16 @@ class WaterfallModel {
     }, new Set<string>());
 
     this.searchQuery = searchQuery;
-    this.filterSpans = {
-      results,
-      spanIDs,
-    };
+    this.filterSpans = {spanIDs, results};
   }
 
-  toggleSpanGroup = (spanID: string) => {
-    if (this.hiddenSpanGroups.has(spanID)) {
-      this.hiddenSpanGroups.delete(spanID);
+  toggleSpanSubTree = (spanID: string) => {
+    if (this.hiddenSpanSubTrees.has(spanID)) {
+      this.hiddenSpanSubTrees.delete(spanID);
       return;
     }
 
-    this.hiddenSpanGroups.add(spanID);
+    this.hiddenSpanSubTrees.add(spanID);
   };
 
   addTraceBounds = (traceBound: TraceBound) => {
@@ -278,14 +273,17 @@ class WaterfallModel {
     });
   };
 
-  getWaterfall = ({
-    viewStart,
-    viewEnd,
-  }: {
-    // in [0, 1]
-    viewEnd: number;
-    viewStart: number; // in [0, 1]
-  }) => {
+  getWaterfall = (
+    {
+      viewStart,
+      viewEnd,
+    }: {
+      // in [0, 1]
+      viewEnd: number;
+      viewStart: number; // in [0, 1]
+    },
+    isAutogroupSiblingFeatureEnabled: boolean
+  ) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
@@ -297,17 +295,18 @@ class WaterfallModel {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
-      hiddenSpanGroups: this.hiddenSpanGroups,
-      spanGroups: new Set(),
+      hiddenSpanSubTrees: this.hiddenSpanSubTrees,
+      spanAncestors: new Set(),
       filterSpans: this.filterSpans,
       previousSiblingEndTimestamp: undefined,
       event: this.event,
       isOnlySibling: true,
-      spanGrouping: undefined,
-      toggleSpanGroup: undefined,
-      showSpanGroup: false,
+      spanNestedGrouping: undefined,
+      toggleNestedSpanGroup: undefined,
+      isNestedSpanGroupExpanded: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
+      isAutogroupSiblingFeatureEnabled,
     });
   };
 }

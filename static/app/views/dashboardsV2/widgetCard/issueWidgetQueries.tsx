@@ -1,6 +1,5 @@
 import * as React from 'react';
 import isEqual from 'lodash/isEqual';
-import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
@@ -12,17 +11,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
-import {
-  DISCOVER_EXCLUSION_FIELDS,
-  IssueDisplayOptions,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
+import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
-const DEFAULT_ITEM_LIMIT = 5;
 const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 const DEFAULT_EXPAND = ['owners'];
 
 type EndpointParams = Partial<PageFilters['datetime']> & {
@@ -30,9 +23,9 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   project: number[];
   collapse?: string[];
   cursor?: string;
-  display?: string;
   expand?: string[];
   groupStatsPeriod?: string | null;
+  limit?: number;
   page?: number | string;
   query?: string;
   sort?: string;
@@ -45,10 +38,13 @@ type Props = {
     errorMessage: undefined | string;
     loading: boolean;
     transformedResults: TableDataRow[];
+    pageLinks?: null | string;
+    totalCount?: string;
   }) => React.ReactNode;
   organization: OrganizationSummary;
   selection: PageFilters;
   widget: Widget;
+  cursor?: string;
   limit?: number;
 };
 
@@ -56,6 +52,7 @@ type State = {
   errorMessage: undefined | string;
   loading: boolean;
   memberListStoreLoaded: boolean;
+  pageLinks: null | string;
   tableResults: Group[];
   totalCount: null | string;
 };
@@ -67,6 +64,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
     tableResults: [],
     memberListStoreLoaded: MemberListStore.isLoaded(),
     totalCount: null,
+    pageLinks: null,
   };
 
   componentDidMount() {
@@ -74,7 +72,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, widget} = this.props;
+    const {selection, widget, cursor} = this.props;
     // We do not fetch data whenever the query name changes.
     const [prevWidgetQueries] = prevProps.widget.queries.reduce(
       ([queries, names]: [Omit<WidgetQuery, 'name'>[], string[]], {name, ...rest}) => {
@@ -99,7 +97,8 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widgetQueries, prevWidgetQueries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isSelectionEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection) ||
+      cursor !== prevProps.cursor
     ) {
       this.fetchData();
       return;
@@ -133,6 +132,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
         count,
         userCount,
         project,
+        annotations,
         ...resultProps
       }) => {
         const transformedResultProps: Omit<TableDataRow, 'id'> = {};
@@ -151,6 +151,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
           issue: shortId,
           title,
           project: project.slug,
+          links: annotations?.join(', '),
         };
 
         // Get lifetime stats
@@ -199,7 +200,7 @@ class IssueWidgetQueries extends React.Component<Props, State> {
   }
 
   async fetchIssuesData() {
-    const {selection, api, organization, widget, limit} = this.props;
+    const {selection, api, organization, widget, limit, cursor} = this.props;
     this.setState({tableResults: []});
     // Issue Widgets only support single queries
     const query = widget.queries[0];
@@ -209,8 +210,9 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       environment: selection.environments,
       query: query.conditions,
       sort: query.orderby || DEFAULT_SORT,
-      display: DEFAULT_DISPLAY,
       expand: DEFAULT_EXPAND,
+      limit: limit ?? DEFAULT_TABLE_LIMIT,
+      cursor,
     };
 
     if (selection.datetime.period) {
@@ -230,16 +232,16 @@ class IssueWidgetQueries extends React.Component<Props, State> {
       const [data, _, resp] = await api.requestPromise(groupListUrl, {
         includeAllArgs: true,
         method: 'GET',
-        data: qs.stringify({
+        data: {
           ...params,
-          limit: limit ?? DEFAULT_ITEM_LIMIT,
-        }),
+        },
       });
       this.setState({
         loading: false,
         errorMessage: undefined,
         tableResults: data,
         totalCount: resp?.getResponseHeader('X-Hits') ?? null,
+        pageLinks: resp?.getResponseHeader('Link') ?? null,
       });
     } catch (response) {
       const errorResponse = response?.responseJSON?.detail ?? null;
@@ -258,13 +260,16 @@ class IssueWidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, errorMessage, memberListStoreLoaded} = this.state;
+    const {loading, errorMessage, memberListStoreLoaded, pageLinks, totalCount} =
+      this.state;
     const transformedResults = this.transformTableResults();
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
         transformedResults,
         errorMessage,
+        pageLinks,
+        totalCount: totalCount ?? undefined,
       }),
       fixed: <div />,
     });

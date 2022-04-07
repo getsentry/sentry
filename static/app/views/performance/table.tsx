@@ -18,20 +18,26 @@ import {tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverOrMetricsQuery from 'sentry/utils/discover/discoverOrMetricsQuery';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
+import {getMEPQueryParams} from './landing/widgets/utils';
 import TransactionThresholdModal, {
   modalCss,
   TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {
+  normalizeSearchConditionsWithTransactionName,
+  transactionSummaryRouteWithQuery,
+} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -125,10 +131,9 @@ class _Table extends React.Component<Props, State> {
         return;
       }
 
-      const searchConditions = new MutableSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeFilter('event.type');
+      const searchConditions = normalizeSearchConditionsWithTransactionName(
+        eventView.query
+      );
 
       updateQuery(searchConditions, action, column, value);
 
@@ -367,8 +372,7 @@ class _Table extends React.Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
 
-    const {widths, transaction, transactionThreshold, transactionThresholdMetric} =
-      this.state;
+    const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
       .getColumns()
       // remove team_key_transactions from the column order as we'll be rendering it
@@ -393,36 +397,42 @@ class _Table extends React.Component<Props, State> {
 
     return (
       <div>
-        <DiscoverOrMetricsQuery
-          eventView={sortedEventView}
-          orgSlug={organization.slug}
-          location={location}
-          setError={setError}
-          referrer="api.performance.landing-table"
-          transactionName={transaction}
-          transactionThreshold={transactionThreshold}
-          transactionThresholdMetric={transactionThresholdMetric}
-        >
-          {({pageLinks, isLoading, tableData}) => (
-            <React.Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  renderPrependColumns: this.renderPrependCellWithData(tableData) as any,
-                  prependColumnWidths,
-                }}
-                location={location}
-              />
-              <Pagination pageLinks={pageLinks} />
-            </React.Fragment>
+        <MEPConsumer>
+          {value => (
+            <DiscoverQuery
+              eventView={sortedEventView}
+              orgSlug={organization.slug}
+              location={location}
+              setError={error => setError(error?.message)}
+              referrer="api.performance.landing-table"
+              transactionName={transaction}
+              transactionThreshold={transactionThreshold}
+              queryExtras={getMEPQueryParams(value.isMEPEnabled)}
+            >
+              {({pageLinks, isLoading, tableData}) => (
+                <React.Fragment>
+                  <GridEditable
+                    isLoading={isLoading}
+                    data={tableData ? tableData.data : []}
+                    columnOrder={columnOrder}
+                    columnSortBy={columnSortBy}
+                    grid={{
+                      onResizeColumn: this.handleResizeColumn,
+                      renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                      renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                      renderPrependColumns: this.renderPrependCellWithData(
+                        tableData
+                      ) as any,
+                      prependColumnWidths,
+                    }}
+                    location={location}
+                  />
+                  <Pagination pageLinks={pageLinks} />
+                </React.Fragment>
+              )}
+            </DiscoverQuery>
           )}
-        </DiscoverOrMetricsQuery>
+        </MEPConsumer>
       </div>
     );
   }

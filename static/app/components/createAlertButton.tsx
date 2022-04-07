@@ -11,9 +11,10 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {IconClose, IconInfo, IconSiren} from 'sentry/icons';
+import {IconClose, IconSiren} from 'sentry/icons';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -119,7 +120,19 @@ function IncompatibleQueryAlert({
   };
 
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
+    <StyledAlert
+      type="warning"
+      showIcon
+      trailingItems={
+        <Button
+          icon={<IconClose size="sm" />}
+          aria-label={t('Close')}
+          size="zero"
+          onClick={onClose}
+          borderless
+        />
+      }
+    >
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -171,21 +184,11 @@ function IncompatibleQueryAlert({
           </StyledUnorderedList>
         </React.Fragment>
       )}
-      <StyledCloseButton
-        icon={<IconClose size="sm" />}
-        aria-label={t('Close')}
-        size="zero"
-        onClick={onClose}
-        borderless
-      />
     </StyledAlert>
   );
 }
 
-type CreateAlertFromViewButtonProps = Omit<
-  React.ComponentProps<typeof Button>,
-  'aria-label'
-> & {
+type CreateAlertFromViewButtonProps = ButtonProps & {
   /**
    * Discover query used to create the alert
    */
@@ -210,7 +213,11 @@ type CreateAlertFromViewButtonProps = Omit<
 
 function incompatibleYAxis(eventView: EventView): boolean {
   const column = explodeFieldString(eventView.getYAxis());
-  if (column.kind === 'field' || column.kind === 'equation') {
+  if (
+    column.kind === 'field' ||
+    column.kind === 'equation' ||
+    column.kind === 'calculatedField'
+  ) {
     return true;
   }
 
@@ -327,12 +334,12 @@ function CreateAlertFromViewButton({
 type Props = {
   organization: Organization;
   hideIcon?: boolean;
-  iconProps?: React.ComponentProps<typeof IconSiren>;
+  iconProps?: SVGIconProps;
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
 } & WithRouterProps &
-  React.ComponentProps<typeof Button>;
+  ButtonProps;
 
 const CreateAlertButton = withRouter(
   ({
@@ -439,16 +446,4 @@ const StyledUnorderedList = styled('ul')`
 const StyledCode = styled('code')`
   background-color: transparent;
   padding: 0;
-`;
-
-const StyledCloseButton = styled(Button)`
-  transition: opacity 0.1s linear;
-  position: absolute;
-  top: 3px;
-  right: 0;
-
-  &:hover,
-  &:focus {
-    background-color: transparent;
-  }
 `;

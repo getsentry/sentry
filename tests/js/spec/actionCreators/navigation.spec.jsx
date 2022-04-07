@@ -9,6 +9,7 @@ jest.mock('sentry/actionCreators/modal');
 describe('navigation ActionCreator', () => {
   let router;
   beforeEach(() => {
+    ProjectsStore.init();
     const initialData = initializeOrg({
       router: {
         location: {query: {}, search: ''},
@@ -21,6 +22,7 @@ describe('navigation ActionCreator', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
+    ProjectsStore.teardown();
     jest.resetAllMocks();
   });
 

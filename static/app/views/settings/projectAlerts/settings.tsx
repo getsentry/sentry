@@ -3,6 +3,8 @@ import {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import {PanelAlert} from 'sentry/components/panels';
 import PluginList from 'sentry/components/pluginList';
 import {fields} from 'sentry/data/forms/projectAlerts';
@@ -11,8 +13,6 @@ import {t} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 

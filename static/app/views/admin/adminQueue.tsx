@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {SelectField} from 'sentry/components/forms';
+import {SelectField} from 'sentry/components/deprecatedforms';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AsyncView from 'sentry/views/asyncView';

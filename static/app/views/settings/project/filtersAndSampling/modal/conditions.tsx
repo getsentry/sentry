@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
+import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
-import FieldRequiredBadge from 'sentry/views/settings/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'sentry/views/settings/components/forms/textareaField';
 
 import {getInnerNameLabel} from '../utils';
 

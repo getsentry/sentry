@@ -5,7 +5,7 @@ from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
-    integration = Param("sentry.models.integration.Integration")
+    integration = Param("sentry.models.integrations.integration.Integration")
     organization = Param("sentry.models.organization.Organization")
 
     def call(self):

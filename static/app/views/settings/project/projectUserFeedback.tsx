@@ -4,13 +4,13 @@ import * as Sentry from '@sentry/react';
 
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
-import Form from 'sentry/views/settings/components/forms/form';
-import JsonForm from 'sentry/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,13 +21,15 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
+  submitTimeout: number | undefined = undefined;
+
   componentDidMount() {
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body) {
         this._submitInProgress = true;
-        setTimeout(() => {
+        window.setTimeout(() => {
           this._submitInProgress = false;
           this.onSuccess();
         }, 500);

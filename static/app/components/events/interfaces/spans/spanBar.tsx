@@ -64,8 +64,10 @@ import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
 import {
   FetchEmbeddedChildrenState,
+  GroupType,
   ParsedTraceType,
   ProcessedSpanType,
+  SpanType,
   TreeDepthType,
 } from './types';
 import {
@@ -120,10 +122,13 @@ type SpanBarProps = {
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
+  groupOccurrence?: number;
+  groupType?: GroupType;
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
   spanBarHatch?: boolean;
+  toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
 type SpanBarState = {
@@ -424,17 +429,31 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth, toggleSpanGroup} = this.props;
+    const {
+      span,
+      treeDepth,
+      groupOccurrence,
+      toggleSpanGroup,
+      toggleSiblingSpanGroup,
+      groupType,
+    } = this.props;
 
     let titleFragments: React.ReactNode[] = [];
 
-    if (typeof toggleSpanGroup === 'function') {
+    if (
+      typeof toggleSpanGroup === 'function' ||
+      typeof toggleSiblingSpanGroup === 'function'
+    ) {
       titleFragments.push(
         <Regroup
           onClick={event => {
             event.stopPropagation();
             event.preventDefault();
-            toggleSpanGroup();
+            if (groupType === GroupType.SIBLINGS && 'op' in span) {
+              toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
+            } else {
+              toggleSpanGroup && toggleSpanGroup();
+            }
           }}
         >
           <a
@@ -923,6 +942,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
+    const {spanNumber} = this.props;
     const bounds = this.getBounds();
     const {isSpanVisibleInView} = bounds;
 
@@ -932,7 +952,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           ref={this.spanRowDOMRef}
           visible={isSpanVisibleInView}
           showBorder={this.state.showDetail}
-          data-test-id="span-row"
+          data-test-id={`span-row-${spanNumber}`}
         >
           <QuickTraceContext.Consumer>
             {quickTrace => {

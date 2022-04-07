@@ -1,26 +1,30 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import DropdownButton from 'sentry/components/dropdownButton';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Badge from 'sentry/components/badge';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
+import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type Props = {
-  router: WithRouterProps['router'];
+type MultipleProjectSelectorProps = React.ComponentProps<typeof MultipleProjectSelector>;
 
+type Props = WithRouterProps & {
   /**
    * Message to display at the bottom of project list
    */
@@ -36,6 +40,12 @@ type Props = {
    * E.g. This 'issue' is unique to a project
    */
   lockedMessageSubject?: string;
+
+  /**
+   * Max character length for the dropdown title. Default is 20. This number
+   * is used to determine how many projects to show, and how much to truncate.
+   */
+  maxTitleLength?: number;
 
   /**
    * A project will be forced from parent component (selection is disabled, and if user
@@ -62,13 +72,24 @@ type Props = {
   specificProjectSlugs?: string[];
 };
 
-export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}: Props) {
+export function ProjectPageFilter({
+  router,
+  specificProjectSlugs,
+  maxTitleLength = 20,
+  ...otherProps
+}: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
     null
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, pinnedFilters, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
+
+  useEffect(() => {
+    if (!isEqual(selection.projects, currentSelectedProjects)) {
+      setCurrentSelectedProjects(selection.projects);
+    }
+  }, [selection.projects]);
 
   const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);
@@ -87,51 +108,82 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
 
-  const [_, otherProjects] = partition(specifiedProjects, project => project.isMember);
+  const [memberProjects, otherProjects] = partition(
+    specifiedProjects,
+    project => project.isMember
+  );
 
-  const isSuperuser = isActiveSuperuser();
+  const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  const customProjectDropdown = ({getActorProps, selectedProjects, isOpen}) => {
+  const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+    actions,
+    selectedProjects,
+    isOpen,
+  }) => {
     const selectedProjectIds = new Set(selection.projects);
     const hasSelected = !!selectedProjects.length;
+
+    // Show 2 projects only if the combined string does not exceed maxTitleLength.
+    // Otherwise show only 1 project.
+    const projectsToShow =
+      selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <=
+      maxTitleLength - 2
+        ? selectedProjects.slice(0, 2)
+        : selectedProjects.slice(0, 1);
+
     const title = hasSelected
-      ? selectedProjects.map(({slug}) => slug).join(', ')
+      ? projectsToShow.map(proj => trimSlug(proj.slug, maxTitleLength)).join(', ')
       : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
       ? t('All Projects')
       : t('My Projects');
+
     const icon = hasSelected ? (
       <PlatformList
-        platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
-        max={5}
+        platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
       />
     ) : (
       <IconProject />
     );
+
     return (
-      <StyledDropdownButton isOpen={isOpen} {...getActorProps()}>
-        <DropdownTitle>
-          {icon}
-          <TitleContainer>{title}</TitleContainer>
-        </DropdownTitle>
-      </StyledDropdownButton>
+      <GuideAnchor
+        target="new_page_filter_button"
+        position="bottom"
+        onStepComplete={actions.open}
+      >
+        <PageFilterDropdownButton
+          detached
+          hideBottomBorder={false}
+          isOpen={isOpen}
+          highlighted={desyncedFilters.has('projects')}
+        >
+          <DropdownTitle>
+            {icon}
+            <TitleContainer>{title}</TitleContainer>
+            {selectedProjects.length > projectsToShow.length && (
+              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+            )}
+          </DropdownTitle>
+        </PageFilterDropdownButton>
+      </GuideAnchor>
     );
   };
 
   const customLoadingIndicator = (
-    <StyledDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton showChevron={false} disabled>
       <DropdownTitle>
         <IconProject />
         {t('Loading\u2026')}
       </DropdownTitle>
-    </StyledDropdownButton>
+    </PageFilterDropdownButton>
   );
 
   return (
     <MultipleProjectSelector
       organization={organization}
-      projects={projects}
+      memberProjects={memberProjects}
       isGlobalSelectionReady={projectsLoaded && isReady}
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
@@ -139,17 +191,12 @@ export function ProjectPageFilter({router, specificProjectSlugs, ...otherProps}:
       onUpdate={handleUpdateProjects}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
-      pinned={pinnedFilters.has('projects')}
+      detached
+      showPin
       {...otherProps}
     />
   );
 }
-
-const StyledDropdownButton = styled(DropdownButton)`
-  width: 100%;
-  height: 40px;
-  text-overflow: ellipsis;
-`;
 
 const TitleContainer = styled('div')`
   overflow: hidden;
@@ -160,10 +207,14 @@ const TitleContainer = styled('div')`
 `;
 
 const DropdownTitle = styled('div')`
+  width: max-content;
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
+`;
+
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 export default withRouter(ProjectPageFilter);

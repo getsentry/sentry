@@ -6,8 +6,9 @@ import {useTheme} from '@emotion/react';
 import set from 'lodash/set';
 
 import {getFormattedDate} from 'sentry/utils/dates';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import BarChart, {BarChartSeries} from './barChart';
+import {BarChart, BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
 
@@ -173,6 +174,14 @@ function MiniBarChart({
         showMinLabel: true,
         showMaxLabel: true,
         interval: Infinity,
+        axisLabel: {
+          formatter(value: number) {
+            if (tooltipFormatter) {
+              return tooltipFormatter(value);
+            }
+            return formatAbbreviatedNumber(value);
+          },
+        },
       }
     : {
         axisLabel: {
@@ -180,9 +189,9 @@ function MiniBarChart({
         },
       };
 
-  const chartOptions = {
+  const chartOptions: Omit<BarChartProps, 'series'> = {
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       hideDelay,
       valueFormatter: tooltipFormatter
         ? (value: number) => tooltipFormatter(value)

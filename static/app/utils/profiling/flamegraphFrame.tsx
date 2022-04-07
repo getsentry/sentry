@@ -6,6 +6,7 @@ export interface FlamegraphFrame {
   depth: number;
   end: number;
   frame: Frame;
+  key: number;
   node: CallTreeNode;
   parent: FlamegraphFrame | null;
   start: number;

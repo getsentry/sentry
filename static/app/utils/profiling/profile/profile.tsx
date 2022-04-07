@@ -43,6 +43,10 @@ export class Profile {
     this.unit = unit;
   }
 
+  static Empty() {
+    return new Profile(1000, 0, 1000, '', 'milliseconds').build();
+  }
+
   forEach(
     openFrame: (node: CallTreeNode, value: number) => void,
     closeFrame: (node: CallTreeNode, value: number) => void

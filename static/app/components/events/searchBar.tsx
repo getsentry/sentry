@@ -30,7 +30,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
-type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
+export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   api: Client;
   organization: Organization;
   tags: TagCollection;
@@ -131,9 +131,8 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
-    const {organization} = this.props;
     return (
-      <Measurements organization={organization}>
+      <Measurements>
         {({measurements}) => {
           const tags = this.getTagList(measurements);
           return (

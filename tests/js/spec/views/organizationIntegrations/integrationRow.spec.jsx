@@ -9,7 +9,6 @@ describe('IntegrationRow', function () {
   });
 
   const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext();
 
   describe('SentryApp', function () {
     it('is an internal SentryApp', async function () {
@@ -23,8 +22,7 @@ describe('IntegrationRow', function () {
           publishStatus="internal"
           configurations={0}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual(
         'my-headband-washer-289499'
@@ -50,8 +48,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={0}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('clickup');
       expect(wrapper.find('IntegrationName').props().children).toEqual('ClickUp');
@@ -74,8 +71,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={1}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('bitbucket');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Bitbucket');
@@ -98,8 +94,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={3}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('bitbucket');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Bitbucket');
@@ -122,8 +117,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={0}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('github');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Github');
@@ -147,8 +141,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={1}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('twilio');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Twilio (SMS) ');
@@ -171,8 +164,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={3}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('twilio');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Twilio (SMS) ');
@@ -195,8 +187,7 @@ describe('IntegrationRow', function () {
           publishStatus="published"
           configurations={0}
           data-test-id="integration-row"
-        />,
-        routerContext
+        />
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('amazon-sqs');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Amazon SQS');

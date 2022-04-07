@@ -61,10 +61,10 @@ SAMPLED_URL_NAMES = {
     # debug files
     "sentry-api-0-assemble-dif-files": 0.1,
     # scim
-    "sentry-api-0-organization-scim-member-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-member-index": 0.1,
+    "sentry-api-0-organization-scim-member-details": 0.1,
+    "sentry-api-0-organization-scim-team-index": 0.1,
+    "sentry-api-0-organization-scim-team-details": 0.1,
     # members
     "sentry-api-0-organization-invite-request-index": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-invite-request-detail": settings.SAMPLED_DEFAULT_RATE,
@@ -98,6 +98,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.update_config_cache": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.tasks.reports.prepare_organization_report": 0.1,
+    "sentry.tasks.reports.deliver_organization_user_report": 0.01,
 }
 
 
@@ -189,16 +191,6 @@ def get_project_key():
     return key
 
 
-def _override_on_full_queue(transport, metric_name):
-    if transport is None:
-        return
-
-    def on_full_queue(*args, **kwargs):
-        metrics.incr(metric_name, tags={"reason": "queue_full"})
-
-    transport._worker.on_full_queue = on_full_queue
-
-
 def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
@@ -267,14 +259,13 @@ def configure_sdk():
     if relay_dsn:
         transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
+    elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
+        relay_transport = None
     elif internal_project_key and internal_project_key.dsn_private:
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
-
-    _override_on_full_queue(relay_transport, "internal.uncaptured.events.relay")
-    _override_on_full_queue(upstream_transport, "internal.uncaptured.events.upstream")
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):

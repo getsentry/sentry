@@ -18,19 +18,17 @@ export class Flamegraph {
   inverted?: boolean = false;
   leftHeavy?: boolean = false;
 
-  colors: Map<string | number, number[]> | null = null;
-
   depth = 0;
   duration = 0;
   configSpace: Rect = new Rect(0, 0, 0, 0);
 
   formatter: (value: number) => string;
+  frameIndex: Record<string, FlamegraphFrame> = {};
 
   constructor(
     profile: Profile,
     profileIndex: number,
-    inverted = false,
-    leftHeavy = false
+    {inverted = false, leftHeavy = false}: {inverted?: boolean; leftHeavy?: boolean} = {}
   ) {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
@@ -51,44 +49,46 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
 
-    if (this.frames.length) {
-      this.configSpace = new Rect(0, 0, this.duration, this.depth);
+    if (this.duration) {
+      this.configSpace = new Rect(this.startedAt, 0, this.duration, this.depth);
     } else {
-      // If we have no frames, set the trace duration to 1 second so that we can render a placeholder grid
+      // If the profile duration is 0, set the flamegraph duration
+      // to 1 second so we can render a placeholder grid
       this.configSpace = new Rect(
-        0,
+        this.startedAt,
         0,
         this.profile.unit === 'microseconds'
           ? 1e6
           : this.profile.unit === 'milliseconds'
           ? 1e3
           : 1,
-        0
+        this.depth
       );
     }
   }
 
   static Empty(): Flamegraph {
-    return new Flamegraph(
-      new Profile(0, 0, 1_000_000, 'Profile', 'microseconds'),
-      0,
-      false,
-      false
-    );
+    return new Flamegraph(Profile.Empty(), 0, {
+      inverted: false,
+      leftHeavy: false,
+    });
   }
 
-  static From(from: Flamegraph, inverted = false, leftHeavy = false): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, inverted, leftHeavy);
+  static From(from: Flamegraph, {inverted = false, leftHeavy = false}): Flamegraph {
+    return new Flamegraph(from.profile, from.profileIndex, {inverted, leftHeavy});
   }
 
   buildCallOrderGraph(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
 
+    let idx = 0;
+
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
 
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -103,6 +103,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_: CallTreeNode, value: number) => {
@@ -139,9 +140,11 @@ export class Flamegraph {
 
     sortTree(profile.appendOrderTree);
 
+    let idx = 0;
     const openFrame = (node: CallTreeNode, value: number) => {
       const parent = lastOfArray(stack);
       const frame: FlamegraphFrame = {
+        key: idx,
         frame: node.frame,
         node,
         parent,
@@ -156,6 +159,7 @@ export class Flamegraph {
       }
 
       stack.push(frame);
+      idx++;
     };
 
     const closeFrame = (_node: CallTreeNode, value: number) => {
@@ -194,10 +198,6 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
-  }
-
-  setColors(colors: Map<string | number, number[]> | null): void {
-    this.colors = colors;
   }
 
   withOffset(offset: number): Flamegraph {

@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {Organization, SelectValue} from 'sentry/types';
+import {MetricsType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 
 import {METRIC_TO_COLUMN_TYPE} from '../metrics/fields';
@@ -15,6 +15,8 @@ export type Sort = {
 // Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
+  // When an alias is defined for a field, it will be shown as a column name in the table visualization.
+  alias?: string;
   width?: number;
 };
 
@@ -36,7 +38,10 @@ export type ParsedFunction = {
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
-export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
+export type ValidateColumnTypes =
+  | ColumnType[]
+  | MetricsType[]
+  | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -67,18 +72,27 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
+// When an alias is defined for a field, it will be shown as a column name in the table visualization.
 export type QueryFieldValue =
   | {
       field: string;
       kind: 'field';
+      alias?: string;
+    }
+  | {
+      field: string;
+      kind: 'calculatedField';
+      alias?: string;
     }
   | {
       field: string;
       kind: 'equation';
+      alias?: string;
     }
   | {
       function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
       kind: 'function';
+      alias?: string;
     };
 
 // Column is just an alias of a Query value
@@ -136,12 +150,12 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   count_miserable: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
       }
       return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+        defaultValue: parameter.defaultValue,
       };
     },
     parameters: [
@@ -371,11 +385,6 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -389,11 +398,6 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return {
-        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-      };
-    },
     parameters: [
       {
         kind: 'value',
@@ -437,7 +441,6 @@ export type AggregationOutputType = Extract<
 export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
-  organization: Organization;
   parameter: AggregateParameter;
 };
 
@@ -801,7 +804,9 @@ export function parseArguments(functionText: string, columnText: string): string
   // This function attempts to be identical with the similarly named parse_arguments
   // found in src/sentry/search/events/fields.py
   if (
-    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    (functionText !== 'to_other' &&
+      functionText !== 'count_if' &&
+      functionText !== 'spans_histogram') ||
     columnText.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
@@ -859,6 +864,7 @@ export function parseArguments(functionText: string, columnText: string): string
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
+export const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -935,9 +941,21 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function explodeFieldString(field: string): Column {
+export function isDerivedMetric(field: string): boolean {
+  return field.startsWith(CALCULATED_FIELD_PREFIX);
+}
+
+export function stripDerivedMetricsPrefix(field: string): string {
+  return field.replace(CALCULATED_FIELD_PREFIX, '');
+}
+
+export function explodeFieldString(field: string, alias?: string): Column {
   if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
+    return {kind: 'equation', field: getEquation(field), alias};
+  }
+
+  if (isDerivedMetric(field)) {
+    return {kind: 'calculatedField', field: stripDerivedMetricsPrefix(field)};
   }
 
   const results = parseFunction(field);
@@ -951,16 +969,22 @@ export function explodeFieldString(field: string): Column {
         results.arguments[1] as AggregationRefinement,
         results.arguments[2] as AggregationRefinement,
       ],
+      alias,
     };
   }
 
-  return {kind: 'field', field};
+  return {kind: 'field', field, alias};
 }
 
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
   }
+
+  if (value.kind === 'calculatedField') {
+    return `${CALCULATED_FIELD_PREFIX}${value.field}`;
+  }
+
   if (value.kind === 'equation') {
     return `${EQUATION_PREFIX}${value.field}`;
   }
@@ -971,9 +995,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
 }
 
 export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field);
-
-  return results;
+  return explodeFieldString(field.field, field.alias);
 }
 
 /**
@@ -981,9 +1003,11 @@ export function explodeField(field: Field): Column {
  */
 export function getAggregateAlias(field: string): string {
   const result = parseFunction(field);
+
   if (!result) {
     return field;
   }
+
   let alias = result.name;
 
   if (result.arguments.length > 0) {
@@ -1001,11 +1025,67 @@ export function isAggregateField(field: string): boolean {
 }
 
 export function isAggregateFieldOrEquation(field: string): boolean {
-  return isAggregateField(field) || isAggregateEquation(field);
+  return isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field);
+}
+
+/**
+ * Temporary hardcoded hack to enable testing derived metrics.
+ * Can be removed after we get rid of getAggregateFields
+ */
+export function isNumericMetrics(field: string): boolean {
+  return [
+    'session.crash_free_rate',
+    'session.crashed',
+    'session.errored_preaggregated',
+    'session.errored_set',
+    'session.init',
+  ].includes(field);
 }
 
 export function getAggregateFields(fields: string[]): string[] {
-  return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
+  return fields.filter(
+    field =>
+      isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
+  );
+}
+
+export function getColumnsAndAggregates(fields: string[]): {
+  aggregates: string[];
+  columns: string[];
+} {
+  const aggregates = getAggregateFields(fields);
+  const columns = fields.filter(field => !!!aggregates.includes(field));
+  return {columns, aggregates};
+}
+
+export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
+  aggregates: string[];
+  columns: string[];
+  fieldAliases: string[];
+} {
+  // TODO(dam): distinguish between metrics, derived metrics and tags
+  const aggregateFields: string[] = [];
+  const nonAggregateFields: string[] = [];
+  const fieldAliases: string[] = [];
+
+  for (const field of fields) {
+    const fieldString = generateFieldAsString(field);
+    if (field.kind === 'function' || field.kind === 'calculatedField') {
+      aggregateFields.push(fieldString);
+    } else if (field.kind === 'equation') {
+      if (isAggregateEquation(fieldString)) {
+        aggregateFields.push(fieldString);
+      } else {
+        nonAggregateFields.push(fieldString);
+      }
+    } else {
+      nonAggregateFields.push(fieldString);
+    }
+
+    fieldAliases.push(field.alias ?? '');
+  }
+
+  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
 }
 
 /**
@@ -1152,7 +1232,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType) {
+export function isLegalYAxisType(match: ColumnType | MetricsType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

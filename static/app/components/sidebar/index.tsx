@@ -6,22 +6,25 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {
-  IconActivity,
+  doesPathHaveNewFilters,
+  extractSelectionParameters,
+} from 'sentry/components/organizations/pageFilters/utils';
+import {
   IconChevron,
-  IconGraph,
+  IconDashboard,
   IconIssues,
   IconLab,
   IconLightning,
+  IconList,
   IconProject,
   IconReleases,
   IconSettings,
   IconSiren,
+  IconSpan,
   IconStats,
   IconSupport,
   IconTelescope,
@@ -69,8 +72,8 @@ function Sidebar({location, organization}: Props) {
     action();
   };
 
-  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
-  const hidePanel = () => SidebarPanelActions.hidePanel();
+  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelStore.togglePanel(panel);
+  const hidePanel = () => SidebarPanelStore.hidePanel();
 
   const bcl = document.body.classList;
 
@@ -108,11 +111,13 @@ function Sidebar({location, organization}: Props) {
     pathname: string,
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
-    // XXX(epurkhiser): No need to navigation w/ the page filters in the world
+    // XXX(epurkhiser): No need to navigate w/ the page filters in the world
     // of new page filter selection. You must pin your filters in which case
     // they will persist anyway.
-    if (organization?.features.includes('selection-filters-v2')) {
-      return;
+    if (organization) {
+      if (doesPathHaveNewFilters(pathname, organization)) {
+        return;
+      }
     }
 
     const globalSelectionRoutes = [
@@ -277,6 +282,21 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const replays = hasOrganization && (
+    <Feature features={['session-replay']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt)
+        }
+        icon={<IconLab size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+      />
+    </Feature>
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -290,7 +310,7 @@ function Sidebar({location, organization}: Props) {
         onClick={(_id, evt) =>
           navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt)
         }
-        icon={<IconGraph size="md" />}
+        icon={<IconDashboard size="md" />}
         label={t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
@@ -298,10 +318,31 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const profiling = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:profiling-sidebar-item"
+      features={['profiling']}
+      organization={organization}
+      requireAll={false}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        }
+        icon={<IconSpan size="md" />}
+        label={t('Profiling')}
+        to={`/organizations/${organization.slug}/profiling/`}
+        id="profiling"
+      />
+    </Feature>
+  );
+
   const activity = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconActivity size="md" />}
+      icon={<IconList size="md" />}
       label={t('Activity')}
       to={`/organizations/${organization.slug}/activity/`}
       id="activity"
@@ -353,9 +394,11 @@ function Sidebar({location, organization}: Props) {
                 {alerts}
                 {discover2}
                 {dashboards}
+                {profiling}
               </SidebarSection>
 
               <SidebarSection>{monitors}</SidebarSection>
+              <SidebarSection>{replays}</SidebarSection>
 
               <SidebarSection>
                 {activity}

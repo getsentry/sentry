@@ -1,5 +1,5 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -41,7 +41,7 @@ describe('TraceDetailsContent', () => {
       const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
       const meta = {errors: 2, projects: 1, transactions: 0};
 
-      mountWithTheme(
+      render(
         <TraceDetailsContent
           location={initialData.location}
           organization={initialData.organization}
@@ -69,6 +69,44 @@ describe('TraceDetailsContent', () => {
       ).toBeInTheDocument();
       expect(
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].level)
+      ).toBeInTheDocument();
+    });
+
+    it('should should display an error if the error events could not be fetched', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        statusCode: 404,
+        body: {detail: 'This is a test error'},
+      });
+
+      const initialData = initializeData();
+      const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+      const meta = {errors: 2, projects: 1, transactions: 0};
+
+      render(
+        <TraceDetailsContent
+          location={initialData.location}
+          organization={initialData.organization}
+          traceSlug="123"
+          params={{traceSlug: '123'}}
+          traceEventView={eventView}
+          dateSelected
+          isLoading={false}
+          error={null}
+          traces={null}
+          meta={meta}
+        />
+      );
+
+      const errorText = await screen.findByText(
+        'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events:'
+      );
+
+      const errorContainer = errorText.parentElement;
+      expect(errorContainer).not.toBeNull();
+
+      expect(
+        within(errorContainer!).getByText('This is a test error')
       ).toBeInTheDocument();
     });
   });

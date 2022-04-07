@@ -6,24 +6,20 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationMemberUnreleasedCommitsTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user("foo@example.com")
-        org = self.create_organization(name="foo")
-        team = self.create_team(name="foo", organization=org)
-        self.create_member(organization=org, user=user, role="admin", teams=[team])
-        project = self.create_project(name="foo", organization=org, teams=[team])
+    endpoint = "sentry-api-0-organization-member-unreleased-commits"
 
-        repo = self.create_repo(project)
-        repo2 = self.create_repo(project)
+    def test_simple(self):
+        repo = self.create_repo(self.project)
+        repo2 = self.create_repo(self.project)
 
         # we first need to create a release attached to a repository, or that repository
         # will never be included
-        release = self.create_release(project)
-        author = self.create_commit_author(project=project, user=user)
+        release = self.create_release(self.project)
+        author = self.create_commit_author(project=self.project, user=self.user)
 
         # note: passing 'release' to create_commit causes it to bind ReleaseCommit
         self.create_commit(
-            project=project,
+            project=self.project,
             repo=repo,
             release=release,
             author=author,
@@ -32,7 +28,7 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
 
         # create a commit associated with an unreleased repo -- which should not appear
         self.create_commit(
-            project=project,
+            project=self.project,
             repo=repo2,
             author=author,
             date_added=datetime(2015, 1, 2, tzinfo=timezone.utc),
@@ -40,30 +36,29 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
 
         # create several unreleased commits associated with repo
         unreleased_commit = self.create_commit(
-            project=project,
+            project=self.project,
             repo=repo,
             author=author,
             date_added=datetime(2015, 1, 2, tzinfo=timezone.utc),
         )
         unreleased_commit2 = self.create_commit(
-            project=project,
+            project=self.project,
             repo=repo,
             author=author,
             date_added=datetime(2015, 1, 3, tzinfo=timezone.utc),
         )
         self.create_commit(
-            project=project, repo=repo, date_added=datetime(2015, 1, 3, tzinfo=timezone.utc)
+            project=self.project,
+            repo=repo,
+            date_added=datetime(2015, 1, 3, tzinfo=timezone.utc),
         )
 
-        path = f"/api/0/organizations/{org.slug}/members/me/unreleased-commits/"
+        self.login_as(self.user)
 
-        self.login_as(user)
+        response = self.get_success_response(self.organization.slug, "me")
 
-        resp = self.client.get(path)
-
-        assert resp.status_code == 200
-        assert len(resp.data["commits"]) == 2
-        assert resp.data["commits"][0]["id"] == unreleased_commit2.key
-        assert resp.data["commits"][1]["id"] == unreleased_commit.key
-        assert len(resp.data["repositories"]) == 1
-        assert str(repo.id) in resp.data["repositories"]
+        assert len(response.data["commits"]) == 2
+        assert response.data["commits"][0]["id"] == unreleased_commit2.key
+        assert response.data["commits"][1]["id"] == unreleased_commit.key
+        assert len(response.data["repositories"]) == 1
+        assert str(repo.id) in response.data["repositories"]

@@ -450,8 +450,8 @@
             <h4>Errors Seen {{ duration.noun|title }}</h4>
         </td>
         <td class="legend">
-            <span class="swatch all"></span> All: {{ report.series.all|small_count }}
-            <span class="swatch resolved"></span> Resolved: {{ report.series.resolved|small_count }}
+            <span class="swatch all"></span> All: {{ report.error_series.all|small_count }}
+            <span class="swatch resolved"></span> Resolved: {{ report.error_series.resolved|small_count }}
         </td>
       </tr>
     </table>
@@ -461,9 +461,9 @@
         <td width="33%" class="issues-resolved-column issues-resolved-column-left">
           <table class="issue-graph">
             <tr class="graph">
-            {% with report.series.maximum as max %}
-            {% for timestamp, metrics in report.series.points %}
-              <td valign="bottom" style="width: {% widthratio 1 report.series.points|length 100 %}%">
+            {% with report.error_series.maximum as max %}
+            {% for timestamp, metrics in report.error_series.points %}
+              <td valign="bottom" style="width: {% widthratio 1 report.error_series.points|length 100 %}%">
                 <table class="bar">
                   {% if metrics.resolved or metrics.unresolved %}
                     <tr>
@@ -482,8 +482,8 @@
             {% endwith %}
             </tr>
             <tr class="labels">
-              {% for timestamp, metrics in report.series.points %}
-                <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format|first }}</td>
+              {% for timestamp, metrics in report.error_series.points %}
+                <td title="{{ timestamp }}" style="width: {% widthratio 1 report.error_series.points|length 100 %}%">{{ timestamp|date:duration.date_format|first }}</td>
               {% endfor %}
             </tr>
           </table>

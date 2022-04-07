@@ -1,11 +1,11 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import InputField from 'sentry/components/forms/inputField';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
 import {binarySuggestions, unarySuggestions} from '../../utils';

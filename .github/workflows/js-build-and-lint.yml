@@ -70,9 +70,11 @@ jobs:
       # - yarn lockfile has changed (i.e. we bump our eslint config)
       - name: eslint
         if: steps.eslint.outputs.all-files == 'true'
-        run: |
+        env:
           # Run relax config on main branch (and stricter config for changed files)
-          yarn lint -c .eslintrc.relax.js
+          SENTRY_ESLINT_RELAXED: 1
+        run: |
+          yarn lint
           yarn lint:css
 
       # Otherwise... only lint modified files
@@ -105,7 +107,8 @@ jobs:
       - name: tsc
         if: steps.dependencies.outcome == 'success' && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn tsc -p config/tsconfig.build.json
+          set -o pipefail
+          yarn tsc -p config/tsconfig.build.json --diagnostics | tee /tmp/typescript-monitor.log && yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'

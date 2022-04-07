@@ -1,8 +1,11 @@
+from typing import Dict, List
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
+from typing_extensions import TypedDict
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider
@@ -15,6 +18,25 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMFilterError(ValueError):
     pass
+
+
+def scim_response_envelope(name, envelope):
+    from sentry.apidocs.utils import inline_sentry_response_serializer
+
+    class SCIMListResponseEnvelope(SCIMListResponseDict):
+        Resources: List[envelope]
+
+    return inline_sentry_response_serializer(
+        f"SCIMListResponseEnvelope{name}", SCIMListResponseEnvelope
+    )
+
+
+class SCIMListResponseDict(TypedDict):
+    schemas: List[str]
+    totalResults: int
+    startIndex: int
+    itemsPerPage: int
+    Resources: List[Dict]
 
 
 class SCIMClientNegotiation(BaseContentNegotiation):
@@ -42,12 +64,29 @@ class SCIMQueryParamSerializer(serializers.Serializer):
     # We convert them to snake_case using the source field
 
     startIndex = serializers.IntegerField(
-        min_value=1, required=False, default=1, source="start_index"
+        min_value=1,
+        required=False,
+        default=1,
+        source="start_index",
+        help_text="SCIM 1-offset based index for pagination.",
     )
-    count = serializers.IntegerField(min_value=0, required=False, default=100)
-    filter = serializers.CharField(required=False, default=None)
+    count = serializers.IntegerField(
+        min_value=0,
+        required=False,
+        default=100,
+        help_text="The maximum number of results the query should return, maximum of 100.",
+    )
+    filter = serializers.CharField(
+        required=False,
+        default=None,
+        help_text="A SCIM filter expression. The only operator currently supported is `eq`.",
+    )
     excludedAttributes = serializers.ListField(
-        child=serializers.CharField(), required=False, default=[], source="excluded_attributes"
+        child=serializers.CharField(),
+        required=False,
+        default=[],
+        source="excluded_attributes",
+        help_text="Fields that should be left off of return values. Right now the only supported field for this query is members.",
     )
 
     def validate_filter(self, filter):

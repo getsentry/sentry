@@ -20,10 +20,9 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
-      button = component.find('ResolveButton').first();
+      button = component.find('ResolveButton button').first();
     });
 
     it('has disabled prop', function () {
@@ -48,18 +47,17 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
     it('main button is enabled', function () {
-      button = component.find('ResolveButton');
+      button = component.find('ResolveButton button');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
     it('main button calls onUpdate when clicked', function () {
-      button = component.find('ResolveButton');
+      button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
@@ -82,8 +80,7 @@ describe('ResolveActions', function () {
           orgSlug="org-1"
           projectSlug="proj-1"
           isResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -111,8 +108,7 @@ describe('ResolveActions', function () {
           projectSlug="proj-1"
           isResolved
           isAutoResolved
-        />,
-        TestStubs.routerContext()
+        />
       );
 
       component.find('button[aria-label="Unresolve"]').simulate('click');
@@ -130,8 +126,7 @@ describe('ResolveActions', function () {
           hasRelease={false}
           orgSlug="org-1"
           projectSlug="proj-1"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -140,7 +135,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('ResolveButton');
+      const button = component.find('ResolveButton button');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -163,8 +158,7 @@ describe('ResolveActions', function () {
             shouldConfirm
             confirmMessage="Are you sure???"
           />
-        </Fragment>,
-        TestStubs.routerContext()
+        </Fragment>
       );
     });
 
@@ -173,7 +167,7 @@ describe('ResolveActions', function () {
     });
 
     it('displays confirmation modal with message provided', async function () {
-      button = component.find('ResolveButton').first();
+      button = component.find('ResolveButton button').first();
       button.simulate('click');
 
       await tick();
@@ -203,13 +197,13 @@ describe('ResolveActions', function () {
           projectSlug="project-slug"
           onUpdate={onUpdate}
         />
-      </Fragment>,
-      TestStubs.routerContext()
+      </Fragment>
     );
 
     await selectDropdownMenuItem({
       wrapper,
       itemKey: 'another-release',
+      triggerSelector: 'DropdownTrigger',
     });
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([

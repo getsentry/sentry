@@ -43,8 +43,7 @@ describe('SentryAppExternalIssueForm', () => {
           config={component.schema.create}
           action="create"
           api={new Client()}
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -106,8 +105,7 @@ describe('SentryAppExternalIssueForm', () => {
           config={component.schema.link}
           action="link"
           api={new Client()}
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -181,8 +179,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
           config={component.schema.create}
           action="create"
           api={new Client()}
-        />,
-        TestStubs.routerContext()
+        />
       );
 
       const thisInput = wrapper.find('input').at(0);
@@ -221,8 +218,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
         config={component.schema.create}
         action="create"
         api={new Client()}
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
 

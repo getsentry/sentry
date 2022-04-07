@@ -15,10 +15,10 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppInstallation,
     Team,
     User,
 )
-from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 

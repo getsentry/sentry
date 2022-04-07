@@ -3,8 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
+import uniq from 'lodash/uniq';
 import moment from 'moment';
 
+import SelectControl from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
@@ -14,6 +16,7 @@ import {DateString, TeamWithProjects} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import {dataDatetime} from './utils';
 
@@ -30,13 +33,25 @@ const PAGE_QUERY_PARAMS = [
   'query',
   'cursor',
   'team',
+  'environment',
 ];
 
 type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'router' | 'location'> & {
+  currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
+  showEnvironment?: boolean;
 };
 
-function TeamStatsControls({location, router, currentTeam}: Props) {
+function TeamStatsControls({
+  location,
+  router,
+  currentTeam,
+  currentEnvironment,
+  showEnvironment,
+}: Props) {
+  const {projects} = useProjects({
+    slugs: currentTeam?.projects.map(project => project.slug) ?? [],
+  });
   const organization = useOrganization();
   const isSuperuser = isActiveSuperuser();
   const theme = useTheme();
@@ -46,7 +61,16 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
 
   function handleChangeTeam(teamId: string) {
     localStorage.setItem(localStorageKey, teamId);
-    setStateOnUrl({team: teamId});
+    // TODO(workflow): Preserve environment if it exists for the new team
+    setStateOnUrl({team: teamId, environment: undefined});
+  }
+
+  function handleEnvironmentChange({value}: {label: string; value: string}) {
+    if (value === '') {
+      setStateOnUrl({environment: undefined});
+    } else {
+      setStateOnUrl({environment: value});
+    }
   }
 
   function handleUpdateDatetime(datetime: ChangeData): LocationDescriptorObject {
@@ -72,6 +96,7 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
   }
 
   function setStateOnUrl(nextState: {
+    environment?: string;
     pageEnd?: DateString;
     pageStart?: DateString;
     pageStatsPeriod?: string | null;
@@ -94,9 +119,12 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
   }
 
   const {period, start, end, utc} = dataDatetime(query);
+  const environmentOptions = uniq(
+    projects.map(project => project.environments).flat()
+  ).map(env => ({label: env, value: env}));
 
   return (
-    <ControlsWrapper>
+    <ControlsWrapper showEnvironment={showEnvironment}>
       <StyledTeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
@@ -136,6 +164,50 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
           }),
         }}
       />
+      {showEnvironment && (
+        <SelectControl
+          options={[
+            {
+              value: '',
+              label: t('All'),
+            },
+            ...environmentOptions,
+          ]}
+          value={currentEnvironment ?? ''}
+          onChange={handleEnvironmentChange}
+          styles={{
+            input: (provided: any) => ({
+              ...provided,
+              display: 'grid',
+              gridTemplateColumns: 'max-content 1fr',
+              alignItems: 'center',
+              gridGap: space(1),
+              ':before': {
+                height: 24,
+                width: 90,
+                borderRadius: 3,
+                content: '""',
+                display: 'block',
+              },
+            }),
+            control: (base: any) => ({
+              ...base,
+              boxShadow: 'none',
+            }),
+            singleValue: (base: any) => ({
+              ...base,
+              fontSize: theme.fontSizeMedium,
+              display: 'flex',
+              ':before': {
+                ...base[':before'],
+                color: theme.textColor,
+                marginRight: space(1.5),
+              },
+            }),
+          }}
+          inFieldLabel={t('Environment:')}
+        />
+      )}
       <StyledPageTimeRangeSelector
         organization={organization}
         relative={period ?? ''}
@@ -157,14 +229,14 @@ function TeamStatsControls({location, router, currentTeam}: Props) {
 
 export default TeamStatsControls;
 
-const ControlsWrapper = styled('div')`
+const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;
   align-items: center;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 246px 1fr;
+    grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;
   }
 `;
 

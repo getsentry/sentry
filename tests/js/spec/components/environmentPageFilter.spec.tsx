@@ -1,54 +1,59 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, mountWithTheme, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+
+const {organization, router, routerContext} = initializeOrg({
+  organization: {features: ['global-views', 'selection-filters-v2']},
+  project: undefined,
+  projects: [
+    {
+      id: 2,
+      slug: 'project-2',
+      environments: ['prod', 'staging'],
+    },
+  ],
+  router: {
+    location: {
+      pathname: '/organizations/org-slug/issues/',
+      query: {},
+    },
+    params: {orgId: 'org-slug'},
+  },
+});
 
 describe('EnvironmentPageFilter', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views', 'selection-filters-v2']},
-    project: undefined,
-    projects: [
-      {
-        id: 2,
-        slug: 'project-2',
-        environments: ['prod', 'staging'],
-      },
-    ],
-    router: {
-      location: {query: {}},
-      params: {orgId: 'org-slug'},
-    },
-  });
-  OrganizationStore.onUpdate(organization, {replace: true});
-  ProjectsStore.loadInitialData(organization.projects);
-
   beforeEach(() => {
-    act(() => {
-      PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [2],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
-    });
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData(organization.projects);
+
+    PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [2],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set()
+    );
+  });
+
+  afterEach(() => {
+    OrganizationStore.teardown();
+    ProjectsStore.teardown();
   });
 
   it('can pick environment', function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();
@@ -68,14 +73,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can pin environment', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
     // Confirm no filters are pinned
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -88,10 +89,10 @@ describe('EnvironmentPageFilter', function () {
     userEvent.click(screen.getByText('All Environments'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
-    userEvent.click(pinButton);
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -101,14 +102,10 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('can quick select', async function () {
-    mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EnvironmentPageFilter />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<EnvironmentPageFilter />, {
+      context: routerContext,
+      organization,
+    });
 
     // Open the environment dropdown
     expect(screen.getByText('All Environments')).toBeInTheDocument();

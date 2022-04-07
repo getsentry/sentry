@@ -23,7 +23,7 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with initialData', function () {
-    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator());
 
     expect(wrapper.find("RangeSlider[name='accountRateLimit']").prop('value')).toBe(
       70000
@@ -39,10 +39,7 @@ describe('Organization Rate Limits', function () {
         maxRateInterval: 60,
       },
     };
-    const wrapper = mountWithTheme(
-      creator({organization: org}),
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(creator({organization: org}));
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
@@ -56,7 +53,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -86,7 +83,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator());
 
     expect(mock).not.toHaveBeenCalled();
 

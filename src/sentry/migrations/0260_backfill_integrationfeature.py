@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-from sentry.models.integrationfeature import IntegrationTypes
+from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 

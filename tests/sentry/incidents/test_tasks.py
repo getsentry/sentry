@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
 import pytz
@@ -7,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
+    CRITICAL_TRIGGER_LABEL,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_incident_activity,
@@ -20,12 +22,15 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
+    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -146,7 +151,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", 100)
+        return create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
 
     @fixture
     def action(self):
@@ -189,17 +194,23 @@ class HandleTriggerActionTest(TestCase):
                     self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
-            mock_handler.return_value.fire.assert_called_once_with(metric_value)
+            mock_handler.return_value.fire.assert_called_once_with(
+                metric_value, IncidentStatus.CRITICAL
+            )
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
     @fixture
-    def rule(self):
-        return self.create_alert_rule()
-
-    @fixture
     def subscription(self):
-        return self.rule.snuba_query.subscriptions.get()
+        snuba_query = create_snuba_query(
+            QueryDatasets.METRICS,
+            "hello",
+            "count()",
+            timedelta(minutes=1),
+            timedelta(minutes=1),
+            None,
+        )
+        return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
@@ -215,18 +226,18 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         }
 
     def test(self):
-        with patch("sentry.incidents.tasks.metrics") as metrics:
-            handle_subscription_metrics_logger(self.build_subscription_update(), self.subscription)
-            assert metrics.incr.call_args_list == [
+        with patch("sentry.incidents.tasks.logger") as logger:
+            subscription_update = self.build_subscription_update()
+            handle_subscription_metrics_logger(subscription_update, self.subscription)
+            assert logger.info.call_args_list == [
                 call(
-                    "subscriptions.result.value",
-                    100,
-                    tags={
-                        "project_id": self.project.id,
-                        "project_slug": self.project.slug,
+                    "handle_subscription_metrics_logger.message",
+                    extra={
                         "subscription_id": self.subscription.id,
-                        "time_window": 600,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
+                        "aggregation_value": None,
                     },
-                    sample_rate=1.0,
                 )
             ]

@@ -5,7 +5,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Button from 'sentry/components/button';
-import Hovercard from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
 import {IconLock} from 'sentry/icons';
@@ -203,6 +203,6 @@ const LockedFeature = ({provider, features, className}: LockedFeatureProps) => (
       />
     }
   >
-    <Tag icon={<IconLock />}>{t('disabled')}</Tag>
+    <Tag icon={<IconLock isSolid />}>{t('disabled')}</Tag>
   </DisabledHovercard>
 );

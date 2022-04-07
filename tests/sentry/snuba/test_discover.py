@@ -488,7 +488,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "release": "first-release",
                 "environment": "prod",
                 "platform": "python",
-                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "user": {"username": "brucew", "id": "1234", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `id`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "1234", "ip": "127.0.0.1"},
                 "timestamp": iso_format(self.event_time),
             },
             project_id=self.project.id,
@@ -520,10 +533,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 use_snql=use_snql,
             )
             data = result["data"]
-            assert len(data) == 3, use_snql
+            assert len(data) == 4, use_snql
             assert {item["user.display"] for item in data} == {
                 "bruce@example.com",
                 "brucew",
+                "1234",
                 "127.0.0.1",
             }, use_snql
 
@@ -1454,17 +1468,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 if expected_length > 1:
                     assert data[1]["failure_rate"] == 0.3, use_snql
 
+    def _create_percentile_events(self, project):
+        for i in range(6):
+            start = before_now(minutes=3)
+            end = start - timedelta(minutes=1 + i)
+            data = load_data(
+                "transaction",
+                timestamp=start,
+                start_timestamp=end,
+            )
+            data["transaction"] = "/p50"
+            self.store_event(data, project_id=project.id)
+
     def test_percentile(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/percentile"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1495,20 +1514,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["percentile_transaction_duration_0_7"]) == 270000, use_snql
-                    assert round(data[0]["percentile_transaction_duration_0_5"]) == 210000, use_snql
+                    assert data[0]["percentile_transaction_duration_0_7"] == 270000, use_snql
+                    assert data[0]["percentile_transaction_duration_0_5"] == 210000, use_snql
 
     def test_p50(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/p50"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1538,19 +1550,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["p50_transaction_duration"]) == 210000, use_snql
+                    assert data[0]["p50_transaction_duration"] == 210000, use_snql
 
     def test_p75(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/p75"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1580,19 +1585,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["p75_transaction_duration"]) == 285000, use_snql
+                    assert data[0]["p75_transaction_duration"] == 285000, use_snql
 
     def test_p95(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/p95"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1622,19 +1620,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["p95_transaction_duration"]) == 345000, use_snql
+                    assert data[0]["p95_transaction_duration"] == 345000, use_snql
 
     def test_p99(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/p99"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1664,19 +1655,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["p99_transaction_duration"]) == 357000, use_snql
+                    assert data[0]["p99_transaction_duration"] == 357000, use_snql
 
     def test_p100(self):
         project = self.create_project()
 
-        for i in range(6):
-            data = load_data(
-                "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + i),
-            )
-            data["transaction"] = "/p100"
-            self.store_event(data, project_id=project.id)
+        self._create_percentile_events(project)
 
         queries = [
             ("", 1, True),
@@ -1706,7 +1690,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
                 assert len(data) == expected_length, use_snql
                 if expected_length > 0:
-                    assert round(data[0]["p100_transaction_duration"]) == 360000, use_snql
+                    assert data[0]["p100_transaction_duration"] == 360000, use_snql
 
     def test_p100_with_measurement(self):
         project = self.create_project()
@@ -1782,10 +1766,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_min_max(self):
         """Testing both min and max since they're so similar"""
         for idx in range(3):
+            start = before_now(minutes=3)
+            end = start - timedelta(minutes=1 + idx)
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + idx),
+                timestamp=start,
+                start_timestamp=end,
             )
             self.store_event(data, project_id=self.project.id)
 
@@ -1812,10 +1798,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_stats_functions(self):
         for idx in range(3):
+            start = before_now(minutes=3)
+            end = start - timedelta(minutes=1 + idx)
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 + idx),
+                timestamp=start,
+                start_timestamp=end,
             )
             self.store_event(data, project_id=self.project.id)
 
@@ -1854,11 +1842,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0][alias] == expected, column
 
     def test_count_at_least(self):
+        end = before_now(minutes=3)
+        start_one_minute = end - timedelta(minutes=1)
+        start_two_minute = end - timedelta(minutes=2)
         for idx in range(3):
             data = load_data(
                 "transaction",
-                timestamp=before_now(minutes=3),
-                start_timestamp=before_now(minutes=4 if idx < 1 else 5),
+                timestamp=end,
+                start_timestamp=start_one_minute if idx < 1 else start_two_minute,
             )
             self.store_event(data, project_id=self.project.id)
         for use_snql in [False, True]:

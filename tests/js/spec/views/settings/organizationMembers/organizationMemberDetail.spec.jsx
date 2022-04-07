@@ -132,7 +132,7 @@ describe('OrganizationMemberDetail', function () {
         routerContext
       );
       // Wait for team list to fetch.
-      await wrapper.update();
+      wrapper.update();
 
       // Should have one team enabled
       expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
@@ -142,7 +142,7 @@ describe('OrganizationMemberDetail', function () {
       wrapper.find('TeamSelect DropdownButton').simulate('click');
 
       // Click the first item
-      wrapper.find('TeamSelect DropdownTeamBadge').first().simulate('click');
+      wrapper.find('TeamSelect [title="new team"]').at(0).simulate('click');
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -169,7 +169,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
-      await wrapper.update();
+      wrapper.update();
 
       // Should have 4 roles
       expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
@@ -372,7 +372,7 @@ describe('OrganizationMemberDetail', function () {
       const modal = await mountGlobalModal();
       modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
-      deleteMocks.map(deleteMock => {
+      deleteMocks.forEach(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
     });

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -14,7 +15,8 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownControl from 'sentry/components/dropdownControl';
-import Hovercard from 'sentry/components/hovercard';
+import InputControl from 'sentry/components/forms/controls/input';
+import {Hovercard} from 'sentry/components/hovercard';
 import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -22,6 +24,7 @@ import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
@@ -31,7 +34,6 @@ import {
   DisplayType,
   WidgetQuery,
 } from 'sentry/views/dashboardsV2/types';
-import InputControl from 'sentry/views/settings/components/forms/controls/input';
 
 import {
   displayModeToDisplayType,
@@ -61,6 +63,7 @@ type Props = DefaultProps & {
   >['onIncompatibleQuery'];
   organization: Organization;
   projects: Project[];
+  router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   updateCallback: () => void;
@@ -234,15 +237,22 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery, yAxis} = this.props;
+    const {organization, router, location, eventView, savedQuery, yAxis} = this.props;
 
     const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-    const defaultTableColumns = eventView.fields.map(({field}) => field);
+    const defaultTableFields = eventView.fields.map(({field}) => field);
+    const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
+
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
+      aggregates: [
+        ...(displayType === DisplayType.TOP_N ? aggregates : []),
+        ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
+      ],
+      columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
-        ...(displayType === DisplayType.TOP_N ? defaultTableColumns : []),
+        ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
         ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
       conditions: eventView.query,
@@ -254,14 +264,30 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       saved_query: !!savedQuery,
     });
 
+    const defaultTitle =
+      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+    if (organization.features.includes('new-widget-builder-experience')) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DISCOVERV2,
+          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultTableColumns: defaultTableFields,
+          defaultTitle,
+          displayType,
+        },
+      });
+      return;
+    }
+
     openAddDashboardWidgetModal({
       organization,
       source: DashboardWidgetSource.DISCOVERV2,
       defaultWidgetQuery,
-      defaultTableColumns,
-      defaultTitle:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined),
+      defaultTableColumns: defaultTableFields,
+      defaultTitle,
       displayType,
     });
   };
@@ -375,6 +401,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
           referrer="discover"
+          aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
       </GuideAnchor>

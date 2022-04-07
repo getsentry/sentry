@@ -7,11 +7,11 @@ import {urlEncode} from '@sentry/utils';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
@@ -22,7 +22,6 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked';
 import AsyncView from 'sentry/views/asyncView';
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
-import Field from 'sentry/views/settings/components/forms/field';
 
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
@@ -257,7 +256,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" icon={<IconFlag size="md" />}>
+          <Alert type="error" showIcon>
             <p>
               {tct(
                 `You do not have permission to install integrations in

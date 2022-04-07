@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from datetime import timedelta
-from typing import Any, List, MutableMapping, Optional, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Iterable, List, MutableMapping, Sequence
 
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
+from typing_extensions import TypedDict
 
 from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -149,8 +152,28 @@ def get_features_for_projects(
     return features_by_project
 
 
+class ProjectSerializerResponse(TypedDict):
+    id: str
+    slug: str
+    name: str  # TODO: add deprecation about this field (not used in app)
+    isPublic: bool
+    isBookmarked: bool
+    color: str
+    dateCreated: datetime
+    firstEvent: datetime
+    firstTransactionEvent: bool
+    hasSessions: bool
+    features: List[str]
+    status: str  # TODO enum/literal
+    platform: str
+    isInternal: bool
+    isMember: bool
+    hasAccess: bool
+    avatar: Any  # TODO: use Avatar type from other serializers
+
+
 @register(Project)
-class ProjectSerializer(Serializer):
+class ProjectSerializer(Serializer):  # type: ignore
     """
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.
@@ -158,18 +181,29 @@ class ProjectSerializer(Serializer):
 
     def __init__(
         self,
-        environment_id: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        transaction_stats: Optional[str] = None,
-        session_stats: Optional[str] = None,
+        environment_id: str | None = None,
+        stats_period: str | None = None,
+        expand: Iterable[str] | None = None,
+        collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
-        self.transaction_stats = transaction_stats
-        self.session_stats = session_stats
+        self.expand = expand
+        self.collapse = collapse
+
+    def _expand(self, key: str) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key: str) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -204,13 +238,13 @@ class ProjectSerializer(Serializer):
             transaction_stats = None
             session_stats = None
             project_ids = [o.id for o in item_list]
-            if self.transaction_stats and self.stats_period:
+
+            if self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
-                transaction_stats = self.get_stats(project_ids, "event.type:transaction")
-            elif self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
-            if self.session_stats:
-                session_stats = self.get_session_stats(project_ids)
+                if self._expand("transaction_stats"):
+                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                if self._expand("session_stats"):
+                    session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
@@ -334,7 +368,7 @@ class ProjectSerializer(Serializer):
 
         return project_health_data_dict
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         if attrs.get("avatar"):
@@ -345,7 +379,7 @@ class ProjectSerializer(Serializer):
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
-        context = {
+        context: ProjectSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -429,24 +463,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(
-        self,
-        environment_id=None,
-        stats_period=None,
-        transaction_stats=None,
-        session_stats=None,
-        collapse=None,
-    ):
-        super(ProjectWithTeamSerializer, self).__init__(
-            environment_id, stats_period, transaction_stats, session_stats
-        )
-        self.collapse = collapse
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
-
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(

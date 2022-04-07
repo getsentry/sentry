@@ -1,16 +1,16 @@
-import Alert from 'sentry/components/alert';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {
+import type Alert from 'sentry/components/alert';
+import type {Field} from 'sentry/components/forms/type';
+import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'sentry/views/organizationIntegrations/constants';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
-import {Avatar, Choices, ObjectStatus, Scope} from './core';
-import {BaseRelease} from './release';
-import {User} from './user';
+import type {Avatar, Choices, ObjectStatus, Scope} from './core';
+import type {BaseRelease} from './release';
+import type {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
@@ -22,6 +22,8 @@ export type Permissions = {
   Release: PermissionValue;
   Team: PermissionValue;
 };
+
+export type PermissionResource = keyof Permissions;
 
 export type ExternalActorMapping = {
   externalName: string;
@@ -257,7 +259,9 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
+  alerts?: Array<
+    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
+  >;
   configure_integration?: {
     title: string;
   };
@@ -448,7 +452,7 @@ export type AppOrProviderOrPlugin =
 /**
  * Webhooks and servicehooks
  */
-export type WebhookEvent = 'issue' | 'error';
+export type WebhookEvent = 'issue' | 'error' | 'comment';
 
 export type ServiceHook = {
   dateCreated: string;

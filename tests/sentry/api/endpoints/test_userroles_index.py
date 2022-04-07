@@ -37,7 +37,7 @@ class UserRolesGetTest(UserRolesTest, PermissionTestMixin):
         UserRole.objects.create(name="test-role")
         resp = self.get_response()
         assert resp.status_code == 200
-        assert len(resp.data) == 1, resp.data
+        assert len(resp.data) >= 1, resp.data
         assert "test-role" in [r["name"] for r in resp.data]
 
 

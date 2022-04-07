@@ -15,7 +15,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelTable} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {IconActivity, IconArrow, IconChevron, IconWarning} from 'sentry/icons';
+import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -989,7 +989,7 @@ function ReleaseComparisonChart({
         {additionalCharts.length > 0 && (
           <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <ShowMoreTitle>
-              <IconActivity size="xs" />
+              <IconList size="xs" />
               {isOtherExpanded
                 ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
                 : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}

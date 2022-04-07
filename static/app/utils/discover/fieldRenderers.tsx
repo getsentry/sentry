@@ -89,7 +89,19 @@ export type FieldTypes = keyof FieldFormatters;
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
-const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+
+export function nullableValue(value: string | null): string | React.ReactElement {
+  switch (value) {
+    case null:
+      return emptyValue;
+    case '':
+      return emptyStringValue;
+    default:
+      return value;
+  }
+}
 
 /**
  * A mapping of field types to their rendering function.
@@ -173,7 +185,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </Container>
         );
       }
-      return <Container>{value}</Container>;
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {
@@ -378,8 +390,12 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (values === null || values?.length === 0) {
         return <Container>{emptyValue}</Container>;
       }
-      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
-      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+      const value = Array.isArray(values) ? values : [values];
+      return (
+        <Container>
+          {value.every(v => [1, null].includes(v)) ? 'true' : 'false'}
+        </Container>
+      );
     },
   },
   team_key_transaction: {
@@ -661,11 +677,13 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
@@ -675,7 +693,7 @@ export function getFieldRenderer(
     return spanOperationRelativeBreakdownRenderer;
   }
 
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
@@ -698,13 +716,15 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
  *
  * @param {String} field name
  * @param {object} metadata mapping.
+ * @param {boolean} isAlias convert the name with getAggregateAlias
  * @returns {Function}
  */
 export function getFieldFormatter(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
-  const fieldName = getAggregateAlias(field);
+  const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {

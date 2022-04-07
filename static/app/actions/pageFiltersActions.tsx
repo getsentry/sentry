@@ -1,11 +1,12 @@
-import Reflux from 'reflux';
+import {createActions} from 'reflux';
 
-const PageFiltersActions = Reflux.createActions([
+const PageFiltersActions = createActions([
   'reset',
   'initializeUrlState',
   'updateProjects',
   'updateDateTime',
   'updateEnvironments',
+  'updateDesyncedFilters',
   'pin',
 ]);
 

@@ -18,7 +18,7 @@ describe('Sudo Modal', function () {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/?v2',
+      url: '/assistant/',
       body: [],
     });
     Client.addMockResponse({
@@ -45,10 +45,7 @@ describe('Sudo Modal', function () {
   it('can delete an org with sudo flow', async function () {
     setHasPasswordAuth(true);
 
-    const wrapper = mountWithTheme(
-      <App>{<div>placeholder content</div>}</App>,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
@@ -130,10 +127,7 @@ describe('Sudo Modal', function () {
   it('shows button to redirect if user does not have password auth', async function () {
     setHasPasswordAuth(false);
 
-    const wrapper = mountWithTheme(
-      <App>{<div>placeholder content</div>}</App>,
-      TestStubs.routerContext()
-    );
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();

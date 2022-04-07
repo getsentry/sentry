@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceContext';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
@@ -29,7 +30,7 @@ export function QueryHandler<T extends WidgetDataConstraint>(
 }
 
 function genericQueryReferrer(setting: PerformanceWidgetSetting) {
-  return `api.performance.generic-widget-chart.${setting.replaceAll('_', '-')}`;
+  return `api.performance.generic-widget-chart.${setting.replace(/_/g, '-')}`;
 }
 
 function SingleQueryHandler<T extends WidgetDataConstraint>(
@@ -88,10 +89,15 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
     results: any;
   } & QueryHandlerProps<T>
 ) {
+  const mepContext = useMEPDataContext();
   const {results, query} = props;
+
   const transformed = query.transform(props.queryProps, results, props.query);
 
   useEffect(() => {
+    const isMetricsData =
+      results?.seriesAdditionalInfo?.[props.queryProps.fields[0]]?.isMetricsData;
+    mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);
   return <Fragment />;

@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 import click
+from arroyo import configure_metrics
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
@@ -463,7 +464,7 @@ def batching_kafka_options(group):
             "force_cluster",
             default=None,
             type=str,
-            help="Kafka cluster ID of the overriden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
+            help="Kafka cluster ID of the overridden topic. Configure clusters via KAFKA_CLUSTERS in server settings.",
         )(f)
 
         return f
@@ -528,18 +529,6 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
-@run.command("ingest-metrics-consumer")
-@log_options()
-@click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
-@batching_kafka_options("ingest-metrics-consumer")
-@configuration
-def metrics_consumer(**options):
-
-    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
-
-    get_metrics_consumer(**options).run()
-
-
 @run.command("ingest-metrics-consumer-2")
 @log_options()
 @click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
@@ -552,8 +541,34 @@ def metrics_consumer(**options):
 )
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
+@click.option("--factory-name", default="default")
+@click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
+@click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+    from sentry.utils.metrics import backend
+
+    metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics)
 
     streamer = get_streaming_metrics_consumer(**options)
+
+    def handler(signum, frame):
+        streamer.signal_shutdown()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
     streamer.run()
+
+
+@run.command("ingest-profiles")
+@log_options()
+@click.option("--topic", default="profiles", help="Topic to get profiles data from.")
+@batching_kafka_options("ingest-profiles")
+@configuration
+def profiles_consumer(**options):
+    from sentry.profiles.consumer import get_profiles_consumer
+
+    get_profiles_consumer(**options).run()

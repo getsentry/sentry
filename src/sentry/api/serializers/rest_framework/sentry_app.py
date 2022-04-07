@@ -7,8 +7,8 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.models import ApiScopes
-from sentry.models.integrationfeature import Feature
-from sentry.models.sentryapp import (
+from sentry.models.integrations.integration_feature import Feature
+from sentry.models.integrations.sentry_app import (
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     VALID_EVENT_RESOURCES,
@@ -52,7 +52,7 @@ class SchemaField(serializers.Field):
             return {}
 
         try:
-            validate_ui_element_schema(data, self.context["features"])
+            validate_ui_element_schema(data)
         except SchemaValidationError as e:
             raise ValidationError(e.message)  # noqa: B306
 

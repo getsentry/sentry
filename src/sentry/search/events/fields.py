@@ -9,7 +9,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -355,7 +355,7 @@ FIELD_ALIASES = {
         PseudoField(
             USER_DISPLAY_ALIAS,
             USER_DISPLAY_ALIAS,
-            expression=["coalesce", ["user.email", "user.username", "user.ip"]],
+            expression=["coalesce", ["user.email", "user.username", "user.id", "user.ip"]],
         ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -439,7 +439,9 @@ def parse_arguments(function: str, columns: str) -> List[str]:
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if") or len(columns) == 0:
+    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
+        columns
+    ) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []
@@ -1015,6 +1017,7 @@ class StringArg(FunctionArg):
         unquote: Optional[bool] = False,
         unescape_quotes: Optional[bool] = False,
         optional_unquote: Optional[bool] = False,
+        allowed_strings: Optional[List[str]] = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -1026,6 +1029,7 @@ class StringArg(FunctionArg):
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
         self.optional_unquote = optional_unquote
+        self.allowed_strings = allowed_strings
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.unquote:
@@ -1036,6 +1040,9 @@ class StringArg(FunctionArg):
                 value = value[1:-1]
         if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
+        if self.allowed_strings:
+            if value not in self.allowed_strings:
+                raise InvalidFunctionArgument(f"string must be one of {self.allowed_strings}")
         return f"'{value}'"
 
 
@@ -1451,7 +1458,7 @@ class DiscoverFunction:
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
-        self.name = name
+        self.name: str = name
         self.required_args = [] if required_args is None else required_args
         self.optional_args = [] if optional_args is None else optional_args
         self.calculated_args = [] if calculated_args is None else calculated_args
@@ -1541,7 +1548,7 @@ class DiscoverFunction:
 
         return arguments
 
-    def get_result_type(self, field=None, arguments=None):
+    def get_result_type(self, field=None, arguments=None) -> Optional[str]:
         if field is None or arguments is None or self.result_type_fn is None:
             return self.default_result_type
 
@@ -2269,6 +2276,75 @@ class SnQLFunction(DiscoverFunction):
             ), f"{self.name}: optional argument at index {i} does not have default"
 
         assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
+            names.add(arg.name)
+
+        self.validate_result_type(self.default_result_type)
+
+
+class MetricArg(FunctionArg):
+    def __init__(
+        self,
+        name: str,
+        allowed_columns: Optional[Sequence[str]] = None,
+        validate_only: Optional[bool] = True,
+    ):
+        """
+        :param name: The name of the function, this refers to the name to invoke.
+        :param allowed_columns: Optional list of columns to allowlist, an empty sequence
+        or None means allow all columns
+        :param validate_only: Run normalize, and raise any errors involved but don't change
+        the value in any way and return it as-is
+        """
+        super().__init__(name)
+        # make sure to map the allowed columns to their snuba names
+        self.allowed_columns = allowed_columns
+        # Normalize the value to check if it is valid, but return the value as-is
+        self.validate_only = validate_only
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if self.allowed_columns is not None and len(self.allowed_columns) > 0:
+            if value in self.allowed_columns:
+                return value
+            else:
+                raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
+
+        return value
+
+
+class MetricsFunction(SnQLFunction):
+    """Metrics needs to differentiate between aggregate types so we can send queries to the right table"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.snql_distribution = kwargs.pop("snql_distribution", None)
+        self.snql_set = kwargs.pop("snql_set", None)
+        self.snql_counter = kwargs.pop("snql_counter", None)
+        super().__init__(*args, **kwargs)
+
+    def validate(self) -> None:
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), f"{self.name}: optional argument at index {i} does not have default"
+
+        assert (
+            sum(
+                [
+                    self.snql_distribution is not None,
+                    self.snql_set is not None,
+                    self.snql_counter is not None,
+                    self.snql_column is not None,
+                ]
+            )
+            == 1
+        )
 
         # assert that no duplicate argument names are used
         names = set()

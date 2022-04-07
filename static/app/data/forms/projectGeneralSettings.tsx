@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Field} from 'sentry/components/forms/type';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import slugify from 'sentry/utils/slugify';
-import {Field} from 'sentry/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';

@@ -19,7 +19,7 @@ import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import OrganizationContextContainer from 'sentry/views/organizationContext';
+import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -215,7 +215,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          componentPromise={() => import('sentry/views/onboarding/onboarding')}
+          componentPromise={() => import('sentry/views/onboarding/onboardingController')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -970,13 +970,13 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          path="widget/:widgetIndex/edit/"
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -984,7 +984,13 @@ function buildRoutes() {
         path="/organizations/:orgId/dashboards/new/:templateId"
         componentPromise={() => import('sentry/views/dashboardsV2/create')}
         component={SafeLazyLoad}
-      />
+      >
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/create')}
+          component={SafeLazyLoad}
+        />
+      </Route>
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
@@ -995,13 +1001,18 @@ function buildRoutes() {
         component={SafeLazyLoad}
       >
         <Route
-          path="widget/:widgetId/edit/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          path="widget/:widgetIndex/edit/"
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
           component={SafeLazyLoad}
         />
         <Route
           path="widget/new/"
-          componentPromise={() => import('sentry/views/dashboardsV2/widget')}
+          componentPromise={() => import('sentry/views/dashboardsV2/widgetBuilder')}
+          component={SafeLazyLoad}
+        />
+        <Route
+          path="widget/:widgetId/"
+          componentPromise={() => import('sentry/views/dashboardsV2/view')}
           component={SafeLazyLoad}
         />
       </Route>
@@ -1042,6 +1053,17 @@ function buildRoutes() {
             component={SafeLazyLoad}
           />
         </Route>
+        <Route
+          path=":projectId/:ruleId/details/"
+          name={t('Alert Rule Details')}
+          componentPromise={() => import('sentry/views/alerts/details')}
+          component={SafeLazyLoad}
+        >
+          <IndexRoute
+            component={SafeLazyLoad}
+            componentPromise={() => import('sentry/views/alerts/details/ruleDetails')}
+          />
+        </Route>
       </Route>
       <Route path="metric-rules/">
         <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
@@ -1060,8 +1082,20 @@ function buildRoutes() {
         </Route>
       </Route>
       <Route
+        path="new/"
+        name={t('New Alert Rule')}
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/alerts/builder/projectProvider')}
+      >
+        <Route
+          path=":alertType/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/alerts/create')}
+        />
+      </Route>
+      <Route
         path=":alertId/"
-        componentPromise={() => import('sentry/views/alerts/details')}
+        componentPromise={() => import('sentry/views/alerts/incidentRedirect')}
         component={SafeLazyLoad}
       />
       <Route
@@ -1108,6 +1142,24 @@ function buildRoutes() {
       <Route
         path="/organizations/:orgId/monitors/:monitorId/edit/"
         componentPromise={() => import('sentry/views/monitors/edit')}
+        component={SafeLazyLoad}
+      />
+    </Route>
+  );
+
+  const replayRoutes = (
+    <Route
+      path="/organizations/:orgId/replays/"
+      componentPromise={() => import('sentry/views/replays')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/replays/replays')}
+        component={SafeLazyLoad}
+      />
+      <Route
+        path=":eventSlug/"
+        componentPromise={() => import('sentry/views/replays/details')}
         component={SafeLazyLoad}
       />
     </Route>
@@ -1815,6 +1867,24 @@ function buildRoutes() {
     </Route>
   );
 
+  const profilingRoutes = (
+    <Route
+      path="/organizations/:orgId/profiling/"
+      componentPromise={() => import('sentry/views/profiling')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() => import('sentry/views/profiling/content')}
+        component={SafeLazyLoad}
+      />
+      <Route
+        path="flamegraph/:projectId/:eventId"
+        component={SafeLazyLoad}
+        componentPromise={() => import('sentry/views/profiling/flamegraph')}
+      />
+    </Route>
+  );
+
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationDetails)}>
       {settingsRoutes}
@@ -1825,11 +1895,13 @@ function buildRoutes() {
       {groupDetailsRoutes}
       {alertRoutes}
       {monitorsRoutes}
+      {replayRoutes}
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {profilingRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
       {legacyGettingStartedRoutes}

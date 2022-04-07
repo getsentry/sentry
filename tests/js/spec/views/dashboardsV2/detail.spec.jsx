@@ -1,10 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import {createListeners} from 'sentry-test/createListeners';
+import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -196,7 +198,15 @@ describe('Dashboards > Detail', function () {
       types.MAX_WIDGETS = 30;
       widgets = [
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:error',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Errors',
             interval: '1d',
@@ -204,7 +214,15 @@ describe('Dashboards > Detail', function () {
           }
         ),
         TestStubs.Widget(
-          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          [
+            {
+              name: '',
+              conditions: 'event.type:transaction',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+            },
+          ],
           {
             title: 'Transactions',
             interval: '1d',
@@ -217,6 +235,8 @@ describe('Dashboards > Detail', function () {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
+              aggregates: ['p50()'],
+              columns: [],
             },
           ],
           {
@@ -334,13 +354,13 @@ describe('Dashboards > Detail', function () {
       wrapper
         .find('WidgetCard')
         .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
+        .find('Button[data-test-id="widget-delete"]')
         .simulate('click');
 
       wrapper
         .find('WidgetCard')
         .at(1)
-        .find('IconClick[data-test-id="widget-delete"]')
+        .find('Button[data-test-id="widget-delete"]')
         .simulate('click');
 
       // Save changes
@@ -386,7 +406,7 @@ describe('Dashboards > Detail', function () {
       wrapper
         .find('WidgetCard')
         .first()
-        .find('IconClick[data-test-id="widget-edit"]')
+        .find('Button[data-test-id="widget-edit"]')
         .simulate('click');
 
       expect(openEditModal).toHaveBeenCalledTimes(1);
@@ -399,6 +419,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],
@@ -599,6 +621,46 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
     });
 
+    it('unsets newWidget after rendering', async function () {
+      initialData.router.location = {
+        query: {
+          displayType: 'line',
+          interval: '5m',
+          queryConditions: ['title:test', 'event.type:test'],
+          queryFields: ['count()', 'failure_count()'],
+          queryNames: ['1', '2'],
+          queryOrderby: '',
+          title: 'Widget Title',
+        },
+      };
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/mockpath'}}
+        />,
+        initialData.routerContext
+      );
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.EDIT
+      );
+      expect(wrapper.find('DashboardDetail').props().newWidget).toBeDefined();
+      await act(async () => {
+        // Wrap await tick in act because componentDidMount in Dashboard triggers
+        // state change when parsing widget from location
+        await tick();
+      });
+      wrapper.update();
+
+      // The newWidget state was cleared after adding the widget
+      expect(wrapper.find('DashboardDetail').props().newWidget).toBeUndefined();
+
+      await act(async () => {
+        await tick();
+      });
+    });
+
     it('enters edit mode when given a new widget in location query', async function () {
       initialData.router.location = {
         query: {
@@ -616,15 +678,19 @@ describe('Dashboards > Detail', function () {
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
-          location={initialData.router.location}
+          location={{...initialData.router.location, pathname: '/mockpath'}}
         />,
         initialData.routerContext
       );
-      await tick();
-      wrapper.update();
+
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.EDIT
       );
+      await act(async () => {
+        // Wrap await tick in act because componentDidMount in Dashboard triggers
+        // state change when parsing widget from location
+        await tick();
+      });
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
@@ -644,7 +710,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('opens add widget to custom  modal', async function () {
+    it('opens add widget to custom modal', async function () {
       types.MAX_WIDGETS = 10;
 
       initialData = initializeOrg({
@@ -722,16 +788,15 @@ describe('Dashboards > Detail', function () {
       ).toEqual(true);
       expect(wrapper.find('Controls Tooltip').prop('disabled')).toBe(false);
 
-      const card2 = wrapper.find('WidgetCard').first();
-      card2.find('DropdownMenu MoreOptions svg').simulate('click');
+      await act(async () => {
+        triggerPress(wrapper.first().find('MenuControlWrap Button').first());
 
-      card2.update();
-      wrapper.update();
+        await tick();
+        wrapper.update();
+      });
 
       expect(
-        wrapper
-          .find(`DropdownMenu MenuItem[data-test-id="duplicate-widget"] MenuTarget`)
-          .props().disabled
+        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props().isDisabled
       ).toEqual(true);
     });
 
@@ -750,15 +815,11 @@ describe('Dashboards > Detail', function () {
 
       expect(wrapper.find('WidgetCard')).toHaveLength(3);
 
-      const card = wrapper.find('WidgetCard').first();
-      card.find('DropdownMenu MoreOptions svg').simulate('click');
-
-      card.update();
-      wrapper.update();
-
-      wrapper
-        .find(`DropdownMenu MenuItem[data-test-id="edit-widget"] MenuTarget`)
-        .simulate('click');
+      await selectDropdownMenuItem({
+        wrapper,
+        specifiers: {prefix: 'WidgetCard', first: true},
+        itemKey: 'edit-widget',
+      });
 
       expect(openEditModal).toHaveBeenCalledTimes(1);
       expect(openEditModal).toHaveBeenCalledWith(
@@ -770,6 +831,8 @@ describe('Dashboards > Detail', function () {
               {
                 conditions: 'event.type:error',
                 fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
                 name: '',
               },
             ],

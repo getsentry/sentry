@@ -7,6 +7,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import InputField from 'sentry/components/forms/inputField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Project} from 'sentry/types';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 
 type Props = ModalRenderProps & {
   api: Client;

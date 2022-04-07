@@ -1,7 +1,6 @@
 import {createContext, useContext, useState} from 'react';
 
 import Alert from 'sentry/components/alert';
-import {IconFlag} from 'sentry/icons';
 
 const pageErrorContext = createContext<{
   setPageError: (error: string | undefined) => void;
@@ -32,7 +31,7 @@ export const PageErrorAlert = () => {
   }
 
   return (
-    <Alert type="error" icon={<IconFlag size="md" />}>
+    <Alert type="error" data-test-id="page-error-alert" showIcon>
       {pageError}
     </Alert>
   );

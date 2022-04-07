@@ -1,17 +1,21 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import HeaderItem from 'sentry/components/organizations/headerItem';
 import MultipleSelectorSubmitRow from 'sentry/components/organizations/multipleSelectorSubmitRow';
+import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
 import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import DateSummary from 'sentry/components/organizations/timeRangeSelector/dateSummary';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconCalendar} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -27,6 +31,8 @@ import {
 } from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+
+import SelectorItems from './selectorItems';
 
 const DateRangeHook = HookOrDefault({
   hookName: 'component:header-date-range',
@@ -101,9 +107,28 @@ type Props = WithRouterProps & {
   utc: boolean | null;
 
   /**
+   * Aligns dropdown menu to left or right of button
+   */
+  alignDropdown?: 'left' | 'right';
+
+  /**
+   * Optionally render a custom dropdown button, instead of the default
+   * <HeaderItem />
+   */
+  customDropdownButton?: (config: {
+    getActorProps: GetActorPropsFn;
+    isOpen: boolean;
+  }) => React.ReactElement;
+
+  /**
    * Set an optional default value to prefill absolute date with
    */
   defaultAbsolute?: {end?: Date; start?: Date};
+
+  /**
+   * Whether the menu should be detached from the actor
+   */
+  detached?: boolean;
 
   /**
    * Small info icon with tooltip hint text
@@ -129,6 +154,11 @@ type Props = WithRouterProps & {
    * Override defaults from DEFAULT_RELATIVE_PERIODS
    */
   relativeOptions?: Record<string, React.ReactNode>;
+
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -218,6 +248,14 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
         this.callCallback(onUpdate, datetime);
       }
     );
+  };
+
+  handleSelect = (item: Item) => {
+    if (item.value === 'absolute') {
+      this.handleAbsoluteClick();
+      return;
+    }
+    this.handleSelectRelative(item.value);
   };
 
   handleAbsoluteClick = () => {
@@ -353,6 +391,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       label,
       relativeOptions,
       maxPickableDays,
+      customDropdownButton,
+      detached,
+      alignDropdown,
+      showPin,
     } = this.props;
     const {start, end, relative} = this.state;
 
@@ -370,73 +412,96 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
         )
       );
 
-    const relativeSelected = isAbsoluteSelected
-      ? ''
-      : relative || defaultPeriod || DEFAULT_STATS_PERIOD;
-
     return (
-      <DropdownMenu
-        isOpen={this.state.isOpen}
-        onOpen={this.handleOpen}
-        onClose={this.handleCloseMenu}
-        keepMenuOpen
+      <SelectorItemsHook
+        shouldShowAbsolute={shouldShowAbsolute}
+        shouldShowRelative={shouldShowRelative}
+        relativePeriods={relativeOptions}
+        handleSelectRelative={this.handleSelectRelative}
       >
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-          <TimeRangeRoot {...getRootProps()}>
-            <StyledHeaderItem
-              data-test-id="global-header-timerange-selector"
-              icon={label ?? <IconCalendar />}
-              isOpen={isOpen}
-              hasSelected={
-                (!!this.props.relative && this.props.relative !== defaultPeriod) ||
-                isAbsoluteSelected
-              }
-              hasChanges={this.state.hasChanges}
-              onClear={this.handleClear}
-              allowClear
-              hint={hint}
-              {...getActorProps()}
-            >
-              {getDynamicText({value: summary, fixed: 'start to end'})}
-            </StyledHeaderItem>
-            {isOpen && (
-              <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
-                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
-                  <SelectorItemsHook
-                    handleSelectRelative={this.handleSelectRelative}
-                    handleAbsoluteClick={this.handleAbsoluteClick}
-                    isAbsoluteSelected={isAbsoluteSelected}
-                    relativeSelected={relativeSelected}
-                    relativePeriods={relativeOptions}
-                    shouldShowAbsolute={shouldShowAbsolute}
-                    shouldShowRelative={shouldShowRelative}
-                  />
-                </SelectorList>
-                {isAbsoluteSelected && (
-                  <div>
-                    <DateRangeHook
-                      start={start ?? null}
-                      end={end ?? null}
-                      organization={organization}
-                      showTimePicker
-                      utc={this.state.utc}
-                      onChange={this.handleSelectDateRange}
-                      onChangeUtc={this.handleUseUtc}
-                      maxPickableDays={maxPickableDays}
-                    />
-                    <SubmitRow>
-                      <MultipleSelectorSubmitRow
-                        onSubmit={this.handleCloseMenu}
-                        disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
+        {items => (
+          <ClassNames>
+            {({css}) => (
+              <StyledDropdownAutoComplete
+                allowActorToggle
+                alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
+                isOpen={this.state.isOpen}
+                onOpen={this.handleOpen}
+                onClose={this.handleCloseMenu}
+                hideInput={!shouldShowRelative}
+                closeOnSelect={false}
+                blendCorner={false}
+                maxHeight={400}
+                detached={detached}
+                items={items}
+                searchPlaceholder={t('Filter time range')}
+                rootClassName={css`
+                  position: relative;
+                  display: flex;
+                  height: 100%;
+                `}
+                inputActions={
+                  showPin ? (
+                    <StyledPinButton size="xsmall" filter="datetime" />
+                  ) : undefined
+                }
+                onSelect={this.handleSelect}
+                subPanel={
+                  isAbsoluteSelected && (
+                    <div>
+                      <DateRangeHook
+                        start={start ?? null}
+                        end={end ?? null}
+                        organization={organization}
+                        showTimePicker
+                        utc={this.state.utc}
+                        onChange={this.handleSelectDateRange}
+                        onChangeUtc={this.handleUseUtc}
+                        maxPickableDays={maxPickableDays}
                       />
-                    </SubmitRow>
-                  </div>
-                )}
-              </Menu>
+                      <SubmitRow>
+                        <MultipleSelectorSubmitRow
+                          onSubmit={this.handleCloseMenu}
+                          disabled={
+                            !this.state.hasChanges || this.state.hasDateRangeErrors
+                          }
+                        />
+                      </SubmitRow>
+                    </div>
+                  )
+                }
+              >
+                {({isOpen, getActorProps}) =>
+                  customDropdownButton ? (
+                    customDropdownButton({getActorProps, isOpen})
+                  ) : (
+                    <StyledHeaderItem
+                      data-test-id="global-header-timerange-selector"
+                      icon={label ?? <IconCalendar />}
+                      isOpen={isOpen}
+                      hasSelected={
+                        (!!this.props.relative &&
+                          this.props.relative !== defaultPeriod) ||
+                        isAbsoluteSelected
+                      }
+                      hasChanges={this.state.hasChanges}
+                      onClear={this.handleClear}
+                      allowClear
+                      hint={hint}
+                      {...getActorProps()}
+                    >
+                      {getDynamicText({
+                        value: summary,
+                        fixed: 'start to end',
+                      })}
+                    </StyledHeaderItem>
+                  )
+                }
+              </StyledDropdownAutoComplete>
             )}
-          </TimeRangeRoot>
+          </ClassNames>
         )}
-      </DropdownMenu>
+      </SelectorItemsHook>
     );
   }
 }
@@ -445,44 +510,32 @@ const TimeRangeRoot = styled('div')`
   position: relative;
 `;
 
+const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  position: absolute;
+  top: 100%;
+
+  ${p =>
+    !p.detached &&
+    `
+    margin-top: 0;
+    border-radius: ${p.theme.borderRadiusBottom};
+  `};
+`;
+
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
 `;
 
-type MenuProps = {
-  isAbsoluteSelected: boolean;
-};
-
-const Menu = styled('div')<MenuProps>`
-  ${p => !p.isAbsoluteSelected && 'left: -1px'};
-  ${p => p.isAbsoluteSelected && 'right: -1px'};
-
-  display: flex;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  position: absolute;
-  top: 100%;
-  min-width: 100%;
-  z-index: ${p => p.theme.zIndex.dropdown};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  font-size: 0.8em;
-  overflow: hidden;
-`;
-
-const SelectorList = styled('div')<MenuProps>`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  flex-shrink: 0;
-  min-width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
-  min-height: 305px;
-`;
-
 const SubmitRow = styled('div')`
+  height: 100%;
   padding: ${space(0.5)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   border-left: 1px solid ${p => p.theme.border};
+`;
+
+const StyledPinButton = styled(PageFilterPinButton)`
+  margin: 0 ${space(1)};
 `;
 
 export default withRouter(TimeRangeSelector);

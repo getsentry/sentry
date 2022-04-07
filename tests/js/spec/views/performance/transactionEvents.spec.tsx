@@ -59,6 +59,10 @@ describe('Performance > TransactionSummary', function () {
   enforceActOnUseLegacyStoreHook();
 
   beforeEach(function () {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error = jest.fn();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -148,6 +152,10 @@ describe('Performance > TransactionSummary', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
+
     act(() => ProjectsStore.reset());
     jest.clearAllMocks();
   });
@@ -219,7 +227,7 @@ describe('Performance > TransactionSummary', function () {
     expect(keyAt(1)).toEqual('user.display');
     expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
     expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('n/a');
+    expect(valueAt(2, 'span')).toEqual('(no value)');
     expect(keyAt(3)).toEqual('transaction.duration');
     expect(valueAt(3, 'span')).toEqual('400.00ms');
     expect(keyAt(4)).toEqual('trace');
@@ -256,7 +264,7 @@ describe('Performance > TransactionSummary', function () {
     expect(keyAt(1)).toEqual('user.display');
     expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
     expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('n/a');
+    expect(valueAt(2, 'span')).toEqual('(no value)');
     expect(keyAt(3)).toEqual('measurements.lcp');
     expect(valueAt(3)).toEqual('200');
     expect(keyAt(4)).toEqual('transaction.duration');

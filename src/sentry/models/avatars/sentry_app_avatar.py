@@ -12,7 +12,7 @@ from sentry.db.models.manager import BaseManager
 from . import AvatarBase
 
 if TYPE_CHECKING:
-    from sentry.models.sentryapp import SentryApp
+    from sentry.models import SentryApp
 
 
 class SentryAppAvatarTypes(Enum):

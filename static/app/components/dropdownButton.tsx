@@ -1,11 +1,15 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
-type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
+interface DropdownButtonProps extends Omit<ButtonProps, 'prefix'> {
+  /**
+   * Whether the menu associated with this button is visually detached.
+   */
+  detached?: boolean;
   /**
    * Forward a ref to the button's root
    */
@@ -30,7 +34,7 @@ type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
    * Should a chevron icon be shown?
    */
   showChevron?: boolean;
-};
+}
 
 const DropdownButton = ({
   children,
@@ -39,18 +43,21 @@ const DropdownButton = ({
   isOpen = false,
   showChevron = false,
   hideBottomBorder = true,
+  detached = false,
   disabled = false,
   priority = 'form',
   ...props
-}: Props) => {
+}: DropdownButtonProps) => {
   return (
     <StyledButton
       {...props}
       type="button"
+      aria-haspopup="listbox"
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
       hideBottomBorder={hideBottomBorder}
+      detached={detached}
       ref={forwardedRef}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
@@ -69,21 +76,26 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledButton = styled(Button)<
-  Required<Pick<Props, 'isOpen' | 'disabled' | 'hideBottomBorder' | 'priority'>>
+  Required<
+    Pick<
+      DropdownButtonProps,
+      'isOpen' | 'disabled' | 'hideBottomBorder' | 'detached' | 'priority'
+    >
+  >
 >`
-  border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
-  border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
+  border-bottom-right-radius: ${p =>
+    p.isOpen && !p.detached ? 0 : p.theme.borderRadius};
+  border-bottom-left-radius: ${p => (p.isOpen && !p.detached ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
-  box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
+
+  ${p => (p.isOpen || p.disabled) && 'box-shadow: none'};
+
   &,
   &:active,
   &:focus,
   &:hover {
-    border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder
-        ? 'transparent'
-        : p.theme.button[p.priority].borderActive};
+    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
   }
 `;
 
@@ -95,6 +107,6 @@ const LabelText = styled('span')`
   }
 `;
 
-export default React.forwardRef<typeof Button, Props>((props, ref) => (
+export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

@@ -103,7 +103,7 @@ def inbox_search(
         date_added__gte=start,
         date_added__lte=end,
         project__in=projects,
-    )
+    ).using_replica()
 
     if environments is not None:
         environment_ids: List[int] = [environment.id for environment in environments]

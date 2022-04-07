@@ -2,10 +2,10 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {EventId, EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';

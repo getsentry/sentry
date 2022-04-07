@@ -23,7 +23,7 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
 
-import TagsDisplay from './tagsDisplay';
+import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
 type Props = {
@@ -46,7 +46,7 @@ const TagsPageContent = (props: Props) => {
   );
 
   return (
-    <Layout.Main fullWidth data-test-id="tags-page-content">
+    <Layout.Main fullWidth>
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -105,6 +105,7 @@ const InnerContent = (
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
       tagKey,
+      [TAG_PAGE_TABLE_CURSOR]: undefined,
     });
 
     browserHistory.replace({

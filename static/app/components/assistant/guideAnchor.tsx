@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Query} from 'history';
@@ -13,20 +13,28 @@ import {
 } from 'sentry/actionCreators/guides';
 import {Guide} from 'sentry/components/assistant/types';
 import Button from 'sentry/components/button';
-import Hovercard, {Body as HovercardBody} from 'sentry/components/hovercard';
+import {Body as HovercardBody, Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
 import space from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 type Props = {
-  /** Hovercard renders the container */
+  target: string;
+  /**
+   * Hovercard renders the container
+   */
   containerClassName?: string;
   offset?: string;
-  onFinish?: () => void;
-  // Shouldn't target be mandatory?
+  /**
+   * Trigger when the guide is completed (all steps have been clicked through)
+   */
+  onFinish?: (e: React.MouseEvent) => void;
+  /**
+   * Triggered when any step is completed (including the last step)
+   */
+  onStepComplete?: (e: React.MouseEvent) => void;
   position?: React.ComponentProps<typeof Hovercard>['position'];
-  target?: string;
   to?: {
     pathname: string;
     query: Query;
@@ -40,13 +48,7 @@ type State = {
   currentGuide?: Guide;
 };
 
-/**
- * A GuideAnchor puts an informative hovercard around an element.
- * Guide anchors register with the GuideStore, which uses registrations
- * from one or more anchors on the page to determine which guides can
- * be shown on the page.
- */
-class GuideAnchor extends React.Component<Props, State> {
+class BaseGuideAnchor extends Component<Props, State> {
   state: State = {
     active: false,
     step: 0,
@@ -55,10 +57,10 @@ class GuideAnchor extends React.Component<Props, State> {
 
   componentDidMount() {
     const {target} = this.props;
-    target && registerAnchor(target);
+    registerAnchor(target);
   }
 
-  componentDidUpdate(_prevProps, prevState) {
+  componentDidUpdate(_prevProps: Props, prevState: State) {
     if (this.containerElement.current && !prevState.active && this.state.active) {
       try {
         const {top} = this.containerElement.current.getBoundingClientRect();
@@ -73,7 +75,7 @@ class GuideAnchor extends React.Component<Props, State> {
 
   componentWillUnmount() {
     const {target} = this.props;
-    target && unregisterAnchor(target);
+    unregisterAnchor(target);
     this.unsubscribe();
   }
 
@@ -82,11 +84,12 @@ class GuideAnchor extends React.Component<Props, State> {
     undefined
   );
 
-  containerElement = React.createRef<HTMLSpanElement>();
+  containerElement = createRef<HTMLSpanElement>();
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
-      data.currentGuide?.steps[data.currentStep]?.target === this.props.target ?? false;
+      data.currentGuide?.steps[data.currentStep]?.target === this.props.target &&
+      !data.forceHide;
 
     this.setState({
       active,
@@ -105,10 +108,9 @@ class GuideAnchor extends React.Component<Props, State> {
    */
   handleFinish = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const {onFinish} = this.props;
-    if (onFinish) {
-      onFinish();
-    }
+    this.props.onStepComplete?.(e);
+    this.props.onFinish?.(e);
+
     const {currentGuide, orgId} = this.state;
     if (currentGuide) {
       recordFinish(currentGuide.guide, orgId);
@@ -118,6 +120,7 @@ class GuideAnchor extends React.Component<Props, State> {
 
   handleNextStep = (e: React.MouseEvent) => {
     e.stopPropagation();
+    this.props.onStepComplete?.(e);
     nextStep();
   };
 
@@ -158,7 +161,7 @@ class GuideAnchor extends React.Component<Props, State> {
     );
 
     return (
-      <GuideContainer>
+      <GuideContainer data-test-id="guide-container">
         <GuideContent>
           {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
           <GuideDescription>{currentStep.description}</GuideDescription>
@@ -166,7 +169,7 @@ class GuideAnchor extends React.Component<Props, State> {
         <GuideAction>
           <div>
             {lastStep ? (
-              <React.Fragment>
+              <Fragment>
                 <StyledButton
                   size="small"
                   translucentBorder
@@ -177,9 +180,9 @@ class GuideAnchor extends React.Component<Props, State> {
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
                 {currentStep.hasNextGuide && dismissButton}
-              </React.Fragment>
+              </Fragment>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <StyledButton
                   size="small"
                   translucentBorder
@@ -189,7 +192,7 @@ class GuideAnchor extends React.Component<Props, State> {
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
                 {!currentStep.cantDismiss && dismissButton}
-              </React.Fragment>
+              </Fragment>
             )}
           </div>
 
@@ -229,23 +232,25 @@ class GuideAnchor extends React.Component<Props, State> {
   }
 }
 
-export {GuideAnchor};
-
 /**
  * Wraps the GuideAnchor so we don't have to render it if it's disabled
  * Using a class so we automatically have children as a typed prop
  */
-type WrapperProps = {disabled?: boolean} & Props;
+type WrapperProps = React.PropsWithChildren<{disabled?: boolean} & Props>;
 
-export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
-  render() {
-    const {disabled, children, ...rest} = this.props;
-    if (disabled || window.localStorage.getItem('hide_anchors') === '1') {
-      return children || null;
-    }
-    return <GuideAnchor {...rest}>{children}</GuideAnchor>;
+/**
+ * A GuideAnchor puts an informative hovercard around an element. Guide anchors
+ * register with the GuideStore, which uses registrations from one or more
+ * anchors on the page to determine which guides can be shown on the page.
+ */
+function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+  if (disabled) {
+    return <Fragment>{children}</Fragment>;
   }
+  return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
+
+export default GuideAnchor;
 
 const GuideContainer = styled('div')`
   display: grid;

@@ -5,8 +5,8 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models import IntegrationFeature, SentryApp, SentryAppAvatar, User
-from sentry.models.integrationfeature import IntegrationTypes
-from sentry.models.sentryapp import MASKED_VALUE
+from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.utils.compat import map
 
 

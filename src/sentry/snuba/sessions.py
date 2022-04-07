@@ -31,9 +31,12 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     return conditions, filter_keys
 
 
-def _get_changed_project_release_model_adoptions(project_ids):
+def _get_changed_project_release_model_adoptions(project_ids, now=None):
     """Returns the last 72 hours worth of releases."""
-    start = datetime.now(pytz.utc) - timedelta(days=3)
+    if now is None:
+        now = datetime.now(pytz.utc)
+
+    start = now - timedelta(days=3)
     rv = []
 
     # Find all releases with adoption in the last 48 hours
@@ -51,17 +54,20 @@ def _get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def _get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases, now=None):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
+    if now is None:
+        now = datetime.now(pytz.utc)
+
     conditions = [["release", "IN", [x[1] for x in project_releases]]]
     filter_keys = {"project_id": [x[0] for x in project_releases]}
     rows = raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[["min", ["started"], "oldest"], "project_id", "release"],
         groupby=["release", "project_id"],
-        start=datetime.utcnow() - timedelta(days=90),
+        start=now - timedelta(days=90),
         conditions=conditions,
         referrer="sessions.oldest-data-backfill",
         filter_keys=filter_keys,
@@ -72,7 +78,7 @@ def _get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def _check_has_health_data(projects_list):
+def _check_has_health_data(projects_list, now=None):
     """
     Function that returns a set of all project_ids or (project, release) if they have health data
     within the last 90 days based on a list of projects or a list of project, release combinations
@@ -81,6 +87,10 @@ def _check_has_health_data(projects_list):
         * projects_list: Contains either a list of project ids or a list of tuple (project_id,
         release)
     """
+
+    if now is None:
+        now = datetime.now(pytz.utc)
+
     if len(projects_list) == 0:
         return set()
 
@@ -108,7 +118,7 @@ def _check_has_health_data(projects_list):
         "dataset": Dataset.Sessions,
         "selected_columns": query_cols,
         "groupby": query_cols,
-        "start": datetime.utcnow() - timedelta(days=90),
+        "start": now - timedelta(days=90),
         "referrer": "sessions.health-data-check",
         "filter_keys": filter_keys,
     }
@@ -151,7 +161,13 @@ def _check_releases_have_health_data(
 
 
 def _get_project_releases_by_stability(
-    project_ids, offset, limit, scope, stats_period=None, environments=None
+    project_ids,
+    offset,
+    limit,
+    scope,
+    stats_period=None,
+    environments=None,
+    now=None,
 ):
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
@@ -164,7 +180,7 @@ def _get_project_releases_by_stability(
         scope = scope[:-4]
         stats_period = "24h"
 
-    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
 
     orderby = {
         "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
@@ -274,13 +290,15 @@ STATS_PERIODS = {
 }
 
 
-def get_rollup_starts_and_buckets(period):
+def get_rollup_starts_and_buckets(period, now=None):
     if period is None:
         return None, None, None
     if period not in STATS_PERIODS:
         raise TypeError("Invalid stats period")
     seconds, buckets = STATS_PERIODS[period]
-    start = datetime.now(pytz.utc) - timedelta(seconds=seconds * buckets)
+    if now is None:
+        now = datetime.now(pytz.utc)
+    start = now - timedelta(seconds=seconds * buckets)
     return seconds, start, buckets
 
 
@@ -368,6 +386,7 @@ def _get_release_health_data_overview(
     summary_stats_period=None,
     health_stats_period=None,
     stat=None,
+    now=None,
 ):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -378,10 +397,12 @@ def _get_release_health_data_overview(
         stat = "sessions"
     assert stat in ("sessions", "users")
 
-    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h", now=now)
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
-    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(health_stats_period)
+    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
+        health_stats_period, now=now
+    )
 
     missing_releases = set(project_releases)
     rv = {}
@@ -487,13 +508,14 @@ def _get_release_health_data_overview(
     return rv
 
 
-def _get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None, now=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
 
-    now = datetime.now(pytz.utc)
+    if now is None:
+        now = datetime.now(pytz.utc)
 
     def _query_stats(end):
         row = raw_query(

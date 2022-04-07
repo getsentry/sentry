@@ -6,13 +6,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 import IssueEditor from 'sentry/views/alerts/issueRuleEditor';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
   orgId: string;
@@ -37,11 +37,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'edit_alert_rule.viewed',
-      eventName: 'Edit Alert Rule: Viewed',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('edit_alert_rule.viewed', {
+      organization,
       project_id: project.id,
       alert_type: this.getAlertType(),
     });
@@ -56,8 +53,10 @@ class ProjectAlertsEditor extends Component<Props, State> {
     return `${ruleName}`;
   }
 
-  getAlertType(): 'metric' | 'issue' {
-    return location.pathname.includes('/alerts/metric-rules/') ? 'metric' : 'issue';
+  getAlertType(): AlertRuleType {
+    return location.pathname.includes('/alerts/metric-rules/')
+      ? AlertRuleType.METRIC
+      : AlertRuleType.ISSUE;
   }
 
   render() {
@@ -74,7 +73,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <BuilderBreadCrumbs
-              orgSlug={organization.slug}
+              organization={organization}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
               routes={routes}
@@ -97,7 +96,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
                         userTeamIds={teams.map(({id}) => id)}
                       />
                     )}
-                    {hasMetricAlerts && alertType === 'metric' && (
+                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
                       <IncidentRulesDetails
                         {...this.props}
                         project={project}
@@ -119,8 +118,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
 }
 
 const EditConditionsBody = styled(Layout.Body)`
-  margin-bottom: -${space(3)};
-
   *:not(img) {
     max-width: 1000px;
   }

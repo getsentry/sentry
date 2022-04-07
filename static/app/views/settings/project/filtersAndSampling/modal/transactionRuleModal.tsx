@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import Field from 'sentry/components/forms/field';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -17,7 +18,6 @@ import {
   DynamicSamplingRuleType,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 

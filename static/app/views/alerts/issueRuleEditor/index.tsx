@@ -17,13 +17,17 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import Input from 'sentry/components/forms/controls/input';
+import Field from 'sentry/components/forms/field';
+import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, OnboardingTaskKey, Organization, Project, Team} from 'sentry/types';
@@ -34,7 +38,8 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {metric} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -45,10 +50,6 @@ import {
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/changeAlerts/constants';
 import AsyncView from 'sentry/views/asyncView';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import Field from 'sentry/views/settings/components/forms/field';
-import Form from 'sentry/views/settings/components/forms/form';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
@@ -97,12 +98,14 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
+type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+
 type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -123,6 +126,12 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
+  }
+
   getTitle() {
     const {organization, project} = this.props;
     const {rule} = this.state;
@@ -155,15 +164,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
+    const {
+      project,
+      params: {ruleId, orgId},
+    } = this.props;
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
+      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
     return endpoints as [string, string][];
@@ -175,6 +187,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {rule} = this.state;
+    if (rule) {
+      ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
+        addErrorMessage(detail, {append: true})
+      );
+    }
+  }
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -194,7 +214,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -223,7 +245,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }
@@ -241,10 +265,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     metric.endTransaction({name: 'saveAlertRule'});
 
-    router.push({
-      pathname: `/organizations/${organization.slug}/alerts/rules/`,
-      query: {project: project.id},
-    });
+    router.push(
+      organization.features.includes('alert-rule-status-page')
+        ? {
+            pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+          }
+        : {
+            pathname: `/organizations/${organization.slug}/alerts/rules/`,
+            query: {project: project.id},
+          }
+    );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -442,10 +472,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
 
     const {organization, project} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'edit_alert_rule.add_row',
-      eventName: 'Edit Alert Rule: Add Row',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+      organization,
       project_id: project.id,
       type,
       name: id,
@@ -538,7 +566,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" icon={<IconWarning />}>
+      <Alert type="error" showIcon>
         {t(
           'Unable to access this alert rule -- check to make sure you have the correct permissions'
         )}

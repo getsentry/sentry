@@ -5,7 +5,7 @@ import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import BarChart from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,11 +21,7 @@ import {Color} from 'sentry/utils/theme';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
-import {
-  barAxisLabel,
-  convertDaySeriesToWeeks,
-  convertDayValueObjectToSeries,
-} from './utils';
+import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
@@ -125,7 +121,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization, period, projects} = this.props;
     const {alertsTriggered, alertsTriggeredRules} = this.state;
-    const seriesData = convertDaySeriesToWeeks(
+    const seriesData = sortSeriesByDay(
       convertDayValueObjectToSeries(alertsTriggered ?? {})
     );
 

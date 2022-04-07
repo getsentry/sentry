@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import Button from 'sentry/components/button';
+import Field from 'sentry/components/forms/field';
 import {
   Panel,
   PanelAlert,
@@ -10,7 +11,6 @@ import {
   PanelTable,
 } from 'sentry/components/panels';
 import {IconTelescope} from 'sentry/icons';
-import Field from 'sentry/views/settings/components/forms/field';
 
 import {_BulkController} from './bulkController.stories';
 

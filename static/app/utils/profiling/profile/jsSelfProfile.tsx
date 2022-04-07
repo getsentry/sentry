@@ -8,8 +8,10 @@ import {Profile} from './profile';
 import {createFrameIndex} from './utils';
 
 export class JSSelfProfile extends Profile {
-  static FromProfile(profile: JSSelfProfiling.Trace): JSSelfProfile {
-    const frameIndex = createFrameIndex(profile.frames, profile);
+  static FromProfile(
+    profile: JSSelfProfiling.Trace,
+    frameIndex: ReturnType<typeof createFrameIndex>
+  ): JSSelfProfile {
     // In the case of JSSelfProfiling, we need to index the abstract marker frames
     // as they will otherwise not be present in the ProfilerStack.
     const markers: JSSelfProfiling.Marker[] = [
@@ -22,13 +24,16 @@ export class JSSelfProfile extends Profile {
     ];
 
     for (const marker of markers) {
-      frameIndex[marker] = new Frame({
-        key: marker,
-        name: stackMarkerToHumanReadable(marker),
-        line: undefined,
-        column: undefined,
-        is_application: false,
-      });
+      frameIndex[marker] = new Frame(
+        {
+          key: marker,
+          name: stackMarkerToHumanReadable(marker),
+          line: undefined,
+          column: undefined,
+          is_application: false,
+        },
+        'web'
+      );
     }
 
     const startedAt = profile.samples[0].timestamp;
@@ -96,7 +101,9 @@ export class JSSelfProfile extends Profile {
 
       while (stackHeight >= 0) {
         if (framesInStack[stackHeight].frame === node.frame) {
-          node.setRecursive(node);
+          // The recursion edge is bidirectional
+          framesInStack[stackHeight].setRecursive(node);
+          node.setRecursive(framesInStack[stackHeight]);
           break;
         }
         stackHeight--;

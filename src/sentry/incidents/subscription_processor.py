@@ -121,7 +121,7 @@ class SubscriptionProcessor:
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
-    def __reset_trigger_counts(self):
+    def reset_trigger_counts(self):
         """
         Helper method that clears both the trigger alert and the trigger resolve counts
         """
@@ -161,22 +161,6 @@ class SubscriptionProcessor:
             resolve_add = -0.000001
 
         return trigger.alert_threshold + resolve_add
-
-    def find_active_warning_trigger(self, alert_operator, aggregation_value):
-        """
-        Finds and returns an active warning trigger, if one exists on this alert
-        """
-        for it in self.incident_triggers.values():
-            current_trigger = it.alert_rule_trigger
-            # Check if there is a Warning incident trigger that is active, and then check if the
-            # aggregation value is above the threshold
-            if (
-                it.status == TriggerStatus.ACTIVE.value
-                and current_trigger.label == WARNING_TRIGGER_LABEL
-                and alert_operator(aggregation_value, current_trigger.alert_threshold)
-            ):
-                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                return it
 
     def get_comparison_aggregation_value(self, subscription_update, aggregation_value):
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -248,7 +232,7 @@ class SubscriptionProcessor:
             CRASH_RATE_ALERT_AGGREGATE_ALIAS
         ]
         if aggregation_value is None:
-            self.__reset_trigger_counts()
+            self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
@@ -259,7 +243,7 @@ class SubscriptionProcessor:
             if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
                 min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
                 if total_count < min_threshold:
-                    self.__reset_trigger_counts()
+                    self.reset_trigger_counts()
                     metrics.incr(
                         "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
                     )
@@ -310,14 +294,14 @@ class SubscriptionProcessor:
         )
 
         if total_session_count == 0:
-            self.__reset_trigger_counts()
+            self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return
 
         if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
             min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
             if total_session_count < min_threshold:
-                self.__reset_trigger_counts()
+                self.reset_trigger_counts()
                 metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
                 return
 
@@ -398,6 +382,23 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
+        if self.subscription.snuba_query.dataset == QueryDatasets.SESSIONS.value:
+            try:
+                # Temporarily logging results from session updates for comparison with data from metric
+                # updates
+                logger.info(
+                    "subscription_processor.message",
+                    extra={
+                        "subscription_id": self.subscription.id,
+                        "dataset": self.subscription.snuba_query.dataset,
+                        "snuba_subscription_id": self.subscription.subscription_id,
+                        "result": subscription_update,
+                        "aggregation_value": aggregation_value,
+                    },
+                )
+            except Exception:
+                logger.exception("Failed to log subscription results for session subscription")
+
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
@@ -427,25 +428,7 @@ class SubscriptionProcessor:
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
 
                     if incident_trigger is not None:
-                        # Check that ensures that we are resolving a Critical trigger and that after
-                        # resolving it, we still have active triggers i.e. self.incident_triggers
-                        # was not cleared out, which means that we are probably still above the
-                        # warning threshold, and so we will check if we are above the warning
-                        # threshold and if so fire a warning alert
-                        # This is mainly for handling transition from Critical -> Warning
-                        active_warning_it = None
-                        if (
-                            incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
-                            and self.incident_triggers
-                        ):
-                            active_warning_it = self.find_active_warning_trigger(
-                                alert_operator=alert_operator, aggregation_value=aggregation_value
-                            )
-                            if active_warning_it is not None:
-                                fired_incident_triggers.append(active_warning_it)
-
-                        if active_warning_it is None:
-                            fired_incident_triggers.append(incident_trigger)
+                        fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_resolve_counts[trigger.id] = 0
 

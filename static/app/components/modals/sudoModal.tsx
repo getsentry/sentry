@@ -6,14 +6,13 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import InputField from 'sentry/components/forms/inputField';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
-import Form from 'sentry/views/settings/components/forms/form';
-import InputField from 'sentry/views/settings/components/forms/inputField';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -111,7 +110,7 @@ class SudoModal extends React.Component<Props, State> {
         </StyledTextBlock>
 
         {error && (
-          <StyledAlert type="error" icon={<IconFlag size="md" />}>
+          <StyledAlert type="error" showIcon>
             {t('Incorrect password')}
           </StyledAlert>
         )}

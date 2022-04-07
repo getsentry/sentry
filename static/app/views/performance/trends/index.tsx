@@ -1,6 +1,6 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -18,8 +18,9 @@ import {generatePerformanceEventView} from '../data';
 
 import TrendsContent from './content';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = {
   api: Client;
+  location: Location;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
@@ -34,26 +35,16 @@ class TrendsSummary extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(
-        nextProps.location,
-        nextProps.organization,
-        nextProps.projects,
-        {
-          isTrends: true,
-        }
-      ),
+      eventView: generatePerformanceEventView(nextProps.location, nextProps.projects, {
+        isTrends: true,
+      }),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(
-      this.props.location,
-      this.props.organization,
-      this.props.projects,
-      {
-        isTrends: true,
-      }
-    ),
+    eventView: generatePerformanceEventView(this.props.location, this.props.projects, {
+      isTrends: true,
+    }),
     error: undefined,
   };
 
@@ -66,13 +57,14 @@ class TrendsSummary extends Component<Props, State> {
   };
 
   renderContent() {
-    const {organization, location} = this.props;
+    const {organization, location, projects} = this.props;
     const {eventView} = this.state;
     return (
       <TrendsContent
         organization={organization}
         location={location}
         eventView={eventView}
+        projects={projects}
       />
     );
   }
@@ -93,6 +85,7 @@ class TrendsSummary extends Component<Props, State> {
 }
 
 export default withOrganization(withProjects(withPageFilters(withApi(TrendsSummary))));
+
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;

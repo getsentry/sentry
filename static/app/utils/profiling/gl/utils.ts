@@ -1,5 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {clamp} from '../colors/utils';
+
 export function createShader(
   gl: WebGLRenderingContext,
   type: WebGLRenderingContext['VERTEX_SHADER'] | WebGLRenderingContext['FRAGMENT_SHADER'],
@@ -183,16 +185,20 @@ export class Rect {
     this.size = vec2.fromValues(width, height);
   }
 
+  isValid(): boolean {
+    return this.toMatrix().every(n => !isNaN(n));
+  }
+
+  isEmpty(): boolean {
+    return this.width === 0 && this.height === 0;
+  }
+
   static Empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
 
   static From(rect: Rect): Rect {
     return new Rect(rect.x, rect.y, rect.width, rect.height);
-  }
-
-  get isEmpty(): boolean {
-    return this.width === 0 && this.height === 0;
   }
 
   get x(): number {
@@ -252,8 +258,7 @@ export class Rect {
     return vec[0] >= this.left && vec[0] <= this.right;
   }
   containsY(vec: vec2): boolean {
-    const y = vec[1];
-    return y >= this.top && y <= this.bottom;
+    return vec[1] >= this.top && vec[1] <= this.bottom;
   }
 
   contains(vec: vec2): boolean {
@@ -424,7 +429,7 @@ export function findRangeBinarySearch(
 ): [number, number] {
   if (target < low || target > high) {
     throw new Error(
-      `Target value needs to be in low-high range, got ${target} for [${low}, ${high}]`
+      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
     );
   }
   // eslint-disable-next-line
@@ -444,17 +449,39 @@ export function findRangeBinarySearch(
 
 export const ELLIPSIS = '\u2026';
 export function trimTextCenter(text: string, low: number) {
-  if (low > text.length) {
+  if (low >= text.length) {
     return text;
   }
-
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis
   // and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength,
-    text.length
+    text.length - postfixLength + ELLIPSIS.length
   )}`;
+}
+
+export function computeClampedConfigView(
+  newConfigView: Rect,
+  width: {max: number; min: number},
+  height: {max: number; min: number},
+  inverted: boolean
+) {
+  if (!newConfigView.isValid()) {
+    throw new Error(newConfigView.toString());
+  }
+  const clampedWidth = clamp(newConfigView.width, width.min, width.max);
+  const clampedHeight = clamp(newConfigView.height, height.min, height.max);
+
+  const maxX = width.max - clampedWidth;
+  const maxY =
+    clampedHeight >= height.max + (inverted ? 1 : 0)
+      ? 0
+      : height.max - clampedHeight + (inverted ? 1 : 0);
+
+  const clampedX = clamp(newConfigView.x, 0, maxX);
+  const clampedY = clamp(newConfigView.y, 0, maxY);
+
+  return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
 }

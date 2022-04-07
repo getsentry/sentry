@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -8,8 +7,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel, PanelBody} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
@@ -90,16 +87,8 @@ class RelatedIssues extends Component<Props> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <StyledSectionHeading>
-            {t('Related Issues')}
-            <Tooltip
-              title={t('Top issues containing events matching the metric.')}
-              skipWrapper
-            >
-              <IconInfo size="xs" color="gray200" />
-            </Tooltip>
-          </StyledSectionHeading>
-          <Button data-test-id="issues-open" size="small" to={issueSearch}>
+          <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
+          <Button data-test-id="issues-open" size="xsmall" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>

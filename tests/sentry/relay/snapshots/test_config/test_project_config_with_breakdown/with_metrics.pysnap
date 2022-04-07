@@ -1,5 +1,5 @@
 ---
-created: '2021-12-15T15:04:19.291385Z'
+created: '2022-03-29T08:56:52.712372Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -34,7 +34,12 @@ transactionMetrics:
   - sentry.transactions.measurements.stall_total_time
   - sentry.transactions.measurements.ttfb
   - sentry.transactions.measurements.ttfb.requesttime
-  - sentry.transactions.breakdowns.span_ops.http
-  - sentry.transactions.breakdowns.span_ops.db
-  - sentry.transactions.breakdowns.span_ops.browser
-  - sentry.transactions.breakdowns.span_ops.resource
+  - sentry.transactions.breakdowns.span_ops.ops.http
+  - sentry.transactions.breakdowns.span_ops.ops.db
+  - sentry.transactions.breakdowns.span_ops.ops.browser
+  - sentry.transactions.breakdowns.span_ops.ops.resource
+  satisfactionThresholds:
+    projectThreshold:
+      metric: duration
+      threshold: 300.0
+    transactionThresholds: {}

@@ -2,12 +2,11 @@ import round from 'lodash/round';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {SessionField} from 'sentry/types';
+import {Organization, SessionField} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {PRESET_AGGREGATES} from 'sentry/views/alerts/incidentRules/presets';
 import {
   Dataset,
   Datasource,
@@ -17,7 +16,7 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/incidentRules/types';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();
@@ -36,6 +35,7 @@ export function fetchIncidentsForRule(
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {
+      project: '-1',
       alertRule,
       includeSnapshots: true,
       start,
@@ -51,45 +51,6 @@ export function fetchIncident(
   alertId: string
 ): Promise<Incident> {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
-}
-
-export function updateSubscription(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  isSubscribed?: boolean
-): Promise<Incident> {
-  const method = isSubscribed ? 'POST' : 'DELETE';
-  return api.requestPromise(
-    `/organizations/${orgId}/incidents/${alertId}/subscriptions/`,
-    {
-      method,
-    }
-  );
-}
-
-export function updateStatus(
-  api: Client,
-  orgId: string,
-  alertId: string,
-  status: IncidentStatus
-): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`, {
-    method: 'PUT',
-    data: {
-      status,
-    },
-  });
-}
-
-export function getIncidentMetricPreset(incident: Incident) {
-  const alertRule = incident?.alertRule;
-  const aggregate = alertRule?.aggregate ?? '';
-  const dataset = alertRule?.dataset ?? Dataset.ERRORS;
-
-  return PRESET_AGGREGATES.find(
-    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
-  );
 }
 
 /**
@@ -230,4 +191,49 @@ export function shouldScaleAlertChart(aggregate: string) {
   // We want crash free rate charts to be scaled because they are usually too
   // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
   return isSessionAggregate(aggregate);
+}
+
+export function alertDetailsLink(organization: Organization, incident: Incident) {
+  return `/organizations/${organization.slug}/alerts/rules/details/${
+    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident.alertRule.originalAlertRuleId
+      ? incident.alertRule.originalAlertRuleId
+      : incident.alertRule.id
+  }/`;
+}
+
+/**
+ * Noramlizes a status string
+ */
+export function getQueryStatus(status: string | string[]): string[] {
+  if (Array.isArray(status)) {
+    return status;
+  }
+
+  if (status === '') {
+    return [];
+  }
+
+  return ['open', 'closed'].includes(status) ? [status] : [];
+}
+
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
+
+/**
+ * Noramlize a team slug from the query
+ */
+export function getTeamParams(team?: string | string[]): string[] {
+  if (team === undefined) {
+    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+  }
+
+  if (team === '') {
+    return [];
+  }
+
+  if (Array.isArray(team)) {
+    return team;
+  }
+
+  return [team];
 }

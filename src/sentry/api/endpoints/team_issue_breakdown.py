@@ -2,7 +2,7 @@ import copy
 from datetime import timedelta
 from itertools import chain
 
-from django.db.models import Count, IntegerField, Value
+from django.db.models import Count, IntegerField, Q, Value
 from django.db.models.functions import TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Group, GroupHistory, GroupHistoryStatus, Project, Team
 from sentry.models.grouphistory import (
@@ -32,6 +33,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
         start, end = get_date_range_from_params(request.GET)
         end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        environments = [e.id for e in get_environments(request, team.organization)]
 
         if "statuses" in request.GET:
             statuses = [
@@ -52,10 +54,13 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
             base_day_format["reviewed"] = 0
 
         if GroupHistoryStatus.NEW in statuses:
+            group_environment_filter = (
+                Q(groupenvironment__environment_id=environments[0]) if environments else Q()
+            )
             statuses.remove(GroupHistoryStatus.NEW)
             new_issues = list(
                 Group.objects.filter_to_team(team)
-                .filter(first_seen__gte=start, first_seen__lte=end)
+                .filter(group_environment_filter, first_seen__gte=start, first_seen__lte=end)
                 .annotate(bucket=TruncDay("first_seen"))
                 .order_by("bucket")
                 .values("project", "bucket")
@@ -65,9 +70,13 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignor
                 )
             )
 
+        group_history_enviornment_filter = (
+            Q(group__groupenvironment__environment_id=environments[0]) if environments else Q()
+        )
         bucketed_issues = (
             GroupHistory.objects.filter_to_team(team)
             .filter(
+                group_history_enviornment_filter,
                 status__in=statuses,
                 date_added__gte=start,
                 date_added__lte=end,

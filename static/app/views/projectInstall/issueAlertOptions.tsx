@@ -4,14 +4,14 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Input from 'sentry/components/forms/controls/input';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/selectControl';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import Input from 'sentry/views/settings/components/forms/controls/input';
-import RadioGroup from 'sentry/views/settings/components/forms/controls/radioGroup';
 
 enum MetricValues {
   ERRORS,

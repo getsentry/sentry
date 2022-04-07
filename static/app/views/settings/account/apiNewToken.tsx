@@ -1,15 +1,15 @@
 import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
+import ApiForm from 'sentry/components/forms/apiForm';
+import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import FormField from 'sentry/components/forms/formField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {Choices} from 'sentry/types';
-import ApiForm from 'sentry/views/settings/components/forms/apiForm';
-import MultipleCheckbox from 'sentry/views/settings/components/forms/controls/multipleCheckbox';
-import FormField from 'sentry/views/settings/components/forms/formField';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

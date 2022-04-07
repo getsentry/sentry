@@ -1,4 +1,4 @@
-import {TextField} from 'sentry/components/forms';
+import {TextField} from 'sentry/components/deprecatedforms';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import AsyncView from 'sentry/views/asyncView';
 

@@ -67,7 +67,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton').simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -99,7 +99,7 @@ describe('IssueListActions', function () {
             allResultsVisible={false}
             query=""
             queryCount={600}
-            organization={TestStubs.routerContext().context.organization}
+            organization={TestStubs.Organization()}
             projectId="1"
             selection={{
               projects: [1],
@@ -111,8 +111,7 @@ describe('IssueListActions', function () {
             onSelectStatsPeriod={function () {}}
             realtimeActive={false}
             statsPeriod="24h"
-          />,
-          TestStubs.routerContext()
+          />
         );
       });
 
@@ -136,7 +135,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton').simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
         const modal = await mountGlobalModal();
         expect(modal.find('Modal')).toSnapshot();
@@ -167,7 +166,7 @@ describe('IssueListActions', function () {
             allResultsVisible
             query=""
             queryCount={15}
-            organization={TestStubs.routerContext().context.organization}
+            organization={TestStubs.Organization()}
             projectId="1"
             selection={{
               projects: [1],
@@ -179,8 +178,7 @@ describe('IssueListActions', function () {
             onSelectStatsPeriod={function () {}}
             realtimeActive={false}
             statsPeriod="24h"
-          />,
-          TestStubs.routerContext()
+          />
         );
       });
 
@@ -201,7 +199,7 @@ describe('IssueListActions', function () {
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
 
-        wrapper.find('ResolveActions ResolveButton').first().simulate('click');
+        wrapper.find('ResolveActions ResolveButton button').first().simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
@@ -229,6 +227,7 @@ describe('IssueListActions', function () {
         await selectDropdownMenuItem({
           wrapper,
           specifiers: {prefix: 'IgnoreActions'},
+          triggerSelector: 'DropdownTrigger',
           itemKey: ['until-affect', 'until-affect-custom'],
         });
 
@@ -271,7 +270,7 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          organization={TestStubs.routerContext().context.organization}
+          organization={TestStubs.Organization()}
           projectId="1"
           selection={{
             projects: [1],
@@ -336,7 +335,7 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          organization={TestStubs.routerContext().context.organization}
+          organization={TestStubs.Organization()}
           groupIds={['1', '2', '3']}
           selection={{
             projects: [],
@@ -347,8 +346,7 @@ describe('IssueListActions', function () {
           onSelectStatsPeriod={function () {}}
           realtimeActive={false}
           statsPeriod="24h"
-        />,
-        TestStubs.routerContext()
+        />
       );
     });
 
@@ -375,7 +373,8 @@ describe('IssueListActions', function () {
     let issuesApiMock;
     beforeEach(async () => {
       SelectedGroupStore.records = {};
-      const {organization} = TestStubs.routerContext().context;
+      const organization = TestStubs.Organization();
+
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
@@ -393,8 +392,7 @@ describe('IssueListActions', function () {
           statsPeriod="24h"
           queryCount={100}
           displayCount="3 of 3"
-        />,
-        TestStubs.routerContext()
+        />
       );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',

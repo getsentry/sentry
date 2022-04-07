@@ -1,6 +1,11 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import ApiForm from 'sentry/components/forms/apiForm';
+import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import FormField from 'sentry/components/forms/formField';
+import TextareaField from 'sentry/components/forms/textareaField';
+import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -9,11 +14,6 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import ApiForm from 'sentry/views/settings/components/forms/apiForm';
-import MultipleCheckbox from 'sentry/views/settings/components/forms/controls/multipleCheckbox';
-import FormField from 'sentry/views/settings/components/forms/formField';
-import TextareaField from 'sentry/views/settings/components/forms/textareaField';
-import TextField from 'sentry/views/settings/components/forms/textField';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DeprecatedApiKey} from './types';

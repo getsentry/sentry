@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import SelectField from 'sentry/components/forms/selectField';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 import useApi from 'sentry/utils/useApi';
-import SelectField from 'sentry/views/settings/components/forms/selectField';
 
 import {getMatchFieldPlaceholder} from './utils';
 

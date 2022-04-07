@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -141,21 +142,18 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderTemplates() {
-    const {organization} = this.props;
     return (
-      <Feature organization={organization} features={['dashboards-template']}>
-        <TemplateContainer>
-          {DASHBOARDS_TEMPLATES.map(dashboard => (
-            <TemplateCard
-              title={dashboard.title}
-              description={dashboard.description}
-              onPreview={() => this.onPreview(dashboard.id)}
-              onAdd={() => this.onAdd(dashboard)}
-              key={dashboard.title}
-            />
-          ))}
-        </TemplateContainer>
-      </Feature>
+      <TemplateContainer>
+        {DASHBOARDS_TEMPLATES.map(dashboard => (
+          <TemplateCard
+            title={dashboard.title}
+            description={dashboard.description}
+            onPreview={() => this.onPreview(dashboard.id)}
+            onAdd={() => this.onAdd(dashboard)}
+            key={dashboard.title}
+          />
+        ))}
+      </TemplateContainer>
     );
   }
 
@@ -255,7 +253,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     });
 
     browserHistory.push({
-      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}`,
+      pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
       query: location.query,
     });
   }
@@ -283,21 +281,16 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <Title>{t('Dashboards')}</Title>
-                  <ButtonContainer>
-                    <Feature
-                      organization={organization}
-                      features={['dashboards-template']}
-                    >
-                      <SwitchContainer>
-                        {t('Show Templates')}
-                        <TemplateSwitch
-                          isActive={showTemplates}
-                          size="lg"
-                          toggle={this.toggleTemplates}
-                        />
-                      </SwitchContainer>
-                    </Feature>
+                  <StyledTitle>{t('Dashboards')}</StyledTitle>
+                  <ButtonBar gap={1.5}>
+                    <TemplateSwitch>
+                      {t('Show Templates')}
+                      <Switch
+                        isActive={showTemplates}
+                        size="lg"
+                        toggle={this.toggleTemplates}
+                      />
+                    </TemplateSwitch>
                     <Button
                       data-test-id="dashboard-create"
                       onClick={event => {
@@ -309,7 +302,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
-                  </ButtonContainer>
+                  </ButtonBar>
                 </StyledPageHeader>
                 {showTemplates && this.renderTemplates()}
                 {this.renderActions()}
@@ -322,6 +315,10 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledTitle = styled(Title)`
+  width: auto;
+`;
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -345,21 +342,13 @@ const StyledActions = styled('div')`
   }
 `;
 
-const SwitchContainer = styled('div')`
+const TemplateSwitch = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  display: inline;
-  padding-right: ${space(2)};
-`;
-
-const TemplateSwitch = styled(Switch)`
-  vertical-align: middle;
-  display: inline;
-  margin-left: ${space(1)};
-`;
-
-const ButtonContainer = styled('div')`
-  display: inline;
-  flex-shrink: 0;
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  width: max-content;
 `;
 
 const TemplateContainer = styled('div')`

@@ -1,8 +1,8 @@
-from time import time
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep, time
 from unittest.mock import patch
 
 from before_after import before
-from django.conf import settings
 from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
@@ -20,6 +20,7 @@ from sentry.middleware.ratelimit import (
     get_rate_limit_value,
 )
 from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
+from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -56,6 +57,27 @@ class RatelimitMiddlewareTest(TestCase):
 
         request.user = User.objects.get(id=sentry_app.proxy_user_id)
         request.auth = token
+
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
+    def test_fails_open(self, default_rate_limit_mock):
+        """Test that if something goes wrong in the rate limit middleware,
+        the request still goes through"""
+        request = self.factory.get("/")
+        with freeze_time("2000-01-01"):
+            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            self.middleware.process_view(request, self._test_endpoint, [], {})
+
+    def test_process_response_fails_open(self):
+        request = self.factory.get("/")
+        bad_response = object()
+        assert self.middleware.process_response(request, bad_response) is bad_response
+
+        class BadRequest:
+            def __getattr__(self, attr):
+                raise Exception("nope")
+
+        bad_request = BadRequest()
+        assert self.middleware.process_response(bad_request, bad_response) is bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
@@ -113,12 +135,13 @@ class RatelimitMiddlewareTest(TestCase):
     def test_get_rate_limit_key(self):
         # Import an endpoint
 
-        view = OrganizationGroupIndexEndpoint
+        view = OrganizationGroupIndexEndpoint.as_view()
 
         # Test for default IP
         request = self.factory.get("/")
         assert (
-            get_rate_limit_key(view, request) == "ip:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
+            get_rate_limit_key(view, request)
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
         )
         # Test when IP address is missing
         request.META["REMOTE_ADDR"] = None
@@ -128,7 +151,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
         assert (
             get_rate_limit_key(view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
         # Test for users
@@ -136,7 +159,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request)
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for user auth tokens
@@ -145,14 +168,14 @@ class RatelimitMiddlewareTest(TestCase):
         request.user = self.user
         assert (
             get_rate_limit_key(view, request)
-            == f"user:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
+            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
         )
 
         # Test for sentryapp auth tokens:
         self.populate_sentry_app_request(request)
         assert (
             get_rate_limit_key(view, request)
-            == f"org:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
+            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
         # Test for apikey
@@ -163,7 +186,7 @@ class RatelimitMiddlewareTest(TestCase):
         request.auth = api_key
         assert (
             get_rate_limit_key(view, request)
-            == "ip:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
+            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
 
@@ -174,18 +197,15 @@ class TestGetRateLimitValue(TestCase):
         class TestEndpoint(Endpoint):
             pass
 
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
+        assert get_rate_limit_value("GET", TestEndpoint, "ip") == get_default_rate_limits_for_group(
+            "default", RateLimitCategory.IP
         )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "org")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["org"]
-        )
-        assert (
-            get_rate_limit_value("DELETE", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "org"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.ORGANIZATION)
+        assert get_rate_limit_value(
+            "DELETE", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
     def test_override_rate_limit(self):
         """Override one or more of the default rate limits"""
@@ -197,23 +217,15 @@ class TestGetRateLimitValue(TestCase):
             }
 
         assert get_rate_limit_value("GET", TestEndpoint, "ip") == RateLimit(100, 5)
-        assert (
-            get_rate_limit_value("GET", TestEndpoint, "user")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["user"]
-        )
-        assert (
-            get_rate_limit_value("POST", TestEndpoint, "ip")
-            == settings.SENTRY_RATELIMITER_DEFAULTS["ip"]
-        )
+        # get is not overriddent for user, hence we use the default
+        assert get_rate_limit_value(
+            "GET", TestEndpoint, "user"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
+        # get is not overriddent for IP, hence we use the default
+        assert get_rate_limit_value(
+            "POST", TestEndpoint, "ip"
+        ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
         assert get_rate_limit_value("POST", TestEndpoint, "user") == RateLimit(20, 4)
-
-    def test_non_endpoint(self):
-        """views that don't inherit Endpoint shouldn not return a value"""
-
-        class TestEndpoint:
-            pass
-
-        assert get_rate_limit_value("GET", TestEndpoint, "ip") is None
 
 
 class RateLimitHeaderTestEndpoint(Endpoint):
@@ -240,9 +252,33 @@ class RaceConditionEndpoint(Endpoint):
         return Response({"ok": True})
 
 
+CONCURRENT_RATE_LIMIT = 3
+CONCURRENT_ENDPOINT_DURATION = 0.2
+
+
+class ConcurrentRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        group="foo",
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.USER: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, CONCURRENT_RATE_LIMIT),
+            },
+        },
+    )
+
+    def get(self, request):
+        sleep(CONCURRENT_ENDPOINT_DURATION)
+        return Response({"ok": True})
+
+
 urlpatterns = [
     url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
     url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+    url(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
 ]
 
 
@@ -275,7 +311,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-    @patch("sentry.ratelimits.utils.can_be_ratelimited")
+    @patch("sentry.ratelimits.utils.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
@@ -284,7 +320,7 @@ class TestRatelimitHeader(APITestCase):
             - UI Statistics Endpoints
             - Endpoints that don't inherit api.base.Endpoint
         """
-        can_be_ratelimited_patch.return_value = False
+        can_be_ratelimited_patch.return_value = None
         response = self.get_response()
         assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
         assert "X-Sentry-Rate-Limit-Limit" not in response._headers
@@ -304,3 +340,53 @@ class TestRatelimitHeader(APITestCase):
 
         assert int(response["X-Sentry-Rate-Limit-Remaining"]) == 1
         assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
+
+
+@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware")
+class TestConcurrentRateLimiter(APITestCase):
+    endpoint = "concurrent-endpoint"
+
+    def test_request_finishes(self):
+        # the endpoint in question has a concurrent rate limit of 3
+        # since it is called one after the other, the remaining concurrent
+        # requests should stay the same
+
+        # if the middleware did not call finish_request() then the second request
+        # would have a lower remaining concurrent request count
+        for _ in range(2):
+            response = self.get_success_response()
+            assert (
+                int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
+                == CONCURRENT_RATE_LIMIT - 1
+            )
+            assert int(response["X-Sentry-Rate-Limit-ConcurrentLimit"]) == CONCURRENT_RATE_LIMIT
+
+    def test_concurrent_request_rate_limiting(self):
+        """test the concurrent rate limiter end to-end"""
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = []
+            # dispatch more simultaneous requests to the endpoint than the concurrent limit
+            for _ in range(CONCURRENT_RATE_LIMIT + 1):
+                # sleep a little in between each submission
+                # NOTE: This should not be necesary if the lua scripts are atomic
+                # There is a test that does this with just the concurrent rate limiter
+                # (test_redis_concurrent.py) and it doesn't need the sleep in between.
+                # something about the test infra makes it so that if that sleep
+                # is removed, the middleware is actually called double the amount of times
+                # if you want to try and figure it out, please do so but I won't
+                # - Volo
+                sleep(0.01)
+                futures.append(executor.submit(self.get_response))
+            results = []
+            for f in futures:
+                results.append(f.result())
+
+            limits = sorted(int(r["X-Sentry-Rate-Limit-ConcurrentRemaining"]) for r in results)
+            # last two requests will have 0 concurrent slots remaining
+            assert limits == [0, 0, *range(1, CONCURRENT_RATE_LIMIT)]
+            sleep(CONCURRENT_ENDPOINT_DURATION + 0.1)
+            response = self.get_success_response()
+            assert (
+                int(response["X-Sentry-Rate-Limit-ConcurrentRemaining"])
+                == CONCURRENT_RATE_LIMIT - 1
+            )

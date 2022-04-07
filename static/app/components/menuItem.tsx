@@ -70,7 +70,9 @@ type MenuItemProps = {
   withBorder?: boolean;
 };
 
-type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
+interface Props
+  extends MenuItemProps,
+    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 const MenuItem = ({
   header,
@@ -120,7 +122,7 @@ const MenuItem = ({
 
     if (to) {
       return (
-        <MenuLink to={to} {...linkProps} title={title}>
+        <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuLink>
@@ -129,7 +131,7 @@ const MenuItem = ({
 
     if (href) {
       return (
-        <MenuAnchor {...linkProps} href={href}>
+        <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
           {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuAnchor>
@@ -137,7 +139,7 @@ const MenuItem = ({
     }
 
     return (
-      <MenuTarget role="button" {...linkProps} title={title}>
+      <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
         {icon && <MenuIcon>{icon}</MenuIcon>}
         {children}
       </MenuTarget>
@@ -168,14 +170,14 @@ const MenuItem = ({
   );
 };
 
-type MenuListItemProps = {
+interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disabled?: boolean;
   divider?: boolean;
   header?: boolean;
   isActive?: boolean;
   noAnchor?: boolean;
   withBorder?: boolean;
-} & React.HTMLProps<HTMLLIElement>;
+}
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = `
@@ -202,7 +204,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
       background: ${props.theme.active};
 
       &:hover {
-        color: ${props.theme.black};
+        background: ${props.theme.activeHover};
       }
     `;
   }
