@@ -65,22 +65,3 @@ export function configReducer<K extends keyof Config>(
     }
   }
 }
-type BridgableReducer<S, A, F extends boolean> = (state: S, action: A, flag: F) => S;
-
-type BridgableReducerState<R extends BridgableReducer<any, any, boolean>> =
-  R extends BridgableReducer<infer S, any, any> ? S : never;
-
-type BridgableReducerAction<R extends BridgableReducer<any, any, boolean>> =
-  R extends BridgableReducer<any, infer A, any> ? A : never;
-
-export function makeBridgableReducer<T extends BridgableReducer<any, any, boolean>>(
-  reducer: T,
-  flag: boolean
-): (
-  state: BridgableReducerState<T>,
-  action: BridgableReducerAction<T>
-) => BridgableReducerState<T> {
-  return (state: BridgableReducerState<T>, action: BridgableReducerAction<T>) => {
-    return reducer(state, action, flag);
-  };
-}
