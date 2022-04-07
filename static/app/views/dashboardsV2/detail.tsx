@@ -588,12 +588,10 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -625,13 +623,11 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
-            {hasPageFilters && (
-              <DashboardPageFilterBar>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter alignDropdown="right" />
-                <DatePageFilter alignDropdown="right" />
-              </DashboardPageFilterBar>
-            )}
+            <DashboardPageFilterBar>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter alignDropdown="right" />
+              <DatePageFilter alignDropdown="right" />
+            </DashboardPageFilterBar>
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -679,13 +675,11 @@ class DashboardDetail extends Component<Props, State> {
       this.state;
     const {dashboardId} = params;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           skipLoadLastUsed={organization.features.includes('global-views')}
-          hideGlobalHeader={hasPageFilters}
+          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
@@ -734,13 +728,11 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
-                  {hasPageFilters && (
-                    <DashboardPageFilterBar>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter alignDropdown="right" />
-                      <DatePageFilter alignDropdown="right" />
-                    </DashboardPageFilterBar>
-                  )}
+                  <DashboardPageFilterBar>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter alignDropdown="right" />
+                    <DatePageFilter alignDropdown="right" />
+                  </DashboardPageFilterBar>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>
                     <Dashboard
                       paramDashboardId={dashboardId}

@@ -109,7 +109,7 @@ describe('Dashboards > Detail', function () {
           router={initialData.router}
           location={initialData.router.location}
         />,
-        {context: initialData.routerContext}
+        {context: initialData.routerContext, organization: initialData.organization}
       );
       await act(async () => {
         await tick();
