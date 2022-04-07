@@ -21,7 +21,7 @@ export function ReleaseYAxisSelector({
   onChange,
   errors,
 }: Props) {
-  const {metricMetas, metricTags} = useMetricsContext();
+  const {metas, tags} = useMetricsContext();
 
   return (
     <YAxisSelector
@@ -31,8 +31,8 @@ export function ReleaseYAxisSelector({
       onChange={onChange}
       errors={errors}
       fieldOptions={generateMetricsWidgetFieldOptions(
-        Object.values(metricMetas),
-        Object.values(metricTags).map(({key}) => key)
+        Object.values(metas),
+        Object.values(tags).map(({key}) => key)
       )}
       noFieldsMessage={t('There are no metrics for this project.')}
     />

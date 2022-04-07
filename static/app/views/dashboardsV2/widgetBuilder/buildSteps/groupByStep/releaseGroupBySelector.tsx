@@ -10,9 +10,9 @@ interface Props {
 }
 
 export function ReleaseGroupBySelector({columns, onChange}: Props) {
-  const {metricTags} = useMetricsContext();
+  const {tags} = useMetricsContext();
 
-  const tagKeys = Object.values(metricTags)
+  const tagKeys = Object.values(tags)
     .map(({key}) => key)
     .sort((a, b) => a.localeCompare(b));
 

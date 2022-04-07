@@ -30,7 +30,7 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
-  const {metricMetas, metricTags} = useMetricsContext();
+  const {metas, tags} = useMetricsContext();
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
@@ -66,8 +66,8 @@ export function ReleaseColumnFields({
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
       fieldOptions={generateMetricsWidgetFieldOptions(
-        Object.values(metricMetas),
-        Object.values(metricTags).map(({key}) => key)
+        Object.values(metas),
+        Object.values(tags).map(({key}) => key)
       )}
       filterPrimaryOptions={filterPrimaryOptions}
       onChange={onYAxisOrColumnFieldChange}

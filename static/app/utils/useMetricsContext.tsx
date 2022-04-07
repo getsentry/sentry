@@ -9,8 +9,5 @@ export function useMetricsContext() {
     throw new Error('useMetricsContext was called outside of MetricsProvider');
   }
 
-  return {
-    metricTags: metricsContext.tags,
-    metricMetas: metricsContext.metas,
-  };
+  return metricsContext;
 }

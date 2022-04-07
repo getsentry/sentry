@@ -5,14 +5,13 @@ import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 
 function TestComponent({other}: {other: string}) {
-  const {metricTags, metricMetas} = useMetricsContext();
+  const {tags, metas} = useMetricsContext();
   return (
     <div>
       <span>{other}</span>
-      {metricTags &&
-        Object.entries(metricTags).map(([key, tag]) => <em key={key}>{tag.key}</em>)}
-      {metricMetas &&
-        Object.entries(metricMetas).map(([key, meta]) => <em key={key}>{meta.name}</em>)}
+      {tags && Object.entries(tags).map(([key, tag]) => <em key={key}>{tag.key}</em>)}
+      {metas &&
+        Object.entries(metas).map(([key, meta]) => <em key={key}>{meta.name}</em>)}
     </div>
   );
 }

@@ -32,7 +32,7 @@ function MetricsSearchBar({
   ...props
 }: Props) {
   const api = useApi();
-  const {metricTags} = useMetricsContext();
+  const {tags} = useMetricsContext();
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
@@ -56,7 +56,7 @@ function MetricsSearchBar({
     );
   }
 
-  const supportedTags = Object.values(metricTags).reduce((acc, {key}) => {
+  const supportedTags = Object.values(tags).reduce((acc, {key}) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
