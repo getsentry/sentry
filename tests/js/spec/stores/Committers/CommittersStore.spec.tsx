@@ -79,7 +79,7 @@ const TestProviderComponent = () => {
     return committers[key].committers.map(c => c.author.name);
   });
 
-return    <Fragment>{nodes.length > 0 ? nodes: 'empty component'}</Fragment>
+  return <Fragment>{nodes.length > 0 ? nodes : 'empty component'}</Fragment>;
 };
 
 describe('CommittersProvider', () => {
