@@ -8,7 +8,7 @@ import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -38,9 +38,13 @@ async function renderModal({
   widget,
   seriesData,
   tableData,
+  issuesData,
+  pageLinks,
 }: {
   initialData: any;
   widget: any;
+  issuesData?: TableDataRow[];
+  pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
 }) {
@@ -57,6 +61,8 @@ async function renderModal({
         onEdit={() => undefined}
         seriesData={seriesData}
         tableData={tableData}
+        issuesData={issuesData}
+        pageLinks={pageLinks}
       />
     </div>,
     {
@@ -761,6 +767,88 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByTestId('grid-editable')).toHaveStyle({
         'grid-template-columns':
           ' minmax(90px, auto) minmax(90px, auto) minmax(575px, auto)',
+      });
+    });
+
+    it('uses provided issuesData and does not make an issues requests', async function () {
+      await renderModal({initialData, widget: mockWidget, issuesData: []});
+      expect(issuesMock).not.toHaveBeenCalled();
+    });
+
+    it('makes issues requests when table is sorted', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        issuesData: [],
+      });
+      expect(issuesMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByText('events'));
+      await waitFor(() => {
+        expect(issuesMock).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Table Widget', function () {
+    let eventsv2Mock;
+    const mockQuery = {
+      conditions: 'title:/organizations/:orgId/performance/summary/',
+      fields: ['title', 'count()'],
+      aggregates: ['count()'],
+      columns: ['title'],
+      id: '1',
+      name: 'Query Name',
+      orderby: '',
+    };
+    const mockWidget = {
+      title: 'Test Widget',
+      displayType: DisplayType.TABLE,
+      interval: '5m',
+      queries: [mockQuery],
+      WidgetType: WidgetType.DISCOVER,
+    };
+    beforeEach(function () {
+      eventsv2Mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          data: [
+            {
+              title: '/organizations/:orgId/dashboards/',
+              id: '1',
+              count: 1,
+            },
+          ],
+          meta: {
+            title: 'string',
+            id: 'string',
+            count: 1,
+            isMetricsData: false,
+          },
+        },
+      });
+    });
+
+    it('uses provided tableData and does not make an eventsv2 requests', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+      });
+      expect(eventsv2Mock).not.toHaveBeenCalled();
+    });
+
+    it('makes eventsv2 requests when table is paginated', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+        tableData: [],
+        pageLinks:
+          '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
+      });
+      expect(eventsv2Mock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByLabelText('Next'));
+      await waitFor(() => {
+        expect(eventsv2Mock).toHaveBeenCalled();
       });
     });
   });

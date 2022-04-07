@@ -381,7 +381,7 @@ function WidgetViewerModal(props: Props) {
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
-                if (widget.displayType === DisplayType.TOP_N) {
+                if ([DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType)) {
                   setChartUnmodified(false);
                 }
               },
@@ -446,6 +446,9 @@ function WidgetViewerModal(props: Props) {
               organization,
               selection,
               widget: tableWidget,
+              onHeaderClick: () => {
+                setChartUnmodified(false);
+              },
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               location,
@@ -524,6 +527,7 @@ function WidgetViewerModal(props: Props) {
       display_type: widget.displayType,
     });
   }
+
   function renderWidgetViewer() {
     return (
       <React.Fragment>
