@@ -1,5 +1,4 @@
 import {Client} from 'sentry/api';
-
 import LegacyConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {run} from 'sentry/utils/apiSentryClient';
