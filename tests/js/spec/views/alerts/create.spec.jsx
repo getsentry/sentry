@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -88,9 +87,9 @@ describe('ProjectAlertsCreate', function () {
 
   it('redirects to wizard', function () {
     const location = {query: {}};
-    createWrapper(undefined, location);
+    const wrapper = createWrapper(undefined, location);
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    expect(wrapper.router.replace).toHaveBeenCalledWith(
       '/organizations/org-slug/alerts/project-slug/wizard'
     );
   });

@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,16 +14,19 @@ import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
 import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,
   AlertWizardAlertNames,
+  DEFAULT_WIZARD_TEMPLATE,
   WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 type RouteParams = {
   orgId: string;
-  projectId: string;
+  alertType?: AlertRuleType;
+  projectId?: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -32,35 +35,53 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-type AlertType = 'metric' | 'issue';
-
 type State = {
-  alertType: AlertType;
+  alertType: AlertRuleType;
 };
 
 class Create extends Component<Props, State> {
   state = this.getInitialState();
 
   getInitialState(): State {
-    const {organization, location, project} = this.props;
-    const {createFromDiscover, createFromWizard, aggregate, dataset, eventTypes} =
-      location?.query ?? {};
-    let alertType: AlertType = 'issue';
+    const {organization, location, project, params, router} = this.props;
+    const {
+      createFromDiscover,
+      createFromWizard,
+      aggregate,
+      dataset,
+      eventTypes,
+      createFromV3,
+    } = location?.query ?? {};
+    let alertType = AlertRuleType.ISSUE;
 
-    // Alerts can only be created via create from discover or alert wizard
-    if (createFromDiscover) {
-      alertType = 'metric';
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
+    // Alerts can only be created via create from discover or alert wizard, until alert-wizard-v3 is fully implemented
+    if (hasAlertWizardV3 && createFromV3) {
+      alertType = params.alertType || AlertRuleType.METRIC;
+
+      if (alertType === AlertRuleType.METRIC && !(aggregate && dataset && eventTypes)) {
+        router.replace({
+          ...location,
+          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+          query: {
+            ...location.query,
+            ...DEFAULT_WIZARD_TEMPLATE,
+            project: project.slug,
+          },
+        });
+      }
+    } else if (createFromDiscover) {
+      alertType = AlertRuleType.METRIC;
     } else if (createFromWizard) {
       if (aggregate && dataset && eventTypes) {
-        alertType = 'metric';
+        alertType = AlertRuleType.METRIC;
       } else {
         // Just to be explicit
-        alertType = 'issue';
+        alertType = AlertRuleType.ISSUE;
       }
     } else {
-      browserHistory.replace(
-        `/organizations/${organization.slug}/alerts/${project.slug}/wizard`
-      );
+      router.replace(`/organizations/${organization.slug}/alerts/${project.slug}/wizard`);
     }
 
     return {alertType};
@@ -80,22 +101,19 @@ class Create extends Component<Props, State> {
   sessionId = uniqueId();
 
   render() {
-    const {
-      hasMetricAlerts,
-      organization,
-      project,
-      params: {projectId},
-      location,
-      routes,
-    } = this.props;
+    const {hasMetricAlerts, organization, project, location, routes} = this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
       location?.query ?? {};
-    const wizardTemplate: WizardRuleTemplate = {aggregate, dataset, eventTypes};
+    const wizardTemplate: WizardRuleTemplate = {
+      aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
+      dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
+      eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
+    };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
     let wizardAlertType: undefined | WizardAlertType;
-    if (createFromWizard && alertType === 'metric') {
+    if (createFromWizard && alertType === AlertRuleType.METRIC) {
       wizardAlertType = wizardTemplate
         ? getAlertTypeFromAggregateDataset(wizardTemplate)
         : 'issues';
@@ -105,15 +123,16 @@ class Create extends Component<Props, State> {
 
     return (
       <Fragment>
-        <SentryDocumentTitle title={title} projectSlug={projectId} />
+        <SentryDocumentTitle title={title} projectSlug={project.slug} />
 
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              orgSlug={organization.slug}
+              organization={organization}
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}
-              projectSlug={projectId}
+              projectSlug={project.slug}
+              alertType={alertType}
               routes={routes}
               location={location}
               canChangeProject
@@ -139,7 +158,7 @@ class Create extends Component<Props, State> {
                       />
                     )}
 
-                    {hasMetricAlerts && alertType === 'metric' && (
+                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
                       <IncidentRulesCreate
                         {...this.props}
                         eventView={eventView}

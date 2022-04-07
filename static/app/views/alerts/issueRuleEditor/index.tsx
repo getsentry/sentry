@@ -98,12 +98,14 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
+type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+
 type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -162,15 +164,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
+    const {
+      project,
+      params: {ruleId, orgId},
+    } = this.props;
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
+      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
     return endpoints as [string, string][];

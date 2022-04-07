@@ -12,6 +12,7 @@ import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
 import IssueEditor from 'sentry/views/alerts/issueRuleEditor';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
   orgId: string;
@@ -52,8 +53,10 @@ class ProjectAlertsEditor extends Component<Props, State> {
     return `${ruleName}`;
   }
 
-  getAlertType(): 'metric' | 'issue' {
-    return location.pathname.includes('/alerts/metric-rules/') ? 'metric' : 'issue';
+  getAlertType(): AlertRuleType {
+    return location.pathname.includes('/alerts/metric-rules/')
+      ? AlertRuleType.METRIC
+      : AlertRuleType.ISSUE;
   }
 
   render() {
@@ -70,7 +73,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <BuilderBreadCrumbs
-              orgSlug={organization.slug}
+              organization={organization}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
               routes={routes}
@@ -93,7 +96,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
                         userTeamIds={teams.map(({id}) => id)}
                       />
                     )}
-                    {hasMetricAlerts && alertType === 'metric' && (
+                    {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
                       <IncidentRulesDetails
                         {...this.props}
                         project={project}

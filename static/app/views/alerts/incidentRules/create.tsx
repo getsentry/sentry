@@ -14,7 +14,7 @@ import RuleForm from './ruleForm';
 
 type RouteParams = {
   orgId: string;
-  projectId: string;
+  projectId?: string;
   ruleId?: string;
 };
 
