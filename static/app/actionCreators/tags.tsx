@@ -1,6 +1,5 @@
 import {Query} from 'history';
 
-import TagActions from 'sentry/actions/tagActions';
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -21,7 +20,7 @@ function tagFetchSuccess(tags: Tag[] | undefined) {
       type: 'warning',
     });
   }
-  TagActions.loadTagsSuccess(trimmedTags);
+  TagStore.loadTagsSuccess(trimmedTags);
 }
 
 /**
@@ -44,7 +43,7 @@ export function loadOrganizationTags(api: Client, orgId: string, selection: Page
     query,
   });
 
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+  promise.then(tagFetchSuccess);
 
   return promise;
 }
@@ -70,7 +69,7 @@ export function fetchOrganizationTags(
     query,
   });
 
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+  promise.then(tagFetchSuccess);
 
   return promise;
 }

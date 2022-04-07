@@ -7,11 +7,11 @@ describe('TagStore', function () {
 
   afterEach(() => {});
 
-  describe('onLoadTagsSuccess()', () => {
+  describe('loadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
       jest.spyOn(TagStore, 'trigger');
 
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {
           key: 'mytag',
           name: 'My Custom Tag',
@@ -37,7 +37,7 @@ describe('TagStore', function () {
 
   describe('getIssueAttributes()', function () {
     it('should populate the has tag with values', () => {
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {
           key: 'mytag',
           name: 'My Custom Tag',
@@ -57,7 +57,7 @@ describe('TagStore', function () {
     });
 
     it('should not overwrite predefined filters', () => {
-      TagStore.onLoadTagsSuccess([
+      TagStore.loadTagsSuccess([
         {
           key: 'is',
           name: 'Custom Assigned To',

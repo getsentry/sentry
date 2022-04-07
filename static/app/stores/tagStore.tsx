@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import TagActions from 'sentry/actions/tagActions';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -57,7 +56,7 @@ interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getAllTags(): TagCollection;
   getBuiltInTags(): TagCollection;
   getIssueAttributes(): TagCollection;
-  onLoadTagsSuccess(data: Tag[]): void;
+  loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
 }
@@ -68,9 +67,6 @@ const storeConfig: TagStoreDefinition = {
 
   init() {
     this.state = {};
-    this.unsubscribeListeners.push(
-      this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess)
-    );
   },
 
   getBuiltInTags() {
@@ -170,7 +166,7 @@ const storeConfig: TagStoreDefinition = {
     return this.getAllTags();
   },
 
-  onLoadTagsSuccess(data) {
+  loadTagsSuccess(data) {
     const newTags = data.reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {
         values: [],
