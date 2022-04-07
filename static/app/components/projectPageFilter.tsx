@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
@@ -117,6 +118,7 @@ export function ProjectPageFilter({
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
   const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+    actions,
     selectedProjects,
     isOpen,
   }) => {
@@ -146,20 +148,26 @@ export function ProjectPageFilter({
     );
 
     return (
-      <PageFilterDropdownButton
-        detached
-        hideBottomBorder={false}
-        isOpen={isOpen}
-        highlighted={desyncedFilters.has('projects')}
+      <GuideAnchor
+        target="new_page_filter_button"
+        position="bottom"
+        onStepComplete={actions.open}
       >
-        <DropdownTitle>
-          {icon}
-          <TitleContainer>{title}</TitleContainer>
-          {selectedProjects.length > projectsToShow.length && (
-            <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
-          )}
-        </DropdownTitle>
-      </PageFilterDropdownButton>
+        <PageFilterDropdownButton
+          detached
+          hideBottomBorder={false}
+          isOpen={isOpen}
+          highlighted={desyncedFilters.has('projects')}
+        >
+          <DropdownTitle>
+            {icon}
+            <TitleContainer>{title}</TitleContainer>
+            {selectedProjects.length > projectsToShow.length && (
+              <StyledBadge text={`+${selectedProjects.length - projectsToShow.length}`} />
+            )}
+          </DropdownTitle>
+        </PageFilterDropdownButton>
+      </GuideAnchor>
     );
   };
 
