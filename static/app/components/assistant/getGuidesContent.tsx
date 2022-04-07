@@ -235,7 +235,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'semver',
       requiredTargets: ['releases_search'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Filter by Semver'),
@@ -256,7 +256,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'release_stages',
       requiredTargets: ['release_stages'],
-      dateThreshold: new Date(2021, 6, 1),
+      dateThreshold: new Date('2021-05-01'),
       steps: [
         {
           title: t('Adoption Filter'),
