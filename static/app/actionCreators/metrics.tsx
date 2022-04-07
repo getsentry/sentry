@@ -1,5 +1,4 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -112,7 +111,7 @@ export function fetchMetricsTags(
 }
 
 function metaFetchSuccess(metricsMeta: MetricsMeta[]) {
-  MetricsMetaActions.loadMetricsMetaSuccess(metricsMeta);
+  MetricsMetaStore.loadSuccess(metricsMeta);
 }
 
 export function fetchMetricsFields(

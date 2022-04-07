@@ -6,7 +6,6 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -73,8 +72,8 @@ function Sidebar({location, organization}: Props) {
     action();
   };
 
-  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
-  const hidePanel = () => SidebarPanelActions.hidePanel();
+  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelStore.togglePanel(panel);
+  const hidePanel = () => SidebarPanelStore.hidePanel();
 
   const bcl = document.body.classList;
 

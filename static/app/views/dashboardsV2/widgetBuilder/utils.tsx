@@ -19,6 +19,8 @@ import {
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {FlatValidationError, ValidationError} from '../utils';
+
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
 export const RESULTS_LIMIT = 10;
@@ -47,14 +49,6 @@ export const displayTypes = {
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
   [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(

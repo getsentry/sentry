@@ -1,13 +1,8 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GuideActions from 'sentry/actions/guideActions';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LegacyConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
 
 describe('GuideAnchor', function () {
   const serverGuide = [
@@ -34,7 +29,7 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideActions.fetchSucceeded(serverGuide);
+    GuideStore.fetchSucceeded(serverGuide);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
 
     // XXX(epurkhiser): Skip pointer event checks due to a bug with how Popper
@@ -81,7 +76,7 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideActions.fetchSucceeded(serverGuide);
+    GuideStore.fetchSucceeded(serverGuide);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
 
     const dismissMock = MockApiClient.addMockResponse({
@@ -104,7 +99,7 @@ describe('GuideAnchor', function () {
       })
     );
 
-    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
+    expect(screen.queryByText("Let's Get This Over With")).not.toBeInTheDocument();
   });
 
   it('renders no container when inactive', function () {
@@ -137,11 +132,11 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideActions.fetchSucceeded(serverGuide);
+    GuideStore.fetchSucceeded(serverGuide);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
-    GuideActions.setForceHide(true);
-    await waitForElementToBeRemoved(() => screen.queryByText("Let's Get This Over With"));
-    GuideActions.setForceHide(false);
+    GuideStore.setForceHide(true);
+    expect(screen.queryByText("Let's Get This Over With")).not.toBeInTheDocument();
+    GuideStore.setForceHide(false);
     expect(await screen.findByText("Let's Get This Over With")).toBeInTheDocument();
   });
 });

@@ -128,11 +128,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
-    TagStore.onLoadTagsSuccess(tags);
+    TagStore.loadTagsSuccess(tags);
     act(() => {
       MetricsTagStore.onLoadSuccess(metricsTags);
     });
-    MetricsMetaStore.onLoadSuccess(metricsMeta);
+    MetricsMetaStore.loadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
