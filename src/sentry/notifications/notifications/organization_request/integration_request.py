@@ -39,6 +39,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     # TODO: switch to a strategy based on the integration write scope
     RoleBasedRecipientStrategyClass = OwnerRecipientStrategy
     referrer_base = "integration-request"
+    filename = "sentry/emails/requests/organization-integration"
 
     def __init__(
         self,
@@ -67,9 +68,6 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             "integration_name": self.provider_name,
             "message": self.message,
         }
-
-    def get_filename(self) -> str:
-        return "requests/organization-integration"
 
     def get_category(self) -> str:
         return "integration_request"

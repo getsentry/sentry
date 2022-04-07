@@ -96,9 +96,6 @@ class IntegrationNudgeNotification(BaseNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_filename(self) -> str:
-        return ""
-
     def get_category(self) -> str:
         return ""
 

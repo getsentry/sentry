@@ -15,6 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore, features
 from sentry.app import tsdb
@@ -181,22 +183,18 @@ class ActivityMailPreview:
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), context=self.get_context())
+        txt_template = f"{self.email.filename}.txt"
+        return render_to_string(txt_template, context=self.get_context())
 
     def html_body(self):
+        html_template = f"{self.email.filename}.html"
         try:
-            return inline_css(
-                render_to_string(self.email.get_html_template(), context=self.get_context())
-            )
+            return inline_css(render_to_string(html_template, context=self.get_context()))
         except Exception:
             import traceback
 
             traceback.print_exc()
             raise
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ActivityMailDebugView(View):

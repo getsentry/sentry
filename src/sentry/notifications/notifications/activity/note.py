@@ -11,15 +11,13 @@ if TYPE_CHECKING:
 class NoteActivityNotification(GroupActivityNotification):
     message_builder = "SlackNotificationsMessageBuilder"
     referrer_base = "note-activity"
+    activity_filename = "note"
 
     def get_activity_name(self) -> str:
         return "Note"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return str(self.activity.data["text"]), {}, {}
-
-    def get_filename(self) -> str:
-        return "activity/note"
 
     def get_category(self) -> str:
         return "note_activity_email"
