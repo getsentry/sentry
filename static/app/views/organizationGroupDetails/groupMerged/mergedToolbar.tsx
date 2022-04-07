@@ -31,7 +31,7 @@ class MergedToolbar extends React.Component<Props, State> {
 
   getInitialState() {
     const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
-      GroupingStore;
+      GroupingStore.getState();
 
     return {
       enableFingerprintCompare,
