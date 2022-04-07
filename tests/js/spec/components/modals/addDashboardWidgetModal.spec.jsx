@@ -128,7 +128,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
-    TagStore.onLoadTagsSuccess(tags);
+    TagStore.loadTagsSuccess(tags);
     act(() => {
       MetricsTagStore.onLoadSuccess(metricsTags);
     });
