@@ -5,6 +5,7 @@ import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
@@ -255,7 +256,7 @@ const storeConfig: GuideStoreDefinition = {
         if (seen) {
           return false;
         }
-        if (user?.isSuperuser) {
+        if (user?.isSuperuser && !IS_ACCEPTANCE_TEST) {
           return true;
         }
         if (dateThreshold) {
@@ -266,12 +267,16 @@ const storeConfig: GuideStoreDefinition = {
       });
     }
 
+    // Remove steps that are missing anchors, unless the anchor is included in
+    // the expectedTargets and will appear at the step.
     const nextGuide =
       guideOptions.length > 0
         ? {
             ...guideOptions[0],
             steps: guideOptions[0].steps.filter(
-              step => step.target && anchors.has(step.target)
+              step =>
+                anchors.has(step.target) ||
+                guideOptions[0]?.expectedTargets?.includes(step.target)
             ),
           }
         : null;

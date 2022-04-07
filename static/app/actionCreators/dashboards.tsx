@@ -4,6 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
+import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 
 export function createDashboard(
   api: Client,
@@ -25,7 +26,8 @@ export function createDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -65,7 +67,8 @@ export function fetchDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -95,7 +98,8 @@ export function updateDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -120,7 +124,8 @@ export function deleteDashboard(
     const errorResponse = response?.responseJSON ?? null;
 
     if (errorResponse) {
-      addErrorMessage(errorResponse);
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }

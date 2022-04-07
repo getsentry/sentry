@@ -51,6 +51,20 @@ describe('GuideStore', function () {
     expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
+  it('should expect anchors to appear in expectedTargets', function () {
+    data = [{guide: 'new_page_filters', seen: false}];
+
+    GuideStore.onRegisterAnchor('new_page_filter_button');
+    GuideStore.onFetchSucceeded(data);
+    expect(GuideStore.state.currentStep).toEqual(0);
+    expect(GuideStore.state.currentGuide.guide).toEqual('new_page_filters');
+
+    GuideStore.onRegisterAnchor('new_page_filter_button');
+
+    // Will not prune steps that don't have anchors
+    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+  });
+
   it('should force show a guide with #assistant', function () {
     data = [
       {
