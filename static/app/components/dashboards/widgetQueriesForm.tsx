@@ -19,11 +19,12 @@ import {
   getAggregateAlias,
   getColumnsAndAggregatesAsStrings,
   isEquation,
+  stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
 
 import WidgetQueryFields from './widgetQueryFields';
 
@@ -41,7 +42,7 @@ export const generateOrderOptions = ({
   const isMetrics = widgetType === WidgetType.METRICS;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isMetrics ? aggregates : [...aggregates, ...columns])
+  (isMetrics ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
     .forEach(field => {
       let alias = getAggregateAlias(field);
@@ -53,7 +54,7 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: alias});
+        options.push({label, value: isMetrics ? field : alias});
         return;
       }
 
@@ -187,6 +188,7 @@ class WidgetQueriesForm extends React.Component<Props> {
       onChange,
       widgetType = WidgetType.DISCOVER,
     } = this.props;
+
     const isMetrics = widgetType === WidgetType.METRICS;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);

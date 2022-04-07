@@ -18,6 +18,7 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import {
   AlertType,
@@ -80,6 +81,8 @@ class AlertWizard extends Component<Props, State> {
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
     if (
       organization.features.includes('alert-crash-free-metrics') &&
       metricRuleTemplate?.dataset === Dataset.SESSIONS
@@ -88,12 +91,23 @@ class AlertWizard extends Component<Props, State> {
     }
 
     const to = {
-      pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
-      query: {
-        ...(metricRuleTemplate ? metricRuleTemplate : {}),
-        createFromWizard: true,
-        referrer: location?.query?.referrer,
-      },
+      pathname: hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts/new/${
+            isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+          }/`
+        : `/organizations/${organization.slug}/alerts/${projectId}/new/`,
+      query: hasAlertWizardV3
+        ? {
+            ...(metricRuleTemplate ? metricRuleTemplate : {}),
+            project: projectId,
+            createFromV3: true,
+            referrer: location?.query?.referrer,
+          }
+        : {
+            ...(metricRuleTemplate ? metricRuleTemplate : {}),
+            createFromWizard: true,
+            referrer: location?.query?.referrer,
+          },
     };
 
     const noFeatureMessage = t('Requires incidents feature.');
@@ -168,7 +182,7 @@ class AlertWizard extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              orgSlug={organization.slug}
+              organization={organization}
               projectSlug={projectId}
               title={t('Select Alert')}
               routes={routes}

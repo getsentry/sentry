@@ -74,7 +74,9 @@ class AlertRuleActionRequester(Mediator):
         return {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
+            # TODO(Ecosystem): Deprecate this header in favor of documented 'Sentry-Hook-Signature'
             "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
+            "Sentry-Hook-Signature": self.sentry_app.build_signature(self.body),
         }
 
     @memoize

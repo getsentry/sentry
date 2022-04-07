@@ -1,5 +1,4 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -103,7 +102,8 @@ export function fetchMetricsTags(
   });
 
   promise.then(tagFetchSuccess).catch(response => {
-    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric tags');
+    const errorResponse =
+      response?.responseJSON?.detail ?? t('Unable to fetch metric tags');
     addErrorMessage(errorResponse);
     handleXhrErrorResponse(errorResponse)(response);
   });
@@ -112,7 +112,7 @@ export function fetchMetricsTags(
 }
 
 function metaFetchSuccess(metricsMeta: MetricsMeta[]) {
-  MetricsMetaActions.loadMetricsMetaSuccess(metricsMeta);
+  MetricsMetaStore.loadSuccess(metricsMeta);
 }
 
 export function fetchMetricsFields(
@@ -132,7 +132,8 @@ export function fetchMetricsFields(
   );
 
   promise.then(metaFetchSuccess).catch(response => {
-    const errorResponse = response?.responseJSON ?? t('Unable to fetch metric fields');
+    const errorResponse =
+      response?.responseJSON?.detail ?? t('Unable to fetch metric fields');
     addErrorMessage(errorResponse);
     handleXhrErrorResponse(errorResponse)(response);
   });

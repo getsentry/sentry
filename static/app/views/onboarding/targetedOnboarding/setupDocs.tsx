@@ -15,6 +15,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
@@ -23,7 +24,7 @@ import withProjects from 'sentry/utils/withProjects';
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {StepProps} from './types';
+import {ClientState, fetchClientState, StepProps} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -40,6 +41,16 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
+  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const selectedProjectsSet = new Set(
+    clientState?.selectedPlatforms.map(
+      platform => clientState.platformToProjectIdMap[platform]
+    ) || []
+  );
+  useEffect(() => {
+    fetchClientState(api, organization.slug).then(setClientState);
+  }, []);
+
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
@@ -58,11 +69,21 @@ function SetupDocs({organization, projects, search}: Props) {
   const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
   const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(p => !checkProjectHasFirstEvent(p));
+  const firstProjectNoError = projects.findIndex(
+    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
+  );
+  // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
-  const {platform} = project || {};
-  const currentPlatform = loadedPlatform ?? platform ?? 'other';
+
+  useEffect(() => {
+    if (clientState && !project) {
+      // Can't find a project to show, probably because all projects are either deleted or finished.
+      browserHistory.push('/');
+    }
+  }, [clientState, project]);
+
+  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const fetchData = async () => {
     // const {platform} = project || {};
@@ -102,6 +123,15 @@ function SetupDocs({organization, projects, search}: Props) {
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
   };
 
+  const selectProject = (newProjectId: string) => {
+    const matchedProject = projects.find(p => p.id === newProjectId);
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+      organization,
+      platform: matchedProject?.platform || 'unknown',
+    });
+    setNewProject(newProjectId);
+  };
+
   const missingExampleWarning = () => {
     const missingExample =
       platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
@@ -135,7 +165,7 @@ function SetupDocs({organization, projects, search}: Props) {
 
   const loadingError = (
     <LoadingError
-      message={t('Failed to load documentation for the %s platform.', platform)}
+      message={t('Failed to load documentation for the %s platform.', project.platform)}
       onRetry={fetchData}
     />
   );
@@ -150,8 +180,19 @@ function SetupDocs({organization, projects, search}: Props) {
     <React.Fragment>
       <Wrapper>
         <TargetedOnboardingSidebar
+          projects={projects}
+          selectedPlatformToProjectIdMap={
+            clientState
+              ? Object.fromEntries(
+                  clientState.selectedPlatforms.map(platform => [
+                    platform,
+                    clientState.platformToProjectIdMap[platform],
+                  ])
+                )
+              : {}
+          }
           activeProject={project}
-          {...{checkProjectHasFirstEvent, setNewProject}}
+          {...{checkProjectHasFirstEvent, selectProject}}
         />
         <MainContent>
           <FullIntroduction currentPlatform={currentPlatform} />
@@ -169,7 +210,14 @@ function SetupDocs({organization, projects, search}: Props) {
           isLast={projectIndex === projects.length - 1}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            // TODO: analytics
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
+            );
             const nextProject = projects.find(
               (p, index) => !p.firstEvent && index > projectIndex
             );
