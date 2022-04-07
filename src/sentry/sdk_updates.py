@@ -409,7 +409,7 @@ def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
 
 
 def get_suggested_updates(
-    setup_state, index_state=None, parent_suggestions=None, ignore_patch_version=False
+    setup_state, index_state=None, parent_suggestions=None, ignore_patch_version=True
 ):
     if index_state is None:
         index_state = SdkIndexState()
