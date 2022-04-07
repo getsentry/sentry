@@ -10,7 +10,7 @@ from enum import Enum
 
 class SessionMetricKey(Enum):
     """
-    These are the public facing names of the API and only the transaction names listed here are
+    These are the public facing names of the API and only the session fields listed here are
     queryable in the API.
     """
 
@@ -31,7 +31,7 @@ class SessionMetricKey(Enum):
 
 class TransactionMetricKey(Enum):
     """
-    These are the public facing names of the API and only the transaction names listed here are
+    These are the public facing names of the API and only the transaction fields listed here are
     queryable in the API.
     """
 
