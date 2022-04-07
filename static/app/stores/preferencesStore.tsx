@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import PreferencesActions from 'sentry/actions/preferencesActions';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
@@ -15,9 +14,11 @@ type Preferences = {
 interface PreferenceStoreDefinition extends CommonStoreDefinition<Preferences> {
   getInitialState(): Preferences;
 
+  hideSidebar(): void;
   loadInitialState(prefs: Preferences): void;
   prefs: Preferences;
   reset(): void;
+  showSidebar(): void;
 }
 
 const storeConfig: PreferenceStoreDefinition = {
@@ -26,16 +27,6 @@ const storeConfig: PreferenceStoreDefinition = {
 
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(PreferencesActions.hideSidebar, this.onHideSidebar)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PreferencesActions.showSidebar, this.onShowSidebar)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PreferencesActions.loadInitialState, this.loadInitialState)
-    );
   },
 
   getInitialState() {
@@ -46,17 +37,17 @@ const storeConfig: PreferenceStoreDefinition = {
     this.prefs = {collapsed: false};
   },
 
-  loadInitialState(prefs: Preferences) {
+  loadInitialState(prefs) {
     this.prefs = {...prefs};
     this.trigger(this.prefs);
   },
 
-  onHideSidebar() {
+  hideSidebar() {
     this.prefs = {...this.prefs, collapsed: true};
     this.trigger(this.prefs);
   },
 
-  onShowSidebar() {
+  showSidebar() {
     this.prefs = {...this.prefs, collapsed: false};
     this.trigger(this.prefs);
   },
