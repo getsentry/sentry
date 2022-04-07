@@ -286,16 +286,6 @@ function WidgetBuilder({
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
-
-    if (widgetBuilderNewDesign) {
-      setState({
-        ...state,
-        selectedDashboard: {
-          label: dashboard.title,
-          value: dashboard.id === '' ? 'new' : dashboard.id,
-        },
-      });
-    }
   }, [source]);
 
   useEffect(() => {
@@ -739,9 +729,18 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    if (notDashboardsOrigin && !widgetBuilderNewDesign) {
+    if (notDashboardsOrigin) {
       // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
-      if (!state.selectedDashboard) {
+      if (
+        !state.selectedDashboard ||
+        !(
+          state.dashboards.find(
+            ({title, id}) =>
+              title === state.selectedDashboard?.label &&
+              id === state.selectedDashboard?.value
+          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
+        )
+      ) {
         setState({
           ...state,
           errors: {...state.errors, dashboard: t('This field may not be blank')},
@@ -776,12 +775,12 @@ function WidgetBuilder({
 
     try {
       const dashboards = await promise;
-      setState(prevState => ({...prevState, dashboards, loading: false}));
+      setState({...state, dashboards, loading: false});
     } catch (error) {
       const errorMessage = t('Unable to fetch dashboards');
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
-      setState(prevState => ({...prevState, loading: false}));
+      setState({...state, loading: false});
     }
   }
 
@@ -845,7 +844,7 @@ function WidgetBuilder({
   }
 
   function isFormInvalid() {
-    if (notDashboardsOrigin && !state.selectedDashboard && !widgetBuilderNewDesign) {
+    if (notDashboardsOrigin && !state.selectedDashboard) {
       return true;
     }
 
@@ -999,7 +998,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                     />
                   )}
-                  {notDashboardsOrigin && !widgetBuilderNewDesign && (
+                  {notDashboardsOrigin && (
                     <DashboardStep
                       error={state.errors?.dashboard}
                       dashboards={state.dashboards}

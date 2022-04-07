@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 
@@ -13,7 +12,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import {
   DashboardListItem,
   MAX_WIDGETS,
@@ -23,15 +21,12 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 export type AddToDashboardModalProps = {
-  iconColor: string;
-  onConfirm: () => void;
   organization: Organization;
   query: WidgetQuery;
-  router: InjectedRouter;
   selection: PageFilters;
   widget: WidgetTemplate;
 
-  // TODO(nar): Change this from any
+  // TODO(nar): Change this type from any
   widgetAsQueryParams: any;
 };
 
@@ -44,8 +39,8 @@ function AddToDashboardModal({
   closeModal,
   organization,
   widgetAsQueryParams,
+  selection,
   query,
-  router,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -56,19 +51,12 @@ function AddToDashboardModal({
   }, []);
 
   function handleGoToBuilder() {
-    const pathname =
-      selectedDashboardId === 'new'
-        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
-        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
-
-    router.push({
-      pathname,
-      query: widgetAsQueryParams,
-    });
     closeModal();
+    return;
   }
 
   function handleAddAndStayInDiscover() {
+    closeModal();
     return;
   }
 
@@ -127,17 +115,7 @@ function AddToDashboardModal({
             isEditing={false}
             isSorting={false}
             widgetLimitReached={false}
-            // Override selection to 24hr here because
-            selection={{
-              projects: [],
-              environments: [],
-              datetime: {
-                start: widgetAsQueryParams.start,
-                end: widgetAsQueryParams.end,
-                period: widgetAsQueryParams.statsPeriod,
-                utc: widgetAsQueryParams.utc,
-              },
-            }}
+            selection={selection}
             widget={{
               title: widgetAsQueryParams.defaultTitle,
               displayType: widgetAsQueryParams.displayType,
@@ -171,7 +149,7 @@ function AddToDashboardModal({
   );
 }
 
-export default withPageFilters(AddToDashboardModal);
+export default AddToDashboardModal;
 
 export const modalCss = css`
   width: 100%;

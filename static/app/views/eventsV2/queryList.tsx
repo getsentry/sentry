@@ -146,7 +146,16 @@ class QueryList extends React.Component<Props> {
             defaultTitle,
             displayType,
           },
-          router,
+          selection: {
+            projects: eventView.project,
+            environments: eventView.environment,
+            datetime: {
+              start: eventView.start,
+              end: eventView.end,
+              period: eventView.statsPeriod,
+              utc: eventView.utc,
+            },
+          },
         });
         return;
       }
