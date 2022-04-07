@@ -21,6 +21,7 @@ import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 export type AddToDashboardModalProps = {
+  interval: string;
   organization: Organization;
   query: WidgetQuery;
   selection: PageFilters;
@@ -41,6 +42,7 @@ function AddToDashboardModal({
   widgetAsQueryParams,
   selection,
   query,
+  interval,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -120,7 +122,7 @@ function AddToDashboardModal({
               title: widgetAsQueryParams.defaultTitle,
               displayType: widgetAsQueryParams.displayType,
               queries: [query],
-              interval: '5m',
+              interval,
             }}
           />
         </div>

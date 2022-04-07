@@ -156,6 +156,7 @@ class QueryList extends React.Component<Props> {
               utc: eventView.utc,
             },
           },
+          interval: eventView.interval,
         });
         return;
       }

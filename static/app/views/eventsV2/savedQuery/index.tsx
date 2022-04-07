@@ -293,6 +293,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
               utc: eventView.utc,
             },
           },
+          interval: eventView.interval,
         });
         return;
       }
