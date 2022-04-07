@@ -25,7 +25,6 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {IconEdit} from 'sentry/icons/iconEdit';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -758,7 +757,6 @@ function WidgetViewerModal(props: Props) {
           {onEdit && widget.id && (
             <Button
               type="button"
-              icon={<IconEdit />}
               onClick={() => {
                 closeModal();
                 onEdit();
