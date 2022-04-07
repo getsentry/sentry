@@ -1978,6 +1978,111 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"transaction.failure_count": 1}
         assert group["series"] == {"transaction.failure_count": [1]}
 
+    def test_failure_rate_transaction(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.OK.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_status: indexer.record(
+                            self.organization.id, TransactionStatusTagValue.ABORTED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.5],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_rate"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        group = response.data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"transaction.failure_rate": 0.25}
+        assert group["series"] == {"transaction.failure_rate": [0.25]}
+
+    def test_failure_rate_without_transactions(self):
+        """
+        Ensures the absence of transactions isn't an issue to calculate the rate.
+
+        The `nan` a division by 0 may produce must not be in the response, yet
+        they are an issue in javascript:
+        ```
+        $ node
+        Welcome to Node.js v16.13.1.
+        Type ".help" for more information.
+        > JSON.parse('NaN')
+        Uncaught SyntaxError: Unexpected token N in JSON at position 0
+        > JSON.parse('nan')
+        Uncaught SyntaxError: Unexpected token a in JSON at position 1
+        ```
+        """
+        # Not sending buckets means no project is created automatically. We need
+        # a project without transaction data, so create one:
+        self.project
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.failure_rate"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert response.data["groups"] == []
+
     def test_request_private_derived_metric(self):
         for private_name in [
             "session.crashed_and_abnormal_user",

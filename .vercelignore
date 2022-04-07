@@ -22,8 +22,6 @@
 !yarn.lock
 !docs-ui
 !docs-ui/**
-!.storybook
-!.storybook/**
 !tests
 !tests/fixtures
 !tests/fixtures/integration-docs

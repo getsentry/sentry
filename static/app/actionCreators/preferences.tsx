@@ -1,24 +1,24 @@
 import Cookies from 'js-cookie';
 
-import PreferencesActions from '../actions/preferencesActions';
+import PreferenceStore from 'sentry/stores/preferencesStore';
 
 const SIDEBAR_COOKIE_KEY = 'sidebar_collapsed';
 const COOKIE_ENABLED = '1';
 const COOKIE_DISABLED = '0';
 
 export function hideSidebar() {
-  PreferencesActions.hideSidebar();
+  PreferenceStore.hideSidebar();
   Cookies.set(SIDEBAR_COOKIE_KEY, COOKIE_ENABLED);
 }
 
 export function showSidebar() {
-  PreferencesActions.showSidebar();
+  PreferenceStore.showSidebar();
   Cookies.set(SIDEBAR_COOKIE_KEY, COOKIE_DISABLED);
 }
 
 export function loadPreferencesState() {
   // Set initial "collapsed" state to true or false
-  PreferencesActions.loadInitialState({
+  PreferenceStore.loadInitialState({
     collapsed: Cookies.get(SIDEBAR_COOKIE_KEY) === COOKIE_ENABLED,
   });
 }

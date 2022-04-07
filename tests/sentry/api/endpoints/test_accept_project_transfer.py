@@ -74,7 +74,7 @@ class AcceptTransferProjectTest(APITestCase):
         assert self.from_organization.slug in org_slugs
         assert self.to_organization.slug in org_slugs
 
-    def test_transfers_project_to_correct_team(self):
+    def test_transfers_project_to_team_deprecated(self):
         self.login_as(self.owner)
         url_data = sign(
             actor_id=self.member.user_id,
@@ -84,11 +84,11 @@ class AcceptTransferProjectTest(APITestCase):
             transaction_id=self.transaction_id,
         )
 
-        resp = self.client.post(self.path, data={"team": self.to_team.id, "data": url_data})
-        assert resp.status_code == 204
-        p = Project.objects.get(id=self.project.id)
-        assert p.organization_id == self.to_organization.id
-        assert p.teams.first() == self.to_team
+        resp = self.client.post(
+            self.path, data={"team": self.to_team.id, "organization": None, "data": url_data}
+        )
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Cannot transfer projects to a team."}
 
     def test_non_owner_cannot_transfer_project(self):
         rando_user = self.create_user(email="blipp@bloop.com", is_superuser=False)
@@ -103,24 +103,13 @@ class AcceptTransferProjectTest(APITestCase):
             transaction_id=self.transaction_id,
         )
 
-        resp = self.client.post(self.path, data={"team": self.to_team.id, "data": url_data})
+        resp = self.client.post(
+            self.path, data={"organization": self.to_organization.slug, "data": url_data}
+        )
         assert resp.status_code == 400
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.from_organization.id
-
-    def test_cannot_transfer_project_twice_from_same_org(self):
-        self.login_as(self.owner)
-        url_data = sign(
-            actor_id=self.member.user_id,
-            from_organization_id=self.from_organization.id,
-            project_id=self.project.id,
-            user_id=self.owner.id,
-            transaction_id=self.transaction_id,
-        )
-
-        resp = self.client.post(self.path, data={"team": self.to_team.id, "data": url_data})
-        resp = self.client.get(self.path + "?" + urlencode({"data": url_data}))
-        assert resp.status_code == 400
+        assert p.organization_id != rando_org.id
 
     def test_transfers_project_to_correct_organization(self):
         self.login_as(self.owner)
@@ -139,7 +128,7 @@ class AcceptTransferProjectTest(APITestCase):
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
 
-    def test_errors_when_team_and_org_provided(self):
+    def test_use_org_when_team_and_org_provided(self):
         self.login_as(self.owner)
         url_data = sign(
             actor_id=self.member.user_id,
@@ -157,7 +146,6 @@ class AcceptTransferProjectTest(APITestCase):
                 "data": url_data,
             },
         )
-        assert resp.status_code == 400
-        assert resp.data == {"detail": "Choose either a team or an organization, not both"}
+        assert resp.status_code == 204
         p = Project.objects.get(id=self.project.id)
-        assert p.organization_id == self.from_organization.id
+        assert p.organization_id == self.to_organization.id
