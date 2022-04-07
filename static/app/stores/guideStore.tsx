@@ -5,7 +5,7 @@ import GuideActions from 'sentry/actions/guideActions';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
-import { IS_ACCEPTANCE_TEST } from 'sentry/constants';
+import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
