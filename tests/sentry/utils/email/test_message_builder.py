@@ -134,7 +134,6 @@ class MessageBuilderTest(TestCase):
             subject="Test",
             body="hello world",
             html_body="<b>hello world</b>",
-            reference=self.activity,
         )
         msg.send(["foo@example.com"])
 
