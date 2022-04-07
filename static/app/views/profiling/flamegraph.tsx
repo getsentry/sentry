@@ -12,7 +12,6 @@ import {Trace} from 'sentry/types/profiling/core';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -34,13 +33,6 @@ function fetchFlamegraphs(
     )
     .then(([data]) => importProfile(data, eventId));
 }
-
-const LoadingGroup: ProfileGroup = {
-  name: 'Loading',
-  traceID: '',
-  activeProfileIndex: 0,
-  profiles: [Profile.Empty()],
-};
 
 interface FlamegraphViewProps {
   location: Location;
@@ -87,7 +79,6 @@ function FlamegraphView(props: FlamegraphViewProps): React.ReactElement {
               </Alert>
             ) : requestState === 'loading' ? (
               <Fragment>
-                <Flamegraph profiles={LoadingGroup} />
                 <LoadingIndicator />
               </Fragment>
             ) : requestState === 'resolved' && profiles ? (
