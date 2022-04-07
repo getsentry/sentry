@@ -802,6 +802,7 @@ const Container = styled('div')<{height?: number | null}>`
 `;
 
 const QueryContainer = styled('div')`
+  display: inline-block;
   margin-bottom: ${space(2)};
   position: relative;
 `;
