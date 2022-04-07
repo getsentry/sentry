@@ -48,7 +48,7 @@ describe('IssueList', () => {
       />
     );
 
-    expect(screen.getByTestId('loading-error-message')).toBeInTheDocument();
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });
 
   it('refetches data on click from error state', async () => {
@@ -72,7 +72,9 @@ describe('IssueList', () => {
       />
     );
 
-    expect(await screen.findByTestId('loading-error-message')).toBeInTheDocument();
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Retry'));
 

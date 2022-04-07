@@ -3,6 +3,7 @@ from uuid import uuid4
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
+    ActorTuple,
     Commit,
     CommitAuthor,
     Dashboard,
@@ -10,6 +11,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
     Environment,
+    EnvironmentProject,
     ExternalIssue,
     Group,
     Organization,
@@ -250,3 +252,96 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Organization.objects.filter(id=org.id).exists()
         assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
         assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()
+
+    def test_delete_org_simple(self):
+        name_filter = {"name": "test_delete_org_simple"}
+        org = self.create_organization(**name_filter)
+
+        assert Organization.objects.filter(**name_filter).count() == 1
+        assert ScheduledDeletion.objects.count() == 0
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert Organization.objects.filter(**name_filter).count() == 0
+
+    def test_delete_org_after_project_transfer(self):
+        from_org = self.create_organization(name="from_org")
+        from_user = self.create_user()
+        self.create_member(user=from_user, role="member", organization=from_org)
+        from_team = self.create_team(organization=from_org)
+
+        to_org = self.create_organization(name="to_org")
+        self.create_team(organization=to_org)
+        to_user = self.create_user()
+        self.create_member(user=to_user, role="member", organization=to_org)
+
+        project = self.create_project(teams=[from_team])
+        environment = Environment.get_or_create(project, "production")
+        staging_environment = Environment.get_or_create(project, "staging")
+
+        project_rule = self.create_project_rule(project=project)
+        project_rule.update(environment_id=staging_environment.id)
+
+        alert_rule = self.create_alert_rule(
+            organization=from_org,
+            projects=[project],
+            owner=ActorTuple.from_actor_identifier(f"team:{from_team.id}"),
+            environment=environment,
+        )
+
+        project.transfer_to(organization=to_org)
+        assert project.organization.id is to_org.id
+
+        alert_rule.refresh_from_db()
+        assert AlertRule.objects.fetch_for_project(project).count() == 1
+        assert alert_rule.snuba_query.environment.id != environment.id
+        assert (
+            alert_rule.snuba_query.environment.name
+            == Environment.objects.filter(organization_id=to_org.id, name=environment.name)
+            .get()
+            .name
+        )
+        assert EnvironmentProject.objects.filter(project=project).count() == 2
+        assert (
+            Environment.objects.filter(organization_id=from_org.id, name=environment.name).get().id
+            == environment.id
+        )
+        assert (
+            Environment.objects.filter(organization_id=to_org.id, name=environment.name).get().id
+            != environment.id
+        )
+        assert (
+            Environment.objects.filter(organization_id=from_org.id, name=staging_environment.name)
+            .get()
+            .id
+            == project_rule.environment_id
+        )
+        assert (
+            Environment.objects.filter(organization_id=to_org.id, name=staging_environment.name)
+            .get()
+            .id
+            != project_rule.environment_id
+        )
+
+        from_org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(from_org, days=0)
+        deletion.update(in_progress=True)
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(name=from_org.name).exists()
+        assert Organization.objects.filter(name=to_org.name).exists()
+        assert not Environment.objects.filter(organization_id=from_org.id).exists()
+        assert Environment.objects.filter(organization_id=to_org.id).count() == 2
+        assert EnvironmentProject.objects.filter(project_id=project.id).count() == 2
+        assert AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert (
+            SnubaQuery.objects.filter(id=alert_rule.snuba_query.id)
+            .exclude(environment=None)
+            .exists()
+        )

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.core import mail
 
 from sentry import roles
-from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.models import (
     Authenticator,
     Integration,

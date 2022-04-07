@@ -187,7 +187,6 @@ class NotificationPlugin(Plugin):
             elif hasattr(exc, "read") and callable(exc.read):
                 test_results = f"{exc}\n{exc.read()[:256]}"
             else:
-                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
                 if str(exc).lower().startswith("error communicating with"):
                     test_results = str(exc)[:256]
                 else:

@@ -11,6 +11,7 @@ type RequestState = 'initial' | 'loading' | 'resolved' | 'errored';
 
 function fetchTraces(
   api: Client,
+  query: string | undefined,
   cursor: string | undefined,
   organization: Organization,
   selection: PageFilters
@@ -20,6 +21,7 @@ function fetchTraces(
     includeAllArgs: true,
     query: {
       cursor,
+      query,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
@@ -29,11 +31,13 @@ function fetchTraces(
 
 interface UseProfilesOptions {
   cursor: string | undefined;
+  query: string | undefined;
   selection: PageFilters | undefined;
 }
 
 function useProfiles({
   cursor,
+  query,
   selection,
 }: UseProfilesOptions): [RequestState, Trace[], string | null] {
   const api = useApi();
@@ -45,20 +49,21 @@ function useProfiles({
 
   useEffect(() => {
     if (selection === undefined) {
-      return;
+      return undefined;
     }
 
-    api.clear();
     setRequestState('loading');
 
-    fetchTraces(api, cursor, organization, selection)
+    fetchTraces(api, query, cursor, organization, selection)
       .then(([_traces, , response]) => {
         setTraces(_traces);
         setPageLinks(response?.getResponseHeader('Link') ?? null);
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
-  }, [api, cursor, organization, selection]);
+
+    return () => api.clear();
+  }, [api, query, cursor, organization, selection]);
 
   return [requestState, traces, pageLinks];
 }

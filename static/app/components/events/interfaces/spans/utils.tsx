@@ -7,6 +7,7 @@ import moment from 'moment';
 
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
+import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {
@@ -25,6 +26,20 @@ import {
 
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
+
+export const setSpansOnTransaction = (spanCount: number) => {
+  const transaction = getCurrentSentryReactTransaction();
+
+  if (!transaction || spanCount === 0) {
+    return;
+  }
+
+  const spanCountGroups = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1001];
+  const spanGroup = spanCountGroups.find(g => g <= spanCount) || -1;
+
+  transaction.setTag('ui.spanCount', spanCount);
+  transaction.setTag('ui.spanCount.grouped', `<=${spanGroup}`);
+};
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -638,8 +653,12 @@ export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
 
-export function getSiblingGroupKey(span: SpanType): string {
-  return `${span?.op}.${span?.description}`;
+export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
+  if (occurrence !== undefined) {
+    return `${span.op}.${span.description}.${occurrence}`;
+  }
+
+  return `${span.op}.${span.description}`;
 }
 
 export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {

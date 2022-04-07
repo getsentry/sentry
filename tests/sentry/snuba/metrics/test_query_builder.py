@@ -43,6 +43,8 @@ from sentry.snuba.metrics.fields.snql import (
     percentage,
     sessions_errored_set,
 )
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 
 
 @dataclass
@@ -57,21 +59,23 @@ MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
 def get_entity_of_metric_mocked(_, metric_name):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
+        SessionMRI.SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
+        SessionMRI.ERROR.value: EntityKey.MetricsSets,
     }[metric_name]
 
 
 @pytest.mark.parametrize(
     "query_string,expected",
     [
-        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[15])]),
-        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ('release:""', [Condition(Column(name="tags[6]"), Op.IN, rhs=[16])]),
+        ("release:myapp@2.0.0", [Condition(Column(name="tags[6]"), Op.IN, rhs=[17])]),
         (
             "release:myapp@2.0.0 and environment:production",
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 )
@@ -80,7 +84,7 @@ def get_entity_of_metric_mocked(_, metric_name):
         (
             "release:myapp@2.0.0 environment:production",
             [
-                Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                 Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
             ],
         ),
@@ -89,13 +93,13 @@ def get_entity_of_metric_mocked(_, metric_name):
             [
                 And(
                     [
-                        Condition(Column(name="tags[6]"), Op.IN, rhs=[16]),
+                        Condition(Column(name="tags[6]"), Op.IN, rhs=[17]),
                         Condition(Column(name="tags[2]"), Op.EQ, rhs=5),
                     ]
                 ),
             ],
         ),
-        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[17]"), Op.EQ, rhs=18)]),
+        ('transaction:"/bar/:orgId/"', [Condition(Column(name="tags[18]"), Op.EQ, rhs=19)]),
     ],
 )
 def test_parse_query(monkeypatch, query_string, expected):
@@ -222,10 +226,11 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                     [
                         Column("value"),
                         Function(
-                            "equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]
+                            "equals",
+                            [Column("metric_id"), resolve_weak(org_id, get_mri(metric_name))],
                         ),
                     ],
-                    alias=f"{alias}({metric_name})",
+                    alias=f"{alias}({get_mri(metric_name)})",
                 )
             ],
             groupby=[Column("tags[2]")] + extra_groupby,
@@ -235,7 +240,7 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                 Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
                 Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
                 Condition(Column("tags[6]"), Op.IN, [10]),
-                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, metric_name)]),
+                Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
             limit=Limit(MAX_POINTS),
             offset=Offset(0),
@@ -313,12 +318,12 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
-            (None, "session.errored_preaggregated"),
-            (None, "session.crash_free_rate"),
-            (None, "session.all"),
+            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value),
         ],
         "metrics_sets": [
-            (None, "session.errored_set"),
+            (None, SessionMRI.ERRORED_SET.value),
         ],
     }
     for key in ("totals", "series"):
@@ -330,27 +335,26 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 select=[
                     errored_preaggr_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                        alias="session.errored_preaggregated",
+                        metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                        alias=SessionMRI.ERRORED_PREAGGREGATED.value,
                     ),
                     percentage(
-                        org_id,
                         crashed_sessions(
                             org_id,
-                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                            alias="session.crashed",
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.CRASHED.value,
                         ),
                         all_sessions(
                             org_id,
-                            metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                            alias="session.all",
+                            metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                            alias=SessionMRI.ALL.value,
                         ),
-                        alias="session.crash_free_rate",
+                        alias=SessionMRI.CRASH_FREE_RATE.value,
                     ),
                     all_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session")],
-                        alias="session.all",
+                        metric_ids=[resolve_weak(org_id, SessionMRI.SESSION.value)],
+                        alias=SessionMRI.ALL.value,
                     ),
                 ],
                 groupby=groupby,
@@ -366,7 +370,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(org_id, "sentry.sessions.session")],
+                        [resolve_weak(org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
                 limit=Limit(MAX_POINTS),
@@ -380,9 +384,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                 match=Entity("metrics_sets"),
                 select=[
                     sessions_errored_set(
-                        org_id,
-                        metric_ids=[resolve_weak(org_id, "sentry.sessions.session.error")],
-                        alias="session.errored_set",
+                        metric_ids=[resolve_weak(org_id, SessionMRI.ERROR.value)],
+                        alias=SessionMRI.ERRORED_SET.value,
                     ),
                 ],
                 groupby=groupby,
@@ -398,7 +401,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(org_id, "sentry.sessions.session.error")],
+                        [resolve_weak(org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
                 limit=Limit(MAX_POINTS),
@@ -440,9 +443,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         OP_TO_SNUBA_FUNCTION["metrics_counters"]["sum"],
         [
             Column("value"),
-            Function("equals", [Column("metric_id"), resolve_weak(org_id, metric_name)]),
+            Function("equals", [Column("metric_id"), resolve_weak(org_id, get_mri(metric_name))]),
         ],
-        alias=f"{op}({metric_name})",
+        alias=f"{op}({get_mri(metric_name)})",
     )
 
     assert counter_queries["totals"] == Query(
@@ -490,6 +493,93 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
+    monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
+    query_params = MultiValueDict(
+        {
+            "query": ["release:staging"],
+            "groupBy": ["environment"],
+            "field": [
+                "p95(session.duration)",
+            ],
+        }
+    )
+    query_definition = QueryDefinition(query_params, paginator_kwargs={"limit": 3})
+    snuba_queries, _ = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition
+    ).get_snuba_queries()
+
+    org_id = 666  # mock indexer does not require a real organization ID
+
+    distribution_queries = snuba_queries.pop("metrics_distributions")
+    assert not snuba_queries
+
+    op = "p95"
+
+    conditions = [
+        Function(
+            "equals", [Column("metric_id"), resolve_weak(org_id, SessionMRI.RAW_DURATION.value)]
+        ),
+        Function(
+            "equals",
+            (
+                Column(f"tags[{resolve_weak(org_id, 'session.status')}]"),
+                resolve_weak(org_id, "exited"),
+            ),
+        ),
+    ]
+
+    select = Function(
+        OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+        [
+            Column("value"),
+            Function("and", conditions),
+        ],
+        alias=f"{op}({SessionMRI.DURATION.value})",
+    )
+    assert distribution_queries["totals"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_distributions"),
+        select=[select],
+        groupby=[
+            Column("tags[2]"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [7]),
+        ],
+        limit=Limit(MAX_POINTS),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+    assert distribution_queries["series"] == Query(
+        dataset="metrics",
+        match=Entity("metrics_distributions"),
+        select=[select],
+        groupby=[
+            Column("tags[2]"),
+            Column("bucketed_time"),
+        ],
+        where=[
+            Condition(Column("org_id"), Op.EQ, 1),
+            Condition(Column("project_id"), Op.IN, [1]),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
+            Condition(Column("tags[6]", entity=None), Op.IN, [10]),
+            Condition(Column("metric_id"), Op.IN, [7]),
+        ],
+        limit=Limit(MAX_POINTS),
+        offset=Offset(0),
+        granularity=Granularity(query_definition.rollup),
+    )
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results(_1, _2, monkeypatch):
     monkeypatch.setattr(
         "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
@@ -510,11 +600,11 @@ def test_translate_results(_1, _2, monkeypatch):
     )
     query_definition = QueryDefinition(query_params)
     fields_in_entities = {
-        "metrics_counters": [("sum", "sentry.sessions.session")],
+        "metrics_counters": [("sum", SessionMRI.SESSION.value)],
         "metrics_distributions": [
-            ("max", "sentry.sessions.session.duration"),
-            ("p50", "sentry.sessions.session.duration"),
-            ("p95", "sentry.sessions.session.duration"),
+            ("max", SessionMRI.RAW_DURATION.value),
+            ("p50", SessionMRI.RAW_DURATION.value),
+            ("p95", SessionMRI.RAW_DURATION.value),
         ],
     }
 
@@ -526,12 +616,12 @@ def test_translate_results(_1, _2, monkeypatch):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,  # session.status:healthy
-                        "sum(sentry.sessions.session)": 300,
+                        f"sum({SessionMRI.SESSION.value})": 300,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,  # session.status:abnormal
-                        "sum(sentry.sessions.session)": 330,
+                        f"sum({SessionMRI.SESSION.value})": 330,
                     },
                 ],
             },
@@ -541,25 +631,25 @@ def test_translate_results(_1, _2, monkeypatch):
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "sum(sentry.sessions.session)": 100,
+                        f"sum({SessionMRI.SESSION.value})": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "sum(sentry.sessions.session)": 110,
+                        f"sum({SessionMRI.SESSION.value})": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 200,
+                        f"sum({SessionMRI.SESSION.value})": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 220,
+                        f"sum({SessionMRI.SESSION.value})": 220,
                     },
                 ],
             },
@@ -570,16 +660,16 @@ def test_translate_results(_1, _2, monkeypatch):
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "max(sentry.sessions.session.duration)": 123.4,
-                        "p50(sentry.sessions.session.duration)": [1],
-                        "p95(sentry.sessions.session.duration)": [4],
+                        f"max({SessionMRI.RAW_DURATION.value})": 123.4,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
-                        "max(sentry.sessions.session.duration)": 456.7,
-                        "p50(sentry.sessions.session.duration)": [1.5],
-                        "p95(sentry.sessions.session.duration)": [4.5],
+                        f"max({SessionMRI.RAW_DURATION.value})": 456.7,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1.5],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4.5],
                     },
                 ],
             },
@@ -589,33 +679,33 @@ def test_translate_results(_1, _2, monkeypatch):
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "max(sentry.sessions.session.duration)": 10.1,
-                        "p50(sentry.sessions.session.duration)": [1.1],
-                        "p95(sentry.sessions.session.duration)": [4.1],
+                        f"max({SessionMRI.RAW_DURATION.value})": 10.1,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1.1],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "max(sentry.sessions.session.duration)": 20.2,
-                        "p50(sentry.sessions.session.duration)": [1.2],
-                        "p95(sentry.sessions.session.duration)": [4.2],
+                        f"max({SessionMRI.RAW_DURATION.value})": 20.2,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1.2],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "max(sentry.sessions.session.duration)": 30.3,
-                        "p50(sentry.sessions.session.duration)": [1.3],
-                        "p95(sentry.sessions.session.duration)": [4.3],
+                        f"max({SessionMRI.RAW_DURATION.value})": 30.3,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1.3],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 14,
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "max(sentry.sessions.session.duration)": 40.4,
-                        "p50(sentry.sessions.session.duration)": [1.4],
-                        "p95(sentry.sessions.session.duration)": [4.4],
+                        f"max({SessionMRI.RAW_DURATION.value})": 40.4,
+                        f"p50({SessionMRI.RAW_DURATION.value})": [1.4],
+                        f"p95({SessionMRI.RAW_DURATION.value})": [4.4],
                     },
                 ],
             },
@@ -680,12 +770,12 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     query_definition = QueryDefinition(query_params)
     fields_in_entities = {
         "metrics_counters": [
-            (None, "session.errored_preaggregated"),
-            (None, "session.crash_free_rate"),
-            (None, "session.all"),
+            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
+            (None, SessionMRI.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value),
         ],
         "metrics_sets": [
-            (None, "session.errored_set"),
+            (None, SessionMRI.ERRORED_SET.value),
         ],
     }
 
@@ -695,9 +785,9 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "totals": {
                 "data": [
                     {
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 8.0,
-                        "session.errored_preaggregated": 3,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 8.0,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 3,
                     }
                 ],
             },
@@ -705,15 +795,15 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
                 "data": [
                     {
                         "bucketed_time": "2021-08-24T00:00Z",
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 4,
-                        "session.errored_preaggregated": 1,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 4,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 1,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "session.crash_free_rate": 0.5,
-                        "session.all": 4,
-                        "session.errored_preaggregated": 2,
+                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
+                        SessionMRI.ALL.value: 4,
+                        SessionMRI.ERRORED_PREAGGREGATED.value: 2,
                     },
                 ],
             },
@@ -722,14 +812,14 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "totals": {
                 "data": [
                     {
-                        "session.errored_set": 3,
+                        SessionMRI.ERRORED_SET.value: 3,
                     },
                 ],
             },
             "series": {
                 "data": [
-                    {"bucketed_time": "2021-08-24T00:00Z", "session.errored_set": 2},
-                    {"bucketed_time": "2021-08-25T00:00Z", "session.errored_set": 1},
+                    {"bucketed_time": "2021-08-24T00:00Z", SessionMRI.ERRORED_SET.value: 2},
+                    {"bucketed_time": "2021-08-25T00:00Z", SessionMRI.ERRORED_SET.value: 1},
                 ],
             },
         },
@@ -772,7 +862,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
     query_definition = QueryDefinition(query_params)
     fields_in_entities = {
         "metrics_counters": [
-            ("sum", "sentry.sessions.session"),
+            ("sum", SessionMRI.SESSION.value),
         ],
     }
 
@@ -782,7 +872,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "sum(sentry.sessions.session)": 400,
+                        f"sum({SessionMRI.SESSION.value})": 400,
                     },
                 ],
             },
@@ -791,13 +881,13 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-23T00:00Z",
-                        "sum(sentry.sessions.session)": 100,
+                        f"sum({SessionMRI.SESSION.value})": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
                         "bucketed_time": "2021-08-25T00:00Z",
-                        "sum(sentry.sessions.session)": 300,
+                        f"sum({SessionMRI.SESSION.value})": 300,
                     },
                 ],
             },

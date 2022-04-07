@@ -9,6 +9,7 @@ import set from 'lodash/set';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {fetchMetricsFields, fetchMetricsTags} from 'sentry/actionCreators/metrics';
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -101,14 +102,14 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       conditions: '',
       orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
     },
-    [DataSet.METRICS]: {
+    [DataSet.RELEASE]: {
       name: '',
       fields: [`sum(${SessionMetric.SESSION})`],
       columns: [],
       fieldAliases: [],
       aggregates: [`sum(${SessionMetric.SESSION})`],
       conditions: '',
-      orderby: '',
+      orderby: widgetBuilderNewDesign ? `-sum(${SessionMetric.SESSION})` : '',
     },
   };
 }
@@ -116,7 +117,13 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
-  // [WidgetType.METRICS]: DataSet.METRICS,
+  [WidgetType.METRICS]: DataSet.RELEASE,
+};
+
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASE]: WidgetType.METRICS,
 };
 
 interface RouteParams {
@@ -237,15 +244,15 @@ function WidgetBuilder({
       dataSet: DataSet.EVENTS,
     };
   });
+
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   useEffect(() => {
-    if (notDashboardsOrigin) {
-      fetchDashboards();
-    }
-  }, [source]);
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
+      organization,
+      new_widget: !isEditing,
+    });
 
-  useEffect(() => {
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
       const visualization =
@@ -276,8 +283,21 @@ function WidgetBuilder({
   }, []);
 
   useEffect(() => {
+    if (notDashboardsOrigin) {
+      fetchDashboards();
+    }
+  }, [source]);
+
+  useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects]);
+
+  useEffect(() => {
+    if (widgetBuilderNewDesign) {
+      fetchMetricsTags(api, organization.slug, selection.projects);
+      fetchMetricsFields(api, organization.slug, selection.projects);
+    }
+  }, [selection.projects, organization.slug, widgetBuilderNewDesign]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -299,9 +319,9 @@ function WidgetBuilder({
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname:
-      currentDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${orgId}/dashboards/new/`
-        : `/organizations/${orgId}/dashboard/${currentDashboardId}/`,
+      defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
+        ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
+        : `/organizations/${orgId}/dashboards/${NEW_DASHBOARD_ID}/`,
     query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
   };
 
@@ -321,8 +341,7 @@ function WidgetBuilder({
       const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
-        widgetType:
-          prevState.dataSet === DataSet.EVENTS ? WidgetType.DISCOVER : WidgetType.ISSUE,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
         widgetBuilderNewDesign,
       });
 
@@ -336,9 +355,11 @@ function WidgetBuilder({
       }
 
       if (
-        prevState.displayType === DisplayType.TABLE &&
-        widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES
+        (prevState.displayType === DisplayType.TABLE &&
+          widgetToBeUpdated?.widgetType &&
+          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
+        (prevState.dataSet === DataSet.RELEASE &&
+          newDisplayType === DisplayType.WORLD_MAP)
       ) {
         // World Map display type only supports Events Dataset
         // so set state to default events query.
@@ -408,12 +429,13 @@ function WidgetBuilder({
   function handleDisplayTypeOrTitleChange<
     F extends keyof Pick<State, 'displayType' | 'title'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.change', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
       from: source,
       field,
       value,
       widget_type: widgetType,
       organization,
+      new_widget: !isEditing,
     });
 
     setState(prevState => {
@@ -452,7 +474,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]);
+      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -493,7 +515,10 @@ function WidgetBuilder({
     isColumn = false
   ) {
     const fieldStrings = newFields.map(generateFieldAsString);
-    const aggregateAliasFieldStrings = fieldStrings.map(getAggregateAlias);
+    const aggregateAliasFieldStrings =
+      state.dataSet === DataSet.RELEASE
+        ? fieldStrings
+        : fieldStrings.map(getAggregateAlias);
 
     const columnsAndAggregates = isColumn
       ? getColumnsAndAggregatesAsStrings(newFields)
@@ -504,7 +529,9 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
       const orderbyAggregateAliasField = query.orderby.replace('-', '');
-      const prevAggregateAliasFieldStrings = query.aggregates.map(getAggregateAlias);
+      const prevAggregateAliasFieldStrings = query.aggregates.map(aggregate =>
+        state.dataSet === DataSet.RELEASE ? aggregate : getAggregateAlias(aggregate)
+      );
       const newQuery = cloneDeep(query);
 
       if (isColumn) {
@@ -683,8 +710,10 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_in_builder.confirm', {
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
         organization,
+        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+        new_widget: false,
       });
       return;
     }
@@ -692,9 +721,10 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_in_builder.confirm', {
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+      new_widget: true,
     });
   }
 
@@ -898,6 +928,7 @@ function WidgetBuilder({
                     dataSet={state.dataSet}
                     displayType={state.displayType}
                     onChange={handleDataSetChange}
+                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                   />
                   {isTabularChart && (
                     <ColumnsStep
@@ -917,6 +948,7 @@ function WidgetBuilder({
                   )}
                   {![DisplayType.TABLE].includes(state.displayType) && (
                     <YAxisStep
+                      dataSet={state.dataSet}
                       displayType={state.displayType}
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}

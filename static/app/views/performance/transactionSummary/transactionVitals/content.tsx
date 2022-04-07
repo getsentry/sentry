@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -23,6 +22,7 @@ import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCard
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {VITAL_GROUPS, ZOOM_KEYS} from './constants';
+import {isMissingVitalsData} from './utils';
 import VitalsPanel from './vitalsPanel';
 
 type Props = {
@@ -65,14 +65,13 @@ function VitalsContent(props: Props) {
             vitals={allVitals}
           >
             {results => {
-              const isMissingVitalsData =
-                !results.isLoading &&
-                allVitals.some(vital => !results.vitalsData?.[vital]);
+              const shouldDisplayMissingVitalsAlert =
+                !results.isLoading && isMissingVitalsData(results.vitalsData, allVitals);
 
               return (
                 <Fragment>
-                  {isMissingVitalsData && (
-                    <Alert type="info" icon={<IconInfo size="md" />}>
+                  {shouldDisplayMissingVitalsAlert && (
+                    <Alert type="info" showIcon>
                       {tct(
                         'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
                         {

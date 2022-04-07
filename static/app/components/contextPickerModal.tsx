@@ -43,7 +43,7 @@ type Props = ModalRenderProps & {
   /**
    * Finish callback
    */
-  onFinish: (path: string) => void;
+  onFinish: (path: string) => number | void;
   /**
    * Callback for when organization is selected
    */
@@ -108,6 +108,12 @@ class ContextPickerModal extends Component<Props> {
     }
   }
 
+  componentWillUnmount() {
+    window.clearTimeout(this.onFinishTimeout);
+  }
+
+  onFinishTimeout: number | undefined = undefined;
+
   // TODO(ts) The various generics in react-select types make getting this
   // right hard.
   orgSelect: any | null = null;
@@ -136,13 +142,16 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
+    window.clearTimeout(this.onFinishTimeout);
+
     // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
-      onFinish(
-        replaceRouterParams(nextPath, {
-          orgId: organizations[0].slug,
-        })
-      );
+      this.onFinishTimeout =
+        onFinish(
+          replaceRouterParams(nextPath, {
+            orgId: organizations[0].slug,
+          })
+        ) ?? undefined;
       return;
     }
 
@@ -152,13 +161,14 @@ class ContextPickerModal extends Component<Props> {
       org = organizations[0].slug;
     }
 
-    onFinish(
-      replaceRouterParams(nextPath, {
-        orgId: org,
-        projectId: projects[0].slug,
-        project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
-      })
-    );
+    this.onFinishTimeout =
+      onFinish(
+        replaceRouterParams(nextPath, {
+          orgId: org,
+          projectId: projects[0].slug,
+          project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+        })
+      ) ?? undefined;
   };
 
   doFocus = (ref: any | null) => {

@@ -106,7 +106,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderExernalIntegrations() {
+  renderExternalIntegrations() {
     const {orgId} = this.props.params;
     const {organization} = this.props;
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
@@ -180,7 +180,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             }
           )}
         </Alert>
-        {this.renderExernalIntegrations()}
+        {this.renderExternalIntegrations()}
         {this.renderInternalIntegrations()}
       </div>
     );
