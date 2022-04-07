@@ -11,12 +11,21 @@ import withOrganization from 'sentry/utils/withOrganization';
 type TapParams = {
   challenge: string;
   response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
 };
 
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
-  onTap: ({response, challenge}: TapParams) => Promise<void>;
+  onTap: ({
+    response,
+    challenge,
+    isSuperuserModal,
+    superuserAccessCategory,
+    superuserReason,
+  }: TapParams) => Promise<void>;
   organization: Organization;
   silentIfUnsupported: boolean;
   style?: React.CSSProperties;
