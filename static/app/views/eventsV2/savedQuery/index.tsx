@@ -274,7 +274,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       if (organization.features.includes('new-widget-builder-experience-design')) {
         openAddToDashboardModal({
           organization,
-          query: defaultWidgetQuery,
           selection: {
             projects: eventView.project,
             environments: eventView.environment,
@@ -285,7 +284,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
               utc: eventView.utc,
             },
           },
-          interval: eventView.interval,
           widget: {
             title: defaultTitle,
             displayType,
