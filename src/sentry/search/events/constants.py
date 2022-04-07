@@ -163,14 +163,14 @@ FUNCTION_ALIASES = {
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
-    "measurements.fp": "d:transactions/measurements.fp@ms",
-    "measurements.fcp": "d:transactions/measurements.fcp@ms",
-    "measurements.lcp": "d:transactions/measurements.lcp@ms",
-    "measurements.fid": "d:transactions/measurements.fid@ms",
-    "measurements.cls": "d:transactions/measurements.cls@ms",
-    "measurements.ttfb": "d:transactions/measurements.ttfb@ms",
-    "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime",
-    "transaction.duration": "d:transactions/duration@ms",
+    "measurements.fp": "d:transactions/measurements.fp@millisecond",
+    "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
+    "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.fid": "d:transactions/measurements.fid@millisecond",
+    "measurements.cls": "d:transactions/measurements.cls@millisecond",
+    "measurements.ttfb": "d:transactions/measurements.ttfb@millisecond",
+    "measurements.ttfb.requesttime": "d:transactions/measurements.ttfb.requesttime@millisecond",
+    "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
