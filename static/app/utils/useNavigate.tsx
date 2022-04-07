@@ -11,13 +11,13 @@ export function useNavigate() {
   const route = useRouteContext();
 
   const navigator = route.router;
-  const activeRef = useRef(false);
+  const hasMountedRef = useRef(false);
   useEffect(() => {
-    activeRef.current = true;
+    hasMountedRef.current = true;
   });
   const navigate = useCallback(
     (to: string | number, options: NavigateOptions = {}) => {
-      if (!activeRef.current) {
+      if (!hasMountedRef.current) {
         throw new Error(
           `You should call navigate() in a React.useEffect(), not when your component is first rendered.`
         );
