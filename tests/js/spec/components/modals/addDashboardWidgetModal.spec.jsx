@@ -3,7 +3,7 @@ import selectEvent from 'react-select-event';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -1339,14 +1339,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         await screen.findByRole('heading', {name: 'Add Widget'})
       ).toBeInTheDocument();
 
-      const metricsDataset = screen.getByLabelText(/release/i);
-      expect(metricsDataset).not.toBeChecked();
-      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
-      expect(metricsDataset).toBeChecked();
+      expect(screen.getByLabelText(/release/i)).not.toBeChecked();
+      userEvent.click(screen.getByLabelText(/release/i));
+      await waitFor(() => expect(screen.getByLabelText(/release/i)).toBeChecked());
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
-      expect(metricsDataset).toBeChecked();
+      await waitFor(() => expect(screen.getByLabelText(/release/i)).toBeChecked());
     });
 
     it('displays metrics tags', async function () {
@@ -1369,18 +1368,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       userEvent.click(screen.getByLabelText(/release/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
     });
 
     it('displays the correct options for area chart', async function () {
@@ -1406,14 +1405,14 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
     });
 
     it('makes the appropriate metrics call', async function () {
@@ -1439,20 +1438,22 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(metricsDataMock).toHaveBeenLastCalledWith(
-        `/organizations/org-slug/metrics/data/`,
-        expect.objectContaining({
-          query: {
-            environment: [],
-            field: ['sum(sentry.sessions.session)'],
-            groupBy: [],
-            interval: '30m',
-            project: [],
-            statsPeriod: '14d',
-            per_page: 20,
-            orderBy: 'sum(sentry.sessions.session)',
-          },
-        })
+      await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
+          expect.objectContaining({
+            query: {
+              environment: [],
+              field: ['sum(sentry.sessions.session)'],
+              groupBy: [],
+              interval: '30m',
+              project: [],
+              statsPeriod: '14d',
+              per_page: 20,
+              orderBy: 'sum(sentry.sessions.session)',
+            },
+          })
+        )
       );
     });
 
@@ -1556,7 +1557,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(screen.getByText(/required/i));
 
       // there's correct empty message
-      expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
+      expect(await screen.findByText(/no metrics/i)).toBeInTheDocument();
     });
 
     it('metrics do not have equation', async function () {
@@ -1583,7 +1584,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
+      );
     });
   });
 });

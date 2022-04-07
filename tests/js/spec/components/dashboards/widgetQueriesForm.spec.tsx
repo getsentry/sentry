@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WidgetQueriesForm from 'sentry/components/dashboards/widgetQueriesForm';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
