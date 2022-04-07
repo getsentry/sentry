@@ -468,7 +468,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {(widget.queries.length > 1 || widget.queries[0].conditions) && (
           <QueryContainer>
-            <StyledSelectControl
+            <SelectControl
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
@@ -804,10 +804,6 @@ const Container = styled('div')<{height?: number | null}>`
 const QueryContainer = styled('div')`
   margin-bottom: ${space(2)};
   position: relative;
-`;
-
-const StyledSelectControl = styled(SelectControl)`
-  max-height: 40px;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
