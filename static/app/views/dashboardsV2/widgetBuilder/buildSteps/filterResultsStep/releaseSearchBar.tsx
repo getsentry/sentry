@@ -4,7 +4,7 @@ import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
-import MetricsSearchBar from 'sentry/views/performance/metricsSearchBar';
+import MetricsSearchBar from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/metricsSearchBar';
 
 interface Props {
   onBlur: SearchBarProps['onBlur'];

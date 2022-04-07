@@ -8,9 +8,9 @@ from sentry.testutils import TestCase
 
 class GoogleOAuth2ProviderTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization(owner=self.user)
-        self.user = self.create_user("foo@example.com")
-        self.auth_provider = AuthProvider.objects.create(provider="google", organization=self.org)
+        self.auth_provider = AuthProvider.objects.create(
+            provider="google", organization=self.organization
+        )
         super().setUp()
 
     def test_refresh_identity_without_refresh_token(self):
