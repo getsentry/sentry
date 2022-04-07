@@ -1,30 +1,37 @@
-import Reflux from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
 import {Project} from 'sentry/types';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-type ProjectsStatsStoreInterface = {
-  getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
+interface ProjectsStatsStoreDefinition extends StoreDefinition {
+  getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
 
   getBySlug(slug: string): Project;
-  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
+  getInitialState(): ProjectsStatsStoreDefinition['itemsBySlug'];
   itemsBySlug: Record<string, Project>;
   reset(): void;
-};
+}
 
 /**
  * This is a store specifically used by the dashboard, so that we can
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
+const storeConfig: ProjectsStatsStoreDefinition = {
   itemsBySlug: {},
+  unsubscribeListeners: [],
 
   init() {
     this.reset();
-    this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess);
-    this.listenTo(ProjectActions.update, this.onUpdate);
-    this.listenTo(ProjectActions.updateError, this.onUpdateError);
+
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess)
+    );
+    this.unsubscribeListeners.push(this.listenTo(ProjectActions.update, this.onUpdate));
+    this.unsubscribeListeners.push(
+      this.listenTo(ProjectActions.updateError, this.onUpdateError)
+    );
   },
 
   getInitialState() {
@@ -101,7 +108,5 @@ const storeConfig: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
   },
 };
 
-const ProjectsStatsStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  ProjectsStatsStoreInterface;
-
+const ProjectsStatsStore = createStore(makeSafeRefluxStore(storeConfig));
 export default ProjectsStatsStore;

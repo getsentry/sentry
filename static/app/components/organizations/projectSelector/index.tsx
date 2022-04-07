@@ -2,6 +2,7 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pageFilterPinButton';
@@ -64,6 +65,10 @@ type Props = {
    * Represents if a search is taking place
    */
   searching?: boolean;
+  /**
+   * Show the pin button in the dropdown's header actions
+   */
+  showPin?: boolean;
 } & Pick<
   DropdownAutoCompleteProps,
   'menuFooter' | 'onScroll' | 'onClose' | 'rootClassName' | 'className'
@@ -86,6 +91,7 @@ const ProjectSelector = ({
   onMultiSelect,
   multi = false,
   selectedProjects = [],
+  showPin,
   ...props
 }: Props) => {
   // We'll only update the selected project list every time we open the menu,
@@ -175,7 +181,6 @@ const ProjectSelector = ({
   const hasProjects = !!projects?.length || !!nonMemberProjects?.length;
   const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
   const hasProjectWrite = organization.access.includes('project:write');
-  const hasPageFilters = organization.features.includes('selection-filters-v2');
 
   return (
     <DropdownAutoComplete
@@ -188,6 +193,7 @@ const ProjectSelector = ({
       busyItemsStillVisible={searching}
       onScroll={onScroll}
       maxHeight={500}
+      minWidth={350}
       inputProps={{style: {padding: 8, paddingLeft: 10}}}
       rootClassName={rootClassName}
       className={className}
@@ -210,9 +216,13 @@ const ProjectSelector = ({
                 : undefined
             }
           >
-            {hasPageFilters ? '' : t('Project')}
+            {showPin ? '' : t('Project')}
           </AddButton>
-          {hasPageFilters && <PageFilterPinButton size="xsmall" filter="projects" />}
+          {showPin && (
+            <GuideAnchor target="new_page_filter_pin" position="bottom">
+              <PageFilterPinButton size="xsmall" filter="projects" />
+            </GuideAnchor>
+          )}
         </InputActions>
       }
       menuFooter={renderProps => {

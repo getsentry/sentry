@@ -24,6 +24,14 @@ class DummyOAuth2Callback(OAuth2Callback):
 
 
 class DummyOAuth2Provider(OAuth2Provider):
+    name = "dummy"
+
+    def get_refresh_token_url(self) -> str:
+        pass
+
+    def build_config(self, state):
+        pass
+
     def get_auth_pipeline(self):
         return [DummyOAuth2Login(), DummyOAuth2Callback()]
 
@@ -39,16 +47,14 @@ class AuthOAuth2Test(AuthProviderTestCase):
     provider_name = "oauth2_dummy"
 
     def setUp(self):
-        self.user = self.create_user("rick@onehundredyears.com")
-        self.org = self.create_organization(owner=self.user, name="oauth2-org")
-        self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, organization=self.org
-        )
         super().setUp()
+        self.auth_provider = AuthProvider.objects.create(
+            provider=self.provider_name, organization=self.organization
+        )
 
     @fixture
     def login_path(self):
-        return reverse("sentry-auth-organization", args=["oauth2-org"])
+        return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     @fixture
     def sso_path(self):

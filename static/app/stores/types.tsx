@@ -4,9 +4,9 @@
  *
  * When a store implements this it becomes usable with the `useLegacyStore` hook.
  */
-export type CommonStoreInterface<T> = {
+export interface CommonStoreDefinition<T> extends Reflux.StoreDefinition {
   /**
    * Returns the current state represented within the store
    */
   getState(): T;
-};
+}

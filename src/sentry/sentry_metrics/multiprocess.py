@@ -1,7 +1,7 @@
 import functools
 import logging
 import time
-from collections import deque
+from collections import defaultdict, deque
 from concurrent.futures import Future
 from copy import deepcopy
 from dataclasses import dataclass
@@ -33,6 +33,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.utils import json, kafka_config
+from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 100000
@@ -355,15 +356,16 @@ def process_messages(
     indexer = get_indexer()
     metrics = get_metrics()
 
+    org_strings = defaultdict(set)
     strings = set()
     with metrics.timer("process_messages.parse_outer_message"):
         parsed_payloads_by_offset = {
             msg.offset: json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
             for msg in outer_message.payload
         }
-
         for message in parsed_payloads_by_offset.values():
             metric_name = message["name"]
+            org_id = message["org_id"]
             tags = message.get("tags", {})
 
             parsed_strings = {
@@ -371,12 +373,13 @@ def process_messages(
                 *tags.keys(),
                 *tags.values(),
             }
+            org_strings[org_id].update(parsed_strings)
             strings.update(parsed_strings)
 
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        mapping = indexer.bulk_record(list(strings))
+        mapping = indexer.bulk_record(org_strings)
 
     new_messages: List[Message[KafkaPayload]] = []
 
@@ -692,6 +695,8 @@ def get_streaming_metrics_consumer(
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
         )
+
+    create_topics([topic])
 
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),

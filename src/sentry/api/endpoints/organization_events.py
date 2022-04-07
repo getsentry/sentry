@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,29 +56,39 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         performance_use_metrics = features.has(
             "organizations:performance-use-metrics", organization=organization, actor=request.user
         )
+        performance_dry_run_mep = features.has(
+            "organizations:performance-dry-run-mep", organization=organization, actor=request.user
+        )
         metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and performance_use_metrics
+        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
 
         def data_fn(offset, limit):
             dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-            return dataset.query(
-                selected_columns=self.get_field_list(organization, request),
-                query=request.GET.get("query"),
-                params=params,
-                equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                auto_fields=True,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                use_snql=features.has(
+            query_details = {
+                "selected_columns": self.get_field_list(organization, request),
+                "query": request.GET.get("query"),
+                "params": params,
+                "equations": self.get_equation_list(organization, request),
+                "orderby": self.get_orderby(request),
+                "offset": offset,
+                "limit": limit,
+                "referrer": referrer,
+                "auto_fields": True,
+                "auto_aggregations": True,
+                "use_aggregate_conditions": True,
+                "allow_metric_aggregates": allow_metric_aggregates,
+                "use_snql": features.has(
                     "organizations:discover-use-snql", organization, actor=request.user
                 ),
-            )
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.query(dry_run=True, **query_details)
+            return dataset.query(**query_details)
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them

@@ -11,7 +11,6 @@ import InputField from 'sentry/components/forms/inputField';
 import Hook from 'sentry/components/hook';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -145,7 +144,7 @@ class SudoModal extends React.Component<Props, State> {
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
           {error && (
-            <StyledAlert type="error" icon={<IconFlag size="md" />}>
+            <StyledAlert type="error" showIcon>
               {t(errorType)}
             </StyledAlert>
           )}
@@ -186,7 +185,7 @@ class SudoModal extends React.Component<Props, State> {
         </StyledTextBlock>
 
         {error && (
-          <StyledAlert type="error" icon={<IconFlag size="md" />}>
+          <StyledAlert type="error" showIcon>
             {t(errorType)}
           </StyledAlert>
         )}

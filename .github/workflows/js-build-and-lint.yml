@@ -11,7 +11,7 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
@@ -70,9 +70,11 @@ jobs:
       # - yarn lockfile has changed (i.e. we bump our eslint config)
       - name: eslint
         if: steps.eslint.outputs.all-files == 'true'
-        run: |
+        env:
           # Run relax config on main branch (and stricter config for changed files)
-          yarn lint -c .eslintrc.relax.js
+          SENTRY_ESLINT_RELAXED: 1
+        run: |
+          yarn lint
           yarn lint:css
 
       # Otherwise... only lint modified files
@@ -116,7 +118,7 @@ jobs:
           yarn storybook-build
 
   webpack:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 

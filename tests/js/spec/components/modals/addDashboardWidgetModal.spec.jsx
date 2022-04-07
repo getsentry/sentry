@@ -1,8 +1,9 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
@@ -68,7 +69,10 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
       widget={widget}
       closeModal={() => void 0}
       source={source || types.DashboardWidgetSource.DASHBOARDS}
-    />
+    />,
+    {
+      organization: initialData.organization,
+    }
   );
 }
 
@@ -114,26 +118,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'custom-field', key: 'custom-field'},
   ];
   const metricsTags = [{key: 'environment'}, {key: 'release'}, {key: 'session.status'}];
-  const metricsMeta = [
-    {
-      name: 'sentry.sessions.session',
-      type: 'counter',
-      operations: ['sum'],
-      unit: null,
-    },
-    {
-      name: 'sentry.sessions.session.error',
-      type: 'set',
-      operations: ['count_unique'],
-      unit: null,
-    },
-    {
-      name: 'sentry.sessions.user',
-      type: 'set',
-      operations: ['count_unique'],
-      unit: null,
-    },
-  ];
+  const metricsMeta = TestStubs.MetricsMeta();
   const dashboard = TestStubs.Dashboard([], {
     id: '1',
     title: 'Test Dashboard',
@@ -143,11 +128,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   let eventsStatsMock, metricsDataMock;
 
   beforeEach(function () {
-    TagStore.onLoadTagsSuccess(tags);
+    TagStore.loadTagsSuccess(tags);
     act(() => {
       MetricsTagStore.onLoadSuccess(metricsTags);
     });
-    MetricsMetaStore.onLoadSuccess(metricsMeta);
+    MetricsMetaStore.loadSuccess(metricsMeta);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -1303,7 +1288,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
       // Hide without the dashboards-metrics feature flag
-      expect(screen.queryByText(/metrics/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/release/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
@@ -1359,7 +1344,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      expect(screen.getByText('Metrics (Release Health)')).toBeInTheDocument();
+      expect(screen.getByText('Health (Releases, sessions)')).toBeInTheDocument();
       wrapper.unmount();
     });
 
@@ -1378,9 +1363,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       await tick();
 
-      const metricsDataset = screen.getByLabelText(/metrics/i);
+      const metricsDataset = screen.getByLabelText(/release/i);
       expect(metricsDataset).not.toBeChecked();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
       expect(metricsDataset).toBeChecked();
 
       userEvent.click(screen.getByText('Table'));
@@ -1404,7 +1389,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       expect(screen.getByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
@@ -1436,7 +1421,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       await tick();
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1465,7 +1450,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
@@ -1489,6 +1474,67 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       wrapper.unmount();
     });
 
+    it('can select derived metric fields', async function () {
+      initialData.organization.features = [
+        'performance-view',
+        'discover-query',
+        'dashboards-metrics',
+      ];
+      const addWidgetMock = jest.fn();
+      const wrapper = mountModalWithRtl({
+        initialData,
+        onAddWidget: addWidgetMock,
+        onUpdateWidget: addWidgetMock,
+        source: types.DashboardWidgetSource.DASHBOARDS,
+      });
+
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
+
+      await selectEvent.select(screen.getByText('sum(…)'), /session.crash_free_rate/);
+      expect(screen.getByText('session.crash_free_rate()')).toBeInTheDocument();
+      expect(screen.getByText('f(x)')).toBeInTheDocument();
+
+      expect(metricsDataMock).toHaveBeenLastCalledWith(
+        `/organizations/org-slug/metrics/data/`,
+        expect.objectContaining({
+          query: {
+            environment: [],
+            field: ['session.crash_free_rate'],
+            groupBy: [],
+            interval: '30m',
+            orderBy: 'session.crash_free_rate',
+            per_page: 5,
+            project: [],
+            statsPeriod: '14d',
+          },
+        })
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Add Widget'}));
+      await waitFor(() =>
+        expect(addWidgetMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            displayType: 'table',
+            interval: '5m',
+            queries: [
+              {
+                aggregates: ['calculated|session.crash_free_rate'],
+                columns: [],
+                conditions: '',
+                fields: ['calculated|session.crash_free_rate'],
+                name: '',
+                orderby: '',
+              },
+            ],
+            title: '',
+            widgetType: 'metrics',
+          })
+        )
+      );
+
+      wrapper.unmount();
+    });
+
     it('displays no metrics message', async function () {
       initialData.organization.features = [
         'performance-view',
@@ -1507,7 +1553,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       });
 
       // change data set to metrics
-      await act(async () => userEvent.click(screen.getByLabelText(/metrics/i)));
+      await act(async () => userEvent.click(screen.getByLabelText(/release/i)));
 
       // open visualization select
       userEvent.click(screen.getByText('Table'));

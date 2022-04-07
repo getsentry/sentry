@@ -34,7 +34,13 @@ describe('MultipleEnvironmentSelector', function () {
   ]);
 
   beforeEach(function () {
+    ConfigStore.init();
+    ConfigStore.loadInitialData(TestStubs.Config());
     onUpdate.mockReset();
+  });
+
+  afterEach(() => {
+    ConfigStore.teardown();
   });
 
   const selectorProps = {
@@ -276,5 +282,20 @@ describe('MultipleEnvironmentSelector', function () {
     expect(screen.getByLabelText('production')).toBeInTheDocument();
     expect(screen.getByLabelText('staging')).toBeInTheDocument();
     expect(screen.getByLabelText('dev')).toBeInTheDocument();
+  });
+
+  it('can quick select an environment', async function () {
+    renderSelector();
+    await clickMenu();
+
+    // Select something first, we want to make sure that having a changed
+    // selection doesn't effect the quick select
+    userEvent.click(screen.getByRole('checkbox', {name: 'dev'}));
+
+    // Now 'quick select' the production environment
+    userEvent.click(screen.getByText('production'));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith(['production']);
   });
 });

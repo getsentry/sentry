@@ -2,25 +2,33 @@ import isEqual from 'lodash/isEqual';
 
 import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {aggregateOutputType, isLegalYAxisType} from 'sentry/utils/discover/fields';
-import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {Organization, TagCollection} from 'sentry/types';
+import {
+  aggregateOutputType,
+  getAggregateAlias,
+  isLegalYAxisType,
+} from 'sentry/utils/discover/fields';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export enum DisplayType {
-  AREA = 'area',
-  BAR = 'bar',
-  LINE = 'line',
-  TABLE = 'table',
-  WORLD_MAP = 'world_map',
-  BIG_NUMBER = 'big_number',
-  STACKED_AREA = 'stacked_area',
-  TOP_N = 'top_n',
-}
+import {FlatValidationError, ValidationError} from '../utils';
+
+// Used in the widget builder to limit the number of lines plotted in the chart
+export const DEFAULT_RESULTS_LIMIT = 5;
+export const RESULTS_LIMIT = 10;
 
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  METRICS = 'metrics',
+  RELEASE = 'release',
 }
 
 export enum SortDirection {
@@ -41,14 +49,6 @@ export const displayTypes = {
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
   [DisplayType.TOP_N]: t('Top 5 Events'),
-};
-
-type ValidationError = {
-  [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
-
-export type FlatValidationError = {
-  [key: string]: string | FlatValidationError[] | FlatValidationError;
 };
 
 export function mapErrors(
@@ -90,9 +90,10 @@ export function normalizeQueries({
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.AREA,
-    DisplayType.STACKED_AREA,
     DisplayType.BAR,
   ].includes(displayType);
+
+  const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
 
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
@@ -106,21 +107,45 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if ([DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-    if (!queries[0].orderby && widgetBuilderNewDesign) {
-      const orderBy = (
-        widgetType === WidgetType.DISCOVER
-          ? generateOrderOptions({
-              widgetType,
+  if (widgetBuilderNewDesign) {
+    queries = queries.map(query => {
+      const {fields = [], columns} = query;
+
+      if (isTabularChart) {
+        // If the groupBy field has values, port everything over to the columnEditCollect field.
+        query.fields = [...new Set([...fields, ...columns])];
+      } else {
+        // If columnEditCollect has field values , port everything over to the groupBy field.
+        query.fields = fields.filter(field => !columns.includes(field));
+      }
+
+      if (!!query.orderby) {
+        return {
+          ...query,
+          orderby: getAggregateAlias(query.orderby),
+        };
+      }
+
+      const orderBy =
+        getAggregateAlias(queries[0].orderby) ||
+        (widgetType === WidgetType.ISSUE
+          ? IssueSortOptions.DATE
+          : generateOrderOptions({
+              widgetType: widgetType ?? WidgetType.DISCOVER,
               widgetBuilderNewDesign,
               columns: queries[0].columns,
               aggregates: queries[0].aggregates,
-            })[0].value
-          : IssueSortOptions.DATE
-      ) as string;
-      queries[0].orderby = orderBy;
-    }
+            })[0].value);
 
+      // Issues data set doesn't support order by descending
+      query.orderby =
+        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+
+      return query;
+    });
+  }
+
+  if (isTabularChart) {
     return queries;
   }
 
@@ -143,7 +168,7 @@ export function normalizeQueries({
     return {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
-      columns: [],
+      columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
@@ -176,6 +201,7 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
+        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
         aggregates: referenceAggregates,
         fields: referenceAggregates,
       };
@@ -189,6 +215,8 @@ export function normalizeQueries({
         ...query,
         fields: query.aggregates.slice(0, 1),
         aggregates: query.aggregates.slice(0, 1),
+        orderby: '',
+        columns: [],
       };
     });
   }
@@ -220,4 +248,21 @@ export function getParsedDefaultWidgetQuery(query = ''): WidgetQuery | undefined
 export function getFields(fieldsString: string): string[] {
   // Use a negative lookahead to avoid splitting on commas inside equation fields
   return fieldsString.split(/,(?![^(]*\))/g);
+}
+
+export function getAmendedFieldOptions({
+  measurements,
+  organization,
+  tags,
+}: {
+  measurements: MeasurementCollection;
+  organization: Organization;
+  tags: TagCollection;
+}) {
+  return generateFieldOptions({
+    organization,
+    tagKeys: Object.values(tags).map(({key}) => key),
+    measurementKeys: Object.values(measurements).map(({key}) => key),
+    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+  });
 }

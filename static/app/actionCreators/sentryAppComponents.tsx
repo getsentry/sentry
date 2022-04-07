@@ -1,5 +1,5 @@
-import SentryAppComponentsActions from 'sentry/actions/sentryAppComponentActions';
 import {Client} from 'sentry/api';
+import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppComponent} from 'sentry/types';
 
 export async function fetchSentryAppComponents(
@@ -10,6 +10,6 @@ export async function fetchSentryAppComponents(
   const componentsUri = `/organizations/${orgSlug}/sentry-app-components/?projectId=${projectId}`;
 
   const res = await api.requestPromise(componentsUri);
-  SentryAppComponentsActions.loadComponents(res);
+  SentryAppComponentsStore.loadComponents(res);
   return res;
 }

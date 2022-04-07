@@ -5,6 +5,9 @@ export enum WidgetViewerQueryField {
   LEGEND = 'legend',
   PAGE = 'page',
   CURSOR = 'cursor',
+  WIDTH = 'width',
+  START = 'viewerStart',
+  END = 'viewerEnd',
 }
 
 export function isWidgetViewerPath(pathname: string) {

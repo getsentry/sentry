@@ -1,19 +1,16 @@
-import {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps} from 'react-router';
 
-import {ChildrenRenderFn} from 'sentry/components/acl/feature';
-import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import SelectorItems from 'sentry/components/organizations/timeRangeSelector/dateRange/selectorItems';
-import SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {
-  Integration,
-  IntegrationProvider,
-  Member,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
-import {ExperimentKey} from 'sentry/types/experiments';
-import {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
+import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
+import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
+import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
+
+import type {ExperimentKey} from './experiments';
+import type {Integration, IntegrationProvider} from './integrations';
+import type {Member, Organization} from './organization';
+import type {Project} from './project';
+import type {User} from './user';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -57,8 +54,6 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type GlobalNotificationProps = {className: string; organization?: Organization};
-
 type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
 
 type MemberListHeaderProps = {
@@ -100,7 +95,6 @@ export type ComponentHooks = {
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
-  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
@@ -116,6 +110,7 @@ export type ComponentHooks = {
  */
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
+  'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
 };
 
@@ -196,7 +191,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
   'onboarding:extra-chrome': GenericComponentHook;
-  'onboarding:targeted-onboarding-header': GenericComponentHook;
+  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**
@@ -522,6 +517,22 @@ type IntegrationsFeatureGatesHook = () => {
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
 };
+
+/**
+ * Invite Button customization allows for a render-props component to replace
+ * or intercept props of the button element.
+ */
+type InviteButtonCustomizationHook = () => React.ComponentType<{
+  children: (opts: {
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
+    onTriggerModal: () => void;
+  }) => React.ReactElement;
+  onTriggerModal: () => void;
+  organization: Organization;
+}>;
 
 /**
  * Invite Modal customization allows for a render-prop component to add

@@ -1,8 +1,5 @@
-import * as React from 'react';
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import random from 'lodash/random';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -22,45 +19,6 @@ Light.defaultProps = {
       repeat: Infinity,
       repeatType: 'loop',
     }),
-  },
-};
-
-const fallingKeyframes = keyframes`
-  0%,  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(15px);
-  }
-  40% {
-    opacity: 0;
-  }
-  60% {
-    transform: translateY(0);
-  }
-`;
-
-const StarGroup = styled(motion.g)`
-  > g {
-    animation-name: ${fallingKeyframes};
-  }
-`;
-
-StarGroup.defaultProps = {
-  onAnimationEnd: (e: React.AnimationEvent) => {
-    if (!(e.target instanceof SVGGElement)) {
-      return;
-    }
-    const style = e.target.style;
-    const delay = random(3000, 10000);
-
-    const restart = () => {
-      style.animation = `${fallingKeyframes.name} ${random(3000, 8000)}ms`;
-    };
-
-    style.animation = 'none';
-    setTimeout(restart, delay);
   },
 };
 
@@ -247,8 +205,8 @@ const Illustration = styled(motion.svg)`
 `;
 
 const Compass = styled(Illustration)`
-  left: -15px;
-  top: 107px;
+  left: 24px;
+  top: 32px;
 `;
 
 Compass.defaultProps = {
@@ -297,7 +255,7 @@ const Container = styled(motion.div)`
   width: 100vw;
   height: 80vh;
   min-width: 200px;
-  max-width: 1000px;
+  max-width: 1200px;
   min-height: 800px;
   max-height: 900px;
 

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
-import LineChart from 'sentry/components/charts/lineChart';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -140,7 +140,7 @@ function VitalChart({
 
                 const seriesMax = getMaxOfSeries(smoothedSeries);
                 const yAxisMax = Math.max(seriesMax, vitalPoor);
-                chartOptions.yAxis.max = yAxisMax * 1.1;
+                chartOptions.yAxis!.max = yAxisMax * 1.1;
 
                 return (
                   <ReleaseSeries
@@ -183,7 +183,7 @@ export default withRouter(VitalChart);
 
 export type _VitalChartProps = {
   field: string;
-  grid: React.ComponentProps<typeof LineChart>['grid'];
+  grid: LineChartProps['grid'];
   loading: boolean;
   reloading: boolean;
   data?: Series[];
@@ -230,13 +230,13 @@ export function _VitalChart(props: _VitalChartProps) {
   }
   const theme = useTheme();
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     grid,
     seriesOptions: {
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis' as const,
+      trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,

@@ -138,7 +138,7 @@ class UsersField:
 
 
 def finite_or_none(val):
-    if not math.isfinite(val):
+    if isinstance(val, (int, float)) and not math.isfinite(val):
         return None
     return val
 
@@ -310,6 +310,9 @@ class QueryDefinition:
         self.aggregations = snuba_filter.aggregations
         self.conditions = conditions
         self.filter_keys = filter_keys
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({repr(self.__dict__)})"
 
 
 MAX_POINTS = 1000  # max. points in time

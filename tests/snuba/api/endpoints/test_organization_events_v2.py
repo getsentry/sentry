@@ -9,6 +9,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -4945,6 +4946,22 @@ class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest)
         response = self.do_request(query)
         assert response.status_code == 400, response.content
 
+    def test_tag_that_looks_like_aggregate(self):
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["tags"] = {"p95": "<5k"}
+        self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": ["p95"],
+            "query": "p95:<5k",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p95"] == "<5k"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     # Poor intentionally omitted for test_measurement_rating_that_does_not_exist
@@ -5036,10 +5053,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["isMetricsData"]
-        assert response.data["data"][0]["project.name"] == self.project.slug
-        assert "project.id" not in response.data["data"][0]
-        assert response.data["data"][0]["environment"] == "staging"
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["project.name"] == self.project.slug
+        assert "project.id" not in data[0]
+        assert data[0]["environment"] == "staging"
+
+        assert meta["isMetricsData"]
+        assert meta["project.name"] == "string"
+        assert meta["environment"] == "string"
+        assert meta["epm"] == "number"
+
+    def test_title_alias(self):
+        """title is an alias to transaction name"""
+        self.store_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["title", "p50()"],
+                "query": "event.type:transaction",
+                "metricsEnhanced": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["title"] == "foo_transaction"
+        assert data[0]["p50"] == 1
+
+        assert meta["isMetricsData"]
+        assert meta["title"] == "string"
+        assert meta["p50"] == "duration"
 
     def test_having_condition(self):
         self.store_metric(
@@ -5064,10 +5116,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["isMetricsData"]
-        assert response.data["data"][0]["transaction"] == "foo_transaction"
-        assert response.data["data"][0]["project"] == self.project.slug
-        assert response.data["data"][0]["p50_transaction_duration"] == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["project"] == self.project.slug
+        assert data[0]["p50_transaction_duration"] == 1
+
+        assert meta["isMetricsData"]
+        assert meta["transaction"] == "string"
+        assert meta["project"] == "string"
+        assert meta["p50_transaction_duration"] == "duration"
+
+    def test_having_condition_with_preventing_aggregates(self):
+        self.store_metric(
+            1,
+            tags={"environment": "staging", "transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"environment": "staging", "transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "project", "p50(transaction.duration)"],
+                "query": "event.type:transaction p50(transaction.duration):<50",
+                "metricsEnhanced": "1",
+                "preventMetricAggregates": "1",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+        meta = response.data["meta"]
+
+        assert not meta["isMetricsData"]
+        assert meta["transaction"] == "string"
+        assert meta["project"] == "string"
+        assert meta["p50_transaction_duration"] == "duration"
 
     def test_having_condition_not_selected(self):
         self.store_metric(
@@ -5092,10 +5181,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["isMetricsData"]
-        assert response.data["data"][0]["transaction"] == "foo_transaction"
-        assert response.data["data"][0]["project"] == self.project.slug
-        assert response.data["data"][0]["p50_transaction_duration"] == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["project"] == self.project.slug
+        assert data[0]["p50_transaction_duration"] == 1
+
+        assert meta["isMetricsData"]
+        assert meta["transaction"] == "string"
+        assert meta["project"] == "string"
+        assert meta["p50_transaction_duration"] == "duration"
 
     def test_non_metrics_tag_with_implicit_format(self):
         self.store_metric(
@@ -5179,6 +5275,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert len(response.data["data"]) == 1
         data = response.data["data"][0]
+        meta = response.data["meta"]
+
         assert data["transaction"] == "foo_transaction"
         assert data["project"] == self.project.slug
         assert data["p75_measurements_fcp"] == 1.0
@@ -5188,7 +5286,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data["apdex"] == 1.0
         assert data["count_miserable_user"] == 1.0
         assert data["user_misery"] == 0.058
-        assert response.data["meta"]["isMetricsData"]
+
+        assert meta["isMetricsData"]
+        assert meta["transaction"] == "string"
+        assert meta["project"] == "string"
+        assert meta["p75_measurements_fcp"] == "duration"
+        assert meta["p75_measurements_lcp"] == "duration"
+        assert meta["p75_measurements_fid"] == "duration"
+        assert meta["p75_measurements_cls"] == "duration"
+        assert meta["apdex"] == "number"
+        assert meta["count_miserable_user"] == "integer"
+        assert meta["user_misery"] == "number"
 
     def test_no_team_key_transactions(self):
         self.store_metric(1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago)
@@ -5214,12 +5322,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert len(data) == 2
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "foo_transaction"
         assert data[1]["team_key_transaction"] == 0
         assert data[1]["transaction"] == "bar_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
     def test_team_key_transactions_my_teams(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -5264,15 +5378,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         query["orderby"] = ["team_key_transaction", "p95()"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 3
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "baz_transaction"
         assert data[1]["team_key_transaction"] == 0
         assert data[1]["transaction"] == "bar_transaction"
         assert data[2]["team_key_transaction"] == 1
         assert data[2]["transaction"] == "foo_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
         # not specifying any teams should use my teams
         query = {
@@ -5293,15 +5412,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         query["orderby"] = ["team_key_transaction", "p95()"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 3
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "baz_transaction"
         assert data[1]["team_key_transaction"] == 0
         assert data[1]["transaction"] == "bar_transaction"
         assert data[2]["team_key_transaction"] == 1
         assert data[2]["transaction"] == "foo_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
     def test_team_key_transactions_orderby(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -5345,9 +5469,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         query["orderby"] = ["team_key_transaction", "p95()"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 3
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
         assert data[1]["team_key_transaction"] == 1
@@ -5355,19 +5480,28 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["team_key_transaction"] == 1
         assert data[2]["transaction"] == "baz_transaction"
 
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
+
         # test descending order
         query["orderby"] = ["-team_key_transaction", "p95()"]
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 3
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
         assert data[1]["team_key_transaction"] == 1
         assert data[1]["transaction"] == "baz_transaction"
         assert data[2]["team_key_transaction"] == 0
         assert data[2]["transaction"] == "bar_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
     def test_team_key_transactions_query(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -5413,45 +5547,65 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         query["query"] = "has:team_key_transaction"
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 2
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
         assert data[1]["team_key_transaction"] == 1
         assert data[1]["transaction"] == "baz_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
         # key transactions
         query["query"] = "team_key_transaction:true"
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 2
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
         assert data[1]["team_key_transaction"] == 1
         assert data[1]["transaction"] == "baz_transaction"
 
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
+
         # not key transactions
         query["query"] = "!has:team_key_transaction"
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 1
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
         # not key transactions
         query["query"] = "team_key_transaction:false"
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert response.data["meta"]["isMetricsData"]
-        assert len(data) == 1
+        meta = response.data["meta"]
+
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
+
+        assert meta["isMetricsData"]
+        assert meta["team_key_transaction"] == "boolean"
+        assert meta["transaction"] == "string"
 
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
@@ -5500,13 +5654,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
             response = self.do_request(query)
             assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 2
             data = response.data["data"]
-            assert len(data) == 2
-            assert response.data["meta"]["isMetricsData"]
+            meta = response.data["meta"]
+
             assert (
                 sum(row["team_key_transaction"] for row in data)
                 == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
             )
+            assert meta["isMetricsData"]
 
     def test_measurement_rating(self):
         self.store_metric(
@@ -5557,12 +5713,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["isMetricsData"]
-        assert response.data["data"][0]["count_web_vitals_measurements_lcp_good"] == 1
-        assert response.data["data"][0]["count_web_vitals_measurements_fp_good"] == 1
-        assert response.data["data"][0]["count_web_vitals_measurements_fcp_meh"] == 1
-        assert response.data["data"][0]["count_web_vitals_measurements_fid_meh"] == 1
-        assert response.data["data"][0]["count_web_vitals_measurements_cls_good"] == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["count_web_vitals_measurements_lcp_good"] == 1
+        assert data[0]["count_web_vitals_measurements_fp_good"] == 1
+        assert data[0]["count_web_vitals_measurements_fcp_meh"] == 1
+        assert data[0]["count_web_vitals_measurements_fid_meh"] == 1
+        assert data[0]["count_web_vitals_measurements_cls_good"] == 1
+
+        assert meta["isMetricsData"]
+        assert meta["count_web_vitals_measurements_lcp_good"] == "integer"
+        assert meta["count_web_vitals_measurements_fp_good"] == "integer"
+        assert meta["count_web_vitals_measurements_fcp_meh"] == "integer"
+        assert meta["count_web_vitals_measurements_fid_meh"] == "integer"
+        assert meta["count_web_vitals_measurements_cls_good"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
         self.store_metric(
@@ -5582,8 +5747,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["isMetricsData"]
-        assert response.data["data"][0]["count_web_vitals_measurements_lcp_poor"] == 0
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["count_web_vitals_measurements_lcp_poor"] == 0
+
+        assert meta["isMetricsData"]
+        assert meta["count_web_vitals_measurements_lcp_poor"] == "integer"
 
     def test_count_web_vitals_invalid_vital(self):
         query = {
@@ -5625,3 +5795,26 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         }
         response = self.do_request(query)
         assert response.status_code == 400, response.content
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.MetricsQueryBuilder")
+    def test_failed_dry_run_does_not_error(self, mock_builder):
+        with self.feature("organizations:performance-dry-run-mep"):
+            mock_builder.side_effect = InvalidSearchQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 1
+            assert mock_builder.call_args.kwargs["dry_run"]
+
+            mock_builder.side_effect = IncompatibleMetricsQuery("Something bad")
+            query = {
+                "field": ["count()"],
+                "project": [self.project.id],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(mock_builder.mock_calls) == 2
+            assert mock_builder.call_args.kwargs["dry_run"]

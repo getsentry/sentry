@@ -1,41 +1,51 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('ProjectPageFilter', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    organization: {features: ['global-views', 'selection-filters-v2']},
-    project: undefined,
-    projects: [
-      {
-        id: 2,
-        slug: 'project-2',
-      },
-    ],
-    router: {
-      location: {query: {}},
-      params: {orgId: 'org-slug'},
+const {organization, router, routerContext} = initializeOrg({
+  organization: {features: ['global-views', 'selection-filters-v2']},
+  project: undefined,
+  projects: [
+    {
+      id: 2,
+      slug: 'project-2',
     },
-  });
-  OrganizationStore.onUpdate(organization, {replace: true});
-  ProjectsStore.loadInitialData(organization.projects);
+  ],
+  router: {
+    location: {
+      pathname: '/organizations/org-slug/issues/',
+      query: {},
+    },
+    params: {orgId: 'org-slug'},
+  },
+});
 
+describe('ProjectPageFilter', function () {
   beforeEach(() => {
-    act(() => {
-      PageFiltersStore.reset();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [],
-          environments: [],
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        },
-        new Set()
-      );
-    });
+    OrganizationStore.init();
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set()
+    );
+
+    OrganizationStore.onUpdate(organization, {replace: true});
+    ProjectsStore.loadInitialData(organization.projects);
+  });
+
+  afterEach(() => {
+    OrganizationStore.teardown();
+    PageFiltersStore.teardown();
+    PageFiltersStore.reset();
   });
 
   it('can pick project', function () {
@@ -75,10 +85,10 @@ describe('ProjectPageFilter', function () {
     userEvent.click(screen.getByText('My Projects'));
 
     // Click the pin button
-    const pinButton = screen.getByRole('button', {name: 'Pin'});
-    userEvent.click(pinButton);
+    const pinButton = screen.getByRole('button', {name: 'Lock filter'});
+    userEvent.click(pinButton, undefined, {skipHover: true});
 
-    await screen.findByRole('button', {name: 'Pin', pressed: true});
+    await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({
@@ -100,28 +110,28 @@ describe('ProjectPageFilter', function () {
     // Click the first project's checkbox
     userEvent.click(screen.getByText('project-2'));
 
-    // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {environment: [], project: ['2']}})
     );
 
     await screen.findByText('project-2');
 
-    // Verify store state
-    expect(PageFiltersStore.getState()).toEqual(
-      expect.objectContaining({
-        isReady: true,
-        selection: {
-          datetime: {
-            end: null,
-            period: '14d',
-            start: null,
-            utc: null,
+    await waitFor(() =>
+      expect(PageFiltersStore.getState()).toEqual(
+        expect.objectContaining({
+          isReady: true,
+          selection: {
+            datetime: {
+              end: null,
+              period: '14d',
+              start: null,
+              utc: null,
+            },
+            environments: [],
+            projects: [2],
           },
-          environments: [],
-          projects: [2],
-        },
-      })
+        })
+      )
     );
   });
 

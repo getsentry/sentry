@@ -1,3 +1,4 @@
+import {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 import {AnimationControls, motion} from 'framer-motion';
 
@@ -5,10 +6,10 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   animateVariant: AnimationControls;
-};
+} & HTMLAttributes<HTMLDivElement>;
 
-const PageCorners = ({animateVariant}: Props) => (
-  <Container>
+const PageCorners = ({animateVariant, ...rest}: Props) => (
+  <Container {...rest}>
     <TopRight
       key="tr"
       width="874"
@@ -88,8 +89,9 @@ const TopLeft = styled(motion.svg)`
 `;
 
 TopLeft.defaultProps = {
-  initial: {x: '-40px', opacity: 0},
+  initial: {x: '-40px', opacity: 0, originX: 0, originY: 0, scale: 'var(--corner-scale)'},
   variants: {
+    none: {x: '-40px', opacity: 0},
     'top-right': {x: '-40px', opacity: 0},
     'top-left': {x: 0, opacity: 1},
   },
@@ -103,8 +105,15 @@ const TopRight = styled(motion.svg)`
 `;
 
 TopRight.defaultProps = {
-  initial: {x: '40px', opacity: 0},
+  initial: {
+    x: '40px',
+    opacity: 0,
+    originX: '100%',
+    originY: 0,
+    scale: 'var(--corner-scale)',
+  },
   variants: {
+    none: {x: '40px', opacity: 0},
     'top-left': {x: '40px', opacity: 0},
     'top-right': {x: 0, opacity: 1},
   },
@@ -118,8 +127,15 @@ const BottomLeft = styled(motion.svg)`
 `;
 
 BottomLeft.defaultProps = {
-  initial: {x: '-40px', opacity: 0},
+  initial: {
+    x: '-40px',
+    opacity: 0,
+    originX: 0,
+    originY: '100%',
+    scale: 'var(--corner-scale)',
+  },
   variants: {
+    none: {x: '-40px', opacity: 0},
     'top-left': {x: '-40px', opacity: 0},
     'top-right': {x: 0, opacity: 1},
   },
@@ -133,8 +149,15 @@ const BottomRight = styled(motion.svg)`
 `;
 
 BottomRight.defaultProps = {
-  initial: {x: '40px', opacity: 0},
+  initial: {
+    x: '40px',
+    opacity: 0,
+    originX: '100%',
+    originY: '100%',
+    scale: 'var(--corner-scale)',
+  },
   variants: {
+    none: {x: '40px', opacity: 0},
     'top-right': {x: '40px', opacity: 0},
     'top-left': {x: 0, opacity: 1},
   },

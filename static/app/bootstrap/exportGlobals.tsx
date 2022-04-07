@@ -1,10 +1,10 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
+import {findDOMNode, render} from 'react-dom';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
-import PropTypes from 'prop-types';
-import Reflux from 'reflux';
+import * as PropTypes from 'prop-types';
+import * as Reflux from 'reflux';
 
 import plugins from 'sentry/plugins';
 
@@ -17,10 +17,7 @@ const globals = {
   Sentry,
   moment,
   Router: ReactRouter,
-  ReactDOM: {
-    findDOMNode: ReactDOM.findDOMNode,
-    render: ReactDOM.render,
-  },
+  ReactDOM: {findDOMNode, render},
 
   // django templates make use of these globals
   SentryApp: {},
@@ -41,8 +38,10 @@ const SentryApp = {
   },
 
   // The following components are used in legacy django HTML views
+  // or in the Sentry sandbox
   ConfigStore: require('sentry/stores/configStore').default,
   HookStore: require('sentry/stores/hookStore').default,
+  GuideActionCreator: require('sentry/actionCreators/guides'),
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,

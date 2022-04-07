@@ -8,27 +8,20 @@ import {
 } from 'sentry/actionCreators/deployPreview';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
-import AlertActions from 'sentry/actions/alertActions';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
+import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 
 import SystemAlerts from './systemAlerts';
-
-const GlobalNotifications = HookOrDefault({
-  hookName: 'component:global-notifications',
-  defaultComponent: () => null,
-});
 
 type Props = {
   children: React.ReactNode;
@@ -43,7 +36,6 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 function App({children}: Props) {
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
-  const {organization} = useLegacyStore(OrganizationStore);
 
   // Command palette global-shortcut
   useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
@@ -89,7 +81,7 @@ function App({children}: Props) {
       const {id, message, url} = problem;
       const type = problem.severity === 'critical' ? 'error' : 'warning';
 
-      AlertActions.addAlert({id, message, type, url, opaque: true});
+      AlertStore.addAlert({id, message, type, url, opaque: true});
     });
   }
 
@@ -99,7 +91,7 @@ function App({children}: Props) {
 
     // Show system-level alerts
     config.messages.forEach(msg =>
-      AlertActions.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+      AlertStore.addAlert({message: msg.message, type: msg.level, neverExpire: true})
     );
 
     // The app is running in deploy preview mode
@@ -164,10 +156,6 @@ function App({children}: Props) {
       <MainContainer tabIndex={-1} ref={mainContainerRef}>
         <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
         <SystemAlerts className="messages-container" />
-        <GlobalNotifications
-          className="notifications-container messages-container"
-          organization={organization ?? undefined}
-        />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>
       </MainContainer>

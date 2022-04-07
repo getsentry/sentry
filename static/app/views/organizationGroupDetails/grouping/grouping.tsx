@@ -5,7 +5,9 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
-import RangeSlider, {Slider} from 'sentry/components/forms/controls/rangeSlider';
+import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -210,15 +212,19 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   if (error) {
     return (
       <Fragment>
-        <ErrorMessage
-          onRetry={fetchGroupingLevels}
-          groupId={groupId}
-          error={error}
-          projSlug={projSlug}
-          orgSlug={organization.slug}
-          hasProjectWriteAccess={organization.access.includes('project:write')}
-        />
-        <LinkFooter />
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ErrorMessage
+              onRetry={fetchGroupingLevels}
+              groupId={groupId}
+              error={error}
+              projSlug={projSlug}
+              orgSlug={organization.slug}
+              hasProjectWriteAccess={organization.access.includes('project:write')}
+            />
+            <LinkFooter />
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
@@ -232,64 +238,70 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   const paginationCurrentQuantity = activeGroupingLevelDetails.length;
 
   return (
-    <Wrapper>
-      <Header>
-        {t(
-          'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
-        )}
-      </Header>
-      <Body>
-        <SliderWrapper>
-          {t('Fewer issues')}
-          <StyledRangeSlider
-            name="grouping-level"
-            allowedValues={groupingLevels.map(groupingLevel => Number(groupingLevel.id))}
-            value={activeGroupingLevel ?? 0}
-            onChange={handleSetActiveGroupingLevel}
-            showLabel={false}
-          />
-          {t('More issues')}
-        </SliderWrapper>
-        <Content isReloading={isGroupingLevelDetailsLoading}>
-          <StyledPanelTable headers={['', t('Events')]}>
-            {activeGroupingLevelDetails.map(
-              ({hash, title, metadata, latestEvent, eventCount}) => {
-                // XXX(markus): Ugly hack to make NewIssue show the right things.
-                return (
-                  <NewIssue
-                    key={hash}
-                    sampleEvent={{
-                      ...latestEvent,
-                      metadata: {
-                        ...(metadata || latestEvent.metadata),
-                        current_level: activeGroupingLevel,
-                      },
-                      title: title || latestEvent.title,
-                    }}
-                    eventCount={eventCount}
-                    organization={organization}
-                  />
-                );
-              }
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Wrapper>
+          <Header>
+            {t(
+              'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
             )}
-          </StyledPanelTable>
-          <StyledPagination
-            pageLinks={pagination}
-            disabled={isGroupingLevelDetailsLoading}
-            caption={tct('Showing [current] of [total] [result]', {
-              result: hasMore
-                ? t('results')
-                : tn('result', 'results', paginationCurrentQuantity),
-              current: paginationCurrentQuantity,
-              total: hasMore
-                ? `${paginationCurrentQuantity}+`
-                : paginationCurrentQuantity,
-            })}
-          />
-        </Content>
-      </Body>
-      <LinkFooter />
-    </Wrapper>
+          </Header>
+          <Body>
+            <SliderWrapper>
+              {t('Fewer issues')}
+              <StyledRangeSlider
+                name="grouping-level"
+                allowedValues={groupingLevels.map(groupingLevel =>
+                  Number(groupingLevel.id)
+                )}
+                value={activeGroupingLevel ?? 0}
+                onChange={handleSetActiveGroupingLevel}
+                showLabel={false}
+              />
+              {t('More issues')}
+            </SliderWrapper>
+            <Content isReloading={isGroupingLevelDetailsLoading}>
+              <StyledPanelTable headers={['', t('Events')]}>
+                {activeGroupingLevelDetails.map(
+                  ({hash, title, metadata, latestEvent, eventCount}) => {
+                    // XXX(markus): Ugly hack to make NewIssue show the right things.
+                    return (
+                      <NewIssue
+                        key={hash}
+                        sampleEvent={{
+                          ...latestEvent,
+                          metadata: {
+                            ...(metadata || latestEvent.metadata),
+                            current_level: activeGroupingLevel,
+                          },
+                          title: title || latestEvent.title,
+                        }}
+                        eventCount={eventCount}
+                        organization={organization}
+                      />
+                    );
+                  }
+                )}
+              </StyledPanelTable>
+              <StyledPagination
+                pageLinks={pagination}
+                disabled={isGroupingLevelDetailsLoading}
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
+              />
+            </Content>
+          </Body>
+          <LinkFooter />
+        </Wrapper>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 

@@ -12,6 +12,7 @@ import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
@@ -32,6 +33,7 @@ import Triggers from 'sentry/views/alerts/incidentRules/triggers';
 import TriggersChart from 'sentry/views/alerts/incidentRules/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/incidentRules/utils/hasThresholdValue';
+import {AlertRuleType} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -54,6 +56,7 @@ import {
   Trigger,
   UnsavedIncidentRule,
 } from '../types';
+import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
@@ -72,7 +75,7 @@ type Props = {
   isCustomMetric?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -101,10 +104,16 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
   componentDidMount() {
     const {organization, project} = this.props;
     // SearchBar gets its tags from Reflux.
     fetchOrganizationTags(this.api, organization.slug, [project.id]);
+  }
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
   }
 
   getDefaultState(): State {
@@ -172,7 +181,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
@@ -204,7 +214,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const {status, alertRule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;
@@ -451,8 +463,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
-    const {ruleId} = this.props.params;
+    const {
+      organization,
+      project,
+      rule,
+      onSubmitSuccess,
+      location,
+      sessionId,
+      params: {ruleId},
+    } = this.props;
     const {
       aggregate,
       resolveThreshold,
@@ -477,7 +496,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
     try {
       const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', 'metric');
+      transaction.setTag('type', AlertRuleType.METRIC);
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
@@ -492,7 +511,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
-        params.projectId,
+        project.slug,
         {
           ...rule,
           ...model.getTransformedData(),
@@ -640,7 +659,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       ruleId,
       rule,
-      params,
       onSubmitSuccess,
       project,
       userTeamIds,
@@ -669,7 +687,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
+      query: isCrashFreeAlert(dataset) ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
@@ -686,7 +704,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            {dataset !== Dataset.SESSIONS && (
+            {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{aggregate}</Aggregate>
@@ -702,8 +720,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const canEdit =
       isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
-    const hasAlertWizardV3 =
-      Boolean(isCustomMetric) && organization.features.includes('alert-wizard-v3');
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
@@ -716,7 +733,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
-        currentProject={params.projectId}
+        currentProject={project.slug}
         organization={organization}
         ruleId={ruleId}
         availableActions={this.state.availableActions}
@@ -796,7 +813,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             <List symbol="colored-numeric">
               <RuleConditionsForm
                 api={this.api}
-                projectSlug={params.projectId}
+                projectSlug={project.slug}
                 organization={organization}
                 disabled={!hasAccess || !canEdit}
                 thresholdChart={wizardBuilderChart}
@@ -840,14 +857,12 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
   margin-bottom: -${space(1.5)};
 `;
 
-const AlertName = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: normal;
-  color: ${p => p.theme.textColor};
+const AlertName = styled(HeaderTitleLegend)`
+  position: relative;
 `;
 
 const AlertInfo = styled('div')`

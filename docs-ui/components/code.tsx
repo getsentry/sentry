@@ -1,7 +1,7 @@
 // eslint-disable-next-line simple-import-sort/imports
 import 'prismjs/themes/prism.css';
 
-import {createRef, RefObject, useEffect, useState} from 'react';
+import {createRef, RefObject, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
@@ -17,7 +17,6 @@ import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 type Props = {
-  theme?: Theme;
   /**
    * Main code content gets passed as the children prop
    */
@@ -38,11 +37,13 @@ type Props = {
    * the label prop is set to 'hello'
    */
   label?: string;
+  theme?: Theme;
 };
 
 const Code = ({children, className, label}: Props) => {
   const theme = useTheme();
   const codeRef: RefObject<HTMLElement> = createRef();
+  const copyTimeoutRef = useRef<number | undefined>(undefined);
 
   const [copied, setCopied] = useState(false);
 
@@ -51,13 +52,21 @@ const Code = ({children, className, label}: Props) => {
     const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
     copy(copiableContent);
-
     setCopied(true);
 
-    setTimeout(() => {
+    copyTimeoutRef.current = window.setTimeout(() => {
       setCopied(false);
     }, 500);
   }
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     Prism.highlightElement(codeRef.current, false);
