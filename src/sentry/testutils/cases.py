@@ -827,7 +827,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
         for item in which:
             res = self.client.put(
-                "/api/0/assistant/?v2",
+                "/api/0/assistant/",
                 content_type="application/json",
                 data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
             )
