@@ -26,6 +26,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {ProfilerWithTasks} from 'sentry/utils/performanceForSentry';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
@@ -227,15 +228,17 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <TransactionDetailsContainer
-        onClick={event => {
-          // prevent toggling the transaction detail
-          event.stopPropagation();
-        }}
-      >
-        {this.renderTransactionErrors()}
-        {this.renderTransactionDetail()}
-      </TransactionDetailsContainer>
+      <ProfilerWithTasks id="TransactionDetail">
+        <TransactionDetailsContainer
+          onClick={event => {
+            // prevent toggling the transaction detail
+            event.stopPropagation();
+          }}
+        >
+          {this.renderTransactionErrors()}
+          {this.renderTransactionDetail()}
+        </TransactionDetailsContainer>
+      </ProfilerWithTasks>
     );
   }
 }

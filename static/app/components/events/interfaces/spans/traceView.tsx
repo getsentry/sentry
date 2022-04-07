@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {ProfilerWithTasks} from 'sentry/utils/performanceForSentry';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -92,22 +93,24 @@ class TraceView extends PureComponent<Props> {
                             <Observer>
                               {() => {
                                 return (
-                                  <SpanTree
-                                    traceViewRef={this.traceViewRef}
-                                    dragProps={dragProps}
-                                    organization={organization}
-                                    waterfallModel={waterfallModel}
-                                    filterSpans={waterfallModel.filterSpans}
-                                    spans={waterfallModel.getWaterfall(
-                                      {
-                                        viewStart: dragProps.viewWindowStart,
-                                        viewEnd: dragProps.viewWindowEnd,
-                                      },
-                                      organization.features.includes(
-                                        'performance-autogroup-sibling-spans'
-                                      )
-                                    )}
-                                  />
+                                  <ProfilerWithTasks id="SpanTree">
+                                    <SpanTree
+                                      traceViewRef={this.traceViewRef}
+                                      dragProps={dragProps}
+                                      organization={organization}
+                                      waterfallModel={waterfallModel}
+                                      filterSpans={waterfallModel.filterSpans}
+                                      spans={waterfallModel.getWaterfall(
+                                        {
+                                          viewStart: dragProps.viewWindowStart,
+                                          viewEnd: dragProps.viewWindowEnd,
+                                        },
+                                        organization.features.includes(
+                                          'performance-autogroup-sibling-spans'
+                                        )
+                                      )}
+                                    />
+                                  </ProfilerWithTasks>
                                 );
                               }}
                             </Observer>
