@@ -15,6 +15,7 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {flattenErrors} from 'sentry/views/dashboardsV2/utils';
 
 export type DoMetricsRequestOptions = {
   field: string[];
@@ -103,7 +104,8 @@ export function fetchMetricsTags(
 
   promise.then(tagFetchSuccess).catch(response => {
     const errorResponse = response?.responseJSON ?? t('Unable to fetch metric tags');
-    addErrorMessage(errorResponse);
+    const errors = flattenErrors(errorResponse, {});
+    addErrorMessage(errors[Object.keys(errors)[0]]);
     handleXhrErrorResponse(errorResponse)(response);
   });
 
@@ -132,7 +134,8 @@ export function fetchMetricsFields(
 
   promise.then(metaFetchSuccess).catch(response => {
     const errorResponse = response?.responseJSON ?? t('Unable to fetch metric fields');
-    addErrorMessage(errorResponse);
+    const errors = flattenErrors(errorResponse, {});
+    addErrorMessage(errors[Object.keys(errors)[0]]);
     handleXhrErrorResponse(errorResponse)(response);
   });
 

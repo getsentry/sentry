@@ -83,7 +83,13 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
-  return addMessageWithType('error')(msg, options);
+  if (typeof msg === 'string' || React.isValidElement(msg)) {
+    return addMessageWithType('error')(msg, options);
+  }
+  return addMessageWithType('error')(
+    t('Oops, looks like something went wrong!'),
+    options
+  );
 }
 
 export function addSuccessMessage(msg: React.ReactNode, options?: Options) {
