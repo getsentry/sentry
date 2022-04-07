@@ -15,10 +15,8 @@ function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
   const [profileFilters, setProfileFilters] = useState<ProfileFilters>({});
 
   useEffect(() => {
-    api.clear();
-
     if (!selection) {
-      return;
+      return undefined;
     }
 
     fetchProfileFilters(api, organization, selection).then(response => {
@@ -36,6 +34,8 @@ function useProfileFilters(selection: PageFilters | undefined): ProfileFilters {
 
       setProfileFilters(withPredefinedFilters);
     });
+
+    return () => api.clear();
   }, [api, organization, selection]);
 
   return profileFilters;
