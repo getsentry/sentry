@@ -6,9 +6,11 @@ INDEXER = MockIndexer()
 
 def test_resolve():
     assert INDEXER.resolve(1, "what") is None
-    assert INDEXER.resolve(1, SessionMRI.USER.value) == 11
+    assert INDEXER.resolve(1, SessionMRI.USER.value) == 1
+    # hardcoded values don't depend on org_id
+    assert INDEXER.resolve(0, SessionMRI.USER.value) == 1
 
 
 def test_reverse_resolve():
     assert INDEXER.reverse_resolve(666) is None
-    assert INDEXER.reverse_resolve(11) == SessionMRI.USER.value
+    assert INDEXER.reverse_resolve(1) == SessionMRI.USER.value

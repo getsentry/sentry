@@ -219,9 +219,8 @@ def __translated_payload(
     return payload
 
 
-@patch("sentry.sentry_metrics.indexer.tasks.process_indexed_metrics")
 @patch("sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer())
-def test_process_messages(mock_indexer, mock_task) -> None:
+def test_process_messages(mock_indexer) -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(

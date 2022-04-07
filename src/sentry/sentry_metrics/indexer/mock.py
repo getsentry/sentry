@@ -2,27 +2,9 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Mapping, MutableMapping, Optional, Set
 
-from ...snuba.metrics.naming_layer.mri import SessionMRI
-from .base import StringIndexer
+from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 
-# todo actually map th
-_STRINGS = (
-    "crashed",
-    "environment",
-    "errored",
-    "healthy",
-    "production",
-    "release",
-    SessionMRI.RAW_DURATION.value,
-    "session.status",
-    SessionMRI.SESSION.value,
-    "staging",
-    SessionMRI.USER.value,
-    "init",
-    SessionMRI.ERROR.value,
-    "abnormal",
-    "exited",
-)
+from .base import StringIndexer
 
 
 class SimpleIndexer(StringIndexer):
@@ -39,21 +21,31 @@ class SimpleIndexer(StringIndexer):
     def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
         result: MutableMapping[int, MutableMapping[str, int]] = {}
         for org_id, strs in org_strings.items():
-            strings_to_ints = {string: self._record(org_id, string) for string in strs}
+            strings_to_ints = {}
+            for string in strs:
+                if string in SHARED_STRINGS:
+                    strings_to_ints[string] = SHARED_STRINGS[string]
+                else:
+                    strings_to_ints[string] = self._record(org_id, string)
             result[org_id] = strings_to_ints
 
         return result
 
     def record(self, org_id: int, string: str) -> int:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
         return self._record(org_id, string)
 
     def resolve(self, org_id: int, string: str) -> Optional[int]:
-        if string in _STRINGS:
-            org_id = 0
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
+
         strs = self._strings[org_id]
         return strs.get(string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:
+        if id in REVERSE_SHARED_STRINGS:
+            return REVERSE_SHARED_STRINGS[id]
         return self._reverse.get(id)
 
     def _record(self, org_id: int, string: str) -> int:
@@ -66,8 +58,3 @@ class MockIndexer(SimpleIndexer):
     """
     Mock string indexer. Comes with a prepared set of strings.
     """
-
-    def __init__(self) -> None:
-        super().__init__()
-        for string in _STRINGS:
-            self._record(0, string)

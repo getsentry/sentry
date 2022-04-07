@@ -4,6 +4,11 @@ SHARED_METRIC_NAMES = {
     "s:sessions/error@none": 2,
     "s:sessions/user@none": 3,
     "d:sessions/duration@second": 4,
+    # old session names
+    "sentry.sessions.session": 16,
+    "sentry.sessions.session.duration": 17,
+    "sentry.sessions.session.error": 18,
+    "sentry.sessions.user": 19,
 }
 SHARED_TAG_STRINGS = {
     "abnormal": 5,
@@ -19,3 +24,4 @@ SHARED_TAG_STRINGS = {
     "staging": 15,
 }
 SHARED_STRINGS = {**SHARED_METRIC_NAMES, **SHARED_TAG_STRINGS}
+REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

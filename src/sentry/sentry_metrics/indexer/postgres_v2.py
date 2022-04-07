@@ -17,11 +17,11 @@ from typing import (
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
-from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
+from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
-from sentry.utils.services import Service
 
 _INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -160,13 +160,11 @@ def merge_results(
     return new_results
 
 
-class PGStringIndexerV2(Service):
+class PGStringIndexerV2(StringIndexer):
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
     """
-
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         conditions = []
@@ -332,12 +330,10 @@ class PGStringIndexerV2(Service):
         return string
 
 
-class Indexer(Service):
+class Indexer(StringIndexer):
     """
     Wrapper for static strings
     """
-
-    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def __init__(self) -> None:
         self.indexer = PGStringIndexerV2()
@@ -366,12 +362,16 @@ class Indexer(Service):
         return KeyResults().merge_results([static_string_results, indexer_results])
 
     def record(self, org_id: int, string: str) -> int:
+        if string in SHARED_STRINGS:
+            return SHARED_STRINGS[string]
         return self.indexer.record(org_id, string)
 
     def resolve(self, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
-            org_id = 0
+            return SHARED_STRINGS[string]
         return self.indexer.resolve(org_id, string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:
+        if id in REVERSE_SHARED_STRINGS:
+            return REVERSE_SHARED_STRINGS[id]
         return self.indexer.reverse_resolve(id)
