@@ -53,7 +53,10 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {
+  generateIssueWidgetFieldOptions,
+  getMetricFields,
+} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {mapErrors, normalizeQueries} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -796,17 +799,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
-    const metricFields: string[] = state.queries.reduce((acc, query) => {
-      for (const field of [...query.aggregates, ...query.columns]) {
-        const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
-        if (fieldParameter && !acc.includes(fieldParameter)) {
-          acc.push(fieldParameter);
-        }
-      }
-
-      return acc;
-    }, [] as string[]);
-
     return (
       <React.Fragment>
         <Header closeButton>
@@ -887,7 +879,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           )}
           <MetricsProvider
             projects={querySelection.projects}
-            fields={metricFields}
+            fields={getMetricFields(state.queries)}
             organization={organization}
             skipLoad={!organization.features.includes('dashboards-metrics')}
           >

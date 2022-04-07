@@ -261,3 +261,17 @@ export function getAmendedFieldOptions({
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
 }
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
+}

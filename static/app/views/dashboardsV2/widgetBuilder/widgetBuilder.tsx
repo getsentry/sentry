@@ -73,6 +73,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  getMetricFields,
   getParsedDefaultWidgetQuery,
   mapErrors,
   normalizeQueries,
@@ -884,19 +885,6 @@ function WidgetBuilder({
     ? fields.map((field, index) => explodeField({field, alias: fieldAliases[index]}))
     : [...explodedColumns, ...explodedAggregates];
 
-  const metricFields: string[] =
-    state.dataSet === DataSet.RELEASE
-      ? state.queries.reduce((acc, query) => {
-          for (const field of [...query.aggregates, ...query.columns]) {
-            const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
-            if (fieldParameter && !acc.includes(fieldParameter)) {
-              acc.push(fieldParameter);
-            }
-          }
-          return acc;
-        }, [] as string[])
-      : [];
-
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
@@ -921,7 +909,11 @@ function WidgetBuilder({
                 <MetricsProvider
                   organization={organization}
                   projects={selection.projects}
-                  fields={metricFields}
+                  fields={
+                    state.dataSet === DataSet.RELEASE
+                      ? getMetricFields(state.queries)
+                      : []
+                  }
                   skipLoad={!widgetBuilderNewDesign}
                 >
                   <BuildSteps symbol="colored-numeric">
