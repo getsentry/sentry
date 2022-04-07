@@ -140,6 +140,9 @@ jest.mock('@sentry/react', () => {
       setTag: jest.fn(),
       setData: jest.fn(),
       setStatus: jest.fn(),
+      startChild: jest.fn().mockReturnValue({
+        finish: jest.fn(),
+      }),
     }),
   };
 });
