@@ -9,7 +9,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -119,7 +118,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     return (
       <AlertContainer>
-        <Alert type="error" icon={<IconWarning size="md" />}>
+        <Alert type="error" showIcon>
           <ErrorLabel>{label}</ErrorLabel>
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (

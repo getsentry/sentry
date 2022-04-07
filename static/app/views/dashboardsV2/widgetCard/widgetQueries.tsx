@@ -140,6 +140,10 @@ type Props = {
   widget: Widget;
   cursor?: string;
   limit?: number;
+  onDataFetched?: (results: {
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+  }) => void;
   pagination?: boolean;
 };
 
@@ -253,7 +257,16 @@ class WidgetQueries extends React.Component<Props, State> {
   private _isMounted: boolean = false;
 
   fetchEventData(queryFetchID: symbol) {
-    const {selection, api, organization, widget, limit, cursor, pagination} = this.props;
+    const {
+      selection,
+      api,
+      organization,
+      widget,
+      limit,
+      cursor,
+      pagination,
+      onDataFetched,
+    } = this.props;
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -306,6 +319,8 @@ class WidgetQueries extends React.Component<Props, State> {
           return;
         }
 
+        onDataFetched?.({tableResults});
+
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -342,7 +357,7 @@ class WidgetQueries extends React.Component<Props, State> {
   }
 
   fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
-    const {selection, api, organization, widget} = this.props;
+    const {selection, api, organization, widget, onDataFetched} = this.props;
     const widgetBuilderNewDesign = organization.features.includes(
       'new-widget-builder-experience-design'
     );
@@ -439,6 +454,8 @@ class WidgetQueries extends React.Component<Props, State> {
 
           const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
           rawResultsClone[requestIndex] = rawResults;
+
+          onDataFetched?.({timeseriesResults});
 
           return {
             ...prevState,

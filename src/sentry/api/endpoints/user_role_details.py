@@ -1,6 +1,7 @@
 import logging
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,7 +9,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
-from sentry.models import UserRole
+from sentry.models import UserRole, UserRoleUser
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
@@ -38,22 +39,21 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
 
-        try:
-            with transaction.atomic():
-                role.users.add(user)
-                audit_logger.info(
-                    "user.add-role",
-                    extra={
-                        "actor_id": request.user.id,
-                        "user_id": user.id,
-                        "role_id": role.id,
-                    },
-                )
-        except IntegrityError as e:
-            # TODO(dcramer): this path never gets hit because Django's M2M doesnt expose a failure scenario on `add``
-            if "already exists" in str(e):
-                return self.respond(status=410)
-            raise
+        with transaction.atomic():
+            _, created = UserRoleUser.objects.get_or_create(user=user, role=role)
+            if not created:
+                # Already exists.
+                return self.respond(status=status.HTTP_410_GONE)
+
+            audit_logger.info(
+                "user.add-role",
+                extra={
+                    "actor_id": request.user.id,
+                    "user_id": user.id,
+                    "role_id": role.id,
+                },
+            )
+
         return self.respond(status=201)
 
     @sudo_required

@@ -19,7 +19,6 @@ import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import TextField from 'sentry/components/forms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
@@ -177,7 +176,7 @@ class KeySettings extends Component<Props, State> {
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" icon={<IconFlag size="md" />}>
+                <PanelAlert type="info" showIcon>
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}

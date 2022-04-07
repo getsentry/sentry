@@ -160,10 +160,10 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         for tag in [SessionMetricKey.SESSION.value, SessionMetricKey.USER.value, "session.status"]:
             indexer.record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
-            (30, 10),
-            (90, 60),
+            (30, 60),
+            (90, 3600),
             (5 * 60, 3600),
-            (25 * 60, 3600 * 24),
+            (25 * 60, 3600),
         ]:
             for idx, aggregate in enumerate(["sessions", "users"]):
                 sub = self.create_subscription(

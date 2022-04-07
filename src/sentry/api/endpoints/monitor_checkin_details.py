@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.authentication import DSNAuthentication
@@ -30,10 +32,6 @@ class CheckInSerializer(serializers.Serializer):
         )
     )
     duration = EmptyIntegerField(required=False, allow_null=True)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class MonitorCheckInDetailsEndpoint(Endpoint):

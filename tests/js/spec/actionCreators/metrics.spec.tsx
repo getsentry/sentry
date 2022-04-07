@@ -5,7 +5,6 @@ import {
   fetchMetricsFields,
   fetchMetricsTags,
 } from 'sentry/actionCreators/metrics';
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import MetricsTagActions from 'sentry/actions/metricTagActions';
 import {Client} from 'sentry/api';
 import MetricsMetaStore from 'sentry/stores/metricsMetaStore';
@@ -162,7 +161,7 @@ describe('Metrics ActionCreator', function () {
         body: meta,
       });
       jest.restoreAllMocks();
-      jest.spyOn(MetricsMetaActions, 'loadMetricsMetaSuccess');
+      jest.spyOn(MetricsMetaStore, 'loadSuccess');
       jest.spyOn(MetricsMetaStore, 'reset');
     });
 
@@ -178,8 +177,8 @@ describe('Metrics ActionCreator', function () {
           query: {project: [1]},
         })
       );
-      expect(MetricsMetaActions.loadMetricsMetaSuccess).toHaveBeenCalledTimes(1);
-      expect(MetricsMetaActions.loadMetricsMetaSuccess).toHaveBeenCalledWith(meta);
+      expect(MetricsMetaStore.loadSuccess).toHaveBeenCalledTimes(1);
+      expect(MetricsMetaStore.loadSuccess).toHaveBeenCalledWith(meta);
     });
   });
 });

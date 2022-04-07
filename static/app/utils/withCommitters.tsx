@@ -57,6 +57,7 @@ function withCommitters<P extends DependentProps>(
     componentWillUnmount() {
       this.unsubscribe();
     }
+
     unsubscribe = CommitterStore.listen(() => this.onStoreUpdate(), undefined);
 
     fetchCommitters() {
@@ -83,7 +84,6 @@ function withCommitters<P extends DependentProps>(
 
     render() {
       const {committers = []} = this.state;
-
       // XXX: We do not pass loading/error states because the components using
       // this HOC (suggestedOwners, eventCause) do not have loading/error states
       return (

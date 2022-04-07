@@ -8,7 +8,7 @@ import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDelete, IconFlag, IconSettings, IconWarning} from 'sentry/icons';
+import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
@@ -17,7 +17,7 @@ import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyti
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
-export type Props = {
+type Props = {
   integration: Integration;
   onDisable: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;
@@ -68,7 +68,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     const message = (
       <React.Fragment>
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
@@ -86,7 +86,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
-        <Alert type="error" icon={<IconFlag size="md" />}>
+        <Alert type="error" showIcon>
           {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}

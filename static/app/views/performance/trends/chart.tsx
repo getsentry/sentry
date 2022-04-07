@@ -96,8 +96,8 @@ function getIntervalLine(
     return [];
   }
 
-  const seriesStart = parseInt(series[0].data[0].name as string, 0);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 0);
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
 
   if (seriesEnd < seriesStart) {
     return [];
@@ -313,7 +313,7 @@ export function Chart({
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
 
-  const chartOptions = {
+  const chartOptions: Omit<LineChartProps, 'series'> = {
     tooltip: {
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(value, seriesName);

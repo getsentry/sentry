@@ -1,16 +1,16 @@
-import Alert from 'sentry/components/alert';
-import {Field} from 'sentry/components/forms/type';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {
+import type Alert from 'sentry/components/alert';
+import type {Field} from 'sentry/components/forms/type';
+import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'sentry/views/organizationIntegrations/constants';
 
-import {Avatar, Choices, ObjectStatus, Scope} from './core';
-import {BaseRelease} from './release';
-import {User} from './user';
+import type {Avatar, Choices, ObjectStatus, Scope} from './core';
+import type {BaseRelease} from './release';
+import type {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
@@ -259,7 +259,9 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
+  alerts?: Array<
+    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
+  >;
   configure_integration?: {
     title: string;
   };
