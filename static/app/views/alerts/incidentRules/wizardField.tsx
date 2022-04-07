@@ -162,12 +162,6 @@ function WizardField({
           <Container hideGap={gridColumns < 1}>
             <SelectControl
               value={selectedTemplate}
-              styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
-                  ...provided,
-                  margin: `${space(0.5)}`,
-                }),
-              }}
               options={menuOptions}
               onChange={(option: MenuOption) => {
                 const template = AlertWizardRuleTemplates[option.value];
