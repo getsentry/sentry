@@ -1,8 +1,9 @@
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
+    TransactionStatusTagValue,
+    TransactionTagsKey,
     abnormal_sessions,
     abnormal_users,
     addition,
