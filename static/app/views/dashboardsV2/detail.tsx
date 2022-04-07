@@ -571,8 +571,8 @@ class DashboardDetail extends Component<Props, State> {
     }));
   };
 
-  renderWidgetBuilder(dashboard: DashboardDetails) {
-    const {children} = this.props;
+  renderWidgetBuilder() {
+    const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
@@ -768,10 +768,10 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   render() {
-    const {organization, dashboard} = this.props;
+    const {organization} = this.props;
 
     if (this.isWidgetBuilderRouter) {
-      return this.renderWidgetBuilder(dashboard);
+      return this.renderWidgetBuilder();
     }
 
     if (organization.features.includes('dashboards-edit')) {
