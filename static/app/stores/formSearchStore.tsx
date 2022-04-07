@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import FormSearchActions from 'sentry/actions/formSearchActions';
 import {FieldObject} from 'sentry/components/forms/type';
 import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -20,7 +19,7 @@ interface StoreInterface {
 }
 
 type InternalDefinition = {
-  onLoadSearchMap: (searchMap: null | FormSearchField[]) => void;
+  loadSearchMap: (searchMap: null | FormSearchField[]) => void;
   searchMap: null | FormSearchField[];
 };
 
@@ -38,9 +37,6 @@ const storeConfig: ExternalIssuesDefinition = {
 
   init() {
     this.reset();
-    this.unsubscribeListeners.push(
-      this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap)
-    );
   },
 
   get() {
@@ -55,7 +51,7 @@ const storeConfig: ExternalIssuesDefinition = {
   /**
    * Adds to search map
    */
-  onLoadSearchMap(searchMap) {
+  loadSearchMap(searchMap) {
     // Only load once
     if (this.searchMap !== null) {
       return;

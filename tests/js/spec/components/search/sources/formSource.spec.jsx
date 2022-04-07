@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as ActionCreators from 'sentry/actionCreators/formSearch';
-import FormSearchActions from 'sentry/actions/formSearchActions';
 import FormSource from 'sentry/components/search/sources/formSource';
+import FormSearchStore from 'sentry/stores/formSearchStore';
 
 describe('FormSource', function () {
   let wrapper;
@@ -32,7 +32,7 @@ describe('FormSource', function () {
   beforeEach(function () {
     jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
 
-    FormSearchActions.loadSearchMap(searchMap);
+    FormSearchStore.loadSearchMap(searchMap);
   });
 
   afterEach(function () {
