@@ -92,7 +92,7 @@ describe('useMetricsContext', function () {
       render(<TestComponent other="value" />);
     } catch (error) {
       expect(error.message).toEqual(
-        'useMetricsContext was called outside of MetricsContextProvider'
+        'useMetricsContext was called outside of MetricsProvider'
       );
     }
   });
