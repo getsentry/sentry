@@ -4,8 +4,8 @@ import {createStore, StoreDefinition} from 'reflux';
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
-import LegacyConfigStore from 'sentry/stores/configStore';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
+import LegacyConfigStore from 'sentry/stores/configStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
