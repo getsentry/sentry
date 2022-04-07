@@ -341,9 +341,7 @@ class Indexer(StringIndexer):
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         return self.indexer._get_db_records(db_keys)
 
-    def bulk_record(
-        self, org_strings: MutableMapping[int, Set[str]]
-    ) -> Mapping[int, Mapping[str, int]]:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> Mapping[int, Mapping[str, int]]:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()
         for org_id, string in static_keys.as_tuples():
