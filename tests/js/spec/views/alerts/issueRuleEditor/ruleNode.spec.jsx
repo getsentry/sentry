@@ -1,16 +1,15 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {getSelector, openMenu, selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
 import RuleNode from 'sentry/views/alerts/issueRuleEditor/ruleNode';
 
-describe('RuleNode', function () {
-  let project;
-  let organization;
-  let wrapper;
+describe('RuleNode', () => {
+  const project = TestStubs.Project();
+  const organization = TestStubs.Organization({projects: [project]});
   const index = 0;
   const onDelete = jest.fn();
-  // TODO: Test this function is being called correctly
   const onReset = jest.fn();
   const onPropertyChange = jest.fn();
 
@@ -41,6 +40,15 @@ describe('RuleNode', function () {
           ['value3', 'label3'],
         ],
       },
+      exampleResetStringChoiceField: {
+        type: 'choice',
+        choices: [
+          ['value1', 'label1'],
+          ['value2', 'label2'],
+          ['value3', 'label3'],
+        ],
+        resetsForm: true,
+      },
       exampleNumberChoiceField: {
         type: 'choice',
         initial: 2,
@@ -50,9 +58,22 @@ describe('RuleNode', function () {
           [3, 'label3'],
         ],
       },
-      //   TODO: Add these fields and test if they implement correctly
-      //   exampleMailActionField: {type: 'mailAction'},
-      //   exampleAssigneeField: {type: 'assignee'},
+      exampleMailActionField: {
+        type: 'mailAction',
+        choices: [
+          ['IssueOwners', 'Issue Owners'],
+          ['Team', 'Team'],
+          ['Member', 'Member'],
+        ],
+      },
+      exampleAssigneeField: {
+        type: 'assignee',
+        choices: [
+          ['Unassigned', 'Unassigned'],
+          ['Team', 'Team'],
+          ['Member', 'Member'],
+        ],
+      },
     },
   });
 
@@ -85,16 +106,15 @@ describe('RuleNode', function () {
     },
   };
 
-  const createWrapper = node => {
-    project = TestStubs.Project();
-    organization = TestStubs.Organization({projects: [project]});
-    return mountWithTheme(
+  const renderRuleNode = (node, data) => {
+    return render(
       <RuleNode
         index={index}
         node={node}
         data={{
           id: 'sentry.rules.mock',
           name: '(mock) A new issue is created',
+          ...data,
         }}
         organization={organization}
         project={project}
@@ -109,110 +129,129 @@ describe('RuleNode', function () {
     return label.replace(/{\w+}/gm, placeholder => values[placeholder]);
   };
 
-  afterEach(function () {
-    wrapper = undefined;
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
-  it('renders simple nodes', async function () {
-    wrapper = createWrapper(simpleNode);
-    expect(wrapper.text()).toEqual(simpleNode.label);
-    expect(wrapper.find('button[aria-label="Delete Node"]').exists()).toEqual(true);
-  });
-
-  it('handles being deleted', async function () {
-    wrapper = createWrapper(simpleNode);
-    expect(wrapper.find('button[aria-label="Delete Node"]').exists()).toEqual(true);
-    wrapper.find('button[aria-label="Delete Node"]').simulate('click');
+  it('handles being deleted', () => {
+    renderRuleNode(simpleNode);
+    expect(screen.getByText(simpleNode.label)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete Node'})).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Delete Node'}));
     expect(onDelete).toHaveBeenCalledWith(index);
   });
 
-  it('renders choice string choice fields correctly', async function () {
+  it('renders choice string choice fields correctly', async () => {
     const fieldName = 'exampleStringChoiceField';
     const label = `Here is a string choice field {${fieldName}}`;
-    wrapper = createWrapper(formNode(label));
+    renderRuleNode(formNode(label));
 
     // Should render the first option if no initial is provided
-    await tick();
-    expect(wrapper.text()).toEqual(labelReplacer(label, {[`{${fieldName}}`]: 'label1'}));
+    expect(
+      screen.getByText('Here is a string choice field').parentElement
+    ).toHaveTextContent(labelReplacer(label, {[`{${fieldName}}`]: 'label1'}));
 
-    selectByValue(wrapper, 'value3', {control: true, name: fieldName});
+    await selectEvent.select(screen.getByText('label1'), 'label3');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'value3');
   });
 
-  it('renders choice number choice fields correctly', async function () {
+  it('resets choice fields with resetsForm', async () => {
+    const fieldName = 'exampleResetStringChoiceField';
+    const label = `Here is a string reset choice field {${fieldName}}`;
+    renderRuleNode(formNode(label));
+
+    // Should render the first option if no initial is provided
+    expect(screen.getByText('Here is a string reset choice field')).toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('label1'), 'label3');
+    expect(onReset).toHaveBeenCalledWith(index, fieldName, 'value3');
+  });
+
+  it('renders choice number choice fields correctly', () => {
     const fieldName = 'exampleNumberChoiceField';
     const label = `Here is a number choice field {${fieldName}}`;
-    wrapper = createWrapper(formNode(label));
+    renderRuleNode(formNode(label));
 
     // Should render the initial value if one is provided
-    await tick();
-    expect(wrapper.text()).toEqual(labelReplacer(label, {[`{${fieldName}}`]: 'label2'}));
+    expect(
+      screen.getByText('Here is a number choice field').parentElement
+    ).toHaveTextContent(labelReplacer(label, {[`{${fieldName}}`]: 'label2'}));
 
-    const fieldOptions = {control: true, name: fieldName};
-    openMenu(wrapper, fieldOptions);
+    selectEvent.openMenu(screen.getByText('label2'));
 
-    // Values for these dropdowns should exclusively be strings
-    const numberValueOption = wrapper.find(
-      `${getSelector(fieldOptions)} Option[value=2]`
-    );
-    const stringValueOption = wrapper.find(
-      `${getSelector(fieldOptions)} Option[value="2"]`
-    );
-    expect(numberValueOption.exists()).toEqual(false);
-    expect(stringValueOption.exists()).toEqual(true);
-
-    selectByValue(wrapper, '3', fieldOptions);
+    userEvent.click(screen.getByText('label3'));
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '3');
   });
 
-  it('renders number fields correctly', async function () {
+  it('renders number fields correctly', () => {
     const fieldName = 'exampleNumberField';
     const label = `Here is a number field {${fieldName}}`;
-    wrapper = createWrapper(formNode(label));
+    renderRuleNode(formNode(label));
 
-    const field = wrapper.find(`input[name="${fieldName}"]`);
-    expect(field.prop('placeholder')).toEqual('100');
+    expect(screen.getByText('Here is a number field')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('100')).toBeInTheDocument();
 
-    field.simulate('change', {target: {value: '721'}});
+    userEvent.type(screen.getByPlaceholderText('100'), '721');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '721');
-
-    expect(wrapper.text()).toEqual(labelReplacer(label, {[`{${fieldName}}`]: ''}));
   });
 
-  it('renders text fields correctly', async function () {
+  it('sets some number fields by default', () => {
+    const fieldName = 'exampleNumberField';
+    const label = `Here is a number field {${fieldName}}`;
+    renderRuleNode(formNode(label), {
+      id: 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+    });
+
+    expect(onPropertyChange).toHaveBeenCalledTimes(1);
+    expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '100');
+  });
+
+  it('renders text fields correctly', () => {
     const fieldName = 'exampleStringField';
     const label = `Here is a text field {${fieldName}}`;
-    wrapper = createWrapper(formNode(label));
+    renderRuleNode(formNode(label));
 
-    const field = wrapper.find(`input[name="${fieldName}"]`);
-    expect(field.prop('placeholder')).toEqual('placeholder');
+    expect(screen.getByText('Here is a text field')).toBeInTheDocument();
+    const input = screen.getByPlaceholderText('placeholder');
+    expect(input).toBeInTheDocument();
 
-    field.simulate('change', {target: {value: 'some text'}});
+    userEvent.paste(input, 'some text');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'some text');
-
-    expect(wrapper.text()).toEqual(labelReplacer(label, {[`{${fieldName}}`]: ''}));
   });
 
-  it('renders mail action fields correctly', async function () {
-    //   TODO
-  });
-
-  it('renders assignee fields correctly', async function () {
-    //   TODO
-  });
-
-  it('renders ticket rules correctly', async function () {
-    //   TODO
-  });
-
-  it('renders sentry apps with schema forms correctly', async function () {
-    wrapper = createWrapper(sentryAppNode);
+  it('renders sentry apps with schema forms correctly', () => {
+    renderRuleNode(sentryAppNode);
     const openModal = jest.spyOn(ModalActions, 'openModal');
 
-    expect(wrapper.text()).toEqual(sentryAppNode.label + 'Settings');
-    expect(wrapper.find('button[aria-label="Settings"]').exists()).toEqual(true);
-    wrapper.find('button[aria-label="Settings"]').simulate('click');
+    expect(screen.getByText(sentryAppNode.label)).toBeInTheDocument();
+    const settingsButton = screen.getByLabelText('Settings');
+    expect(settingsButton).toBeInTheDocument();
+    userEvent.click(settingsButton);
 
     expect(openModal).toHaveBeenCalled();
+  });
+
+  it('renders mail action field', async () => {
+    const fieldName = 'exampleMailActionField';
+    const label = `Send a notification to {${fieldName}}`;
+    renderRuleNode(formNode(label), {targetType: 'IssueOwners'});
+
+    expect(screen.getByText('Send a notification to')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('Issue Owners'), 'Team');
+    expect(onPropertyChange).toHaveBeenCalledTimes(2);
+    expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
+    expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
+  });
+
+  it('renders assignee field', async () => {
+    const fieldName = 'exampleAssigneeField';
+    const label = `The issue is assigned to {${fieldName}}`;
+    renderRuleNode(formNode(label), {targetType: 'Unassigned'});
+
+    expect(screen.getByText('The issue is assigned to')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('No One'), 'Team');
+    expect(onPropertyChange).toHaveBeenCalledTimes(2);
+    expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
+    expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
   });
 });
