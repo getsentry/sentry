@@ -22,7 +22,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: any};
+type MenuOption = {label: string; value: AlertType};
 
 type Props = Omit<FormField['props'], 'children'> & {
   location: Location;
@@ -169,8 +169,8 @@ function WizardField({
                 }),
               }}
               options={menuOptions}
-              onChange={args => {
-                const template = AlertWizardRuleTemplates[args.value];
+              onChange={(option: MenuOption) => {
+                const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
                 model.setValue('dataset', template.dataset);

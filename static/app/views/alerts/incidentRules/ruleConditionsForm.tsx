@@ -14,7 +14,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import FormField from 'sentry/components/forms/formField';
 import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
-import SelectOption from 'sentry/components/forms/selectOption';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
@@ -25,7 +24,7 @@ import space from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import Projects from 'sentry/utils/projects';
+import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/incidentRules/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -68,11 +67,13 @@ type Props = {
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
+  projects: Project[];
   router: InjectedRouter;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
+  loadingProjects?: boolean;
 };
 
 type State = {
@@ -244,57 +245,53 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   renderProjectSelector() {
-    const {organization, project: selectedProject, location, router} = this.props;
+    const {project: selectedProject, location, router, projects, disabled} = this.props;
 
     return (
-      <Projects orgId={organization.slug} allProjects>
-        {({projects}) => (
-          <SelectControl
-            value={selectedProject.id}
-            styles={{
-              container: (provided: {[x: string]: string | number | boolean}) => ({
-                ...provided,
-                margin: `${space(0.5)}`,
-              }),
-            }}
-            options={projects.map(project => ({
-              label: project.slug, // replaced by leadingItems id badge
-              value: project.id,
-              leadingItems: (
-                <IdBadge
-                  project={project}
-                  avatarProps={{consistentWidth: true}}
-                  avatarSize={18}
-                  disableLink
-                  hideName
-                />
-              ),
-            }))}
-            onChange={({label}) => {
-              router.replace({
-                ...location,
-                query: {
-                  ...location.query,
-                  project: label,
-                },
-              });
-            }}
-            components={{
-              Option: optionProps => <SelectOption {...optionProps} />,
-              ValueContainer: containerProps => (
-                <components.ValueContainer {...containerProps}>
-                  <IdBadge
-                    project={selectedProject}
-                    avatarProps={{consistentWidth: true}}
-                    avatarSize={18}
-                    disableLink
-                  />
-                </components.ValueContainer>
-              ),
-            }}
-          />
-        )}
-      </Projects>
+      <SelectControl
+        isDisabled={disabled}
+        value={selectedProject.id}
+        styles={{
+          container: (provided: {[x: string]: string | number | boolean}) => ({
+            ...provided,
+            margin: `${space(0.5)}`,
+          }),
+        }}
+        options={projects.map(project => ({
+          label: project.slug,
+          value: project.id,
+          leadingItems: (
+            <IdBadge
+              project={project}
+              avatarProps={{consistentWidth: true}}
+              avatarSize={18}
+              disableLink
+              hideName
+            />
+          ),
+        }))}
+        onChange={({label}: {label: Project['slug']}) =>
+          router.replace({
+            ...location,
+            query: {
+              ...location.query,
+              project: label,
+            },
+          })
+        }
+        components={{
+          SingleValue: containerProps => (
+            <components.ValueContainer {...containerProps}>
+              <IdBadge
+                project={selectedProject}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+                disableLink
+              />
+            </components.ValueContainer>
+          ),
+        }}
+      />
     );
   }
 
@@ -615,4 +612,4 @@ const ComparisonContainer = styled('div')`
   align-items: center;
 `;
 
-export default RuleConditionsForm;
+export default withProjects(RuleConditionsForm);
