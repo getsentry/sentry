@@ -152,7 +152,7 @@ def get_builder_args_from_context(
         "html_template": f"{notification.template_path}.html",
         "headers": get_headers(notification),
         "reference": notification.reference,
-        "type": notification.get_type(),
+        "type": notification.metrics_key,
     }
     # add in optinal fields
     from_email = notification.from_email

@@ -53,9 +53,6 @@ class DigestNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
 
-    def get_type(self) -> str:
-        return "notify.digest"
-
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"
 

@@ -96,9 +96,6 @@ class IntegrationNudgeNotification(BaseNotification):
     def build_attachment_title(self, recipient: Team | User) -> str:
         return ""
 
-    def get_type(self) -> str:
-        return ""
-
     def build_notification_footer(self, recipient: Team | User) -> str:
         return ""
 

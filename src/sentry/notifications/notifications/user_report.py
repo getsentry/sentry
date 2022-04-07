@@ -38,9 +38,6 @@ class UserReportNotification(ProjectNotification):
             if provider in [ExternalProviders.EMAIL]
         }
 
-    def get_type(self) -> str:
-        return "notify.user-report"
-
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"

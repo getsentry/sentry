@@ -48,6 +48,3 @@ class AutoSyncNotification(ProjectNotification):
             )
         )
         return context
-
-    def get_type(self) -> str:
-        return "deploy.auto-sync"

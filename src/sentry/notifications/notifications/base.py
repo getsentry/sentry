@@ -111,9 +111,6 @@ class BaseNotification(abc.ABC):
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
-    def get_type(self) -> str:
-        raise NotImplementedError
-
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 

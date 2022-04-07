@@ -26,9 +26,6 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
 
-    def get_type(self) -> str:
-        return "organization.invite-request"
-
     @property
     def members_url(self) -> str:
         url: str = absolute_uri(reverse("sentry-organization-members", args=[self.org_slug]))

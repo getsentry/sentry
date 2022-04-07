@@ -75,9 +75,6 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_notification_title(self) -> str:
         return self.get_subject()
 
-    def get_type(self) -> str:
-        return "organization.integration.request"
-
     def build_attachment_title(self, recipient: Team | User) -> str:
         return "Request to Install"
 

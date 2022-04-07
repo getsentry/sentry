@@ -53,9 +53,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     def reference(self) -> Model | None:
         return self.activity
 
-    def get_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
-
     @abc.abstractmethod
     def get_context(self) -> MutableMapping[str, Any]:
         pass
