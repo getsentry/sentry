@@ -76,14 +76,6 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
-    def test_sso_not_superuser(self):
-        user = self.create_user("foo@example.com")
-        org_provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-        self.login_as(user)
-        response = self.client.put(self.path, data={})
-        assert response.status_code == 400
-
     def test_valid_password(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
@@ -176,12 +168,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             )
             assert response.status_code == 401
 
-    def test_superuser_sso(self):
+    def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
 
         user = self.create_user("foo@example.com", is_superuser=True)
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
             SUPERUSER_ORG_ID=self.organization.id
