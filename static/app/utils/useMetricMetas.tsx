@@ -6,7 +6,7 @@ export function useMetricMetas() {
   const metricsContext = useContext(MetricsContext);
 
   if (!metricsContext) {
-    throw new Error('useMetricTags was called outside of MetricsContextProvider');
+    throw new Error('useMetricsMeta was called outside of MetricsContextProvider');
   }
 
   return {
