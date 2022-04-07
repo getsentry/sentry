@@ -79,7 +79,7 @@ describe('NotificationSettingsByType', function () {
       [TestStubs.OrganizationIntegrations()]
     );
     const alert = wrapper.find('StyledAlert');
-    expect(alert).toHaveLength(2);
+    expect(alert).toHaveLength(1);
     const organizationSlugs = alert.at(0).find('li');
     expect(organizationSlugs).toHaveLength(1);
     expect(organizationSlugs.at(0).text()).toEqual(org.slug);
@@ -95,6 +95,6 @@ describe('NotificationSettingsByType', function () {
       [TestStubs.OrganizationIntegrations({organizationId: org.id})]
     );
     const alert = wrapper.find('StyledAlert');
-    expect(alert).toHaveLength(1);
+    expect(alert).toHaveLength(0);
   });
 });
