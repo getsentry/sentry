@@ -17,7 +17,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type RouteParams = {
-  projectId: string;
+  projectId?: string;
 };
 
 function AlertBuilderProjectProvider(props: Props) {
@@ -25,7 +25,7 @@ function AlertBuilderProjectProvider(props: Props) {
   useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
-  const {projectId} = params;
+  const projectId = params.projectId || props.location.query.project;
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
     slugs: [projectId],
   });

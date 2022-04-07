@@ -1,11 +1,13 @@
+import {useEffect, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {MetricsTagValue, Organization, Tag} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {MetricsTag, MetricsTagValue, Organization, Tag} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {useMetricTags} from 'sentry/utils/useMetricTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -32,7 +34,28 @@ function MetricsSearchBar({
   ...props
 }: Props) {
   const api = useApi();
-  const {metricTags} = useMetricTags();
+  const [tags, setTags] = useState<MetricsTag[]>([]);
+
+  useEffect(() => {
+    fetchTags();
+  }, [projectIds]);
+
+  async function fetchTags() {
+    try {
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/metrics/tags/`,
+        {
+          query: {
+            project: !projectIds.length ? undefined : projectIds,
+          },
+        }
+      );
+
+      setTags(response);
+    } catch {
+      addErrorMessage(t('Unable to fetch search bar tags'));
+    }
+  }
 
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
@@ -56,7 +79,7 @@ function MetricsSearchBar({
     );
   }
 
-  const supportedTags = Object.values(metricTags).reduce((acc, {key}) => {
+  const supportedTags = Object.values(tags).reduce((acc, {key}) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});

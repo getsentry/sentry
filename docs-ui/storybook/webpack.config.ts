@@ -5,9 +5,10 @@ import path from 'path';
 
 import webpack from 'webpack';
 
-import appConfig from '../webpack.config';
+import appConfig from '../../webpack.config';
 
-const staticPath = path.resolve(__dirname, '..', 'static', 'app');
+const staticPath = path.resolve(__dirname, '..', '..', 'static', 'app');
+const docsUiPath = path.resolve(__dirname, '..');
 
 /**
  * Default the config parameter that storybook passes into our webpack config
@@ -52,7 +53,7 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
         {
           ...firstRule,
           test: /\.(mjs|[tj]sx?)$/,
-          include: [path.join(__dirname), staticPath, path.join(__dirname, '../docs-ui')],
+          include: [staticPath, docsUiPath],
         },
         {
           test: /\.less$/,
@@ -92,8 +93,7 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
       alias: {
         ...config.resolve?.alias,
         ...appConfig.resolve?.alias,
-        app: staticPath,
-        'docs-ui': path.resolve(__dirname, '../docs-ui'),
+        'docs-ui': docsUiPath,
       },
       fallback: {
         ...appConfig.resolve?.fallback,

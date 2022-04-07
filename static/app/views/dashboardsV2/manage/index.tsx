@@ -281,7 +281,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <Title>{t('Dashboards')}</Title>
+                  <StyledTitle>{t('Dashboards')}</StyledTitle>
                   <ButtonBar gap={1.5}>
                     <TemplateSwitch>
                       {t('Show Templates')}
@@ -315,6 +315,10 @@ class ManageDashboards extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledTitle = styled(Title)`
+  width: auto;
+`;
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
