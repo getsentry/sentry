@@ -60,26 +60,12 @@ describe('makeBridgableConfigReducer', () => {
     jest.useRealTimers();
     LegacyConfigStore.teardown();
   });
-  it('does not proxy to legacy store when bridging is disabled', () => {
-    jest.useFakeTimers();
-
-    const spy = jest.spyOn(LegacyConfigStore, 'set');
-    const reducer = makeBridgableReducer(configReducer, false);
-
-    reducer(LegacyConfigStore.config, {
-      type: 'set config value',
-      payload: {key: 'dsn', value: 'test dsn'},
-    });
-
-    jest.runAllTimers();
-    expect(spy).not.toHaveBeenCalledWith('dsn', 'test dsn');
-  });
 
   it('proxies to legacy store when bridging is enabled', async () => {
     jest.useFakeTimers();
 
     const spy = jest.spyOn(LegacyConfigStore, 'set');
-    const reducer = makeBridgableReducer(configReducer, true);
+    const reducer = makeBridgableReducer(configReducer);
 
     const newState = reducer(LegacyConfigStore.config, {
       type: 'set config value',
@@ -95,7 +81,7 @@ describe('makeBridgableConfigReducer', () => {
     jest.useFakeTimers();
 
     const spy = jest.spyOn(LegacyConfigStore, 'set');
-    const reducer = makeBridgableReducer(configReducer, true);
+    const reducer = makeBridgableReducer(configReducer);
 
     const state = TestStubs.Config({user: TestStubs.User({name: 'default user'})});
     reducer(state, {
