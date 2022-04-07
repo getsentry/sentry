@@ -43,31 +43,11 @@ describe('configProvider', () => {
 
     expect(screen.getByText(/custom dsn/)).toBeInTheDocument();
   });
-  it('requires a stable bridgeReflux prop', () => {
-    const {rerender} = render(
-      <ConfigProvider initialValue={TestStubs.Config({dsn: 'custom dsn'})} bridgeReflux>
-        <ReactContextSourceComponent />
-      </ConfigProvider>
-    );
-
-    expect(() => {
-      rerender(
-        <ConfigProvider
-          initialValue={TestStubs.Config({dsn: 'custom dsn'})}
-          bridgeReflux={false}
-        >
-          <ReactContextSourceComponent />
-        </ConfigProvider>
-      );
-    }).toThrow(
-      'bridgeReflux must not change between rerenders. This may result in undefined and out of sync behavior between the two stores. bridgeReflux changed from true -> false'
-    );
-  });
   it('updates React component when reflux action fires', async () => {
     // We are rendering a component that gets its data from the react context, firing
     // an action on ouron the store and asserting that it gets updated in our component
     render(
-      <ConfigProvider initialValue={TestStubs.Config({dsn: 'custom dsn'})} bridgeReflux>
+      <ConfigProvider initialValue={TestStubs.Config({dsn: 'custom dsn'})}>
         <ReactContextSourceComponent />
       </ConfigProvider>
     );
@@ -99,7 +79,7 @@ describe('configProvider', () => {
 
     const config = TestStubs.Config({dsn: 'custom dsn'});
     render(
-      <ConfigProvider initialValue={config} bridgeReflux>
+      <ConfigProvider initialValue={config}>
         <LegacyStoreSourceComponent>
           <Trigger />
         </LegacyStoreSourceComponent>

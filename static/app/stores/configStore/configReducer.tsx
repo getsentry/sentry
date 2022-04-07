@@ -74,13 +74,12 @@ type BridgableReducerAction<R extends BridgableReducer<any, any, boolean>> =
   R extends BridgableReducer<any, infer A, any> ? A : never;
 
 export function makeBridgableReducer<T extends BridgableReducer<any, any, boolean>>(
-  reducer: T,
-  flag: boolean
+  reducer: T
 ): (
   state: BridgableReducerState<T>,
   action: BridgableReducerAction<T>
 ) => BridgableReducerState<T> {
   return (state: BridgableReducerState<T>, action: BridgableReducerAction<T>) => {
-    return reducer(state, action, flag);
+    return reducer(state, action, true);
   };
 }
