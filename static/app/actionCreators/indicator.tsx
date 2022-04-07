@@ -88,7 +88,7 @@ export function addErrorMessage(msg: React.ReactNode, options?: Options) {
   }
   return addMessageWithType('error')(
     t(
-      "It looks like you've hit an issue in our server API. It's likely we're already looking into this!"
+      "You've hit an issue, fortunately we use Sentry to monitor Sentry. So it's likely we're already looking into this!"
     ),
     options
   );
