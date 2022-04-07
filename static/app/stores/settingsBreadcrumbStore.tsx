@@ -1,7 +1,6 @@
 import {PlainRoute} from 'react-router';
 import {createStore, StoreDefinition} from 'reflux';
 
-import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -13,9 +12,9 @@ type UpdateData = {
 interface SettingsBreadcrumbStoreDefinition extends StoreDefinition {
   getPathMap(): Internals['pathMap'];
   init(): void;
-  onTrimMappings(routes: PlainRoute<any>[]): void;
-  onUpdateRouteMap(update: UpdateData): void;
   reset(): void;
+  trimMappings(routes: PlainRoute<any>[]): void;
+  updateRouteMap(update: UpdateData): void;
 }
 
 type Internals = {
@@ -28,12 +27,6 @@ const storeConfig: SettingsBreadcrumbStoreDefinition = {
 
   init() {
     this.reset();
-    this.unsubscribeListeners.push(
-      this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(SettingsBreadcrumbActions.trimMappings, this.onTrimMappings)
-    );
   },
 
   reset() {
@@ -44,12 +37,12 @@ const storeConfig: SettingsBreadcrumbStoreDefinition = {
     return this.pathMap;
   },
 
-  onUpdateRouteMap({routes, title}) {
+  updateRouteMap({routes, title}) {
     this.pathMap[getRouteStringFromRoutes(routes)] = title;
     this.trigger(this.pathMap);
   },
 
-  onTrimMappings(routes) {
+  trimMappings(routes) {
     const routePath = getRouteStringFromRoutes(routes);
     for (const fullPath in this.pathMap) {
       if (!routePath.startsWith(fullPath)) {

@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import SettingsBreadcrumbActions from 'sentry/actions/settingsBreadcrumbActions';
 import Link from 'sentry/components/links/link';
 import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -37,7 +36,7 @@ class SettingsBreadcrumb extends Component<Props> {
     if (this.props.routes === prevProps.routes) {
       return;
     }
-    SettingsBreadcrumbActions.trimMappings(this.props.routes);
+    SettingsBreadcrumbStore.trimMappings(this.props.routes);
   }
 
   render() {
