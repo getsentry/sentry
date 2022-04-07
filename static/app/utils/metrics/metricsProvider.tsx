@@ -12,7 +12,7 @@ import {MetricsContext, MetricsContextValue} from './metricsContext';
 async function fetchMetricMetas(
   api: Client,
   organization: Organization,
-  projects: number[]
+  projects?: number[]
 ): Promise<MetricsMetaCollection> {
   return api.requestPromise(`/organizations/${organization.slug}/metrics/meta/`, {
     query: {
@@ -24,8 +24,8 @@ async function fetchMetricMetas(
 async function fetchMetricTags(
   api: Client,
   organization: Organization,
-  projects: number[],
-  fields: string[]
+  projects?: number[],
+  fields?: string[]
 ): Promise<MetricsTagCollection> {
   return api.requestPromise(`/organizations/${organization.slug}/metrics/tags/`, {
     query: {
@@ -37,30 +37,30 @@ async function fetchMetricTags(
 
 type MetricsProviderProps = {
   children: React.ReactNode | ((props: MetricsContextValue) => React.ReactNode);
-  fields: string[];
   organization: Organization;
-  projects: number[];
+  fields?: string[];
+  projects?: number[];
   skipLoad?: boolean;
 };
 
 export function MetricsProvider({
   children,
-  projects,
   fields,
   organization,
+  projects,
   skipLoad = false,
 }: MetricsProviderProps) {
   const api = useApi();
   const [state, setState] = useState({metas: {}, tags: {}});
 
   useEffect(() => {
-    if (!skipLoad) {
+    if (skipLoad) {
       return undefined;
     }
 
     let shouldCancelRequest = false;
 
-    fetchMetricMetas(api, organization, projects ?? [])
+    fetchMetricMetas(api, organization, projects)
       .then(response => {
         if (shouldCancelRequest) {
           return;
@@ -73,7 +73,7 @@ export function MetricsProvider({
           return;
         }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch metric fields');
+        const errorResponse = e?.responseJSON ?? t('Unable to fetch metric metas');
         addErrorMessage(errorResponse);
         handleXhrErrorResponse(errorResponse)(e);
       });
@@ -84,13 +84,13 @@ export function MetricsProvider({
   }, [projects, organization.slug, api, skipLoad]);
 
   useEffect(() => {
-    if (!skipLoad) {
+    if (skipLoad) {
       return undefined;
     }
 
     let shouldCancelRequest = false;
 
-    fetchMetricTags(api, organization, projects ?? [], fields ?? [])
+    fetchMetricTags(api, organization, projects, fields)
       .then(response => {
         if (shouldCancelRequest) {
           return;
@@ -103,7 +103,7 @@ export function MetricsProvider({
           return;
         }
 
-        const errorResponse = e?.responseJSON ?? t('Unable to fetch metric fields');
+        const errorResponse = e?.responseJSON ?? t('Unable to fetch metric tags');
         addErrorMessage(errorResponse);
         handleXhrErrorResponse(errorResponse)(e);
       });

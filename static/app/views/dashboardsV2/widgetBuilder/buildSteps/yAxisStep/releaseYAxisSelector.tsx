@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricMetas} from 'sentry/utils/useMetricMetas';
-import {useMetricTags} from 'sentry/utils/useMetricTags';
+import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 
@@ -22,8 +21,7 @@ export function ReleaseYAxisSelector({
   onChange,
   errors,
 }: Props) {
-  const {metricTags} = useMetricTags();
-  const {metricMetas} = useMetricMetas();
+  const {metricMetas, metricTags} = useMetricsContext();
 
   return (
     <YAxisSelector

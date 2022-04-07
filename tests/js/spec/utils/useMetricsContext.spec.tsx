@@ -1,21 +1,23 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
-import {useMetricTags} from 'sentry/utils/useMetricTags';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
+import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 
 function TestComponent({other}: {other: string}) {
-  const {metricTags} = useMetricTags();
+  const {metricTags, metricMetas} = useMetricsContext();
   return (
     <div>
       <span>{other}</span>
       {metricTags &&
         Object.entries(metricTags).map(([key, tag]) => <em key={key}>{tag.key}</em>)}
+      {metricMetas &&
+        Object.entries(metricMetas).map(([key, meta]) => <em key={key}>{meta.name}</em>)}
     </div>
   );
 }
 
-describe('useMetricTags', function () {
+describe('useMetricsContext', function () {
   const {organization, project} = initializeOrg();
   let metricsTagsMock: jest.Mock | undefined = undefined;
   let metricsMetaMock: jest.Mock | undefined = undefined;
@@ -56,8 +58,12 @@ describe('useMetricTags', function () {
     expect(metricsTagsMock).toHaveBeenCalledTimes(1);
     expect(metricsMetaMock).toHaveBeenCalledTimes(1);
 
-    // includes custom metricsTags
+    // includes metric tags
     expect(await screen.findByText('session.status')).toBeInTheDocument();
+
+    // include metric metas
+    expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
+    expect(screen.getByText('sentry.sessions.session.error')).toBeInTheDocument();
   });
 
   it('skip load', function () {
@@ -73,8 +79,12 @@ describe('useMetricTags', function () {
     expect(metricsTagsMock).not.toHaveBeenCalled();
     expect(metricsMetaMock).not.toHaveBeenCalled();
 
-    // does not includes custom metricsTags
+    // does not include metrics tags
     expect(screen.queryByText('session.status')).not.toBeInTheDocument();
+
+    // does not include metrics metas
+    expect(screen.queryByText('sentry.sessions.session')).not.toBeInTheDocument();
+    expect(screen.queryByText('sentry.sessions.session.error')).not.toBeInTheDocument();
   });
 
   it('throw when provider is not set', function () {
@@ -82,7 +92,7 @@ describe('useMetricTags', function () {
       render(<TestComponent other="value" />);
     } catch (error) {
       expect(error.message).toEqual(
-        'useMetricTags called but MetricsProvider is not set.'
+        'useMetricsContext was called outside of MetricsContextProvider'
       );
     }
   });

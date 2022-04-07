@@ -2,14 +2,15 @@ import {useContext} from 'react';
 
 import {MetricsContext} from 'sentry/utils/metrics/metricsContext';
 
-export function useMetricMetas() {
+export function useMetricsContext() {
   const metricsContext = useContext(MetricsContext);
 
   if (!metricsContext) {
-    throw new Error('useMetricsMeta was called outside of MetricsContextProvider');
+    throw new Error('useMetricsContext was called outside of MetricsContextProvider');
   }
 
   return {
+    metricTags: metricsContext.tags,
     metricMetas: metricsContext.metas,
   };
 }

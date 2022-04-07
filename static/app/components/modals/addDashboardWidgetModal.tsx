@@ -36,7 +36,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';

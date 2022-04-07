@@ -397,14 +397,16 @@ describe('WidgetBuilder', function () {
     userEvent.click(screen.getByText('Line Chart'));
 
     // Header - Breadcrumbs
-    expect(screen.getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboards/'
     );
+
     expect(screen.getByRole('link', {name: 'Dashboard'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboards/new/'
     );
+
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
@@ -1181,6 +1183,70 @@ describe('WidgetBuilder', function () {
     expect(await screen.findAllByText('project')).toHaveLength(2);
   });
 
+  it('renders fields with commas properly', async () => {
+    const defaultWidgetQuery = {
+      conditions: '',
+      fields: ['equation|count_if(transaction.duration,equals,300)*2'],
+      aggregates: ['equation|count_if(transaction.duration,equals,300)*2'],
+      columns: [],
+      orderby: '',
+      name: '',
+    };
+    const defaultTableColumns = [
+      'count_if(transaction.duration,equals,300)',
+      'equation|count_if(transaction.duration,equals,300)*2',
+    ];
+    renderTestComponent({
+      query: {
+        source: DashboardWidgetSource.DISCOVERV2,
+        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultTableColumns,
+        yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
+      },
+    });
+
+    await screen.findByText('Add Widget');
+
+    expect(
+      await screen.findByText('count_if(transaction.duration,equals,300)*2')
+    ).toBeInTheDocument();
+  });
+
+  it('sets the correct fields for a top n widget', async () => {
+    renderTestComponent({
+      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
+      query: {
+        displayType: DisplayType.TOP_N,
+      },
+    });
+
+    await screen.findByText('Add a Column');
+
+    // Add both a field and a f(x)
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
+    userEvent.click(screen.getByText('Add a Column'));
+    await selectEvent.select(screen.getByText('(Required)'), /project/);
+
+    // Change the y-axis
+    await selectEvent.select(screen.getByText('count()'), 'eps()');
+
+    // Check that no fields were lost
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            yAxis: 'eps()',
+            field: ['project', 'count_unique(user)', 'eps()'],
+            topEvents: TOP_N,
+          }),
+        })
+      );
+    });
+  });
+
   describe('Sort by selectors', function () {
     it('renders', async function () {
       renderTestComponent({
@@ -1378,70 +1444,6 @@ describe('WidgetBuilder', function () {
           })
         );
       });
-    });
-  });
-
-  it('renders fields with commas properly', async () => {
-    const defaultWidgetQuery = {
-      conditions: '',
-      fields: ['equation|count_if(transaction.duration,equals,300)*2'],
-      aggregates: ['equation|count_if(transaction.duration,equals,300)*2'],
-      columns: [],
-      orderby: '',
-      name: '',
-    };
-    const defaultTableColumns = [
-      'count_if(transaction.duration,equals,300)',
-      'equation|count_if(transaction.duration,equals,300)*2',
-    ];
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-        defaultTableColumns,
-        yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
-      },
-    });
-
-    await screen.findByText('Add Widget');
-
-    expect(
-      await screen.findByText('count_if(transaction.duration,equals,300)*2')
-    ).toBeInTheDocument();
-  });
-
-  it('sets the correct fields for a top n widget', async () => {
-    renderTestComponent({
-      orgFeatures: [...defaultOrgFeatures, 'performance-view'],
-      query: {
-        displayType: DisplayType.TOP_N,
-      },
-    });
-
-    await screen.findByText('Add a Column');
-
-    // Add both a field and a f(x)
-    userEvent.click(screen.getByText('Add a Column'));
-    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-    userEvent.click(screen.getByText('Add a Column'));
-    await selectEvent.select(screen.getByText('(Required)'), /project/);
-
-    // Change the y-axis
-    await selectEvent.select(screen.getByText('count()'), 'eps()');
-
-    // Check that no fields were lost
-    await waitFor(() => {
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: '',
-            yAxis: 'eps()',
-            field: ['project', 'count_unique(user)', 'eps()'],
-            topEvents: TOP_N,
-          }),
-        })
-      );
     });
   });
 
@@ -1690,14 +1692,13 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (sessions, crash rates)')
       ).toBeInTheDocument();
 
-      const metricsDataset = screen.getByLabelText(/releases/i);
-      expect(metricsDataset).not.toBeChecked();
-      userEvent.click(metricsDataset);
-      expect(metricsDataset).toBeChecked();
+      expect(screen.getByLabelText(/releases/i)).not.toBeChecked();
+      userEvent.click(screen.getByLabelText(/releases/i));
+      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
 
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
-      expect(metricsDataset).toBeChecked();
+      await waitFor(() => expect(screen.getByLabelText(/releases/i)).toBeChecked());
     });
 
     it('displays metrics tags', async function () {
@@ -1711,18 +1712,18 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText('sentry.sessions.session')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
       expect(screen.getByText('environment')).toBeInTheDocument();
       expect(screen.getByText('session.status')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText('sentry.sessions.user')).toBeInTheDocument();
+      expect(await screen.findByText('sentry.sessions.user')).toBeInTheDocument();
     });
 
     it('displays no metrics message', async function () {
@@ -1752,7 +1753,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText(/required/i));
 
       // there's correct empty message
-      expect(screen.getByText(/no metrics/i)).toBeInTheDocument();
+      expect(await screen.findByText(/no metrics/i)).toBeInTheDocument();
     });
 
     it('makes the appropriate metrics call', async function () {
@@ -1769,20 +1770,22 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(metricsDataMock).toHaveBeenLastCalledWith(
-        `/organizations/org-slug/metrics/data/`,
-        expect.objectContaining({
-          query: {
-            environment: [],
-            field: [`sum(${SessionMetric.SESSION})`],
-            groupBy: [],
-            interval: '5m',
-            project: [],
-            statsPeriod: '24h',
-            per_page: 20,
-            orderBy: `-sum(${SessionMetric.SESSION})`,
-          },
-        })
+      await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
+          expect.objectContaining({
+            query: {
+              environment: [],
+              field: [`sum(${SessionMetric.SESSION})`],
+              groupBy: [],
+              interval: '5m',
+              project: [],
+              statsPeriod: '24h',
+              per_page: 20,
+              orderBy: `-sum(${SessionMetric.SESSION})`,
+            },
+          })
+        )
       );
     });
 
@@ -1790,6 +1793,7 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
+
       expect(
         await screen.findByText('Releases (sessions, crash rates)')
       ).toBeInTheDocument();
@@ -1800,14 +1804,14 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(await screen.findByText('sum(…)')).toBeInTheDocument();
       expect(screen.getByText(`${SessionMetric.SESSION}`)).toBeInTheDocument();
 
       userEvent.click(screen.getByText('sum(…)'));
-      expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
+      expect(await screen.findByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
-      expect(screen.getByText(`${SessionMetric.USER}`)).toBeInTheDocument();
+      expect(await screen.findByText(`${SessionMetric.USER}`)).toBeInTheDocument();
     });
 
     it('sets widgetType to release', async function () {
@@ -1879,7 +1883,9 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
+      );
     });
 
     it('render release data set disabled when the display type is world map', async function () {
@@ -1892,6 +1898,15 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('World Map'));
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('radio', {
+            name: 'Select Releases (sessions, crash rates)',
+          })
+        ).toBeDisabled()
+      );
+
       expect(
         screen.getByRole('radio', {
           name: 'Select Events (Errors, transactions)',
@@ -1900,11 +1915,6 @@ describe('WidgetBuilder', function () {
       expect(
         screen.getByRole('radio', {
           name: 'Select Issues (Status, assignee, etc.)',
-        })
-      ).toBeDisabled();
-      expect(
-        screen.getByRole('radio', {
-          name: 'Select Releases (sessions, crash rates)',
         })
       ).toBeDisabled();
     });
@@ -2011,11 +2021,11 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
       userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
       userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
 
-      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(await screen.findByText('project')).toBeInTheDocument();
     });
 
     it("doesn't erase the selection when switching to another time series", async function () {
@@ -2024,12 +2034,12 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       userEvent.click(screen.getByText('Line Chart'));
       userEvent.click(screen.getByText('Area Chart'));
 
-      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(await screen.findByText('project')).toBeInTheDocument();
     });
 
     it('sends a top N request when a grouping is selected', async function () {
@@ -2041,18 +2051,20 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Group your results'));
       userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
-      expect(eventsStatsMock).toHaveBeenNthCalledWith(
-        2,
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: '',
-            yAxis: ['count()'],
-            field: ['project', 'count()'],
-            topEvents: TOP_N,
-            orderby: '-count',
-          }),
-        })
+      await waitFor(() =>
+        expect(eventsStatsMock).toHaveBeenNthCalledWith(
+          2,
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: '',
+              yAxis: ['count()'],
+              field: ['project', 'count()'],
+              topEvents: TOP_N,
+              orderby: '-count',
+            }),
+          })
+        )
       );
     });
 
@@ -2067,7 +2079,9 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
       userEvent.click(screen.getAllByLabelText('Remove group')[1]);
-      expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
+      );
     });
   });
 
@@ -2081,8 +2095,7 @@ describe('WidgetBuilder', function () {
         onSave: handleSave,
       });
 
-      await screen.findByText('Group your results');
-      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
@@ -2103,22 +2116,24 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       userEvent.click(screen.getByText('Limit to 5 results'));
       userEvent.click(screen.getByText('Limit to 2 results'));
 
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: '',
-            yAxis: ['count()'],
-            field: ['project', 'count()'],
-            topEvents: 2,
-            orderby: '-count',
-          }),
-        })
+      await waitFor(() =>
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: '',
+              yAxis: ['count()'],
+              field: ['project', 'count()'],
+              topEvents: 2,
+              orderby: '-count',
+            }),
+          })
+        )
       );
     });
 
@@ -2128,13 +2143,15 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
       });
 
-      await selectEvent.select(screen.getByText('Select group'), 'project');
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
       userEvent.click(screen.getByLabelText('Remove group'));
 
-      expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument()
+      );
     });
   });
 });

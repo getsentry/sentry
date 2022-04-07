@@ -37,7 +37,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsContext';
+import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';

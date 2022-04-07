@@ -1,5 +1,5 @@
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricTags} from 'sentry/utils/useMetricTags';
+import {useMetricsContext} from 'sentry/utils/useMetricsContext';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {GroupBySelector} from './groupBySelector';
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function ReleaseGroupBySelector({columns, onChange}: Props) {
-  const {metricTags} = useMetricTags();
+  const {metricTags} = useMetricsContext();
 
   const tagKeys = Object.values(metricTags)
     .map(({key}) => key)
