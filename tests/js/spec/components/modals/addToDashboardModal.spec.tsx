@@ -10,7 +10,13 @@ import {DashboardDetails, DisplayType} from 'sentry/views/dashboardsV2/types';
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 describe('add to dashboard modal', () => {
-  let initialData, eventsStatsMock;
+  let eventsStatsMock;
+  const initialData = initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      features: ['new-widget-builder-experience', 'new-widget-builder-experience-design'],
+    },
+  });
   const testDashboard: DashboardDetails = {
     id: '1',
     title: 'Test Dashboard',
@@ -47,16 +53,6 @@ describe('add to dashboard modal', () => {
   };
 
   beforeEach(() => {
-    initialData = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        features: [
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
-      },
-    });
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [{...testDashboard, widgetDisplay: [DisplayType.AREA]}],

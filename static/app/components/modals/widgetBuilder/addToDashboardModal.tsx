@@ -61,9 +61,6 @@ function AddToDashboardModal({
       </Header>
 
       <Body>
-        <PreviewText>
-          {t('This is a preview of how the widget will appear in your dashboard.')}
-        </PreviewText>
         <SelectControlWrapper>
           <SelectControl
             disabled={dashboards === null}
@@ -103,6 +100,7 @@ function AddToDashboardModal({
             }}
           />
         </SelectControlWrapper>
+        {t('This is a preview of how the widget will appear in your dashboard.')}
         <WidgetCard
           api={api}
           organization={organization}
@@ -140,16 +138,12 @@ function AddToDashboardModal({
 
 export default AddToDashboardModal;
 
-const PreviewText = styled('p')`
+const SelectControlWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const SelectControlWrapper = styled('div')`
-  margin-bottom: ${space(1.5)};
-`;
-
 export const modalCss = css`
-  width: 100%;
+  min-width: 500px;
   max-width: 700px;
   margin: 70px auto;
 `;
