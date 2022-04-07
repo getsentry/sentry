@@ -10,7 +10,7 @@ interface InternalConfigStore {
   config: Config;
 }
 
-interface ConfigStoreDefinition
+export interface ConfigStoreDefinition
   extends CommonStoreDefinition<Config>,
     InternalConfigStore {
   get<K extends keyof Config>(key: K): Config[K];
