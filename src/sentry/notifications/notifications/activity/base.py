@@ -33,7 +33,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         raise NotImplementedError
 
     @property
-    def filename(self) -> str:
+    def template_path(self) -> str:
         return f"sentry/emails/activity/{self.activity_filename}"
 
     def get_base_context(self) -> MutableMapping[str, Any]:

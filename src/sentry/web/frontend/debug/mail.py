@@ -183,11 +183,11 @@ class ActivityMailPreview:
         return context
 
     def text_body(self):
-        txt_template = f"{self.email.filename}.txt"
+        txt_template = f"{self.email.template_path}.txt"
         return render_to_string(txt_template, context=self.get_context())
 
     def html_body(self):
-        html_template = f"{self.email.filename}.html"
+        html_template = f"{self.email.template_path}.html"
         try:
             return inline_css(render_to_string(html_template, context=self.get_context()))
         except Exception:

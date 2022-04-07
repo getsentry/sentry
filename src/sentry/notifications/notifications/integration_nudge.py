@@ -43,7 +43,7 @@ MESSAGE_LIBRARY = [
 
 class IntegrationNudgeNotification(BaseNotification):
     category = "integration_nudge"
-    filename = "integration-nudge"
+    template_path = "integration-nudge"
     type = "integration.nudge"
 
     def __init__(

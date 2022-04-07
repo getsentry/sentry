@@ -150,8 +150,8 @@ def get_builder_args_from_context(
     output = {
         "subject": get_subject_with_prefix(notification, context),
         "context": context,
-        "template": f"{notification.filename}.txt",
-        "html_template": f"{notification.filename}.html",
+        "template": f"{notification.template_path}.txt",
+        "html_template": f"{notification.template_path}.html",
         "headers": get_headers(notification),
         "reference": notification.reference,
         "type": notification.get_type(),

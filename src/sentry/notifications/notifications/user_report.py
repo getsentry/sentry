@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class UserReportNotification(ProjectNotification):
     referrer_base = "user-report"
-    filename = "sentry/emails/activity/new-user-feedback"
+    template_path = "sentry/emails/activity/new-user-feedback"
 
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
         super().__init__(project)
