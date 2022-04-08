@@ -16,7 +16,7 @@ const HOUR = 60 * MINUTE;
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {
   if (ms <= 0) {
-    return '00:00';
+    return '0:00';
   }
   const hour = Math.floor(ms / HOUR);
   ms = ms % HOUR;
@@ -24,7 +24,7 @@ export function formatTime(ms: number): string {
   ms = ms % MINUTE;
   const second = Math.floor(ms / SECOND);
   if (hour) {
-    return `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
+    return `${hour}:${padZero(minute)}:${padZero(second)}`;
   }
-  return `${padZero(minute)}:${padZero(second)}`;
+  return `${minute}:${padZero(second)}`;
 }

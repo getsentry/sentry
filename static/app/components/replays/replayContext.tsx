@@ -104,7 +104,7 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     // inside a `useEffect` hook.
     // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
     // @ts-expect-error
-    replayerRef.current = inst;
+    replayerRef.current! = inst;
   };
 
   const getCurrentTime = useCallback(
