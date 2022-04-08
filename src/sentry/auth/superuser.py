@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import RawPostDataException
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
@@ -318,9 +319,7 @@ class Superuser:
         try:
             # need to use json loads as the data is no longer in request.data
             su_access_json = json.loads(request.body)
-        except json.JSONDecodeError:
-            raise SuperuserAccessFormInvalidJson()
-        except AttributeError:
+        except (AttributeError, json.JSONDecodeError, RawPostDataException):
             su_access_json = {}
 
         if "superuserAccessCategory" in su_access_json:
