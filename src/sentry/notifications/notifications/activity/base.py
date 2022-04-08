@@ -145,48 +145,51 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def get_notification_title(self) -> str:
         description, params, _ = self.get_description()
-        return self.description_as_text(description, params, True)
+        return self.description_as_text(description, params, include_url=True)
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"{self.group.qualified_short_id} - {self.group.title}"
 
     def description_as_text(
-        self, description: str, params: Mapping[str, Any], url: bool | None = False
+        self,
+        description: str,
+        params: Mapping[str, Any],
+        include_url: bool = False,
     ) -> str:
         user = self.activity.user
-        if user:
-            name = user.name or user.email
-        else:
-            name = "Sentry"
-
+        name = user.get_display_name() if user else "Sentry"
         issue_name = self.group.qualified_short_id or "an issue"
-        if url and self.group.qualified_short_id:
+
+        if include_url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
-            issue_name = f"<{group_url}|{self.group.qualified_short_id}>"
+            issue_name = f"<{group_url}|{issue_name}>"
 
-        context = {"author": name, "an issue": issue_name}
-        context.update(params)
-
-        return description.format(**context)
+        return description.format(
+            **{
+                "author": name,
+                "an issue": issue_name,
+                **params,
+            }
+        )
 
     def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:
         user = self.activity.user
-        if user:
-            name = user.get_display_name()
-        else:
-            name = "Sentry"
+        name = user.get_display_name() if user else "Sentry"
+        issue_name = self.group.qualified_short_id or "an issue"
+        group_link = self.get_group_link(ExternalProviders.EMAIL)
 
-        fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
+        author = f'<span class="avatar-container">{avatar_as_html(user)}</span> <strong>{escape(name)}</strong>'
+        an_issue = f'<a href="{escape(group_link)}">{escape(issue_name)}</a>'
 
-        author = mark_safe(fmt.format(avatar_as_html(user), escape(name)))
-
-        issue_name = escape(self.group.qualified_short_id or "an issue")
-        an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'
-
-        context = {"author": author, "an issue": an_issue}
-        context.update(params)
-
-        return mark_safe(description.format(**context))
+        return mark_safe(
+            description.format(
+                **{
+                    "author": mark_safe(author),
+                    "an issue": an_issue,
+                    **params,
+                }
+            )
+        )
 
     def get_title_link(self, recipient: Team | User) -> str | None:
         from sentry.integrations.slack.message_builder.issues import get_title_link
