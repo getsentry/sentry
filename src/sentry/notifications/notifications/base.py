@@ -72,9 +72,6 @@ class BaseNotification(abc.ABC):
     def get_reply_reference(self) -> Any | None:
         return None
 
-    def should_email(self) -> bool:
-        return True
-
     def get_template(self) -> str:
         return f"sentry/emails/{self.get_filename()}.txt"
 

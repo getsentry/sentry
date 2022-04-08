@@ -94,7 +94,7 @@ class KeyResults:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
 
-    def get_mapped_results(self) -> MutableMapping[int, MutableMapping[str, int]]:
+    def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -135,6 +135,16 @@ class KeyResults:
         return cache_key_results
 
 
+def merge_results(
+    result_mappings: Sequence[Mapping[int, Mapping[str, int]]],
+) -> Mapping[int, Mapping[str, int]]:
+    new_results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
+    for result_map in result_mappings:
+        for org_id, strings in result_map.items():
+            new_results[org_id].update(strings)
+    return new_results
+
+
 class PGStringIndexerV2(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -155,7 +165,7 @@ class PGStringIndexerV2(Service):
 
     def bulk_record(
         self, org_strings: MutableMapping[int, Set[str]]
-    ) -> MutableMapping[int, MutableMapping[str, int]]:
+    ) -> Mapping[int, Mapping[str, int]]:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -207,11 +217,11 @@ class PGStringIndexerV2(Service):
             [KeyResult.from_string(k, v) for k, v in cache_results.items() if v is not None]
         )
 
-        mapped_results = cache_key_results.get_mapped_results()
+        mapped_cache_results = cache_key_results.get_mapped_results()
         db_read_keys = cache_key_results.get_unmapped_keys(cache_keys)
 
         if db_read_keys.size == 0:
-            return mapped_results
+            return mapped_cache_results
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
@@ -222,7 +232,7 @@ class PGStringIndexerV2(Service):
         )
         new_results_to_cache = db_read_key_results.get_mapped_key_strings_to_ints()
 
-        mapped_results.update(db_read_key_results.get_mapped_results())
+        mapped_db_read_results = db_read_key_results.get_mapped_results()
         db_write_keys = db_read_key_results.get_unmapped_keys(db_read_keys)
 
         metrics.incr(
@@ -238,7 +248,7 @@ class PGStringIndexerV2(Service):
 
         if db_write_keys.size == 0:
             indexer_cache.set_many(new_results_to_cache)
-            return mapped_results
+            return merge_results([mapped_cache_results, mapped_db_read_results])
 
         new_records = []
         for write_pair in db_write_keys.as_tuples():
@@ -264,9 +274,11 @@ class PGStringIndexerV2(Service):
         new_results_to_cache.update(db_write_key_results.get_mapped_key_strings_to_ints())
         indexer_cache.set_many(new_results_to_cache)
 
-        mapped_results.update(db_write_key_results.get_mapped_results())
+        mapped_db_write_results = db_write_key_results.get_mapped_results()
 
-        return mapped_results
+        return merge_results(
+            [mapped_cache_results, mapped_db_read_results, mapped_db_write_results]
+        )
 
     def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
