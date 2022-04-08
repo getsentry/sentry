@@ -252,6 +252,23 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
+    def test_redirect_superuser(self):
+        self.login_as(self.user, superuser=False)
+
+        resp = self.client.get(self.path)
+
+        with self.feature("organizations:create"):
+            resp = self.client.get(self.path)
+            self.assertRedirects(resp, "/organizations/new/")
+
+        self.login_as(self.user, superuser=True)
+
+        resp = self.client.get(self.path)
+
+        with self.feature("organizations:create"):
+            resp = self.client.get(self.path)
+            self.assertRedirects(resp, "/organizations/new/")
+
 
 @pytest.mark.skipif(
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
