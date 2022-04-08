@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import AlertActions from 'sentry/actions/alertActions';
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
@@ -27,14 +26,12 @@ interface InternalAlertStoreDefinition {
 interface AlertStoreDefinition
   extends CommonStoreDefinition<Alert[]>,
     InternalAlertStoreDefinition {
+  addAlert(alert: Alert): void;
+  closeAlert(alert: Alert, duration?: number): void;
   init(): void;
-
-  onAddAlert(alert: Alert): void;
-  onCloseAlert(alert: Alert, duration?: number): void;
 }
 
 const storeConfig: AlertStoreDefinition = {
-  listenables: AlertActions,
   alerts: [],
   count: 0,
 
@@ -43,7 +40,7 @@ const storeConfig: AlertStoreDefinition = {
     this.count = 0;
   },
 
-  onAddAlert(alert) {
+  addAlert(alert) {
     const alertAlreadyExists = this.alerts.some(a => a.id === alert.id);
     if (alertAlreadyExists && alert.noDuplicates) {
       return;
@@ -75,7 +72,7 @@ const storeConfig: AlertStoreDefinition = {
 
     if (alert.expireAfter && !alert.neverExpire) {
       window.setTimeout(() => {
-        this.onCloseAlert(alert);
+        this.closeAlert(alert);
       }, alert.expireAfter);
     }
 
@@ -88,7 +85,7 @@ const storeConfig: AlertStoreDefinition = {
     this.trigger(this.alerts);
   },
 
-  onCloseAlert(alert, duration = 60 * 60 * 7 * 24) {
+  closeAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
       const expiry = Math.floor(new Date().valueOf() / 1000) + duration;
       const mutedData = localStorage.getItem('alerts:muted');

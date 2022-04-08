@@ -119,11 +119,12 @@ export const backfillMissingProvidersWithFallback = (
 export const mergeNotificationSettings = (
   ...objects: NotificationSettingsObject[]
 ): NotificationSettingsObject => {
-  const output = {};
-  objects.map(settingsByType =>
-    Object.entries(settingsByType).map(([type, settingsByScopeType]) =>
-      Object.entries(settingsByScopeType).map(([scopeType, settingsByScopeId]) =>
-        Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) => {
+  const output: NotificationSettingsObject = {};
+
+  objects.forEach(settingsByType =>
+    Object.entries(settingsByType).forEach(([type, settingsByScopeType]) =>
+      Object.entries(settingsByScopeType).forEach(([scopeType, settingsByScopeId]) =>
+        Object.entries(settingsByScopeId).forEach(([scopeId, settingsByProvider]) => {
           set(output, [type, scopeType, scopeId].join('.'), settingsByProvider);
         })
       )

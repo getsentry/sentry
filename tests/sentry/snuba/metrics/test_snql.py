@@ -1,8 +1,9 @@
 from snuba_sdk import Column, Function
 
-from sentry.sentry_metrics.transactions import TransactionStatusTagValue, TransactionTagsKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import (
+    TransactionStatusTagValue,
+    TransactionTagsKey,
     abnormal_sessions,
     abnormal_users,
     addition,
@@ -18,7 +19,13 @@ from sentry.snuba.metrics import (
     sessions_errored_set,
     subtraction,
 )
-from sentry.snuba.metrics.fields.snql import failure_count_transaction
+from sentry.snuba.metrics.fields.snql import (
+    division_float,
+    failure_count_transaction,
+    satisfaction_count_transaction,
+    tolerated_count_transaction,
+)
+from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
 
 
@@ -104,7 +111,7 @@ class DerivedMetricSnQLTestCase(TestCase):
     def test_dist_count_aggregation_on_tx_status(self):
         org_id = 1985
 
-        assert all_transactions(org_id, self.metric_ids, "transactions.all") == Function(
+        expected_all_txs = Function(
             "countIf",
             [
                 Column("value"),
@@ -119,10 +126,9 @@ class DerivedMetricSnQLTestCase(TestCase):
             ],
             alias="transactions.all",
         )
+        assert all_transactions(org_id, self.metric_ids, "transactions.all") == expected_all_txs
 
-        assert failure_count_transaction(
-            org_id, self.metric_ids, "transactions.failed"
-        ) == Function(
+        expected_failed_txs = Function(
             "countIf",
             [
                 Column("value"),
@@ -150,6 +156,79 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             ],
             alias="transactions.failed",
+        )
+        assert (
+            failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+            == expected_failed_txs
+        )
+
+    def test_dist_count_aggregation_on_tx_satisfaction(self):
+        org_id = 1643
+
+        assert satisfaction_count_transaction(
+            org_id, self.metric_ids, "transaction.satisfied"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(
+                                    org_id, TransactionSatisfactionTagValue.SATISFIED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            "transaction.satisfied",
+        )
+
+        assert tolerated_count_transaction(
+            org_id, self.metric_ids, alias="transaction.tolerated"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(
+                                    org_id, TransactionSatisfactionTagValue.TOLERATED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias="transaction.tolerated",
         )
 
     def test_percentage_in_snql(self):
@@ -188,6 +267,18 @@ class DerivedMetricSnQLTestCase(TestCase):
                 alias="session.healthy_user",
             )
             == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
+        )
+
+    def test_division_in_snql(self):
+        org_id = 9876
+        alias = "transactions.failure_rate"
+        failed = failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
+        all = all_transactions(org_id, self.metric_ids, "transactions.all")
+
+        assert division_float(failed, all, alias=alias) == Function(
+            "divide",
+            [failed, all],
+            alias=alias,
         )
 
     def test_session_duration_filters(self):

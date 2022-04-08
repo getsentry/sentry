@@ -268,9 +268,6 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
-    if not notification.should_email():
-        return
-
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
     if not participants_by_provider:
         return

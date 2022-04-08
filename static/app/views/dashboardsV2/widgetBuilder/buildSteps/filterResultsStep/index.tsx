@@ -115,12 +115,12 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 {widgetType === WidgetType.ISSUE ? (
                   <IssuesSearchBar
+                    searchSource="widget_builder"
                     organization={organization}
                     query={query}
                     onBlur={handleBlur(queryIndex)}
                     onSearch={handleSearch(queryIndex)}
                     selection={selection}
-                    searchSource="widget_builder"
                   />
                 ) : widgetType === WidgetType.DISCOVER ? (
                   <EventsSearchBar
