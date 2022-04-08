@@ -45,6 +45,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     percentage,
+    satisfaction_count_transaction,
     session_duration_filters,
     sessions_errored_set,
     subtraction,
@@ -908,6 +909,14 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="transactions",
             snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
                 failure_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.SATISFIED.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
+                org_id=org_id, metric_ids=metric_ids, alias=alias
             ),
         ),
     ]

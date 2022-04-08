@@ -3,7 +3,11 @@ from typing import List
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.utils import resolve_weak
-from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
+from sentry.snuba.metrics.naming_layer.public import (
+    TransactionSatisfactionTagValue,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 
 
 def _aggregation_on_session_status_func_factory(aggregate):
@@ -93,6 +97,42 @@ def _dist_count_aggregation_on_tx_status_factory(
     )
 
 
+def _aggregation_on_tx_satisfaction_func_factory(aggregate):
+    def _snql_on_tx_satisfaction_factory(org_id, satisfaction_value: str, metric_ids, alias=None):
+        return Function(
+            aggregate,
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(org_id, satisfaction_value),
+                            ],
+                        ),
+                        Function("in", [Column("metric_id"), list(metric_ids)]),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    return _snql_on_tx_satisfaction_factory
+
+
+def _dist_count_aggregation_on_tx_satisfaction_factory(
+    org_id, satisfaction: str, metric_ids, alias=None
+):
+    return _aggregation_on_tx_satisfaction_func_factory("countIf")(
+        org_id, satisfaction, metric_ids, alias
+    )
+
+
 def all_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="init", metric_ids=metric_ids, alias=alias
@@ -178,6 +218,12 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
         ],
         metric_ids=metric_ids,
         alias=alias,
+    )
+
+
+def satisfaction_count_transaction(org_id, metric_ids, alias=None):
+    return _dist_count_aggregation_on_tx_satisfaction_factory(
+        org_id, TransactionSatisfactionTagValue.SATISFIED.value, metric_ids, alias
     )
 
 
