@@ -1,0 +1,44 @@
+name: Frontend
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  # This check runs once all dependant jobs have passed
+  # It symbolizes that all required Frontend checks have succesfully passed
+  # This check is the only required Github check
+  frontend-required-check:
+    needs: files-changed
+    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
+    name: Frontend
+    runs-on: ubuntu-20.04
+    steps:
+      - run: 'echo "All required checks have passed and we meet the requirements." '
+
+  # If there are no frontend checks, we still want the required check to be satisfied
+  # In order to do this, we need to pretend that the real check run but hijacking the name
+  # This is the recommended approach by Github:
+  # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
+  fake-frontend-required-check:
+    needs: files-changed
+    if: ${{ needs.changes.outputs.backend_or_frontend != 'true' }}
+    name: Frontend
+    runs-on: ubuntu-20.04
+    steps:
+      - run: 'echo "The changed files do not require running the checks in this workflow." '
