@@ -287,6 +287,16 @@ function WidgetBuilder({
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
+
+    if (widgetBuilderNewDesign) {
+      setState({
+        ...state,
+        selectedDashboard: {
+          label: dashboard.title,
+          value: dashboard.id === '' ? 'new' : dashboard.id,
+        },
+      });
+    }
   }, [source]);
 
   useEffect(() => {
