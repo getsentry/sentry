@@ -23,6 +23,7 @@ from sentry.snuba.metrics.fields.snql import (
     division_float,
     failure_count_transaction,
     satisfaction_count_transaction,
+    tolerated_count_transaction,
 )
 from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
 from sentry.testutils import TestCase
@@ -195,6 +196,39 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             ],
             "transaction.satisfied",
+        )
+
+        assert tolerated_count_transaction(
+            org_id, self.metric_ids, alias="transaction.tolerated"
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(
+                                    org_id, TransactionSatisfactionTagValue.TOLERATED.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias="transaction.tolerated",
         )
 
     def test_percentage_in_snql(self):
