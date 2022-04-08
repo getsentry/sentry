@@ -25,7 +25,7 @@ jobs:
   # This check is the only required Github check
   frontend-required-check:
     needs: files-changed
-    if: ${{ needs.changes.outputs.backend_or_frontend == 'true' }}
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     name: Frontend
     runs-on: ubuntu-20.04
     steps:
@@ -37,7 +37,7 @@ jobs:
   # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
   fake-frontend-required-check:
     needs: files-changed
-    if: ${{ needs.changes.outputs.backend_or_frontend != 'true' }}
+    if: ${{ needs.changes.outputs.frontend != 'true' }}
     name: Frontend
     runs-on: ubuntu-20.04
     steps:
