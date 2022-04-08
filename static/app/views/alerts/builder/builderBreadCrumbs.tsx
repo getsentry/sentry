@@ -91,7 +91,7 @@ function BuilderBreadCrumbs({
       label: t('Alerts'),
       preservePageFilters: true,
     },
-    projectCrumb,
+    ...(hasAlertWizardV3 ? [] : [projectCrumb]),
     {
       label: title,
       ...(alertName

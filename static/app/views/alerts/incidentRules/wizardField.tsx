@@ -22,7 +22,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: any};
+type MenuOption = {label: string; value: AlertType};
 
 type Props = Omit<FormField['props'], 'children'> & {
   location: Location;
@@ -162,15 +162,9 @@ function WizardField({
           <Container hideGap={gridColumns < 1}>
             <SelectControl
               value={selectedTemplate}
-              styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
-                  ...provided,
-                  margin: `${space(0.5)}`,
-                }),
-              }}
               options={menuOptions}
-              onChange={args => {
-                const template = AlertWizardRuleTemplates[args.value];
+              onChange={(option: MenuOption) => {
+                const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
                 model.setValue('dataset', template.dataset);
