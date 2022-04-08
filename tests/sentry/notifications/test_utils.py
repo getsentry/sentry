@@ -17,12 +17,8 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.notifications.utils import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_group_settings_link,
-    get_rules,
-)
+from sentry.notifications.utils import NotificationRuleDetails, get_rules
+from sentry.notifications.utils.urls import get_email_link_extra_params, get_group_settings_link
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
@@ -169,7 +165,12 @@ class NotificationHelpersTest(TestCase):
         rule_details: Sequence[NotificationRuleDetails] = get_rules(
             [rule], self.organization, self.project
         )
-        link = get_group_settings_link(self.group, self.environment.name, rule_details, 1337)
+        link = get_group_settings_link(
+            self.group,
+            environment=self.environment.name,
+            rule_details=rule_details,
+            alert_timestamp=1337,
+        )
 
         parsed = urlparse(link)
         query_dict = dict(map(lambda x: (x[0], x[1][0]), parse_qs(parsed.query).items()))

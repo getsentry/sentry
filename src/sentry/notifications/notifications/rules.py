@@ -12,14 +12,13 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
     get_commits,
-    get_group_settings_link,
-    get_integration_link,
     get_interface_list,
     get_rules,
     has_alert_integration,
     has_integrations,
 )
 from sentry.notifications.utils.participants import get_send_to
+from sentry.notifications.utils.urls import get_group_settings_link, get_integration_link
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics

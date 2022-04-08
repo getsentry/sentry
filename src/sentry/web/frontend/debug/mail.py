@@ -15,6 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import eventstore, features
 from sentry.app import tsdb
@@ -41,7 +43,8 @@ from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_rules
+from sentry.notifications.utils import get_rules
+from sentry.notifications.utils.urls import get_group_settings_link
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -195,10 +198,6 @@ class ActivityMailPreview:
             raise
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 class ActivityMailDebugView(View):
     def get_activity(self, request: Request, event):
         raise NotImplementedError
@@ -291,7 +290,12 @@ def alert(request):
             "timezone": pytz.timezone("Europe/Vienna"),
             # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
             #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            "link": get_group_settings_link(
+                group,
+                environment=None,
+                rule_details=get_rules([rule], org, project),
+                alert_timestamp=1337,
+            ),
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,

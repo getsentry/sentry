@@ -17,18 +17,13 @@ from sentry.eventstore.models import Event
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType
-from sentry.notifications.utils import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_integration_link,
-    get_rules,
-    has_alert_integration,
-)
+from sentry.notifications.utils import NotificationRuleDetails, get_rules, has_alert_integration
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.notifications.utils.urls import get_email_link_extra_params, get_integration_link
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
