@@ -80,3 +80,4 @@ class TransactionMRI(Enum):
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transaction/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
+    TOLERATED = "e:transactions/tolerated@none"
