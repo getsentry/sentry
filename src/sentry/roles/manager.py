@@ -47,6 +47,9 @@ class Role(abc.ABC):
     def __repr__(self) -> str:
         return f"<Role: {self.id}>"
 
+    def can_manage(self: R, other: R) -> bool:
+        return self.priority >= other.priority
+
     def has_scope(self, scope: str) -> bool:
         return scope in self.scopes
 
@@ -54,9 +57,6 @@ class Role(abc.ABC):
 @dataclass(frozen=True, eq=True)
 class OrganizationRole(Role):
     is_global: bool = False
-
-    def can_manage(self, other: OrganizationRole) -> bool:
-        return self.priority >= other.priority
 
     def get_minimum_team_role(self) -> TeamRole:
         """Return the minimum team role for this organization role.
@@ -74,9 +74,6 @@ class OrganizationRole(Role):
 @dataclass(frozen=True, eq=True)
 class TeamRole(Role):
     is_minimum_role_for: str | None = None
-
-    def can_manage(self, other: TeamRole) -> bool:
-        return self.priority >= other.priority
 
 
 class RoleLevel(Generic[R]):
