@@ -67,8 +67,9 @@ def _create_api_access_log(
     Create a log entry to be used for api metrics gathering
     """
     try:
+        resolver_match = request.resolver_match
         try:
-            view = request.resolver_match._func_path
+            view = resolver_match._func_path
         except AttributeError:
             view = "Unknown"
 
@@ -76,7 +77,7 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        group = get_rate_limit_config(request.resolver_match.func.view_class).group
+        group = get_rate_limit_config(resolver_match.func.view_class).group
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = response.status_code if response else 500
