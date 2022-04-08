@@ -1,8 +1,10 @@
 from copy import deepcopy
+from datetime import datetime
 
 import responses
 from django.conf import settings
 from exam import fixture
+from pytz import UTC
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
@@ -97,6 +99,28 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
+
+    def test_expand_last_triggered(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        now = datetime.now().replace(tzinfo=UTC)
+        self.create_incident(
+            organization=self.organization,
+            title="Incident #1",
+            date_started=now,
+            date_detected=now,
+            projects=[self.project],
+            alert_rule=self.alert_rule,
+            status=IncidentStatus.CRITICAL.value,
+        )
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, self.alert_rule.id, expand=["lastTriggered"]
+            )
+            no_expand_resp = self.get_valid_response(self.organization.slug, self.alert_rule.id)
+
+        assert resp.data["lastTriggered"] == now
+        assert "lastTriggered" not in no_expand_resp.data
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):

@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import prefetch_related_objects
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -172,12 +172,26 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
             )
             event_types.append(SnubaQueryEventType.EventType(event_type.type).name.lower())
 
+        if "lastTriggered" in self.expand:
+            last_triggered_lookup = {
+                inc["alert_rule_id"]: inc["date_started"]
+                for inc in Incident.objects.filter(alert_rule__in=item_list)
+                .values("alert_rule_id")
+                .annotate(date_started=Max("date_started"))
+            }
+            for alert_rule in alert_rules.values():
+                result[alert_rules[alert_rule.id]]["lastTriggered"] = last_triggered_lookup.get(
+                    alert_rule.id, None
+                )
+
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
+        if "lastTriggered" in self.expand:
+            data["lastTriggered"] = attrs.get("lastTriggered", None)
         return data
 
 
