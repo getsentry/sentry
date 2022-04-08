@@ -60,11 +60,11 @@ acceptance: &acceptance
   - *backend
   - *frontend
 
-plugins:
+plugins: &plugins
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
-api_docs:
+api_docs: &api_docs
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'

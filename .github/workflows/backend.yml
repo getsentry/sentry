@@ -1,4 +1,4 @@
-name: Backend
+name: backend
 
 on:
   push:
