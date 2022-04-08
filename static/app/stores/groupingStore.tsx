@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -117,8 +117,7 @@ type InternalDefinition = {
 };
 
 interface GroupingStoreDefinition
-  extends StoreDefinition,
-    CommonStoreDefinition<State>,
+  extends CommonStoreDefinition<State>,
     InternalDefinition {
   getInitialState(): State;
   init(): void;
