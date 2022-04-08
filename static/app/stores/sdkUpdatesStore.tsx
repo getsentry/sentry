@@ -1,6 +1,5 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import SdkUpdatesActions from 'sentry/actions/sdkUpdatesActions';
 import {ProjectSdkUpdates} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -14,20 +13,14 @@ type InternalDefinition = {
 interface SdkUpdatesStoreDefinition extends StoreDefinition, InternalDefinition {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
-  onLoadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
+  loadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
 }
 
 const storeConfig: SdkUpdatesStoreDefinition = {
   orgSdkUpdates: new Map(),
   unsubscribeListeners: [],
 
-  init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(SdkUpdatesActions.load, this.onLoadSuccess)
-    );
-  },
-
-  onLoadSuccess(orgSlug, data) {
+  loadSuccess(orgSlug, data) {
     this.orgSdkUpdates.set(orgSlug, data);
     this.trigger(this.orgSdkUpdates);
   },
