@@ -28,17 +28,11 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const [activeProfileIndex, setActiveProfileIndex] = useState<number | null>(null);
   const [importedProfiles, setImportedProfiles] = useState<ProfileGroup | null>(null);
 
-  const profiles = useMemo(
-    // once an import occurs, it will always take precedence over the profile in the props
-    () => importedProfiles ?? props.profiles,
-    [importedProfiles, props.profiles]
-  );
+  // once an import occurs, it will always take precedence over the profile in the props
+  const profiles = importedProfiles ?? props.profiles;
 
-  const profileIndex = useMemo(
-    // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
-    () => activeProfileIndex ?? profiles.activeProfileIndex,
-    [activeProfileIndex, profiles]
-  );
+  // if the activeProfileIndex is null, use the activeProfileIndex from the profile group
+  const profileIndex = activeProfileIndex ?? profiles.activeProfileIndex;
 
   const flamegraph = useMemo(() => {
     return new FlamegraphModel(profiles.profiles[profileIndex], profileIndex, {

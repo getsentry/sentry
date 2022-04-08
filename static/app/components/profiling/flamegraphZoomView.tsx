@@ -45,11 +45,6 @@ function FlamegraphZoomView({
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
 
-  const [selectedNode, setSelectedNode] = useState<FlamegraphFrame | null>(null);
-  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
-    null
-  );
-
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
       if (flamegraphCanvasRef) {
@@ -131,6 +126,11 @@ function FlamegraphZoomView({
     }
     return new SelectedFrameRenderer(flamegraphOverlayCanvasRef);
   }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+
+  const [selectedNode, setSelectedNode] = useState<FlamegraphFrame | null>(null);
+  const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
+    null
+  );
 
   const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
