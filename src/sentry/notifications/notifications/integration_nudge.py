@@ -62,7 +62,8 @@ class IntegrationNudgeNotification(BaseNotification):
             else random.randint(0, len(MESSAGE_LIBRARY) - 1)
         )
 
-    def get_reference(self) -> Model | None:
+    @property
+    def reference(self) -> Model | None:
         return None
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
