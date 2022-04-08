@@ -30,27 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check for python and `api-docs` file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - uses: volta-cli/action@v1
-        if: steps.changes.outputs.api_docs == 'true'
+        if: needs.changes.outputs.api_docs == 'true'
 
       - name: Setup sentry python env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.api_docs == 'true'
+        if: needs.changes.outputs.api_docs == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run API docs tests
-        if: steps.changes.outputs.api_docs == 'true'
+        if: needs.changes.outputs.api_docs == 'true'
         # install ts-node for ts build scripts to execute properly without potentially installing
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
@@ -84,24 +77,9 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
-      # creates a status check in the "pending" state. This means that the workflow needs to run
-      # for every PR in order to update the status checks.
-      #
-      # In order to optimize CI usage, we want the tests to only run when python files change,
-      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
-      # path filters because entire workflow would be skipped vs skipping individual jobs which
-      # would still allow this status check to pass.
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -109,7 +87,7 @@ jobs:
           snuba: true
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
@@ -129,23 +107,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Run test
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           make test-cli
 
@@ -171,31 +142,16 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
-      # creates a status check in the "pending" state. This means that the workflow needs to run
-      # for every PR in order to update the status checks.
-      #
-      # In order to optimize CI usage, we want the tests to only run when python files change,
-      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
-      # path filters because entire workflow would be skipped vs skipping individual jobs which
-      # would still allow this status check to pass.
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
           cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
 
       - name: Setup pre-commit
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         env:
           SENTRY_NO_VIRTUALENV_CREATION: 1
         run: |
@@ -218,7 +174,7 @@ jobs:
               - added|modified: 'requirements-base.txt'
 
       - name: Run pre-commit on changed files
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
           # XXX: there is a very small chance that it'll expand to exceed Linux's limits
@@ -227,7 +183,7 @@ jobs:
 
       # If working tree is dirty, commit and update if we have a token
       - name: Apply any pre-commit fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && needs.changes.outputs.backend == 'true' && always()
         uses: getsentry/action-github-commit@main
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -275,24 +231,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.plugins == 'true'
+        if: needs.changes.outputs.plugins == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test
-        if: steps.changes.outputs.plugins == 'true'
+        if: needs.changes.outputs.plugins == 'true'
         run: |
           make test-plugins
 
@@ -311,17 +260,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
@@ -329,14 +271,14 @@ jobs:
           kafka: true
 
       - name: Pull relay image
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           # pull relay we'll run and kill it for each test
           docker pull us.gcr.io/sentryio/relay:nightly
           docker ps -a
 
       - name: Run test
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           make test-relay-integration
 
@@ -364,30 +306,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
-      # creates a status check in the "pending" state. This means that the workflow needs to run
-      # for every PR in order to update the status checks.
-      #
-      # In order to optimize CI usage, we want the tests to only run when python files change,
-      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
-      # path filters because entire workflow would be skipped vs skipping individual jobs which
-      # would still allow this status check to pass.
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -396,7 +322,7 @@ jobs:
           kafka: true
 
       - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           make test-snuba
 
@@ -418,17 +344,10 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
@@ -436,7 +355,7 @@ jobs:
           kafka: true
 
       - name: Start symbolicator
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           echo $PWD
           docker run \
@@ -449,7 +368,7 @@ jobs:
           docker ps -a
 
       - name: Run test
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           make test-symbolicator
 
@@ -467,30 +386,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
-      # creates a status check in the "pending" state. This means that the workflow needs to run
-      # for every PR in order to update the status checks.
-      #
-      # In order to optimize CI usage, we want the tests to only run when python files change,
-      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
-      # path filters because entire workflow would be skipped vs skipping individual jobs which
-      # would still allow this status check to pass.
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
 
       # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
       - name: Setup backend typing
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         env:
           SENTRY_LIGHT_BUILD: 1
         run: |
@@ -501,7 +405,7 @@ jobs:
           pip install -U -e ".[dev]"
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: steps.changes.outputs.backend == 'true'
+        if: needs.changes.outputs.backend == 'true'
         run: |
           make backend-typing
 
