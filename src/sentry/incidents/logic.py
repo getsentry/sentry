@@ -807,16 +807,16 @@ def delete_alert_rule(alert_rule, user=None):
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
-    if user:
-        create_audit_entry_from_user(
-            user,
-            organization_id=alert_rule.organization_id,
-            target_object=alert_rule.id,
-            data=alert_rule.get_audit_log_data(),
-            event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
-        )
-
     with transaction.atomic():
+        if user:
+            create_audit_entry_from_user(
+                user,
+                organization_id=alert_rule.organization_id,
+                target_object=alert_rule.id,
+                data=alert_rule.get_audit_log_data(),
+                event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+            )
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():
