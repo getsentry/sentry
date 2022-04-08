@@ -119,13 +119,6 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
-      if (!!query.orderby) {
-        return {
-          ...query,
-          orderby: getAggregateAlias(query.orderby),
-        };
-      }
-
       const orderBy =
         getAggregateAlias(queries[0].orderby) ||
         (widgetType === WidgetType.ISSUE
@@ -139,7 +132,9 @@ export function normalizeQueries({
 
       // Issues data set doesn't support order by descending
       query.orderby =
-        widgetType === WidgetType.DISCOVER ? `-${String(orderBy)}` : String(orderBy);
+        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
+          ? `-${String(orderBy)}`
+          : String(orderBy);
 
       return query;
     });
@@ -265,4 +260,18 @@ export function getAmendedFieldOptions({
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
+}
+
+// Extract metric names from aggregation functions present in the widget queries
+export function getMetricFields(queries: WidgetQuery[]) {
+  return queries.reduce((acc, query) => {
+    for (const field of [...query.aggregates, ...query.columns]) {
+      const fieldParameter = /\(([^)]*)\)/.exec(field)?.[1];
+      if (fieldParameter && !acc.includes(fieldParameter)) {
+        acc.push(fieldParameter);
+      }
+    }
+
+    return acc;
+  }, [] as string[]);
 }
