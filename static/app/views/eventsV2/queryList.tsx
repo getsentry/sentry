@@ -147,6 +147,8 @@ class QueryList extends React.Component<Props> {
         defaultTableColumns: defaultTableFields,
         defaultTitle,
         displayType,
+        project: eventView.project,
+        environment: eventView.environment,
       };
       if (organization.features.includes('new-widget-builder-experience-design')) {
         openAddToDashboardModal({
