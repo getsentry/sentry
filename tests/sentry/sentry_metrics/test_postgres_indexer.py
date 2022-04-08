@@ -43,9 +43,6 @@ class PostgresIndexerTest(TestCase):
 class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
         self.indexer = StaticStringsIndexerDecorator()
-        StringIndexer.objects.create(organization_id=0, string="release", id=13)
-        StringIndexer.objects.create(organization_id=0, string="production", id=12)
-        StringIndexer.objects.create(organization_id=0, string="environment", id=7)
 
     def test_static_strings_only(self) -> None:
         org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
