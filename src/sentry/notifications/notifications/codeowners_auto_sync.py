@@ -19,7 +19,8 @@ class AutoSyncNotification(ProjectNotification):
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.organization.get_owners()  # type: ignore
 
-    def get_reference(self) -> None | Model:
+    @property
+    def reference(self) -> Model | None:
         return None
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
