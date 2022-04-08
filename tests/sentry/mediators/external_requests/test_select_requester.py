@@ -3,6 +3,7 @@ import responses
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import SelectRequester
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 
@@ -46,7 +47,8 @@ class TestSelectRequester(TestCase):
         request = responses.calls[0].request
         assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
         assert request.headers["Sentry-Hook-Signature"] == self.sentry_app.build_signature(
-            request.body
+            # TODO(Ecosystem): When 'Sentry-App-Header' is deprecated, replace the following with request.body
+            json.dumps({})
         )
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
