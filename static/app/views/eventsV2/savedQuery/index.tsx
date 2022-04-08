@@ -247,6 +247,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
 
+    let orderby = '';
+    if (displayType === DisplayType.TOP_N && sort) {
+      orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+    }
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
@@ -259,7 +263,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         ...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()']),
       ],
       conditions: eventView.query,
-      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+      orderby,
     };
 
     trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {

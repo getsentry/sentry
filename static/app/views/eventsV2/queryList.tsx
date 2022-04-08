@@ -112,6 +112,10 @@ class QueryList extends React.Component<Props> {
     } else {
       yAxis = ['count()'];
     }
+    let orderby = '';
+    if (displayType === DisplayType.TOP_N && sort) {
+      orderby = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+    }
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
@@ -122,11 +126,9 @@ class QueryList extends React.Component<Props> {
       fields: [
         ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
         ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
-        // HACK: All Events sorts by timestamp and needs to be injected
-        ...(!savedQuery && eventView.name === 'All Events' ? ['timestamp'] : []),
       ],
       conditions: eventView.query,
-      orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
+      orderby,
     };
 
     trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
