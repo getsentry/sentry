@@ -21,7 +21,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {ClientState, useOnboardingState} from '../types';
+import {OnboardingState, useOnboardingState} from '../types';
 
 import GenericFooter from './genericFooter';
 
@@ -55,7 +55,7 @@ export default function CreateProjectsFooter({
             createProject(api, organization.slug, teams[0].slug, platform, platform)
           )
       );
-      const nextState: ClientState = {
+      const nextState: OnboardingState = {
         platformToProjectIdMap: clientState.platformToProjectIdMap,
         selectedPlatforms: platforms,
       };

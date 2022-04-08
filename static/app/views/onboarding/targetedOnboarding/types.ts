@@ -25,7 +25,7 @@ export type StepDescriptor = {
   hasFooter?: boolean;
 };
 
-export type ClientState = {
+export type OnboardingState = {
   // map from platform id to project id. Contains projects ever created by onboarding.
   platformToProjectIdMap: {[key in PlatformKey]?: string};
 
@@ -34,8 +34,11 @@ export type ClientState = {
   selectedPlatforms: PlatformKey[];
 };
 
-export function useOnboardingState(): [ClientState, (next: ClientState | null) => void] {
-  const [state, setState] = usePersistedStore<ClientState>('onboarding');
+export function useOnboardingState(): [
+  OnboardingState,
+  (next: OnboardingState | null) => void
+] {
+  const [state, setState] = usePersistedStore<OnboardingState>('onboarding');
   const onboardingState: any = state || {};
   onboardingState.platformToProjectIdMap = onboardingState.platformToProjectIdMap || {};
   onboardingState.selectedPlatforms = onboardingState.selectedPlatforms || [];
