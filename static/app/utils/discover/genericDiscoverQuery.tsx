@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 export class QueryError {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
-  constructor(errorMessage: string, originalError: any) {
+  constructor(errorMessage: string, originalError?: any) {
     this.message = errorMessage;
     this.originalError = originalError;
   }
