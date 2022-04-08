@@ -486,15 +486,13 @@ class ReleasesList extends AsyncView<Props, State> {
       hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         showAbsolute={false}
         timeRangeHint={t(
           'Changing this date range will recalculate the release metrics.'
         )}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
       >
         <PageContent>
           <NoProjectMessage organization={organization}>
@@ -504,13 +502,11 @@ class ReleasesList extends AsyncView<Props, State> {
 
             {this.renderHealthCta()}
 
-            {hasPageFilters && (
-              <ReleasesPageFilterBar>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </ReleasesPageFilterBar>
-            )}
+            <ReleasesPageFilterBar>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter />
+            </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
               <GuideAnchor

@@ -101,6 +101,11 @@ def query(
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
+        except Exception as error:
+            if dry_run:
+                return
+            else:
+                raise error
 
     if dry_run:
         return {}
@@ -207,6 +212,11 @@ def timeseries_query(
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
+        except Exception as error:
+            if dry_run:
+                return
+            else:
+                raise error
 
     if dry_run:
         return {}
