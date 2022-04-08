@@ -728,6 +728,7 @@ function WidgetViewerModal(props: Props) {
       );
       break;
   }
+
   return (
     <React.Fragment>
       <Header closeButton>
@@ -752,39 +753,42 @@ function WidgetViewerModal(props: Props) {
                 })}
               </span>
             ))}
-        </ResultsContainer>
-        <ButtonBar gap={1}>
-          {onEdit && widget.id && (
+          <ButtonBar gap={1}>
+            {onEdit && widget.id && (
+              <Button
+                type="button"
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  });
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
             <Button
+              to={path}
+              priority="primary"
               type="button"
               onClick={() => {
-                closeModal();
-                onEdit();
-                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
+                trackAdvancedAnalyticsEvent(
+                  'dashboards_views.widget_viewer.open_source',
+                  {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                    display_type: widget.displayType,
+                  }
+                );
               }}
             >
-              {t('Edit Widget')}
+              {openLabel}
             </Button>
-          )}
-          <Button
-            to={path}
-            priority="primary"
-            type="button"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
-                organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          >
-            {openLabel}
-          </Button>
-        </ButtonBar>
+          </ButtonBar>
+        </ResultsContainer>
       </Footer>
     </React.Fragment>
   );
@@ -821,8 +825,15 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
 
 const ResultsContainer = styled('div')`
   display: flex;
-  align-items: center;
   flex-grow: 1;
+  flex-direction: column;
+  gap: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
 `;
 
 const EmptyQueryContainer = styled('span')`
