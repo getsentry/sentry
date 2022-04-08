@@ -11,7 +11,7 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
-from sentry.models import Integration
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Integration
 from sentry.testutils import APITestCase
 
 
@@ -152,6 +152,11 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.alert_rule.snuba_query.refresh_from_db()
         assert resp.data == serialize(self.alert_rule)
         assert resp.data["name"] == "what"
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_EDIT, target_object=resp.data["id"]
+        )
+        assert len(audit_log_entry) == 1
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
@@ -436,6 +441,11 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_REMOVE, target_object=self.alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
 
     def test_snapshot_and_create_new_with_same_name(self):
         with self.tasks():

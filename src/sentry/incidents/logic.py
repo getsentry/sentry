@@ -32,7 +32,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import AuditLogEntryEvent, Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -47,6 +47,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.utils import json, metrics
+from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement, raw_snql_query
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -520,6 +521,15 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
         )
 
+        if user:
+            create_audit_entry_from_user(
+                user,
+                organization_id=organization.id,
+                target_object=alert_rule.id,
+                data=alert_rule.get_audit_log_data(),
+                event=AuditLogEntryEvent.ALERT_RULE_ADD,
+            )
+
         if include_all_projects:
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
@@ -751,6 +761,15 @@ def update_alert_rule(
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
 
+    if user:
+        create_audit_entry_from_user(
+            user,
+            organization_id=alert_rule.organization_id,
+            target_object=alert_rule.id,
+            data=alert_rule.get_audit_log_data(),
+            event=AuditLogEntryEvent.ALERT_RULE_EDIT,
+        )
+
     return alert_rule
 
 
@@ -789,6 +808,15 @@ def delete_alert_rule(alert_rule, user=None):
         raise AlreadyDeletedError()
 
     with transaction.atomic():
+        if user:
+            create_audit_entry_from_user(
+                user,
+                organization_id=alert_rule.organization_id,
+                target_object=alert_rule.id,
+                data=alert_rule.get_audit_log_data(),
+                event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+            )
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():

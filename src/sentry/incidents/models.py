@@ -390,6 +390,9 @@ class AlertRule(Model):
             pass
         return None
 
+    def get_audit_log_data(self):
+        return {"label": self.name}
+
 
 class TriggerStatus(Enum):
     ACTIVE = 0

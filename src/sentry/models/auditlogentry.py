@@ -127,6 +127,10 @@ class AuditLogEntryEvent:
     PROJECT_QUOTA_EDIT = 151
     PROJECT_QUOTA_REMOVE = 152
 
+    ALERT_RULE_ADD = 160
+    ALERT_RULE_EDIT = 161
+    ALERT_RULE_REMOVE = 162
+
 
 class AuditLogEntry(Model):
     __include_in_export__ = False
@@ -188,6 +192,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.APIKEY_ADD, "api-key.create"),
             (AuditLogEntryEvent.APIKEY_EDIT, "api-key.edit"),
             (AuditLogEntryEvent.APIKEY_REMOVE, "api-key.remove"),
+            (AuditLogEntryEvent.ALERT_RULE_ADD, "alertrule.create"),
+            (AuditLogEntryEvent.ALERT_RULE_EDIT, "alertrule.edit"),
+            (AuditLogEntryEvent.ALERT_RULE_REMOVE, "alertrule.remove"),
             (AuditLogEntryEvent.RULE_ADD, "rule.create"),
             (AuditLogEntryEvent.RULE_EDIT, "rule.edit"),
             (AuditLogEntryEvent.RULE_REMOVE, "rule.remove"),
@@ -376,6 +383,13 @@ class AuditLogEntry(Model):
             return "edited api key {}".format(self.data["label"])
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
             return "removed api key {}".format(self.data["label"])
+
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_ADD:
+            return 'added metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_EDIT:
+            return 'edited metric alert rule "{}"'.format(self.data["label"])
+        elif self.event == AuditLogEntryEvent.ALERT_RULE_REMOVE:
+            return 'removed metric alert rule "{}"'.format(self.data["label"])
 
         elif self.event == AuditLogEntryEvent.RULE_ADD:
             return 'added rule "{}"'.format(self.data["label"])

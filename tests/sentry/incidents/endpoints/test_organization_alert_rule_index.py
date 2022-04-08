@@ -13,7 +13,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Rule, RuleFireHistory
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Rule, RuleFireHistory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -109,6 +109,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+        audit_log_entry = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.ALERT_RULE_ADD, target_object=alert_rule.id
+        )
+        assert len(audit_log_entry) == 1
 
     def test_sentry_app(self):
         other_org = self.create_organization(owner=self.user)
