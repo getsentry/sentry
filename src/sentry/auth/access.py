@@ -114,7 +114,7 @@ class Access(abc.ABC):
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=self.member, is_active=True, team__status=TeamStatus.VISIBLE
-            )
+            ).select_related("team")
         }
 
     @cached_property
