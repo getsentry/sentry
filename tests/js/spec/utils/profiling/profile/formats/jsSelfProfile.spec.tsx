@@ -1,4 +1,4 @@
-import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
+import {JSSelfProfile} from 'sentry/utils/profiling/profile/formats/jsSelfProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {firstCallee, makeTestingBoilerplate, nthCallee} from './profile.spec';

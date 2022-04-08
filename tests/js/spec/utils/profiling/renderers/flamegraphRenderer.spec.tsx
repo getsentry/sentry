@@ -5,7 +5,7 @@ import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraph
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {EventedProfile} from 'sentry/utils/profiling/profile/formats/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 

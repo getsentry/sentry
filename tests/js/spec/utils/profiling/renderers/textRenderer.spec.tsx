@@ -3,7 +3,7 @@ import {mat3} from 'gl-matrix';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {EventedProfile} from 'sentry/utils/profiling/profile/formats/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {isOutsideView, TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 

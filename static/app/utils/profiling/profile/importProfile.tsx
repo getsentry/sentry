@@ -9,15 +9,13 @@ import {
   isJSProfile,
   isSampledProfile,
   isSchema,
-  isTypeScriptTypesJSONFile,
 } from '../guards/profile';
 
-import {importTypeScriptTypesJSON} from './typescript/importTypeScriptTypesJSON';
-import {ChromeTraceProfile, parseChromeTraceArrayFormat} from './chromeTraceProfile';
-import {EventedProfile} from './eventedProfile';
-import {JSSelfProfile} from './jsSelfProfile';
+import {ChromeTraceProfile, importChromeTraceProfile} from './formats/chromeTraceProfile';
+import {EventedProfile} from './formats/eventedProfile';
+import {JSSelfProfile} from './formats/jsSelfProfile';
+import {SampledProfile} from './formats/sampledProfile';
 import {Profile} from './profile';
-import {SampledProfile} from './sampledProfile';
 import {createFrameIndex, wrapWithSpan} from './utils';
 
 export interface ImportOptions {
@@ -31,40 +29,7 @@ export interface ProfileGroup {
   traceID: string;
 }
 
-export function importProfile(
-  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
-  traceID: string
-): ProfileGroup {
-  const transaction = Sentry.startTransaction({
-    op: 'import',
-    name: 'profiles.import',
-  });
-
-  try {
-    if (isJSProfile(input)) {
-      transaction.setTag('profile.type', 'js-self-profile');
-      return importJSSelfProfile(input, traceID, {transaction});
-    }
-
-    if (isChromeTraceFormat(input)) {
-      transaction.setTag('profile.type', 'chrometrace');
-      return importChromeTrace(input, traceID, {transaction});
-    }
-
-    if (isSchema(input)) {
-      transaction.setTag('profile.type', 'schema');
-      return importSchema(input, traceID, {transaction});
-    }
-
-    throw new Error('Unsupported trace format');
-  } catch (error) {
-    transaction.setStatus('internal_error');
-    throw error;
-  } finally {
-    transaction.finish();
-  }
-}
-
+// Importing functionality for each profile type.
 function importJSSelfProfile(
   input: JSSelfProfiling.Trace,
   traceID: string,
@@ -77,39 +42,6 @@ function importJSSelfProfile(
     name: traceID,
     activeProfileIndex: 0,
     profiles: [importSingleProfile(input, frameIndex, options)],
-  };
-}
-
-function importChromeTrace(
-  input: ChromeTrace.ProfileType,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  if (isChromeTraceObjectFormat(input)) {
-    throw new Error('Chrometrace object format is not yet supported');
-  }
-
-  if (isChromeTraceArrayFormat(input)) {
-    return parseChromeTraceArrayFormat(input, traceID, options);
-  }
-
-  throw new Error('Failed to parse trace input format');
-}
-
-function importSchema(
-  input: Profiling.Schema,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  const frameIndex = createFrameIndex(input.shared.frames);
-
-  return {
-    traceID,
-    name: input.name,
-    activeProfileIndex: input.activeProfileIndex ?? 0,
-    profiles: input.profiles.map(profile =>
-      importSingleProfile(profile, frameIndex, options)
-    ),
   };
 }
 
@@ -149,72 +81,63 @@ function importSingleProfile(
     );
   }
 
+  if (isChromeTraceFormat(profile)) {
+    return wrapWithSpan(transaction, () => ChromeTraceProfile.FromProfile(), {
+      op: 'profile.import',
+      description: 'js-self-profile',
+    });
+  }
+
   throw new Error('Unrecognized trace format');
 }
 
-const tryParseInputString: JSONParser = input => {
-  try {
-    return [JSON.parse(input), null];
-  } catch (e) {
-    return [null, e];
-  }
-};
-
-type JSONParser = (input: string) => [any, null] | [null, Error];
-
-const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
-  (input: string) => tryParseInputString(input),
-  (input: string) => tryParseInputString(input + ']'),
-];
-
-function readFileAsString(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener('load', (e: ProgressEvent<FileReader>) => {
-      if (typeof e.target?.result === 'string') {
-        resolve(e.target.result);
-        return;
-      }
-
-      reject('Failed to read string contents of input file');
-    });
-
-    reader.addEventListener('error', () => {
-      reject('Failed to read string contents of input file');
-    });
-
-    reader.readAsText(file);
+export function importProfile(
+  input: Profiling.Schema | JSSelfProfiling.Trace | ChromeTrace.ProfileType,
+  traceID: string
+): ProfileGroup {
+  const transaction = Sentry.startTransaction({
+    op: 'import',
+    name: 'profiles.import',
   });
+
+  try {
+    if (isJSProfile(input)) {
+      transaction.setTag('profile.type', 'js-self-profile');
+      return importJSSelfProfile(input, traceID, {transaction});
+    }
+
+    if (isChromeTraceFormat(input)) {
+      transaction.setTag('profile.type', 'chrometrace');
+      return importChromeTraceProfile(input, traceID, {transaction});
+    }
+
+    if (isSchema(input)) {
+      transaction.setTag('profile.type', 'schema');
+      return importSchema(input, traceID, {transaction});
+    }
+
+    throw new Error('Unsupported trace format');
+  } catch (error) {
+    transaction.setStatus('internal_error');
+    throw error;
+  } finally {
+    transaction.finish();
+  }
 }
 
-export async function importDroppedFile(
-  file: File,
-  parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileGroup | TypeScriptTypes.TypeTree> {
-  const fileContents = await readFileAsString(file);
+function importSchema(
+  input: Profiling.Schema,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createFrameIndex(input.shared.frames);
 
-  for (const parser of parsers) {
-    const [json] = parser(fileContents);
-
-    if (json) {
-      if (typeof json !== 'object' || json === null) {
-        throw new TypeError('Input JSON is not an object');
-      }
-
-      try {
-        return importProfile(json, file.name);
-      } catch (e) {
-        // Fallthrough
-      }
-
-      try {
-        return importTypeScriptTypesJSON(json);
-      } catch (e) {
-        // Fallthrough
-      }
-    }
-  }
-
-  throw new Error('Failed to parse input JSON');
+  return {
+    traceID,
+    name: input.name,
+    activeProfileIndex: input.activeProfileIndex ?? 0,
+    profiles: input.profiles.map(profile =>
+      importSingleProfile(profile, frameIndex, options)
+    ),
+  };
 }

@@ -8,19 +8,43 @@
  * to color encode by the program/bind/check/emit phases.
  */
 import {Frame} from 'sentry/utils/profiling/frame';
+import {
+  isChromeTraceArrayFormat,
+  isChromeTraceObjectFormat,
+} from 'sentry/utils/profiling/guards/profile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {wrapWithSpan} from 'sentry/utils/profiling/profile/utils';
 
+import {ImportOptions, ProfileGroup} from '../importProfile';
+
 import {EventedProfile} from './eventedProfile';
-import {ImportOptions, ProfileGroup} from './importProfile';
+
+export function importChromeTraceProfile(
+  input: ChromeTrace.ProfileType,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  if (isChromeTraceObjectFormat(input)) {
+    throw new Error('Chrometrace object format is not yet supported');
+  }
+
+  if (isChromeTraceArrayFormat(input)) {
+    return parseChromeTraceArrayFormat(input, traceID, options);
+  }
+
+  throw new Error('Failed to parse chrometrace input format');
+}
 
 export class ChromeTraceProfile extends EventedProfile {
   static FromArrayProfile(
     processId: string,
     threadId: string,
     profile: ChromeTrace.ArrayFormat
-  ): ChromeTraceProfile {
+  ) {
     return buildChromeTraceArrayProfile(processId, threadId, profile);
+  }
+  static FromObjectProfile() {
+    throw new Error('Chrometrace object format is not yet supported');
   }
 }
 export class TypeScriptProfile extends ChromeTraceProfile {
@@ -96,7 +120,7 @@ function buildChromeTraceArrayProfile(
   processId: string,
   threadId: string,
   events: ChromeTrace.ArrayFormat
-): ChromeTraceProfile {
+): ChromeTraceProfile | TypeScriptProfile {
   let processName: string = `pid (${processId})`;
   let threadName: string = `tid (${threadId})`;
 
@@ -158,18 +182,23 @@ function buildChromeTraceArrayProfile(
     throw new Error('First begin event contains no timestamp');
   }
 
-  const ProfileConstructor =
-    beginQueue[beginQueue.length - 1].name === 'createProgram'
-      ? TypeScriptProfile
-      : ChromeTraceProfile;
-
-  const profile = new ProfileConstructor(
+  let profile: TypeScriptProfile | ChromeTraceProfile = new ChromeTraceProfile(
     0,
     0,
     0,
     `${processName}: ${threadName}`,
     'microseconds'
   );
+
+  if (beginQueue[beginQueue.length - 1].name === 'createProgram') {
+    profile = new TypeScriptProfile(
+      0,
+      0,
+      0,
+      `${processName}: ${threadName}`,
+      'microseconds'
+    );
+  }
 
   const stack: ChromeTrace.Event[] = [];
   const frameCache = new Map<string | number, Frame>();

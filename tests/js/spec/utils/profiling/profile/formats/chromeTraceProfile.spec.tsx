@@ -2,7 +2,7 @@ import {
   ChromeTraceProfile,
   splitEventsByProcessAndTraceId,
   TypeScriptProfile,
-} from 'sentry/utils/profiling/profile/chromeTraceProfile';
+} from 'sentry/utils/profiling/profile/formats/chromeTraceProfile';
 
 describe('splitEventsByProcessAndTraceId', () => {
   it('splits by thread id', () => {

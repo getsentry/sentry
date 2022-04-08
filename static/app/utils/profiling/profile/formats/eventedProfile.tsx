@@ -2,18 +2,18 @@ import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import {Profile} from '../profile';
+import {createFrameIndex} from '../utils';
 
 export class EventedProfile extends Profile {
   appendOrderStack: CallTreeNode[] = [this.appendOrderTree];
   stack: Frame[] = [];
   lastValue = 0;
 
-  static FromProfile(
+  static FromProfile<T extends EventedProfile = EventedProfile>(
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
-  ): EventedProfile {
+  ): T {
     const {startValue, endValue, name, unit} = eventedProfile;
 
     const profile = new EventedProfile(
@@ -52,7 +52,7 @@ export class EventedProfile extends Profile {
       }
     }
 
-    return profile.build();
+    return profile.build() as T;
   }
 
   addWeightToFrames(weight: number): void {

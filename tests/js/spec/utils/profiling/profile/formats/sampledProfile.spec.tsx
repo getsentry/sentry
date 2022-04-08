@@ -1,4 +1,4 @@
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
+import {SampledProfile} from 'sentry/utils/profiling/profile/formats/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {firstCallee, makeTestingBoilerplate} from './profile.spec';

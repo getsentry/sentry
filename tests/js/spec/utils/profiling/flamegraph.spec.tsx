@@ -1,6 +1,6 @@
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {EventedProfile} from 'sentry/utils/profiling/profile/formats/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 const makeEmptyEventedTrace = (): EventedProfile => {

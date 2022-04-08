@@ -2,10 +2,10 @@ import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
-import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
-import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import {stackMarkerToHumanReadable} from '../../formatters/stackMarkerToHumanReadable';
+import {resolveJSSelfProfilingStack} from '../../jsSelfProfiling';
+import {Profile} from '../profile';
+import {createFrameIndex} from '../utils';
 
 export class JSSelfProfile extends Profile {
   static FromProfile(

@@ -101,9 +101,19 @@ function getTypeFlags(flags: readonly string[]): readonly TypeScriptTypes.TypeFl
 }
 
 /// ///////////////// End of copied code //////////////////////////
+
 function getChildrenTypesToVisit(node: TypeScriptTypes.TypeDescriptor): number[] {
   return node?.unionTypes ?? node?.intersectionTypes ?? node.typeArguments ?? [];
 }
+
+function getTypeName(node: TypeScriptTypes.TypeDescriptor): string | undefined {
+  return node.display || node.intrinsicName || node.symbolName;
+}
+
+export const TS_SYMBOLS: Partial<Record<TypeScriptTypes.TypeFlag, string>> = {
+  Union: '|',
+  Intersection: '&',
+};
 class TypeTree implements TypeScriptTypes.TypeTree {
   tree = {};
 
@@ -151,15 +161,6 @@ class TypeTree implements TypeScriptTypes.TypeTree {
     return this.tree[type.id];
   }
 }
-
-function getTypeName(node: TypeScriptTypes.TypeDescriptor): string | undefined {
-  return node.display || node.intrinsicName || node.symbolName;
-}
-
-export const TS_SYMBOLS: Partial<Record<TypeScriptTypes.TypeFlag, string>> = {
-  Union: '|',
-  Intersection: '&',
-};
 
 export function getResolvedTypescriptTypeName(
   resolvedTree: TypeScriptTypes.ResolvedTree,
