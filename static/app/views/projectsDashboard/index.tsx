@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
@@ -51,8 +51,8 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
   }, []);
   const [projectQuery, setProjectQuery] = useState('');
   const [currentTeam, setCurrentTeam] = useState('');
-  const debouncedSearchQuery = useMemo(
-    () => debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
+  const debouncedSearchQuery = useCallback(
+    debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
     []
   );
 
