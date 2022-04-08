@@ -1014,7 +1014,7 @@ function WidgetBuilder({
                         widgetType={widgetType}
                       />
                     )}
-                    {notDashboardsOrigin && (
+                    {notDashboardsOrigin && !widgetBuilderNewDesign && (
                       <DashboardStep
                         error={state.errors?.dashboard}
                         dashboards={state.dashboards}
