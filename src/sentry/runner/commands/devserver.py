@@ -82,11 +82,6 @@ def _get_daemon(name, *args, **kwargs):
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
-@click.option(
-    "--ingest-profiles/--no-ingest-profiles",
-    default=False,
-    help="This enables ingesting profiles with the profiles consumer",
-)
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
@@ -104,7 +99,6 @@ def devserver(
     environment,
     debug_server,
     bind,
-    ingest_profiles,
 ):
     "Starts a lightweight web server for development."
 
@@ -260,7 +254,7 @@ def devserver(
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
 
-        if ingest_profiles or settings.SENTRY_USE_PROFILING:
+        if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
 
     if needs_https and has_https:
