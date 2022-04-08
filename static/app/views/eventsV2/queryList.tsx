@@ -103,20 +103,27 @@ class QueryList extends React.Component<Props> {
     const defaultTableFields = eventView.fields.map(({field}) => field);
     const {columns, aggregates} = getColumnsAndAggregates(defaultTableFields);
     const sort = eventView.sorts[0];
+    let yAxis;
+    if (savedQuery?.yAxis) {
+      // TODO does this need to be an array
+      yAxis = savedQuery.yAxis;
+    } else if (eventView.yAxis) {
+      yAxis = [eventView.yAxis];
+    } else {
+      yAxis = ['count()'];
+    }
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
       aggregates: [
         ...(displayType === DisplayType.TOP_N ? aggregates : []),
-        ...(typeof savedQuery?.yAxis === 'string'
-          ? [savedQuery?.yAxis]
-          : savedQuery?.yAxis ?? ['count()']),
+        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
       ],
       columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
       fields: [
         ...(displayType === DisplayType.TOP_N ? defaultTableFields : []),
-        ...(typeof savedQuery?.yAxis === 'string'
-          ? [savedQuery?.yAxis]
-          : savedQuery?.yAxis ?? ['count()']),
+        ...(typeof savedQuery?.yAxis === 'string' ? [savedQuery?.yAxis] : yAxis),
+        // HACK: All Events sorts by timestamp and needs to be injected
+        ...(!savedQuery && eventView.name === 'All Events' ? ['timestamp'] : []),
       ],
       conditions: eventView.query,
       orderby: sort ? `${sort.kind === 'desc' ? '-' : ''}${sort.field}` : '',
@@ -127,8 +134,7 @@ class QueryList extends React.Component<Props> {
       saved_query: !!savedQuery,
     });
 
-    const defaultTitle =
-      savedQuery?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+    const defaultTitle = savedQuery?.name ?? eventView.name;
 
     if (organization.features.includes('new-widget-builder-experience')) {
       const widgetAsQueryParams = {
