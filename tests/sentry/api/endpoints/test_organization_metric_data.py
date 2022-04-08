@@ -10,7 +10,11 @@ from freezegun import freeze_time
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.public import (
+    SessionMetricKey,
+    TransactionMetricKey,
+    TransactionSatisfactionTagValue,
+)
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -985,6 +989,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.tx_status = indexer.record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
         self.transaction_lcp_metric = indexer.record(
             self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
+        )
+        self.tx_satisfaction = indexer.record(
+            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
@@ -1966,6 +1973,67 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
                 "or a supported aggregate derived metric like `session.crash_free_rate"
             )
+
+    def test_apdex_transactions(self):
+        # See https://docs.sentry.io/product/performance/metrics/#apdex
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [3.4],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [0.3],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
+                        ),
+                    },
+                    "type": "d",
+                    "value": [2.3],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_distributions",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.apdex"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        assert response.data["groups"][0]["totals"] == {"transaction.apdex": 0.6666666666666666}
 
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id

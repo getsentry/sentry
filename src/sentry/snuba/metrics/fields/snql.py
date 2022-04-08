@@ -3,7 +3,11 @@ from typing import List
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.utils import resolve_weak
-from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
+from sentry.snuba.metrics.naming_layer.public import (
+    TransactionSatisfactionTagValue,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 
 
 def _aggregation_on_session_status_func_factory(aggregate):
@@ -90,6 +94,42 @@ def _dist_count_aggregation_on_tx_status_factory(
 ):
     return _aggregation_on_tx_status_func_factory("countIf")(
         org_id, exclude_tx_statuses, metric_ids, alias
+    )
+
+
+def _aggregation_on_tx_satisfaction_func_factory(aggregate):
+    def _snql_on_tx_satisfaction_factory(org_id, satisfaction_value: str, metric_ids, alias=None):
+        return Function(
+            aggregate,
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(org_id, satisfaction_value),
+                            ],
+                        ),
+                        Function("in", [Column("metric_id"), list(metric_ids)]),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    return _snql_on_tx_satisfaction_factory
+
+
+def _dist_count_aggregation_on_tx_satisfaction_factory(
+    org_id, satisfaction: str, metric_ids, alias=None
+):
+    return _aggregation_on_tx_satisfaction_func_factory("countIf")(
+        org_id, satisfaction, metric_ids, alias
     )
 
 
@@ -181,12 +221,22 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
     )
 
 
-def failure_rate_transaction(failure_count_snql, tx_count_snql, alias=None):
-    return Function(
-        "divide",
-        # Clickhouse can manage divisions by 0, see:
-        # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions/#dividea-b-a-b-operator
-        [failure_count_snql, tx_count_snql],
+def satisfaction_count_transaction(org_id, metric_ids, alias=None):
+    return _dist_count_aggregation_on_tx_satisfaction_factory(
+        org_id, TransactionSatisfactionTagValue.SATISFIED.value, metric_ids, alias
+    )
+
+
+def tolerated_count_transaction(org_id, metric_ids, alias=None):
+    return _dist_count_aggregation_on_tx_satisfaction_factory(
+        org_id, TransactionSatisfactionTagValue.TOLERATED.value, metric_ids, alias
+    )
+
+
+def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
+    return division_float(
+        arg1_snql=addition(satifactory_snql, division_float(tolerable_snql, 2)),
+        arg2_snql=total_snql,
         alias=alias,
     )
 
@@ -201,6 +251,16 @@ def subtraction(arg1_snql, arg2_snql, alias=None):
 
 def addition(arg1_snql, arg2_snql, alias=None):
     return Function("plus", [arg1_snql, arg2_snql], alias)
+
+
+def division_float(arg1_snql, arg2_snql, alias=None):
+    return Function(
+        "divide",
+        # Clickhouse can manage divisions by 0, see:
+        # https://clickhouse.com/docs/en/sql-reference/functions/arithmetic-functions/#dividea-b-a-b-operator
+        [arg1_snql, arg2_snql],
+        alias=alias,
+    )
 
 
 def session_duration_filters(org_id):

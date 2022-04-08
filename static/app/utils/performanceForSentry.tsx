@@ -66,7 +66,11 @@ class LongTaskObserver {
           });
         });
       });
-      transaction.registerBeforeFinishCallback(t => {
+
+      if (!transaction) {
+        return null;
+      }
+      transaction?.registerBeforeFinishCallback?.(t => {
         if (!browserPerformanceTimeOrigin) {
           return;
         }
