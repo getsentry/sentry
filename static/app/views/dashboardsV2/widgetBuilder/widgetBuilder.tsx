@@ -289,13 +289,13 @@ function WidgetBuilder({
     }
 
     if (widgetBuilderNewDesign) {
-      setState({
-        ...state,
+      setState(prevState => ({
+        ...prevState,
         selectedDashboard: {
           label: dashboard.title,
           value: dashboard.id === '' ? 'new' : dashboard.id,
         },
-      });
+      }));
     }
   }, [source]);
 
