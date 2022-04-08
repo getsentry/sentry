@@ -38,16 +38,19 @@ from sentry.snuba.metrics.fields.snql import (
     all_sessions,
     all_transactions,
     all_users,
+    apdex,
     crashed_sessions,
     crashed_users,
+    division_float,
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
-    failure_rate_transaction,
     percentage,
+    satisfaction_count_transaction,
     session_duration_filters,
     sessions_errored_set,
     subtraction,
+    tolerated_count_transaction,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -906,8 +909,36 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
                 TransactionMRI.ALL.value,
             ],
             unit="transactions",
-            snql=lambda *args, org_id, metric_ids, alias=None: failure_rate_transaction(
-                *args, alias=alias
+            snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
+                failure_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.SATISFIED.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: satisfaction_count_transaction(
+                org_id=org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.TOLERATED.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda *_, org_id, metric_ids, alias=None: tolerated_count_transaction(
+                org_id=org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_name=TransactionMRI.APDEX.value,
+            metrics=[
+                TransactionMRI.SATISFIED.value,
+                TransactionMRI.TOLERATED.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="percentage",
+            snql=lambda satisfied, tolerated, total, org_id, metric_ids, alias=None: apdex(
+                satisfied, tolerated, total, alias=alias
             ),
         ),
     ]

@@ -470,8 +470,8 @@ describe('WidgetBuilder', function () {
       'color:blue{enter}'
     );
 
-    userEvent.click(screen.getByText('Select a dashboard'));
-    userEvent.click(screen.getByText('Test Dashboard'));
+    await selectEvent.select(screen.getByText('Select a dashboard'), 'Test Dashboard');
+
     userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
@@ -512,9 +512,8 @@ describe('WidgetBuilder', function () {
     expect(countFields).toHaveLength(2);
 
     await selectEvent.select(countFields[1], ['last_seen()']);
+    await selectEvent.select(screen.getByText('Select a dashboard'), 'Test Dashboard');
 
-    userEvent.click(screen.getByText('Select a dashboard'));
-    userEvent.click(screen.getByText('Test Dashboard'));
     userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
@@ -644,7 +643,7 @@ describe('WidgetBuilder', function () {
     expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
   });
 
-  it('can edit a widget', async function () {
+  it('sets up widget data in edit correctly', async function () {
     const widget: Widget = {
       id: '1',
       title: 'Errors over time',
@@ -678,9 +677,7 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    const handleSave = jest.fn();
-
-    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
+    renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
     await screen.findByText('Line Chart');
 
@@ -726,6 +723,50 @@ describe('WidgetBuilder', function () {
         }),
       })
     );
+  });
+
+  it('can edit a widget', async function () {
+    const widget: Widget = {
+      id: '1',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+        {
+          name: 'csp',
+          conditions: 'event.type:csp',
+          fields: ['count()', 'count_unique(id)'],
+          aggregates: ['count()', 'count_unique(id)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
+
+    await screen.findByText('Line Chart');
+
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
 
     const customWidgetLabels = await screen.findAllByText(widget.title);
     // EditableText and chart title
@@ -733,10 +774,7 @@ describe('WidgetBuilder', function () {
     userEvent.click(customWidgetLabels[0]);
 
     userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.type(
-      screen.getByRole('textbox', {name: 'Widget title'}),
-      'New Title{enter}'
-    );
+    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'New Title');
 
     userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 
@@ -778,9 +816,7 @@ describe('WidgetBuilder', function () {
       widgets: [widget],
     };
 
-    const handleSave = jest.fn();
-
-    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
+    renderTestComponent({dashboard, params: {widgetIndex: '0'}});
 
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
@@ -793,6 +829,42 @@ describe('WidgetBuilder', function () {
     // Should have an orderby select
     expect(screen.getByText('Sort by a column')).toBeInTheDocument();
 
+    // Add a column, and choose a value,
+    expect(screen.getByLabelText('Add a Column')).toBeInTheDocument();
+  });
+
+  it('can save table widgets', async function () {
+    const widget: Widget = {
+      id: '0',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['sdk.name', 'count()'],
+          columns: ['sdk.name'],
+          aggregates: ['count()'],
+          orderby: '',
+        },
+      ],
+    };
+
+    const dashboard: DashboardDetails = {
+      id: '1',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+    };
+
+    const handleSave = jest.fn();
+
+    renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
+
+    // Should be in edit 'mode'
+    expect(await screen.findByText('Update Widget')).toBeInTheDocument();
     // Add a column, and choose a value,
     userEvent.click(screen.getByLabelText('Add a Column'));
     await selectEvent.select(screen.getByText('(Required)'), 'trace');
@@ -1366,14 +1438,7 @@ describe('WidgetBuilder', function () {
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
 
-      // Click on the "sortBy" selector
-      userEvent.click(screen.getAllByText('count()')[2]);
-
-      // menu of the "sortBy" selector is being displayed
-      expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
-
-      // Click on the second option of the "sortBy" selector
-      userEvent.click(screen.getAllByText('count_unique(id)')[1]);
+      await selectEvent.select(screen.getAllByText('count()')[2], 'count_unique(id)');
 
       // Wait for the Builder update the widget values
       await waitFor(() => {
@@ -1383,11 +1448,7 @@ describe('WidgetBuilder', function () {
       // Now count_unique(id) is selected in the "sortBy" selector
       expect(screen.getAllByText('count_unique(id)')).toHaveLength(2);
 
-      // Click on the "sortDirection" selector
-      userEvent.click(screen.getByText('High to low'));
-
-      // Select the other option
-      userEvent.click(screen.getByText('Low to high'));
+      await selectEvent.select(screen.getByText('High to low'), 'Low to high');
 
       // Saves the widget
       userEvent.click(screen.getByText('Update Widget'));
@@ -1460,8 +1521,10 @@ describe('WidgetBuilder', function () {
         )
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Select a dashboard'));
-      userEvent.click(screen.getByText('+ Create New Dashboard'));
+      await selectEvent.select(
+        screen.getByText('Select a dashboard'),
+        '+ Create New Dashboard'
+      );
       userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() => {
