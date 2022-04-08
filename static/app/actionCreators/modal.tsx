@@ -41,10 +41,10 @@ export function closeModal() {
 }
 
 type OpenSudoModalOptions = {
+  isSuperuser?: boolean;
   onClose?: () => void;
   retryRequest?: () => Promise<any>;
   sudo?: boolean;
-  superuser?: boolean;
 };
 
 type emailVerificationModalOptions = {
