@@ -339,6 +339,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     """
 
     permission_classes = [StrictProjectPermission]
+    private = True
     enforce_rate_limit = True
 
     # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h
