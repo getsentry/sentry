@@ -74,6 +74,8 @@ class TransactionMetricKey(Enum):
     FAILURE_RATE = "transaction.failure_rate"
 
 
+# TODO: these tag keys and values below probably don't belong here, and should
+# be moved to another more private file.
 class TransactionTagsKey(Enum):
     """Identifier for a transaction-related tag."""
 
