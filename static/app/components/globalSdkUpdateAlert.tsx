@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Alert, {AlertProps} from 'sentry/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -41,7 +41,7 @@ function InnerGlobalSdkUpdateAlert(
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelActions.activatePanel(SidebarPanelKey.Broadcasts);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
     trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
   }, []);
 

@@ -1,5 +1,5 @@
 ---
-created: '2022-03-29T08:56:52.712372Z'
+created: '2022-04-07T11:02:02.860359Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -14,30 +14,30 @@ breakdownsV2:
 transactionMetrics:
   extractCustomTags: []
   extractMetrics:
-  - sentry.transactions.transaction.duration
-  - sentry.transactions.user
-  - sentry.transactions.measurements.app_start_cold
-  - sentry.transactions.measurements.app_start_warm
-  - sentry.transactions.measurements.cls
-  - sentry.transactions.measurements.fcp
-  - sentry.transactions.measurements.fid
-  - sentry.transactions.measurements.fp
-  - sentry.transactions.measurements.frames_frozen
-  - sentry.transactions.measurements.frames_frozen_rate
-  - sentry.transactions.measurements.frames_slow
-  - sentry.transactions.measurements.frames_slow_rate
-  - sentry.transactions.measurements.frames_total
-  - sentry.transactions.measurements.lcp
-  - sentry.transactions.measurements.stall_count
-  - sentry.transactions.measurements.stall_longest_time
-  - sentry.transactions.measurements.stall_percentage
-  - sentry.transactions.measurements.stall_total_time
-  - sentry.transactions.measurements.ttfb
-  - sentry.transactions.measurements.ttfb.requesttime
-  - sentry.transactions.breakdowns.span_ops.ops.http
-  - sentry.transactions.breakdowns.span_ops.ops.db
-  - sentry.transactions.breakdowns.span_ops.ops.browser
-  - sentry.transactions.breakdowns.span_ops.ops.resource
+  - d:transactions/duration@millisecond
+  - s:transactions/user@none
+  - d:transactions/measurements.app_start_cold@millisecond
+  - d:transactions/measurements.app_start_warm@millisecond
+  - d:transactions/measurements.cls@millisecond
+  - d:transactions/measurements.fcp@millisecond
+  - d:transactions/measurements.fid@millisecond
+  - d:transactions/measurements.fp@millisecond
+  - d:transactions/measurements.frames_frozen@none
+  - d:transactions/measurements.frames_frozen_rate@ratio
+  - d:transactions/measurements.frames_slow@none
+  - d:transactions/measurements.frames_slow_rate@ratio
+  - d:transactions/measurements.frames_total@none
+  - d:transactions/measurements.lcp@millisecond
+  - d:transactions/measurements.stall_count@none
+  - d:transactions/measurements.stall_longest_time@millisecond
+  - d:transactions/measurements.stall_percentage@percent
+  - d:transactions/measurements.stall_total_time@millisecond
+  - d:transactions/measurements.ttfb.requesttime@millisecond
+  - d:transactions/measurements.ttfb@millisecond
+  - d:transactions/breakdowns.ops.http
+  - d:transactions/breakdowns.ops.db
+  - d:transactions/breakdowns.ops.browser
+  - d:transactions/breakdowns.ops.resource
   satisfactionThresholds:
     projectThreshold:
       metric: duration

@@ -49,10 +49,9 @@ function useProfiles({
 
   useEffect(() => {
     if (selection === undefined) {
-      return;
+      return undefined;
     }
 
-    api.clear();
     setRequestState('loading');
 
     fetchTraces(api, query, cursor, organization, selection)
@@ -62,6 +61,8 @@ function useProfiles({
         setRequestState('resolved');
       })
       .catch(() => setRequestState('errored'));
+
+    return () => api.clear();
   }, [api, query, cursor, organization, selection]);
 
   return [requestState, traces, pageLinks];
