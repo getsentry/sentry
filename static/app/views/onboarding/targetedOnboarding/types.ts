@@ -1,5 +1,6 @@
 import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {usePersistedStore} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
 
 export type StepData = {
@@ -43,4 +44,12 @@ export function fetchClientState(api: Client, orgSlug: string): Promise<ClientSt
       lastState.selectedPlatforms = lastState.selectedPlatforms || [];
       return lastState;
     });
+}
+
+export function useOnboardingState(): [ClientState, (next: ClientState | null) => void] {
+  const [state, setState] = usePersistedStore<ClientState>('onboarding');
+  const onboardingState: any = state || {};
+  onboardingState.platformToProjectIdMap = onboardingState.platformToProjectIdMap || {};
+  onboardingState.selectedPlatforms = onboardingState.selectedPlatforms || [];
+  return [onboardingState, setState];
 }
