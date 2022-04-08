@@ -9,6 +9,7 @@ import {
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -21,7 +22,6 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {DashboardListItem, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 export type AddToDashboardModalProps = {
   organization: Organization;
@@ -75,14 +75,21 @@ function AddToDashboardModal({
       const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
       console.log('dashboard', dashboard);
       console.log(widget);
-      const newDashboard = {...dashboard, widgets: [...dashboard.widgets, widget]};
+      const newDashboard = {
+        ...dashboard,
+        widgets: [
+          ...dashboard.widgets,
+          {...widget, title: widget.title === '' ? 'All Events' : widget.title},
+        ],
+      };
 
       const response = await updateDashboard(api, organization.slug, newDashboard);
       console.log('response', response);
 
       closeModal();
+      addSuccessMessage(t('Successfully added widget to dashboard'));
     } catch (e) {
-      addErrorMessage('Something went wrong');
+      addErrorMessage(t('Something went wrong'));
     }
   }
 
