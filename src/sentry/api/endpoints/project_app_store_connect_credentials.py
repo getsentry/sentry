@@ -324,7 +324,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
-class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
+class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
