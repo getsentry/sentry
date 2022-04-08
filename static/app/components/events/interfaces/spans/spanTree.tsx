@@ -10,7 +10,7 @@ import {Organization} from 'sentry/types';
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar from './spanGroupBar';
+import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
@@ -20,7 +20,7 @@ import {
   ParsedTraceType,
   SpanType,
 } from './types';
-import {getSpanID, getSpanOperation} from './utils';
+import {getSpanID, getSpanOperation, setSpansOnTransaction} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -33,6 +33,10 @@ type PropType = ScrollbarManagerChildrenProps & {
 };
 
 class SpanTree extends React.Component<PropType> {
+  componentDidMount() {
+    setSpansOnTransaction(this.props.spans.length);
+  }
+
   shouldComponentUpdate(nextProps: PropType) {
     if (
       this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
@@ -209,7 +213,7 @@ class SpanTree extends React.Component<PropType> {
 
         if (payload.type === 'span_group_chain') {
           acc.spanTree.push(
-            <SpanGroupBar
+            <SpanDescendantGroupBar
               key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}
@@ -238,6 +242,7 @@ class SpanTree extends React.Component<PropType> {
               spanGrouping={payload.spanSiblingGrouping as EnhancedSpan[]}
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               isLastSibling={payload.isLastSibling ?? false}
+              occurrence={payload.occurrence}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -258,7 +263,9 @@ class SpanTree extends React.Component<PropType> {
           toggleSpanGroup = payload.toggleNestedSpanGroup;
         }
 
-        let toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined = undefined;
+        let toggleSiblingSpanGroup:
+          | ((span: SpanType, occurrence: number) => void)
+          | undefined = undefined;
         if (payload.type === 'span' && payload.isFirstSiblingOfGroup) {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
@@ -295,6 +302,7 @@ class SpanTree extends React.Component<PropType> {
             toggleSpanGroup={toggleSpanGroup}
             numOfSpans={numOfSpans}
             groupType={groupType}
+            groupOccurrence={payload.groupOccurrence}
           />
         );
 

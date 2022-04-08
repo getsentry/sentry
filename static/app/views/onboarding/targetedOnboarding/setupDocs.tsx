@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,15 +15,16 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
-import FullIntroduction from 'sentry/views/onboarding/components/fullIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
+import FullIntroduction from './components/fullIntroduction';
 import TargetedOnboardingSidebar from './components/sidebar';
-import {StepProps} from './types';
+import {ClientState, fetchClientState, StepProps} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -39,6 +41,16 @@ type Props = {
 
 function SetupDocs({organization, projects, search}: Props) {
   const api = useApi();
+  const [clientState, setClientState] = useState<ClientState | null>(null);
+  const selectedProjectsSet = new Set(
+    clientState?.selectedPlatforms.map(
+      platform => clientState.platformToProjectIdMap[platform]
+    ) || []
+  );
+  useEffect(() => {
+    fetchClientState(api, organization.slug).then(setClientState);
+  }, []);
+
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
@@ -57,11 +69,21 @@ function SetupDocs({organization, projects, search}: Props) {
   const {sub_step: rawSubStep, project_id: rawProjectId} = qs.parse(search);
   const subStep = rawSubStep === 'integration' ? 'integration' : 'project';
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(p => !checkProjectHasFirstEvent(p));
+  const firstProjectNoError = projects.findIndex(
+    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
+  );
+  // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
-  const {platform} = project || {};
-  const currentPlatform = loadedPlatform ?? platform ?? 'other';
+
+  useEffect(() => {
+    if (clientState && !project) {
+      // Can't find a project to show, probably because all projects are either deleted or finished.
+      browserHistory.push('/');
+    }
+  }, [clientState, project]);
+
+  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const fetchData = async () => {
     // const {platform} = project || {};
@@ -101,6 +123,15 @@ function SetupDocs({organization, projects, search}: Props) {
     browserHistory.push(`${window.location.pathname}?${searchParams}`);
   };
 
+  const selectProject = (newProjectId: string) => {
+    const matchedProject = projects.find(p => p.id === newProjectId);
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_project_in_sidebar', {
+      organization,
+      platform: matchedProject?.platform || 'unknown',
+    });
+    setNewProject(newProjectId);
+  };
+
   const missingExampleWarning = () => {
     const missingExample =
       platformDocs && platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
@@ -129,6 +160,49 @@ function SetupDocs({organization, projects, search}: Props) {
     <DocsWrapper key={platformDocs.html}>
       <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
       {missingExampleWarning()}
+    </DocsWrapper>
+  );
+
+  const loadingError = (
+    <LoadingError
+      message={t('Failed to load documentation for the %s platform.', project.platform)}
+      onRetry={fetchData}
+    />
+  );
+
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
+
+  return (
+    <React.Fragment>
+      <Wrapper>
+        <TargetedOnboardingSidebar
+          projects={projects}
+          selectedPlatformToProjectIdMap={
+            clientState
+              ? Object.fromEntries(
+                  clientState.selectedPlatforms.map(platform => [
+                    platform,
+                    clientState.platformToProjectIdMap[platform],
+                  ])
+                )
+              : {}
+          }
+          activeProject={project}
+          {...{checkProjectHasFirstEvent, selectProject}}
+        />
+        <MainContent>
+          <FullIntroduction currentPlatform={currentPlatform} />
+          {getDynamicText({
+            value: !hasError ? docs : loadingError,
+            fixed: testOnlyAlert,
+          })}
+        </MainContent>
+      </Wrapper>
+
       {project && (
         <FirstEventFooter
           project={project}
@@ -136,7 +210,14 @@ function SetupDocs({organization, projects, search}: Props) {
           isLast={projectIndex === projects.length - 1}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            // TODO: analytics
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
+            );
             const nextProject = projects.find(
               (p, index) => !p.firstEvent && index > projectIndex
             );
@@ -153,36 +234,7 @@ function SetupDocs({organization, projects, search}: Props) {
           }}
         />
       )}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t('Failed to load documentation for the %s platform.', platform)}
-      onRetry={fetchData}
-    />
-  );
-
-  const testOnlyAlert = (
-    <Alert type="warning">
-      Platform documentation is not rendered in for tests in CI
-    </Alert>
-  );
-
-  return (
-    <Wrapper>
-      <TargetedOnboardingSidebar
-        activeProject={project}
-        {...{checkProjectHasFirstEvent, setNewProject}}
-      />
-      <MainContent>
-        <FullIntroduction currentPlatform={currentPlatform} />
-        {getDynamicText({
-          value: !hasError ? docs : loadingError,
-          fixed: testOnlyAlert,
-        })}
-      </MainContent>
-    </Wrapper>
+    </React.Fragment>
   );
 }
 
@@ -255,12 +307,14 @@ DocsWrapper.defaultProps = {
 };
 
 const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: fit-content(100%) fit-content(100%);
-  width: max-content;
+  display: flex;
+  flex-direction: row;
   margin: ${space(2)};
+  justify-content: center;
 `;
 
 const MainContent = styled('div')`
-  width: 850px;
+  max-width: 850px;
+  min-width: 0;
+  flex-grow: 1;
 `;

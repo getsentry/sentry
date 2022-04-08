@@ -87,7 +87,6 @@ class DashboardWidgetQuery(Model):
     # database migration.
     aggregates = DjangoArrayField(models.TextField(), null=True)
     columns = DjangoArrayField(models.TextField(), null=True)
-
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header
     field_aliases = DjangoArrayField(models.TextField(), null=True)

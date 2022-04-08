@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
-import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
+import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';

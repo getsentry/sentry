@@ -1,5 +1,6 @@
-import * as React from 'react';
+import {ChangeEvent, Fragment, ReactNode} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import cloneDeep from 'lodash/cloneDeep';
@@ -19,9 +20,12 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import Form from 'sentry/components/forms/form';
+import SelectControl from 'sentry/components/forms/selectControl';
 import SelectField from 'sentry/components/forms/selectField';
 import TeamSelector from 'sentry/components/forms/teamSelector';
+import IdBadge from 'sentry/components/idBadge';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -45,6 +49,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
+import withProjects from 'sentry/utils/withProjects';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -98,12 +103,16 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
+type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
+
 type Props = {
   organization: Organization;
   project: Project;
+  projects: Project[];
   userTeamIds: string[];
+  loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = AsyncView['state'] & {
   configs: {
@@ -124,6 +133,12 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
+  pollingTimeout: number | undefined = undefined;
+
+  componentWillUnmount() {
+    window.clearTimeout(this.pollingTimeout);
+  }
+
   getTitle() {
     const {organization, project} = this.props;
     const {rule} = this.state;
@@ -156,15 +171,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
+    const {
+      project,
+      params: {ruleId, orgId},
+    } = this.props;
 
     const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+      ['environments', `/projects/${orgId}/${project.slug}/environments/`],
+      ['configs', `/projects/${orgId}/${project.slug}/rules/configuration/`],
     ];
 
     if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
+      endpoints.push(['rule', `/projects/${orgId}/${project.slug}/rules/${ruleId}/`]);
     }
 
     return endpoints as [string, string][];
@@ -203,7 +221,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        setTimeout(() => {
+        window.clearTimeout(this.pollingTimeout);
+
+        this.pollingTimeout = window.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -232,7 +252,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    setTimeout(() => {
+    window.clearTimeout(this.pollingTimeout);
+
+    this.pollingTimeout = window.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }
@@ -263,7 +285,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
-  handleRuleSaveFailure(msg: React.ReactNode) {
+  handleRuleSaveFailure(msg: ReactNode) {
     addErrorMessage(msg);
     metric.endTransaction({name: 'saveAlertRule'});
   }
@@ -559,9 +581,94 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
+  renderRuleName(hasAccess: boolean, canEdit: boolean, hasAlertWizardV3: boolean) {
+    const {rule, detailedError} = this.state;
+    const {name} = rule || {};
+
+    return (
+      <StyledField
+        hasAlertWizardV3={hasAlertWizardV3}
+        label={hasAlertWizardV3 ? null : t('Alert name')}
+        help={hasAlertWizardV3 ? null : t('Add a name for this alert')}
+        error={detailedError?.name?.[0]}
+        disabled={!hasAccess || !canEdit}
+        required
+        stacked
+        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+      >
+        <Input
+          type="text"
+          name="name"
+          value={name}
+          placeholder={hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            this.handleChange('name', event.target.value)
+          }
+          onBlur={this.handleValidateRuleName}
+          disabled={!hasAccess || !canEdit}
+        />
+      </StyledField>
+    );
+  }
+
+  renderTeamSelect(hasAccess: boolean, canEdit: boolean, hasAlertWizardV3: boolean) {
+    const {project} = this.props;
+    const {rule} = this.state;
+    const ownerId = rule?.owner?.split(':')[1];
+
+    return (
+      <StyledField
+        hasAlertWizardV3={hasAlertWizardV3}
+        label={hasAlertWizardV3 ? null : t('Team')}
+        help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
+        disabled={!hasAccess || !canEdit}
+        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+      >
+        <TeamSelector
+          value={this.getTeamId()}
+          project={project}
+          onChange={this.handleOwnerChange}
+          teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+          useId
+          includeUnassigned
+          disabled={!hasAccess || !canEdit}
+        />
+      </StyledField>
+    );
+  }
+
+  renderActionInterval(hasAccess: boolean, canEdit: boolean, hasAlertWizardV3: boolean) {
+    const {rule} = this.state;
+    const {frequency} = rule || {};
+
+    return (
+      <StyledSelectField
+        hasAlertWizardV3={hasAlertWizardV3}
+        label={hasAlertWizardV3 ? null : t('Action Interval')}
+        help={
+          hasAlertWizardV3
+            ? null
+            : t('Perform these actions once this often for an issue')
+        }
+        clearable={false}
+        name="frequency"
+        className={this.hasError('frequency') ? ' error' : ''}
+        value={frequency}
+        required
+        options={FREQUENCY_OPTIONS}
+        onChange={val => this.handleChange('frequency', val)}
+        disabled={!hasAccess || !canEdit}
+        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+      />
+    );
+  }
+
   renderBody() {
-    const {project, organization, userTeamIds} = this.props;
-    const {environments} = this.state;
+    const {project, organization, userTeamIds, location, router, projects} = this.props;
+    const {environments, rule, detailedError} = this.state;
+    const {actions, filters, conditions, frequency} = rule || {};
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
     const environmentOptions = [
       {
         value: ALL_ENVIRONMENTS_KEY,
@@ -570,9 +677,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
         []),
     ];
-
-    const {rule, detailedError} = this.state;
-    const {actions, filters, conditions, frequency, name} = rule || {};
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -619,60 +723,90 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             <List symbol="colored-numeric">
               {this.state.loading && <SemiTransparentLoadingMask />}
               <StyledListItem>{t('Add alert settings')}</StyledListItem>
-              <Panel>
-                <PanelBody>
-                  <SelectField
+              {hasAlertWizardV3 ? (
+                <SettingsContainer>
+                  <StyledSelectField
+                    hasAlertWizardV3={hasAlertWizardV3}
                     className={classNames({
                       error: this.hasError('environment'),
                     })}
-                    label={t('Environment')}
-                    help={t('Choose an environment for these conditions to apply to')}
                     placeholder={t('Select an Environment')}
                     clearable={false}
                     name="environment"
                     options={environmentOptions}
                     onChange={val => this.handleEnvironmentChange(val)}
                     disabled={!hasAccess || !canEdit}
+                    flexibleControlStateSize
                   />
-
-                  <StyledField
-                    label={t('Team')}
-                    help={t('The team that can edit this alert.')}
+                  <SelectControl
                     disabled={!hasAccess || !canEdit}
-                  >
-                    <TeamSelector
-                      value={this.getTeamId()}
-                      project={project}
-                      onChange={this.handleOwnerChange}
-                      teamFilter={(team: Team) => team.isMember || team.id === ownerId}
-                      useId
-                      includeUnassigned
+                    value={project.id}
+                    styles={{
+                      container: (provided: {
+                        [x: string]: string | number | boolean;
+                      }) => ({
+                        ...provided,
+                        marginBottom: `${space(1)}`,
+                      }),
+                    }}
+                    options={projects.map(_project => ({
+                      label: _project.slug,
+                      value: _project.id,
+                      leadingItems: (
+                        <IdBadge
+                          project={_project}
+                          avatarProps={{consistentWidth: true}}
+                          avatarSize={18}
+                          disableLink
+                          hideName
+                        />
+                      ),
+                    }))}
+                    onChange={({label}: {label: Project['slug']}) =>
+                      router.replace({
+                        ...location,
+                        query: {
+                          ...location.query,
+                          project: label,
+                        },
+                      })
+                    }
+                    components={{
+                      SingleValue: containerProps => (
+                        <components.ValueContainer {...containerProps}>
+                          <IdBadge
+                            project={project}
+                            avatarProps={{consistentWidth: true}}
+                            avatarSize={18}
+                            disableLink
+                          />
+                        </components.ValueContainer>
+                      ),
+                    }}
+                  />
+                </SettingsContainer>
+              ) : (
+                <Panel>
+                  <PanelBody>
+                    <SelectField
+                      className={classNames({
+                        error: this.hasError('environment'),
+                      })}
+                      label={t('Environment')}
+                      help={t('Choose an environment for these conditions to apply to')}
+                      placeholder={t('Select an Environment')}
+                      clearable={false}
+                      name="environment"
+                      options={environmentOptions}
+                      onChange={val => this.handleEnvironmentChange(val)}
                       disabled={!hasAccess || !canEdit}
                     />
-                  </StyledField>
 
-                  <StyledField
-                    label={t('Alert name')}
-                    help={t('Add a name for this alert')}
-                    error={detailedError?.name?.[0]}
-                    disabled={!hasAccess || !canEdit}
-                    required
-                    stacked
-                  >
-                    <Input
-                      type="text"
-                      name="name"
-                      value={name}
-                      placeholder={t('My Rule Name')}
-                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                        this.handleChange('name', event.target.value)
-                      }
-                      onBlur={this.handleValidateRuleName}
-                      disabled={!hasAccess || !canEdit}
-                    />
-                  </StyledField>
-                </PanelBody>
-              </Panel>
+                    {this.renderTeamSelect(hasAccess, canEdit, hasAlertWizardV3)}
+                    {this.renderRuleName(hasAccess, canEdit, hasAlertWizardV3)}
+                  </PanelBody>
+                </Panel>
+              )}
               <SetConditionsListItem>
                 {t('Set conditions')}
                 <SetupAlertIntegrationButton
@@ -885,23 +1019,28 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </Step>
                 </PanelBody>
               </ConditionsPanel>
-              <StyledListItem>{t('Set action interval')}</StyledListItem>
-              <Panel>
-                <PanelBody>
-                  <SelectField
-                    label={t('Action Interval')}
-                    help={t('Perform these actions once this often for an issue')}
-                    clearable={false}
-                    name="frequency"
-                    className={this.hasError('frequency') ? ' error' : ''}
-                    value={frequency}
-                    required
-                    options={FREQUENCY_OPTIONS}
-                    onChange={val => this.handleChange('frequency', val)}
-                    disabled={!hasAccess || !canEdit}
-                  />
-                </PanelBody>
-              </Panel>
+              <StyledListItem>
+                {t('Set action interval')}
+                <StyledFieldHelp>
+                  {t('Perform the actions above once this often for an issue')}
+                </StyledFieldHelp>
+              </StyledListItem>
+              {hasAlertWizardV3 ? (
+                this.renderActionInterval(hasAccess, canEdit, hasAlertWizardV3)
+              ) : (
+                <Panel>
+                  <PanelBody>
+                    {this.renderActionInterval(hasAccess, canEdit, hasAlertWizardV3)}
+                  </PanelBody>
+                </Panel>
+              )}
+              {hasAlertWizardV3 && (
+                <Fragment>
+                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
+                  {this.renderRuleName(hasAccess, canEdit, hasAlertWizardV3)}
+                  {this.renderTeamSelect(hasAccess, canEdit, hasAlertWizardV3)}
+                </Fragment>
+              )}
             </List>
           </StyledForm>
         )}
@@ -910,7 +1049,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(IssueRuleEditor);
+export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
@@ -929,6 +1068,10 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const StyledFieldHelp = styled(FieldHelp)`
+  margin-top: 0;
 `;
 
 const SetConditionsListItem = styled(StyledListItem)`
@@ -1003,8 +1146,44 @@ const SemiTransparentLoadingMask = styled(LoadingMask)`
   z-index: 1; /* Needed so that it sits above form elements */
 `;
 
-const StyledField = styled(Field)`
+const SettingsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(1)};
+`;
+
+const StyledField = styled(Field)<{hasAlertWizardV3?: boolean}>`
   :last-child {
     padding-bottom: ${space(2)};
   }
+
+  ${p =>
+    p.hasAlertWizardV3 &&
+    `
+    border-bottom: none;
+    padding: 0;
+
+    & > div {
+      padding: 0;
+      width: 100%;
+    }
+
+    margin-bottom: ${space(1)};
+  `}
+`;
+
+const StyledSelectField = styled(SelectField)<{hasAlertWizardV3?: boolean}>`
+  ${p =>
+    p.hasAlertWizardV3 &&
+    `
+    border-bottom: none;
+    padding: 0;
+
+    & > div {
+      padding: 0;
+      width: 100%;
+    }
+
+    margin-bottom: ${space(1)};
+  `}
 `;

@@ -1,52 +1,43 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import MetricsMetaActions from 'sentry/actions/metricsMetaActions';
 import {MetricsMeta, MetricsMetaCollection} from 'sentry/types';
-import {
-  makeSafeRefluxStore,
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
+import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
-import {CommonStoreInterface} from './types';
+import {CommonStoreDefinition} from './types';
 
 type State = {
+  /**
+   * This is state for when tags fetched from the API are loaded
+   */
+  loaded: boolean;
   metricsMeta: MetricsMetaCollection;
 };
 
-type Internals = {
-  metricsMeta: MetricsMetaCollection;
-};
-
-type MetricsMetaStoreInterface = CommonStoreInterface<State> & {
-  onLoadSuccess(data: MetricsMeta[]): void;
+interface MetricsMetaStoreDefinition extends CommonStoreDefinition<State> {
+  loadSuccess(data: MetricsMeta[]): void;
   reset(): void;
-};
+}
 
-const storeConfig: StoreDefinition &
-  Internals &
-  MetricsMetaStoreInterface &
-  SafeStoreDefinition = {
+const storeConfig: MetricsMetaStoreDefinition = {
   unsubscribeListeners: [],
-  metricsMeta: {},
-
-  init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(MetricsMetaActions.loadMetricsMetaSuccess, this.onLoadSuccess)
-    );
+  state: {
+    metricsMeta: {},
+    loaded: false,
   },
 
   reset() {
-    this.metricsMeta = {};
-    this.trigger(this.metricsMeta);
+    this.state = {
+      metricsMeta: {},
+      loaded: false,
+    };
+    this.trigger(this.state);
   },
 
   getState() {
-    const {metricsMeta} = this;
-    return {metricsMeta};
+    return this.state;
   },
 
-  onLoadSuccess(data) {
+  loadSuccess(data) {
     const newFields = data.reduce<MetricsMetaCollection>((acc, field) => {
       acc[field.name] = {
         ...field,
@@ -55,13 +46,14 @@ const storeConfig: StoreDefinition &
       return acc;
     }, {});
 
-    this.metricsMeta = {...this.metricsMeta, ...newFields};
-    this.trigger(this.metricsMeta);
+    this.state = {
+      metricsMeta: {...this.state.metricsMeta, ...newFields},
+      loaded: true,
+    };
+    this.trigger(this.state);
   },
 };
 
-const MetricsMetaStore = createStore(
-  makeSafeRefluxStore(storeConfig)
-) as SafeRefluxStore & MetricsMetaStoreInterface;
+const MetricsMetaStore = createStore(makeSafeRefluxStore(storeConfig));
 
 export default MetricsMetaStore;

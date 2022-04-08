@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {CALCULATED_FIELD_PREFIX} from 'sentry/utils/discover/fields';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
@@ -44,6 +45,22 @@ describe('Dashboards > MetricsWidgetQueries', function () {
         conditions: '',
         fields: [`count_unique(${SessionMetric.USER})`],
         aggregates: [`count_unique(${SessionMetric.USER})`],
+        columns: [],
+        name: 'sessions',
+        orderby: '',
+      },
+    ],
+    widgetType: WidgetType.METRICS,
+  };
+  const derivedMetricQueryWidget = {
+    title: 'Crash Free Rate',
+    interval: '5m',
+    displayType: DisplayType.LINE,
+    queries: [
+      {
+        conditions: '',
+        fields: [`${CALCULATED_FIELD_PREFIX}session.crash_free_rate`],
+        aggregates: [`${CALCULATED_FIELD_PREFIX}session.crash_free_rate`],
         columns: [],
         name: 'sessions',
         orderby: '',
@@ -430,5 +447,52 @@ describe('Dashboards > MetricsWidgetQueries', function () {
 
     // no additional request has been sent, the total count of requests is still 1
     expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests derived metrics without calculated metrics prefix', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({
+        field: ['session.crash_free_rate'],
+      }),
+    });
+    const children = jest.fn(() => <div />);
+
+    render(
+      <MetricsWidgetQueries
+        api={api}
+        widget={{...derivedMetricQueryWidget, displayType: DisplayType.BIG_NUMBER}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </MetricsWidgetQueries>
+    );
+
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          per_page: 1,
+          orderBy: 'session.crash_free_rate',
+        }),
+      })
+    );
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          tableResults: [
+            {
+              data: [{id: '0', 'session.crash_free_rate': 51292.95404741901}],
+              meta: {'session.crash_free_rate': 'percentage'},
+              title: 'sessions',
+            },
+          ],
+        })
+      )
+    );
   });
 });

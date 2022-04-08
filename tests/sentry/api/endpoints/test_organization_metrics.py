@@ -8,6 +8,8 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import percentage
+from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
 
@@ -16,7 +18,10 @@ MOCKED_DERIVED_METRICS.update(
     {
         "crash_free_fake": SingularEntityDerivedMetric(
             metric_name="crash_free_fake",
-            metrics=["session.crashed", "session.errored_set"],
+            metrics=[
+                SessionMRI.CRASHED.value,
+                SessionMRI.ERRORED_SET.value,
+            ],
             unit="percentage",
             snql=lambda *args, entity, metric_ids, alias=None: percentage(
                 *args, entity, metric_ids, alias="crash_free_fake"
@@ -24,6 +29,10 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
+
+
+def mocked_mri_resolver(metric_names, mri_func):
+    return lambda x: x if x in metric_names else mri_func(x)
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
@@ -114,6 +123,10 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
         ]
 
+    @patch(
+        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
+    )
     def test_metrics_index(self):
         """
 

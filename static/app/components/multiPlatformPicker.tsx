@@ -24,10 +24,39 @@ import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
+// Category needs the all option while CategoryObj does not
+type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+type CategoryObj = typeof categoryList[number];
+type Platform = CategoryObj['platforms'][number];
+
+// create a lookup table for each platform
+const indexByPlatformByCategory = {} as Record<
+  CategoryObj['id'],
+  Record<Platform, number>
+>;
+categoryList.forEach(category => {
+  const indexByPlatform = {} as Record<Platform, number>;
+  indexByPlatformByCategory[category.id] = indexByPlatform;
+  category.platforms.forEach((platform: Platform, index: number) => {
+    indexByPlatform[platform] = index;
+  });
+});
+
+const getIndexOfPlatformInCategory = (
+  category: CategoryObj['id'],
+  platform: PlatformIntegration
+) => {
+  const indexByPlatform = indexByPlatformByCategory[category];
+  return indexByPlatform[platform.id];
+};
+
 const isPopular = (platform: PlatformIntegration) =>
   popularPlatformCategories.includes(
     platform.id as typeof popularPlatformCategories[number]
   );
+
+const popularIndex = (platform: PlatformIntegration) =>
+  getIndexOfPlatformInCategory('popular', platform);
 
 const PlatformList = styled('div')`
   display: grid;
@@ -36,19 +65,17 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
-
 interface PlatformPickerProps {
   addPlatform: (key: PlatformKey) => void;
   organization: Organization;
   platforms: PlatformKey[];
   removePlatform: (key: PlatformKey) => void;
+  source: string;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
   noAutoFilter?: boolean;
   showOther?: boolean;
-  source?: string;
 }
 
 function PlatformPicker(props: PlatformPickerProps) {
@@ -68,22 +95,32 @@ function PlatformPicker(props: PlatformPickerProps) {
     const subsetMatch = (platform: PlatformIntegration) =>
       platform.id.includes(filterLowerCase) ||
       platform.name.toLowerCase().includes(filterLowerCase) ||
-      filterAliases[platform.id as PlatformKey]?.some(alias =>
-        alias.includes(filterLowerCase)
-      );
+      filterAliases[platform.id]?.some(alias => alias.includes(filterLowerCase));
 
     const categoryMatch = (platform: PlatformIntegration) =>
       category === 'all' ||
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
     const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top
+      // for the all category, put popular ones at the top in the order they appear in the popular list
       if (category === 'all') {
+        if (isPopular(a) && isPopular(b)) {
+          // if both popular, maintain ordering from popular list
+          return popularIndex(a) - popularIndex(b);
+        }
+        // if one popular, that one shhould be first
         if (isPopular(a) !== isPopular(b)) {
           return isPopular(a) ? -1 : 1;
         }
+        // since the all list is coming from a different source (platforms.json)
+        // we can't go off the index of the item in platformCategories.tsx since there is no all list
+        return a.id.localeCompare(b.id);
       }
-      return a.id.localeCompare(b.id);
+      // maintain ordering otherwise
+      return (
+        getIndexOfPlatformInCategory(category, a) -
+        getIndexOfPlatformInCategory(category, b)
+      );
     };
 
     const filtered = platforms
@@ -151,18 +188,22 @@ function PlatformPicker(props: PlatformPickerProps) {
             data-test-id={`platform-${platform.id}`}
             key={platform.id}
             platform={platform}
-            selected={props.platforms.includes(platform.id as PlatformKey)}
+            selected={props.platforms.includes(platform.id)}
             onClear={(e: React.MouseEvent) => {
-              removePlatform(platform.id as PlatformKey);
+              removePlatform(platform.id);
               e.stopPropagation();
             }}
             onClick={() => {
+              // do nothing if already selected
+              if (props.platforms.includes(platform.id)) {
+                return;
+              }
               trackAdvancedAnalyticsEvent('growth.select_platform', {
                 platform_id: platform.id,
                 source,
                 organization,
               });
-              addPlatform(platform.id as PlatformKey);
+              addPlatform(platform.id);
             }}
           />
         ))}
@@ -241,6 +282,7 @@ const ClearButton = styled(Button)`
   position: absolute;
   top: -6px;
   right: -6px;
+  min-height: 0;
   height: 22px;
   width: 22px;
   display: flex;

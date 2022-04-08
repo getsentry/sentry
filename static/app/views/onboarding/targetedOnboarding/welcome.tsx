@@ -76,7 +76,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
             )}
           </SubHeaderText>
-          <ActionItem>
+          <ActionItem {...fadeAway}>
             <InnerAction
               title={t('Install Sentry')}
               subText={t(
@@ -101,7 +101,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               }
             />
           </ActionItem>
-          <ActionItem>
+          <ActionItem {...fadeAway}>
             <InnerAction
               title={t('Setup my team')}
               subText={tct(
@@ -121,7 +121,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
               }
             />
           </ActionItem>
-          <motion.p style={{margin: 0}}>
+          <motion.p style={{margin: 0}} {...fadeAway}>
             {t("Gee, I've used Sentry before.")}
             <br />
             <Link
@@ -156,15 +156,16 @@ const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
-  align-self: center;
   text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 
   h1 {
     font-size: 42px;
   }
 `;
 
-const ActionItem = styled('div')`
+const ActionItem = styled(motion.div)`
   min-height: 120px;
   border-radius: ${space(0.5)};
   padding: ${space(2)};

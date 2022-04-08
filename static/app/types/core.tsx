@@ -4,8 +4,8 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
-import {getInterval} from 'sentry/components/charts/utils';
-import {API_ACCESS_SCOPES} from 'sentry/constants';
+import type {getInterval} from 'sentry/components/charts/utils';
+import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user

@@ -1,6 +1,7 @@
 import datetime
 import re
 from typing import List
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -725,6 +726,66 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_custom_percentile_throws_error(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            MetricsQueryBuilder(
+                self.params,
+                "",
+                selected_columns=[
+                    "percentile(transaction.duration, 0.11)",
+                ],
+            )
+
+    def test_percentile_function(self):
+        self.maxDiff = None
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "percentile(transaction.duration, 0.75)",
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(
+                    self.organization.id,
+                    [
+                        "transaction.duration",
+                    ],
+                ),
+            ],
+        )
+        self.assertCountEqual(
+            query.distributions,
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            self.organization.id,
+                                            constants.METRICS_MAP["transaction.duration"],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "percentile_transaction_duration_0_75",
+                )
+            ],
+        )
+
     def test_metric_condition_dedupe(self):
         org_id = 1
         query = MetricsQueryBuilder(
@@ -1108,6 +1169,75 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_run_query_with_project_orderby(self):
+        project_1 = self.create_project(slug="aaaaaa")
+        project_2 = self.create_project(slug="zzzzzz")
+        for project in [project_1, project_2]:
+            self.store_metric(
+                100,
+                tags={"transaction": "foo_transaction"},
+                project=project.id,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        self.params["project_id"] = [project_1.id, project_2.id]
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="project",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_1.slug,
+            "p95_transaction_duration": 100,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_2.slug,
+            "p95_transaction_duration": 100,
+        }
+
+        query = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+            ],
+            orderby="-project",
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 2
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_2.slug,
+            "p95_transaction_duration": 100,
+        }
+        assert result["data"][1] == {
+            "transaction": indexer.resolve(self.organization.id, "foo_transaction"),
+            "project": project_1.slug,
+            "p95_transaction_duration": 100,
+        }
+
+    def test_run_query_with_tag_orderby(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                ],
+                orderby="transaction",
+            )
+            query.run_query("test_query")
+
     # TODO: multiple groupby with counter
 
     def test_run_query_with_events_per_aggregates(self):
@@ -1131,6 +1261,48 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         # Check the values are correct
         assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
         assert data["tpm"] / 60 == data["tps"]
+
+    def test_count(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["count"] == 6
+
+    def test_avg(self):
+        for _ in range(3):
+            self.store_metric(
+                150,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+            self.store_metric(
+                50,
+                timestamp=self.start + datetime.timedelta(minutes=5),
+            )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "avg()",
+            ],
+        )
+        result = query.run_query("test_query")
+        data = result["data"][0]
+        assert data["avg"] == 100
 
     def test_failure_rate(self):
         for _ in range(3):
@@ -1260,6 +1432,142 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
             query.run_query("test_query")
 
+    def test_multiple_entity_query_fails(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                "p95(transaction.duration):>5s AND count_unique(user):>0",
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                    "count_unique(user)",
+                ],
+                use_aggregate_conditions=True,
+            )
+            query.run_query("test_query")
+
+    def test_query_entity_does_not_match_orderby(self):
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query = MetricsQueryBuilder(
+                self.params,
+                "count_unique(user):>0",
+                selected_columns=[
+                    "transaction",
+                    "project",
+                    "p95(transaction.duration)",
+                    "count_unique(user)",
+                ],
+                orderby=["p95(transaction.duration)"],
+                use_aggregate_conditions=True,
+            )
+            query.run_query("test_query")
+
+    def test_aggregate_query_with_multiple_entities_without_orderby(self):
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            2,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        # This will query both sets & distribution cause of selected columns
+        query = MetricsQueryBuilder(
+            self.params,
+            # Filter by count_unique since the default primary is distributions without an orderby
+            "count_unique(user):>1",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+            allow_metric_aggregates=True,
+            use_aggregate_conditions=True,
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 200,
+            "count_unique_user": 2,
+        }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
+    def test_aggregate_query_with_multiple_entities_with_orderby(self):
+        self.store_metric(
+            200,
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "baz_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        # This will query both sets & distribution cause of selected columns
+        query = MetricsQueryBuilder(
+            self.params,
+            "p95(transaction.duration):>100",
+            selected_columns=[
+                "transaction",
+                "project",
+                "p95(transaction.duration)",
+                "count_unique(user)",
+            ],
+            orderby=["p95(transaction.duration)"],
+            allow_metric_aggregates=True,
+            use_aggregate_conditions=True,
+        )
+        result = query.run_query("test_query")
+        assert len(result["data"]) == 1
+        assert result["data"][0] == {
+            "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
+            "project": self.project.slug,
+            "p95_transaction_duration": 200,
+            "count_unique_user": 1,
+        }
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "transaction", "type": "UInt64"},
+                {"name": "project", "type": "String"},
+                {"name": "p95_transaction_duration", "type": "Float64"},
+                {"name": "count_unique_user", "type": "UInt64"},
+            ],
+        )
+
     def test_invalid_column_arg(self):
         for function in [
             "count_unique(transaction.duration)",
@@ -1349,6 +1657,26 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
             use_aggregate_conditions=False,
         )
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    @mock.patch("sentry.sentry_metrics.indexer.resolve", return_value=-1)
+    def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
+        query = MetricsQueryBuilder(
+            self.params,
+            # Include a tag:value search as well since that resolves differently
+            f"project:{self.project.slug} transaction:foo_transaction",
+            selected_columns=[
+                "transaction",
+                "p95(transaction.duration)",
+                "p100(measurements.lcp)",
+                "apdex()",
+                "count_web_vitals(measurements.lcp, good)",
+            ],
+            dry_run=True,
+        )
+        query.run_query("test_query")
+        assert not mock_indexer.called
+        assert not mock_query.called
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
