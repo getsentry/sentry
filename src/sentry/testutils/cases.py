@@ -1117,18 +1117,20 @@ class SessionMetricsTestCase(SnubaTestCase):
 
     @classmethod
     def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
         def metric_id(key: SessionMRI):
-            res = indexer.record(1, key.value)
+            res = indexer.record(org_id, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
