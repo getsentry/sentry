@@ -8,12 +8,13 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
-from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
     TransactionMetricKey,
     TransactionSatisfactionTagValue,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.utils.cursors import Cursor
@@ -990,6 +991,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.transaction_lcp_metric = indexer.record(
             self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
+        self.tx_satisfaction = indexer.record(
+            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
+        )
+        self.tx_user_metric = indexer.record(self.organization.id, TransactionMRI.USER.value)
         self.tx_satisfaction = indexer.record(
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
@@ -2034,6 +2039,52 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.apdex": 0.6666666666666666}
+
+    def test_miserable_users(self):
+        user_ts = time.time()
+        self._send_buckets(
+            [
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [1],
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.tx_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.tx_satisfaction: indexer.record(
+                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
+                        ),
+                    },
+                    "type": "s",
+                    "value": [2],
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_sets",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["transaction.miserable_user"],
+            statsPeriod="1m",
+            interval="1m",
+        )
+
+        assert len(response.data["groups"]) == 1
+        assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
     def test_session_duration_derived_alias(self):
         org_id = self.organization.id

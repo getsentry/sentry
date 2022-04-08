@@ -22,6 +22,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.fields.snql import (
     division_float,
     failure_count_transaction,
+    miserable_users,
     satisfaction_count_transaction,
     tolerated_count_transaction,
 )
@@ -160,6 +161,41 @@ class DerivedMetricSnQLTestCase(TestCase):
         assert (
             failure_count_transaction(org_id, self.metric_ids, "transactions.failed")
             == expected_failed_txs
+        )
+
+    def test_set_count_aggregation_on_tx_satisfaction(self):
+        org_id = 3030
+        alias = "transaction.miserable_user"
+
+        assert miserable_users(org_id, self.metric_ids, alias) == Function(
+            "uniqIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column(
+                                    f"tags[{resolve_weak(org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value)}]"
+                                ),
+                                resolve_weak(
+                                    org_id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "in",
+                            [
+                                Column("metric_id"),
+                                list(self.metric_ids),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
         )
 
     def test_dist_count_aggregation_on_tx_satisfaction(self):
