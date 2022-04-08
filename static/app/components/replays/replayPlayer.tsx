@@ -1,5 +1,6 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Consumer as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 
@@ -25,16 +26,25 @@ function BasePlayerRoot({className, initRoot, videoDimensions}: RootProps) {
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [viewEl.current]);
 
-  // Read the initial width/height where the player will be inserted, to setup view transform/scaling
-  // Also listen for resize events and so we can update view transform/scaling
+  // Read the initial width & height where the player will be inserted, this is
+  // so we can shrink the video into the available space.
+  // If the size of the container changes, we can re-calculate the scaling factor
+  const updateWindowDimensions = useCallback(
+    () =>
+      setWindowDimensions({
+        width: windowEl.current?.clientWidth,
+        height: windowEl.current?.clientHeight,
+      } as Dimensions),
+    [windowEl.current]
+  );
+  useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
+  // If your browser doesn't have ResizeObserver then set the size once.
   useEffect(() => {
-    // TODO: throttle or debounce this?
-    const handleResize = () =>
-      setWindowDimensions(windowEl.current?.getBoundingClientRect());
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [windowEl.current]);
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateWindowDimensions();
+  }, [updateWindowDimensions]);
 
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
