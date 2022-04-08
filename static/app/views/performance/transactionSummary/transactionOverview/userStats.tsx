@@ -96,7 +96,7 @@ function UserStats({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             project={eventView.project}
-            hideVitalPercentNames
+            hideVitalThresholds
             hideDurationDetail
           />
           <SidebarSpacer />

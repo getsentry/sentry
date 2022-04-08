@@ -17,6 +17,7 @@ type Props = {
   vital: WebVital | WebVital[];
   hideTooltips?: boolean;
   showVitalPercentNames?: boolean;
+  showVitalThresholds?: boolean;
 };
 
 function getVitalStateText(vital: WebVital | WebVital[], vitalState) {
@@ -47,7 +48,7 @@ export default function VitalPercents(props: Props) {
           {vitalStateIcons[pct.vitalState]}
           {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
           {formatPercentage(pct.percent, 0)}
-          {getVitalStateText(props.vital, pct.vitalState)}
+          {props.showVitalThresholds && getVitalStateText(props.vital, pct.vitalState)}
         </VitalStatus>
       ))}
     </VitalSet>

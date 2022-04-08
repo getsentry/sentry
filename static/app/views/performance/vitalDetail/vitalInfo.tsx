@@ -20,6 +20,7 @@ type Props = ViewProps & {
   hideDurationDetail?: boolean;
   hideStates?: boolean;
   hideVitalPercentNames?: boolean;
+  hideVitalThresholds?: boolean;
   isLoading?: boolean;
   p75AllTransactions?: number;
 };
@@ -31,6 +32,7 @@ function VitalInfo({
   hideBar,
   hideStates,
   hideVitalPercentNames,
+  hideVitalThresholds,
   hideDurationDetail,
 }: Props) {
   const vitals = Array.isArray(vital) ? vital : [vital];
@@ -39,6 +41,7 @@ function VitalInfo({
     showBar: !hideBar,
     showStates: !hideStates,
     showVitalPercentNames: !hideVitalPercentNames,
+    showVitalThresholds: !hideVitalThresholds,
     showDurationDetail: !hideDurationDetail,
   };
 
