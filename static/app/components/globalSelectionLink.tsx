@@ -2,10 +2,10 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import Link, {LinkProps} from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 
-type Props = WithRouterProps & {
+interface Props extends WithRouterProps {
   /**
    * Location that is being linked to
    */
@@ -18,12 +18,12 @@ type Props = WithRouterProps & {
   /**
    * Click event (not for navigation)
    */
-  onClick?: React.ComponentProps<typeof Link>['onClick'];
+  onClick?: LinkProps['onClick'];
   /**
    * Inline styles
    */
   style?: React.CSSProperties;
-};
+}
 
 /**
  * A modified link used for navigating between organization level pages that
