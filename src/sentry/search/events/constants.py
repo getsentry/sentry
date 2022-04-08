@@ -174,7 +174,7 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
-METRICS_MAX_LIMIT = 51
+METRICS_MAX_LIMIT = 101
 METRICS_GRANULARITIES = [86400, 3600, 60, 10]
 METRIC_TOLERATED_TAG_KEY = "is_tolerated"
 METRIC_SATISFIED_TAG_KEY = "is_satisfied"
