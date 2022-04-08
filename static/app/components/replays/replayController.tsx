@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -10,16 +10,9 @@ import {IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import useRAF from './useRAF';
 import {formatTime} from './utils';
 
 const SECOND = 1000;
-
-function useCurrentTime(callback: () => number) {
-  const [currentTime, setCurrentTime] = useState(0);
-  useRAF(() => setCurrentTime(callback));
-  return currentTime;
-}
 
 interface ReplayControllerProps {
   onFullscreen?: () => void;
@@ -27,8 +20,8 @@ interface ReplayControllerProps {
 }
 
 interface ControlsProps extends Required<ReplayControllerProps> {
+  currentTime: number;
   duration: number | undefined;
-  getCurrentTime: () => number;
   isPlaying: boolean;
   isSkippingInactive: boolean;
   onChangeSpeed: (value: number) => void;
@@ -39,8 +32,8 @@ interface ControlsProps extends Required<ReplayControllerProps> {
 }
 
 const ReplayControls = ({
+  currentTime,
   duration,
-  getCurrentTime,
   isPlaying,
   isSkippingInactive,
   onChangeSpeed,
@@ -51,134 +44,96 @@ const ReplayControls = ({
   togglePlayPause,
   toggleSkipInactive,
 }: ControlsProps) => {
-  const currentTime = useCurrentTime(getCurrentTime);
-
   return (
-    <FlexLayout direction="column" gap={0}>
+    <Column>
       <TimelineRange
         data-test-id="replay-timeline-range"
-        name="repaly-timeline"
+        name="replay-timeline"
         min={0}
         max={duration}
         value={Math.round(currentTime)}
         onChange={value => setCurrentTime(value || 0)}
         showLabel={false}
       />
-      <ButtonLayout>
-        <FlexLayout direction="row" alignItems="center">
-          <ButtonBar merged>
-            <Button
-              data-test-id="replay-back-10s"
-              size="xsmall"
-              title={t('Go back 10 seconds')}
-              icon={<IconRefresh color="gray500" size="sm" />}
-              onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
-              aria-label={t('Jump back 10 seconds')}
-            />
-            <Button
-              data-test-id="replay-play-pause"
-              size="xsmall"
-              title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
-              icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
-              onClick={() => togglePlayPause(!isPlaying)}
-              aria-label={t('Toggle real-time updates')}
-            />
-            <Button
-              data-test-id="replay-forward-10s"
-              size="xsmall"
-              title={t('Go forwards 10 seconds')}
-              icon={<IconRefresh color="gray500" size="sm" />}
-              onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
-              aria-label={t('Jump forward 10 seconds')}
-            />
-          </ButtonBar>
-          <span>
-            {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
-          </span>
-        </FlexLayout>
-        <FlexLayout direction="row">
-          <RightLeftBooleanField
-            data-test-id="replay-skip-inactive"
-            name="skip-inactive"
-            label={t('Skip to events')}
-            onChange={() => toggleSkipInactive(!isSkippingInactive)}
-            inline={false}
-            stacked
-            hideControlState
-            value={isSkippingInactive}
-          />
-          <ButtonBar active={String(speed)} merged>
-            {speedOptions.map(opt => (
-              <Button
-                key={opt}
-                size="xsmall"
-                barId={String(opt)}
-                onClick={() => onChangeSpeed(opt)}
-                title={t('Set playback speed to %s', `${opt}x`)}
-              >
-                {opt}x
-              </Button>
-            ))}
-          </ButtonBar>
 
+      <ButtonGrid>
+        <ButtonBar merged>
           <Button
-            data-test-id="replay-fullscreen"
+            data-test-id="replay-back-10s"
             size="xsmall"
-            title={t('View the Replay in full screen')}
-            icon={<IconResize size="sm" />}
-            onClick={() => onFullscreen()}
-            aria-label={t('View in full screen')}
+            title={t('Go back 10 seconds')}
+            icon={<IconRefresh color="gray500" size="sm" />}
+            onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
+            aria-label={t('Go back 10 seconds')}
           />
-        </FlexLayout>
-      </ButtonLayout>
-    </FlexLayout>
+          <Button
+            data-test-id="replay-play-pause"
+            size="xsmall"
+            title={isPlaying ? t('Pause the Replay') : t('Play the Replay')}
+            icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
+            onClick={() => togglePlayPause(!isPlaying)}
+            aria-label={t('Toggle real-time updates')}
+          />
+          <Button
+            data-test-id="replay-forward-10s"
+            size="xsmall"
+            title={t('Go forwards 10 seconds')}
+            icon={<IconRefresh color="gray500" size="sm" />}
+            onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
+            aria-label={t('Go forwards 10 seconds')}
+          />
+        </ButtonBar>
+        <span>
+          {formatTime(currentTime)} / {duration ? formatTime(duration) : '??:??'}
+        </span>
+
+        <RightLeftBooleanField
+          data-test-id="replay-skip-inactive"
+          name="skip-inactive"
+          label={t('Skip to events')}
+          onChange={() => toggleSkipInactive(!isSkippingInactive)}
+          inline={false}
+          stacked
+          hideControlState
+          value={isSkippingInactive}
+        />
+        <ButtonBar active={String(speed)} merged>
+          {speedOptions.map(opt => (
+            <Button
+              key={opt}
+              size="xsmall"
+              barId={String(opt)}
+              onClick={() => onChangeSpeed(opt)}
+              title={t('Set playback speed to %s', `${opt}x`)}
+            >
+              {opt}x
+            </Button>
+          ))}
+        </ButtonBar>
+
+        <Button
+          data-test-id="replay-fullscreen"
+          size="xsmall"
+          title={t('View the Replay in full screen')}
+          icon={<IconResize size="sm" />}
+          onClick={() => onFullscreen()}
+          aria-label={t('View in full screen')}
+        />
+      </ButtonGrid>
+    </Column>
   );
 };
 
-type FlexDirectionValues =
-  | 'row'
-  | 'row-reverse'
-  | 'column'
-  | 'column-reverse'
-  | 'inherit'
-  | 'initial'
-  | 'revert'
-  | 'revert-layer'
-  | 'unset';
-
-type AlignItemsValues =
-  | 'normal'
-  | 'stretch'
-  | 'center'
-  | 'start'
-  | 'end'
-  | 'flex-start'
-  | 'flex-end'
-  | 'baseline'
-  | 'first baseline'
-  | 'last baseline'
-  | 'safe center'
-  | 'unsafe center'
-  | 'inherit'
-  | 'initial'
-  | 'revert'
-  | 'revert-layer'
-  | 'unset';
-
-const FlexLayout = styled('div')<{
-  alignItems?: AlignItemsValues;
-  direction?: FlexDirectionValues;
-  gap?: Parameters<typeof space>[0];
-}>`
-  display: flex;
-  flex-direction: ${p => p.direction ?? 'initial'};
-  gap: ${p => space(p.gap ?? 1)};
-  align-items: ${p => p.alignItems ?? 'initial'};
+const Column = styled('div')`
+  display: grid;
+  flex-direction: column;
 `;
 
-const ButtonLayout = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const ButtonGrid = styled('div')`
+  display: grid;
+  grid-column-gap: ${space(1)};
+  grid-template-columns: max-content auto max-content max-content max-content;
+  align-items: center;
 `;
 
 const TimelineRange = styled(RangeSlider)`
@@ -205,23 +160,23 @@ export default function ReplayController({
   return (
     <ReplayContextProvider>
       {({
+        currentTime,
         duration,
-        getCurrentTime,
-        handleSpeedChange,
         isPlaying,
         setCurrentTime,
         skipInactive,
+        setSpeed,
         speed,
         togglePlayPause,
         toggleSkipInactive,
       }) => {
         return (
           <ReplayControls
+            currentTime={currentTime}
             duration={duration}
-            getCurrentTime={getCurrentTime}
             isPlaying={isPlaying}
             isSkippingInactive={skipInactive}
-            onChangeSpeed={handleSpeedChange}
+            onChangeSpeed={setSpeed}
             onFullscreen={onFullscreen}
             setCurrentTime={setCurrentTime}
             speed={speed}

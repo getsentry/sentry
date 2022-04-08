@@ -5,6 +5,8 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import usePrevious from 'sentry/utils/usePrevious';
 
+import useRAF from './useRAF';
+
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
@@ -12,14 +14,14 @@ type RootElem = null | HTMLDivElement;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
+  currentTime: number;
   dimensions: Dimensions;
   duration: undefined | number;
   events: eventWithTime[];
-  getCurrentTime: () => number;
-  handleSpeedChange: (speed: number) => void;
   initRoot: (root: RootElem) => void;
   isPlaying: boolean;
   setCurrentTime: (time: number) => void;
+  setSpeed: (speed: number) => void;
   skipInactive: boolean;
   speed: number;
   togglePlayPause: (play: boolean) => void;
@@ -27,14 +29,14 @@ type ReplayPlayerContextProps = {
 };
 
 const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
+  currentTime: 0,
   dimensions: {height: 0, width: 0},
   duration: undefined,
   events: [],
-  getCurrentTime: () => 0,
-  handleSpeedChange: () => {},
   initRoot: _root => {},
   isPlaying: false,
   setCurrentTime: () => {},
+  setSpeed: () => {},
   skipInactive: false,
   speed: 1,
   togglePlayPause: () => {},
@@ -45,6 +47,12 @@ type Props = {
   events: eventWithTime[];
 };
 
+function useCurrentTime(callback: () => number) {
+  const [currentTime, setCurrentTime] = useState(0);
+  useRAF(() => setCurrentTime(callback));
+  return currentTime;
+}
+
 export function Provider({children, events}: React.PropsWithChildren<Props>) {
   const theme = useTheme();
   const oldEvents = usePrevious(events);
@@ -52,7 +60,7 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
   const [skipInactive, setSkipInactive] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeedState] = useState(1);
 
   const initRoot = (root: RootElem) => {
     if (events === undefined) {
@@ -104,24 +112,6 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
     [replayerRef.current]
   );
 
-  const handleSpeedChange = useCallback(
-    (newSpeed: number) => {
-      const replayer = replayerRef.current;
-      if (!replayer) {
-        return;
-      }
-      if (isPlaying) {
-        replayer.pause();
-        replayer.setConfig({speed: newSpeed});
-        replayer.play(getCurrentTime());
-      } else {
-        replayer.setConfig({speed: newSpeed});
-      }
-      setSpeed(newSpeed);
-    },
-    [replayerRef.current, isPlaying]
-  );
-
   const setCurrentTime = useCallback(
     (time: number) => {
       const replayer = replayerRef.current;
@@ -139,6 +129,24 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
         replayer.pause(time);
         setIsPlaying(false);
       }
+    },
+    [replayerRef.current, isPlaying]
+  );
+
+  const setSpeed = useCallback(
+    (newSpeed: number) => {
+      const replayer = replayerRef.current;
+      if (!replayer) {
+        return;
+      }
+      if (isPlaying) {
+        replayer.pause();
+        replayer.setConfig({speed: newSpeed});
+        replayer.play(getCurrentTime());
+      } else {
+        replayer.setConfig({speed: newSpeed});
+      }
+      setSpeedState(newSpeed);
     },
     [replayerRef.current, isPlaying]
   );
@@ -185,17 +193,19 @@ export function Provider({children, events}: React.PropsWithChildren<Props>) {
   //   });
   // }
 
+  const currentTime = useCurrentTime(getCurrentTime);
+
   return (
     <ReplayPlayerContext.Provider
       value={{
+        currentTime,
         dimensions,
-        getCurrentTime,
         duration: replayerRef.current?.getMetaData().totalTime,
         events,
-        handleSpeedChange,
         initRoot,
         isPlaying,
         setCurrentTime,
+        setSpeed,
         skipInactive,
         speed,
         togglePlayPause,
