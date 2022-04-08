@@ -20,8 +20,12 @@ Updating:
     Update a subset of the full credentials. Returns the entire symbol source JSON config to be
     saved in project details.  See :class:`AppStoreConnectUpdateCredentialsEndpoint`.
 
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
+
+    Trigger an immediate refresh for build from this source.
+
 Status checks:
-    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+    ``GET projects/{org_slug}/{proj_slug}/appstoreconnect/status/``
 
     Returns useful info on the status of a connected app's builds and debug file downloads. Also
     validates and includes the status of API credentials associated with this app.
@@ -48,6 +52,7 @@ from sentry.lang.native import appconnect
 from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
@@ -317,6 +322,51 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         )
 
         return Response(symbol_source_config.to_redacted_json(), status=200)
+
+
+class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
+    """Triggers an immediate check for new App Store Connect builds.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
+
+    This is rate-limited to avoid hitting the App Store Connect API too much.  Ideally this
+    would be rate-limited per-project however our rate-limiting infrastructure does not
+    support this yet, so currently the rate-limit is per organisation.
+
+    If the rate-limit is exceeded a 429 Too Many Requests is returned.  The standard
+    rate-limiting facilities are used so there are also various ``X-Sentry-Rate-Limit-*``
+    headers, see the sentry.middleware.ratelimit module.
+    """
+
+    permission_classes = [StrictProjectPermission]
+    enforce_rate_limit = True
+
+    # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h
+    # per project.  We can not set per-project rate limits unfortunately.
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(1, 20),
+            RateLimitCategory.USER: RateLimit(1, 45),
+            RateLimitCategory.ORGANIZATION: RateLimit(720, 3600),
+        }
+    }
+
+    def post(self, request: Request, project: Project, credentials_id: str) -> Response:
+        try:
+            symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
+            return Response(status=404)
+
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": symbol_source_config.id,
+            }
+        )
+
+        return Response(status=200)
 
 
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
