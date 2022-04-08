@@ -97,7 +97,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   cli:
-    needs: file-changed
+    needs: files-changed
     name: cli test
     runs-on: ubuntu-20.04
     timeout-minutes: 10
