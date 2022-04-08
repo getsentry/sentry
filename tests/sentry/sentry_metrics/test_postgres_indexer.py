@@ -8,6 +8,7 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
     PGStringIndexerV2,
     StaticStringsIndexerDecorator,
 )
+from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
@@ -50,10 +51,10 @@ class StaticStringsIndexerTest(TestCase):
         org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
         results = self.indexer.bulk_record(org_strings=org_strings)
 
-        assert results[2]["release"] == 13
-        assert results[3]["production"] == 12
-        assert results[3]["environment"] == 7
-        assert results[3]["release"] == 13
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
 
     def test_static_and_non_static_strings(self):
         org_strings = {
@@ -65,10 +66,10 @@ class StaticStringsIndexerTest(TestCase):
         v1 = StringIndexer.objects.get(organization_id=2, string="1.0.0")
         v2 = StringIndexer.objects.get(organization_id=3, string="2.0.0")
 
-        assert results[2]["release"] == 13
-        assert results[3]["production"] == 12
-        assert results[3]["environment"] == 7
-        assert results[3]["release"] == 13
+        assert results[2]["release"] == SHARED_STRINGS["release"]
+        assert results[3]["production"] == SHARED_STRINGS["production"]
+        assert results[3]["environment"] == SHARED_STRINGS["environment"]
+        assert results[3]["release"] == SHARED_STRINGS["release"]
 
         assert results[2]["1.0.0"] == v1.id
         assert results[3]["2.0.0"] == v2.id
