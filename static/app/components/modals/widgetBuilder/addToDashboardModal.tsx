@@ -73,8 +73,6 @@ function AddToDashboardModal({
 
     try {
       const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
-      console.log('dashboard', dashboard);
-      console.log(widget);
       const newDashboard = {
         ...dashboard,
         widgets: [
@@ -83,8 +81,7 @@ function AddToDashboardModal({
         ],
       };
 
-      const response = await updateDashboard(api, organization.slug, newDashboard);
-      console.log('response', response);
+      await updateDashboard(api, organization.slug, newDashboard);
 
       closeModal();
       addSuccessMessage(t('Successfully added widget to dashboard'));

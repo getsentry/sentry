@@ -168,6 +168,7 @@ class QueryList extends React.Component<Props> {
             interval: eventView.interval,
           },
           router,
+          widgetAsQueryParams,
         });
         return;
       }

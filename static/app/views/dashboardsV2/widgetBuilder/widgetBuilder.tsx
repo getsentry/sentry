@@ -769,12 +769,12 @@ function WidgetBuilder({
 
     try {
       const dashboards = await promise;
-      setState({...state, dashboards, loading: false});
+      setState(prevState => ({...prevState, dashboards, loading: false}));
     } catch (error) {
       const errorMessage = t('Unable to fetch dashboards');
       addErrorMessage(errorMessage);
       handleXhrErrorResponse(errorMessage)(error);
-      setState({...state, loading: false});
+      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
