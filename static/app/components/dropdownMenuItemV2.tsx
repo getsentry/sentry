@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -7,6 +6,7 @@ import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 
+import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
@@ -74,8 +74,7 @@ export type MenuItemProps = {
    */
   submenuTitle?: string;
   /**
-   * React-router destination if menu item is a link. Note: currently only
-   * internal links (callable with `router.push()`) are supported.
+   * Destination if this menu item is a link. See also: `isExternalLink`.
    */
   to?: string;
   /*
@@ -126,170 +125,161 @@ type Props = {
    * this ref
    */
   submenuTriggerRef?: React.RefObject<HTMLLIElement>;
-} & WithRouterProps;
+};
 
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = withRouter(
-  ({
-    node,
-    isLastNode,
-    state,
-    onClose,
-    closeOnSelect,
-    isSubmenuTrigger = false,
-    submenuTriggerRef,
-    renderAs = 'li' as React.ElementType,
-    router,
-    ...submenuTriggerProps
-  }: Props) => {
-    const [isHovering, setIsHovering] = useState(false);
-    const ref = submenuTriggerRef ?? useRef(null);
-    const isDisabled = state.disabledKeys.has(node.key);
-    const isFocused = state.selectionManager.focusedKey === node.key;
-    const item = node.value;
+const MenuItem = ({
+  node,
+  isLastNode,
+  state,
+  onClose,
+  closeOnSelect,
+  isSubmenuTrigger = false,
+  submenuTriggerRef,
+  renderAs = 'li' as React.ElementType,
+  ...submenuTriggerProps
+}: Props) => {
+  const [isHovering, setIsHovering] = useState(false);
+  const ref = submenuTriggerRef ?? useRef(null);
+  const isDisabled = state.disabledKeys.has(node.key);
+  const isFocused = state.selectionManager.focusedKey === node.key;
+  const item = node.value;
 
-    const actionHandler = () => {
+  const actionHandler = () => {
+    if (item.to) {
+      return;
+    }
+    if (isSubmenuTrigger) {
+      state.selectionManager.select(node.key);
+      return;
+    }
+    item.onAction?.(item.key);
+  };
+
+  // Open submenu on hover
+  const {hoverProps} = useHover({onHoverChange: setIsHovering});
+  useEffect(() => {
+    if (isHovering && isFocused) {
       if (isSubmenuTrigger) {
         state.selectionManager.select(node.key);
         return;
       }
-      item.onAction?.(item.key);
-      item.to && router.push(item.to);
-    };
+      state.selectionManager.clearSelection();
+    }
+  }, [isHovering, isFocused]);
 
-    // Open submenu on hover
-    const {hoverProps} = useHover({onHoverChange: setIsHovering});
-    useEffect(() => {
-      if (isHovering && isFocused) {
-        if (isSubmenuTrigger) {
-          state.selectionManager.select(node.key);
-          return;
-        }
-        state.selectionManager.clearSelection();
+  // Open submenu on arrow right key press
+  const {keyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      if (e.key === 'Enter' && item.to) {
+        const mouseEvent = new MouseEvent('click', {
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+        });
+        ref.current?.querySelector(`${InnerWrap}`)?.dispatchEvent(mouseEvent);
+        onClose();
+        return;
       }
-    }, [isHovering, isFocused]);
 
-    // Open submenu on arrow right key press
-    const {keyboardProps} = useKeyboard({
-      onKeyDown: e => {
-        if (isSubmenuTrigger && e.key === 'ArrowRight') {
-          state.selectionManager.select(node.key);
-          return;
-        }
-        e.continuePropagation();
-      },
-    });
+      if (e.key === 'ArrowRight' && isSubmenuTrigger) {
+        state.selectionManager.select(node.key);
+        return;
+      }
 
-    // Manage interactive events & create aria attributes
-    const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
-      {
-        key: node.key,
-        onAction: actionHandler,
-        onClose,
-        closeOnSelect,
-        isDisabled,
-      },
-      state,
-      ref
-    );
+      e.continuePropagation();
+    },
+  });
 
-    // Merged menu item props, class names are combined, event handlers chained,
-    // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-    const props = mergeProps(
-      submenuTriggerProps,
-      menuItemProps,
-      hoverProps,
-      keyboardProps
-    );
-    const {
-      priority,
-      details,
-      leadingItems,
-      leadingItemsSpanFullHeight,
-      trailingItems,
-      trailingItemsSpanFullHeight,
-    } = item;
-    const label = node.rendered ?? item.label;
-    const showDividers = item.showDividers && !isLastNode;
+  // Manage interactive events & create aria attributes
+  const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
+    {
+      key: node.key,
+      onAction: actionHandler,
+      closeOnSelect: item.to ? false : closeOnSelect,
+      onClose,
+      isDisabled,
+    },
+    state,
+    ref
+  );
 
-    return (
-      <MenuItemWrap
-        ref={ref}
-        as={renderAs}
+  // Merged menu item props, class names are combined, event handlers chained,
+  // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
+  const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
+  const {
+    priority,
+    details,
+    leadingItems,
+    leadingItemsSpanFullHeight,
+    trailingItems,
+    trailingItemsSpanFullHeight,
+  } = item;
+  const label = node.rendered ?? item.label;
+  const showDividers = item.showDividers && !isLastNode;
+  const renderInnerWrapAs = item.to ? Link : 'div';
+
+  return (
+    <MenuItemWrap
+      ref={ref}
+      as={renderAs}
+      data-test-id={item.key}
+      {...props}
+      {...(isSubmenuTrigger && {role: 'menuitemradio'})}
+    >
+      <InnerWrap
         isDisabled={isDisabled}
+        isFocused={isFocused}
         priority={priority}
-        data-test-id={item.key}
-        {...(item.to && {'data-test-href': item.to})}
-        {...props}
-        {...(isSubmenuTrigger && {role: 'menuitemradio'})}
+        as={renderInnerWrapAs}
+        to={item.to}
       >
-        <InnerWrap isFocused={isFocused} priority={priority}>
-          {leadingItems && (
-            <LeadingItems
-              isDisabled={isDisabled}
-              spanFullHeight={leadingItemsSpanFullHeight}
-            >
-              {leadingItems}
-            </LeadingItems>
-          )}
-          <ContentWrap isFocused={isFocused} showDividers={showDividers}>
-            <LabelWrap>
-              <Label {...labelProps} aria-hidden="true">
-                {label}
-              </Label>
-              {details && (
-                <Details
-                  isDisabled={isDisabled}
-                  priority={priority}
-                  {...descriptionProps}
-                >
-                  {details}
-                </Details>
-              )}
-            </LabelWrap>
-            {(trailingItems || isSubmenuTrigger) && (
-              <TrailingItems
-                isDisabled={isDisabled}
-                spanFullHeight={trailingItemsSpanFullHeight}
-              >
-                {trailingItems}
-                {isSubmenuTrigger && (
-                  <IconChevron size="xs" direction="right" aria-hidden="true" />
-                )}
-              </TrailingItems>
+        {leadingItems && (
+          <LeadingItems
+            isDisabled={isDisabled}
+            spanFullHeight={leadingItemsSpanFullHeight}
+          >
+            {leadingItems}
+          </LeadingItems>
+        )}
+        <ContentWrap isFocused={isFocused} showDividers={showDividers}>
+          <LabelWrap>
+            <Label {...labelProps} aria-hidden="true">
+              {label}
+            </Label>
+            {details && (
+              <Details isDisabled={isDisabled} priority={priority} {...descriptionProps}>
+                {details}
+              </Details>
             )}
-          </ContentWrap>
-        </InnerWrap>
-      </MenuItemWrap>
-    );
-  }
-);
+          </LabelWrap>
+          {(trailingItems || isSubmenuTrigger) && (
+            <TrailingItems
+              isDisabled={isDisabled}
+              spanFullHeight={trailingItemsSpanFullHeight}
+            >
+              {trailingItems}
+              {isSubmenuTrigger && (
+                <IconChevron size="xs" direction="right" aria-hidden="true" />
+              )}
+            </TrailingItems>
+          )}
+        </ContentWrap>
+      </InnerWrap>
+    </MenuItemWrap>
+  );
+};
 export default MenuItem;
 
-const MenuItemWrap = styled('li')<{
-  isDisabled?: boolean;
-  isFocused?: boolean;
-  priority?: Priority;
-}>`
+const MenuItemWrap = styled('li')`
   position: static;
   list-style-type: none;
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
-
-  color: ${p => p.theme.textColor};
-  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
-  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
-  ${p =>
-    p.isDisabled &&
-    `
-    color: ${p.theme.subText};
-    cursor: initial;
-  `}
 
   &:focus {
     outline: none;
@@ -315,12 +305,32 @@ const getHoverBackground = (theme: Theme, priority?: Priority) => {
   return `background: ${hoverBackground}; z-index: 1;`;
 };
 
-const InnerWrap = styled('div')<{isFocused: boolean; priority?: Priority}>`
+const InnerWrap = styled('div')<{
+  isDisabled: boolean;
+  isFocused: boolean;
+  priority?: Priority;
+  to?: string;
+}>`
   display: flex;
   position: relative;
   padding: 0 ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
+
+  &,
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+  ${p => p.priority === 'primary' && `&,&:hover {color: ${p.theme.activeText}}`}
+  ${p => p.priority === 'danger' && `&,&:hover {color: ${p.theme.errorText}}`}
+  ${p =>
+    p.isDisabled &&
+    `
+    &, &:hover {
+      color: ${p.theme.subText};
+      cursor: initial;
+    }
+  `}
 
   ${p => p.isFocused && getHoverBackground(p.theme, p.priority)}
 `;
