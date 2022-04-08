@@ -15,7 +15,6 @@ import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import usePrevious from 'sentry/utils/usePrevious';
 
 import {BoundTooltip} from './boundTooltip';
 
@@ -50,22 +49,6 @@ function FlamegraphZoomView({
   const [configSpaceCursor, setConfigSpaceCursor] = useState<[number, number] | null>(
     null
   );
-
-  const previousFlamegraph = usePrevious(flamegraph);
-
-  useEffect(() => {
-    /**
-     * Whenever the flamegraph changes, the reference to the selected node
-     * may no longer be valid/correct. So clear it when that happens.
-     *
-     * The flamegraph may change for reasons like
-     * - thread changed
-     * - import happened
-     */
-    if (flamegraph.profile !== previousFlamegraph.profile) {
-      setSelectedNode(null);
-    }
-  }, [flamegraph, previousFlamegraph]);
 
   const flamegraphRenderer = useMemoWithPrevious<FlamegraphRenderer | null>(
     previousRenderer => {
