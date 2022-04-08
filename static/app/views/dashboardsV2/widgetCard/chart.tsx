@@ -266,6 +266,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       organization,
       onZoom,
       legendOptions,
+      expandNumbers,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -286,7 +287,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              if (el !== null) {
+              if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
                 this.setState({containerHeight: height});
               }

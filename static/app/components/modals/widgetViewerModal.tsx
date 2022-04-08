@@ -49,6 +49,7 @@ import {
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart from 'sentry/views/dashboardsV2/widgetCard/chart';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
+import MetricsWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/metricsWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
@@ -231,12 +232,13 @@ function WidgetViewerModal(props: Props) {
     columns.unshift(GEO_COUNTRY_CODE);
   }
   // Default table columns for visualizations that don't have a column setting
-  const shouldReplaceTableColumns = [
-    DisplayType.AREA,
-    DisplayType.LINE,
-    DisplayType.BIG_NUMBER,
-    DisplayType.BAR,
-  ].includes(widget.displayType);
+  const shouldReplaceTableColumns =
+    [
+      DisplayType.AREA,
+      DisplayType.LINE,
+      DisplayType.BIG_NUMBER,
+      DisplayType.BAR,
+    ].includes(widget.displayType) && widget.widgetType === WidgetType.DISCOVER;
 
   let equationFieldsCount = 0;
   // Updates fields by adding any individual terms from equation fields as a column
@@ -634,7 +636,7 @@ function WidgetViewerModal(props: Props) {
                 );
               }}
             </IssueWidgetQueries>
-          ) : (
+          ) : widget.widgetType === WidgetType.DISCOVER ? (
             <WidgetQueries
               api={api}
               organization={organization}
@@ -706,6 +708,48 @@ function WidgetViewerModal(props: Props) {
                 );
               }}
             </WidgetQueries>
+          ) : (
+            <MetricsWidgetQueries
+              api={api}
+              organization={organization}
+              widget={tableWidget}
+              selection={modalSelection}
+              limit={
+                widget.displayType === DisplayType.TABLE
+                  ? FULL_TABLE_ITEM_LIMIT
+                  : HALF_TABLE_ITEM_LIMIT
+              }
+            >
+              {({tableResults, loading}) => {
+                return (
+                  <React.Fragment>
+                    <GridEditable
+                      isLoading={loading}
+                      data={tableResults?.[0]?.data ?? []}
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        renderHeadCell: renderDiscoverGridHeaderCell({
+                          ...props,
+                          widget: tableWidget,
+                          tableData: tableResults?.[0],
+                          onHeaderClick: () => setChartUnmodified(false),
+                        }) as (
+                          column: GridColumnOrder,
+                          columnIndex: number
+                        ) => React.ReactNode,
+                        renderBodyCell: renderGridBodyCell({
+                          ...props,
+                          tableData: tableResults?.[0],
+                        }),
+                        onResizeColumn,
+                      }}
+                      location={location}
+                    />
+                  </React.Fragment>
+                );
+              }}
+            </MetricsWidgetQueries>
           )}
         </TableContainer>
       </React.Fragment>

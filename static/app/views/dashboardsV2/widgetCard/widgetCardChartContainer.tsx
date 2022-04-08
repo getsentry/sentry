@@ -173,6 +173,10 @@ export function WidgetCardChartContainer({
                 organization={organization}
                 isMobile={isMobile}
                 windowWidth={windowWidth}
+                onZoom={onZoom}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={legendOptions}
+                expandNumbers={expandNumbers}
               />
             </React.Fragment>
           );

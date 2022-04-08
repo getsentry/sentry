@@ -162,7 +162,11 @@ export const renderGridBodyCell =
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
-        cell = getFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget.widgetType === WidgetType.METRICS ? false : true
+        )(dataRow, {
           organization,
           location,
         });
