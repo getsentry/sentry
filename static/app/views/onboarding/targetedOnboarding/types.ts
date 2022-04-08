@@ -1,4 +1,3 @@
-import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {usePersistedStore} from 'sentry/stores/persistedStore';
 import {Organization} from 'sentry/types';
@@ -34,17 +33,6 @@ export type ClientState = {
   // a project created by onboarding could be unselected by the user in the future.
   selectedPlatforms: PlatformKey[];
 };
-
-export function fetchClientState(api: Client, orgSlug: string): Promise<ClientState> {
-  return api
-    .requestPromise(`/organizations/${orgSlug}/client-state/onboarding/`)
-    .then(lastState => {
-      // Set default values
-      lastState.platformToProjectIdMap = lastState.platformToProjectIdMap || {};
-      lastState.selectedPlatforms = lastState.selectedPlatforms || [];
-      return lastState;
-    });
-}
 
 export function useOnboardingState(): [ClientState, (next: ClientState | null) => void] {
   const [state, setState] = usePersistedStore<ClientState>('onboarding');

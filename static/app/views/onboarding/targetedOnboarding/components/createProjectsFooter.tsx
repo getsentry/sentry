@@ -21,7 +21,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
 
-import {ClientState, fetchClientState} from '../types';
+import {ClientState, useOnboardingState} from '../types';
 
 import GenericFooter from './genericFooter';
 
@@ -42,31 +42,25 @@ export default function CreateProjectsFooter({
 }: Props) {
   const api = useApi();
   const {teams} = useTeams();
+  const [clientState, setClientState] = useOnboardingState();
 
   const createProjects = async () => {
     try {
       addLoadingMessage(t('Creating projects'));
 
-      const lastState: ClientState = await fetchClientState(api, organization.slug);
       const responses = await Promise.all(
         platforms
-          .filter(platform => !lastState.platformToProjectIdMap[platform])
+          .filter(platform => !clientState.platformToProjectIdMap[platform])
           .map(platform =>
             createProject(api, organization.slug, teams[0].slug, platform, platform)
           )
       );
       const nextState: ClientState = {
-        platformToProjectIdMap: lastState.platformToProjectIdMap,
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
         selectedPlatforms: platforms,
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
-      await api.requestPromise(
-        `/organizations/${organization.slug}/client-state/onboarding/`,
-        {
-          method: 'PUT',
-          data: nextState,
-        }
-      );
+      setClientState(nextState);
 
       responses.map(ProjectActions.createSuccess);
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {

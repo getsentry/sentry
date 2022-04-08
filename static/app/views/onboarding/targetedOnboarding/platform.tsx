@@ -7,11 +7,10 @@ import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
-import {ClientState, fetchClientState, StepProps} from './types';
+import {StepProps, useOnboardingState} from './types';
 
 function OnboardingPlatform(props: StepProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
@@ -22,12 +21,10 @@ function OnboardingPlatform(props: StepProps) {
     setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
   };
 
-  const api = useApi();
+  const [clientState, _] = useOnboardingState();
   useEffect(() => {
-    fetchClientState(api, props.organization.slug).then((lastState: ClientState) => {
-      setSelectedPlatforms(lastState.selectedPlatforms);
-    });
-  }, []);
+    setSelectedPlatforms(clientState.selectedPlatforms);
+  }, [clientState]);
 
   const clearPlatforms = () => setSelectedPlatforms([]);
   return (
