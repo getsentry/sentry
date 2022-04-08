@@ -4,7 +4,11 @@ import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {fetchDashboards} from 'sentry/actionCreators/dashboards';
+import {
+  fetchDashboard,
+  fetchDashboards,
+  updateDashboard,
+} from 'sentry/actionCreators/dashboards';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -17,6 +21,7 @@ import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {DashboardListItem, MAX_WIDGETS, Widget} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 export type AddToDashboardModalProps = {
   organization: Organization;
@@ -61,9 +66,24 @@ function AddToDashboardModal({
     closeModal();
   }
 
-  function handleAddAndStayInDiscover() {
-    closeModal();
-    return;
+  async function handleAddAndStayInDiscover() {
+    if (selectedDashboardId === null) {
+      return;
+    }
+
+    try {
+      const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
+      console.log('dashboard', dashboard);
+      console.log(widget);
+      const newDashboard = {...dashboard, widgets: [...dashboard.widgets, widget]};
+
+      const response = await updateDashboard(api, organization.slug, newDashboard);
+      console.log('response', response);
+
+      closeModal();
+    } catch (e) {
+      addErrorMessage('Something went wrong');
+    }
   }
 
   const canSubmit = selectedDashboardId !== null;
