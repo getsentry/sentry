@@ -74,14 +74,14 @@ const StyledAvatar = styled(Avatar)<{hideName: boolean}>`
 const DisplayNameAndDescription = styled('div')`
   display: flex;
   flex-direction: column;
-  line-height: 1;
+  line-height: 1.2;
   overflow: hidden;
 `;
 
 const DisplayName = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  line-height: 1.2;
 `;
 
 const Description = styled('div')`
